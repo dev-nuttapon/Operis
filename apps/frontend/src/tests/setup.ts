@@ -23,4 +23,10 @@ vi.stubEnv('VITE_AUTH_BASE_URL', 'http://auth.test');
 vi.stubEnv('VITE_KEYCLOAK_URL', 'http://keycloak.test');
 vi.stubEnv('VITE_KEYCLOAK_REALM', 'test-realm');
 vi.stubEnv('VITE_KEYCLOAK_CLIENT_ID', 'test-client');
+// Mock ResizeObserver for Ant Design components
+vi.stubGlobal('ResizeObserver', class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+});
 

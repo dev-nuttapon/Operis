@@ -21,7 +21,8 @@
     "antd": "^6.3.2",
     "keycloak-js": "^26.2.3",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

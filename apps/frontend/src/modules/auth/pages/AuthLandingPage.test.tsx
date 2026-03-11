@@ -29,15 +29,18 @@ vi.mock('../../../shared/store/useThemeStore', () => ({
 }));
 
 // Mock react-i18next
+export const mockChangeLanguage = vi.fn();
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
+  useTranslation: vi.fn(() => ({
     t: (key: string) => key,
     i18n: {
       language: 'en',
-      changeLanguage: vi.fn(),
+      changeLanguage: mockChangeLanguage,
     },
-  }),
+  })),
 }));
+
+import { useTranslation } from 'react-i18next';
 
 describe('AuthLandingPage', () => {
   let mockLogin: ReturnType<typeof vi.fn> | any;
@@ -112,5 +115,56 @@ describe('AuthLandingPage', () => {
 
     const loginButton = screen.getByRole('button', { name: /login/i });
     expect(loginButton).toBeDisabled();
+  });
+
+  it('handles language changing correctly', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      isReady: true,
+      isAuthenticated: false,
+      login: mockLogin,
+      logout: mockLogout,
+    });
+    
+    // Override the mock locally for this test
+    vi.mocked(useTranslation).mockReturnValue({
+      t: (key: string) => key,
+      i18n: { language: 'en', changeLanguage: mockChangeLanguage },
+      ready: true,
+    } as any);
+
+    render(<AuthLandingPage />);
+    
+    // Ant Design's Select registers an ARIA combobox
+    const comboboxes = screen.getAllByRole('combobox');
+    const langSelect = comboboxes[0]; 
+    
+    // Simulate user toggling
+    fireEvent.mouseDown(langSelect);
+    
+    // Find the Thai option using the mocked translation key
+    const thOption = screen.getByTitle('common.language.th');
+    fireEvent.click(thOption);
+    
+    expect(mockChangeLanguage).toHaveBeenCalledWith('th');
+  });
+
+  it('handles theme changing correctly', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      isReady: true,
+      isAuthenticated: false,
+      login: mockLogin,
+      logout: mockLogout,
+    });
+
+    render(<AuthLandingPage />);
+    
+    const comboboxes = screen.getAllByRole('combobox');
+    const themeSelect = comboboxes[1]; // The second select is the Theme Select
+    
+    fireEvent.mouseDown(themeSelect);
+    const darkOption = screen.getByText('common.theme.dark');
+    fireEvent.click(darkOption);
+    
+    expect(mockSetTheme).toHaveBeenCalledWith('dark');
   });
 });
