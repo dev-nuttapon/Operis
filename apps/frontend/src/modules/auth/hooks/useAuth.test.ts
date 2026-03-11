@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useAuth } from '../useAuth';
+import { useAuth } from './useAuth';
 
 // Mock the keycloakAuth service
-vi.mock('../../services/keycloakAuth', () => ({
+vi.mock('../services/keycloakAuth', () => ({
   initKeycloak: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
 }));
 
-import { initKeycloak } from '../../services/keycloakAuth';
+import { initKeycloak } from '../services/keycloakAuth';
 
 describe('useAuth hook', () => {
   beforeEach(() => {

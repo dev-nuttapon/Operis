@@ -15,7 +15,7 @@ describe('Environment Config', () => {
     vi.stubEnv('VITE_KEYCLOAK_REALM', 'test-realm');
     vi.stubEnv('VITE_KEYCLOAK_CLIENT_ID', 'test-client');
 
-    const { appEnv } = await import('../env');
+    const { appEnv } = await import('./env');
     
     expect(appEnv.mode).toBe('dev');
     expect(appEnv.appName).toBe('Test App');
@@ -33,7 +33,7 @@ describe('Environment Config', () => {
     vi.stubEnv('VITE_KEYCLOAK_REALM', 'test-realm');
     vi.stubEnv('VITE_KEYCLOAK_CLIENT_ID', 'test-client');
 
-    const { appEnv } = await import('../env');
+    const { appEnv } = await import('./env');
     
     expect(appEnv.mode).toBe('local'); // Should normalize
   });

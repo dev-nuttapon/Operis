@@ -1,20 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { initKeycloak, login, logout, getAccessToken } from '../keycloakAuth';
+import { initKeycloak, login, logout, getAccessToken } from './keycloakAuth';
 
-// Use vi.mock to mock the default export of keycloak-js
-const mockKeycloakInit = vi.fn();
-const mockKeycloakLogin = vi.fn();
-const mockKeycloakLogout = vi.fn();
+// Use vi.hoisted to ensure dependencies are available before vi.mock
+const { mockKeycloakInit, mockKeycloakLogin, mockKeycloakLogout } = vi.hoisted(() => {
+  return {
+    mockKeycloakInit: vi.fn(),
+    mockKeycloakLogin: vi.fn(),
+    mockKeycloakLogout: vi.fn(),
+  };
+});
 
 vi.mock('keycloak-js', () => {
   return {
-    default: vi.fn().mockImplementation(() => ({
-      init: mockKeycloakInit,
-      login: mockKeycloakLogin,
-      logout: mockKeycloakLogout,
-      authenticated: false,
-      token: 'mock-token-123',
-    })),
+    default: vi.fn().mockImplementation(function() {
+      return {
+        init: mockKeycloakInit,
+        login: mockKeycloakLogin,
+        logout: mockKeycloakLogout,
+        authenticated: false,
+        token: 'mock-token-123',
+      };
+    }),
   };
 });
 
