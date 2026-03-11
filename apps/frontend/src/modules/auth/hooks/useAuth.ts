@@ -1,38 +1,9 @@
-import { useEffect, useState } from "react";
-import { initKeycloak, login, logout } from "../services/keycloakAuth";
+import { useAuthContext } from "../components/AuthProvider";
 
+/**
+ * Hook to access authentication state and actions.
+ * Uses shared AuthContext initialized once at app root via <AuthProvider>.
+ */
 export function useAuth() {
-  const [isReady, setIsReady] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-
-    initKeycloak()
-      .then((authenticated) => {
-        if (!mounted) {
-          return;
-        }
-        setIsAuthenticated(authenticated);
-        setIsReady(true);
-      })
-      .catch(() => {
-        if (!mounted) {
-          return;
-        }
-        setIsAuthenticated(false);
-        setIsReady(true);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  return {
-    isReady,
-    isAuthenticated,
-    login,
-    logout,
-  };
+  return useAuthContext();
 }

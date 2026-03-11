@@ -9,7 +9,7 @@ import { useEffect } from "react";
 const { Title, Paragraph, Text } = Typography;
 
 export function AuthLandingPage() {
-  const { isReady, isAuthenticated, login, logout } = useAuth();
+  const { isAuthenticated, login, logout } = useAuth();
   const { theme, setTheme } = useThemeStore();
   const { t, i18n } = useTranslation();
 
@@ -23,12 +23,6 @@ export function AuthLandingPage() {
      document.documentElement.setAttribute('data-theme', actualTheme);
   }, [theme]);
 
-  // Auto-redirect to Keycloak if unauthenticated
-  useEffect(() => {
-    if (isReady && !isAuthenticated) {
-      void login();
-    }
-  }, [isReady, isAuthenticated, login]);
 
   const handleLanguageChange = (val: string) => {
     i18n.changeLanguage(val);
@@ -94,7 +88,7 @@ export function AuthLandingPage() {
                   color={isAuthenticated ? "success" : "default"}
                   style={{ padding: "4px 12px", borderRadius: 12, fontSize: 14 }}
                 >
-                  {isReady ? (isAuthenticated ? t('auth.status_authenticated') : t('auth.status_anonymous')) : t('auth.status_loading')}
+                  {isAuthenticated ? t('auth.status_authenticated') : t('auth.status_anonymous')}
                 </Tag>
 
                 {!isAuthenticated ? (
@@ -103,7 +97,7 @@ export function AuthLandingPage() {
                     size="large" 
                     icon={<LoginOutlined />}
                     onClick={() => void login()} 
-                    disabled={!isReady}
+                    disabled={false}
                     style={{ width: "100%", height: 48, borderRadius: 24, fontWeight: 600 }}
                   >
                     {t('auth.login_button')}
@@ -114,7 +108,7 @@ export function AuthLandingPage() {
                     danger
                     icon={<LogoutOutlined />}
                     onClick={() => void logout()} 
-                    disabled={!isReady}
+                    disabled={false}
                     style={{ width: "100%", height: 48, borderRadius: 24, fontWeight: 600 }}
                   >
                     {t('auth.logout_button')}

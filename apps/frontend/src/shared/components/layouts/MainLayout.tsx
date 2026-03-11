@@ -10,7 +10,6 @@ import {
   LogoutOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../modules/auth/hooks/useAuth';
 import { useThemeStore, ThemeMode } from '../../store/useThemeStore';
 
@@ -20,14 +19,8 @@ export function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
   const { theme, setTheme } = useThemeStore();
-  const { t, i18n } = useTranslation();
-
-  const handleLanguageChange = (val: string) => {
-    i18n.changeLanguage(val);
-  };
-  const currentLang = i18n.language.startsWith('th') ? 'th' : 'en';
 
   const menuItems = [
     {
@@ -92,9 +85,8 @@ export function MainLayout() {
           <Flex align="center" gap="middle">
             <Space size="small" style={{ marginRight: 16 }}>
               <GlobalOutlined style={{ fontSize: 16 }} />
-              <Select 
-                value={currentLang} 
-                onChange={handleLanguageChange}
+              <Select
+                value="en"
                 variant="borderless"
                 options={[
                   { value: 'en', label: 'EN' },
@@ -108,17 +100,19 @@ export function MainLayout() {
               onChange={(v: ThemeMode) => setTheme(v)}
               variant="borderless"
               options={[
-                { value: 'light', label: <Space><BulbOutlined /> {t('common.theme.light')}</Space> },
-                { value: 'dark', label: <Space><BulbFilled /> {t('common.theme.dark')}</Space> },
-                { value: 'system', label: <Space>{t('common.theme.system')}</Space> }
+                { value: 'light', label: <Space><BulbOutlined /> Light</Space> },
+                { value: 'dark', label: <Space><BulbFilled /> Dark</Space> },
+                { value: 'system', label: <Space>System</Space> }
               ]}
             />
             
             <div style={{ width: 1, height: 24, background: theme === 'dark' ? '#303030' : '#f0f0f0', margin: '0 8px' }} />
 
-            <Button type="text" onClick={() => void logout()} icon={<LogoutOutlined />} danger>
-               Logout
-            </Button>
+            {isAuthenticated ? (
+              <Button type="text" onClick={() => void logout()} icon={<LogoutOutlined />} danger>
+                 Logout
+              </Button>
+            ) : null}
           </Flex>
         </Header>
         

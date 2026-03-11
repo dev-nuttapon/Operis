@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { ConfigProvider, theme as antdTheme } from "antd";
 import { useThemeStore } from "../shared/store/useThemeStore";
-import "../shared/i18n/config"; // Initialize i18n
+import { AuthProvider } from "../modules/auth/components/AuthProvider";
 
 export function AppProviders({ children }: PropsWithChildren) {
   const { theme } = useThemeStore();
@@ -23,16 +23,17 @@ export function AppProviders({ children }: PropsWithChildren) {
   const isDarkMode = theme === "dark" || (theme === "system" && isSystemDark);
 
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-        token: {
-          // You can also add global token overrides here later (e.g. fontFamily)
-          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
-        }
-      }}
-    >
-      {children}
-    </ConfigProvider>
+    <AuthProvider>
+      <ConfigProvider
+        theme={{
+          algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+          }
+        }}
+      >
+        {children}
+      </ConfigProvider>
+    </AuthProvider>
   );
 }

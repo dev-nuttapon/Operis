@@ -1,15 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthLandingPage } from "../modules/auth";
 import { ProtectedRoute } from "../shared/components/ProtectedRoute";
 import { MainLayout } from "../shared/components/layouts/MainLayout";
 import { DocumentDashboardPage } from "../modules/documents/pages/DocumentDashboardPage";
+import { LoginPage } from "../modules/auth";
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Route */}
-        <Route path="/" element={<AuthLandingPage />} />
+        {/* Root → login page */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<LoginPage />} />
 
         {/* Protected Dashboard Routes */}
         <Route path="/app" element={<ProtectedRoute />}>
@@ -20,7 +21,7 @@ export function AppRouter() {
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
