@@ -1,0 +1,30 @@
+{
+  "name": "operis-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev:local": "vite --mode app-local",
+    "dev:dev": "vite --mode dev",
+    "dev:prod": "vite --mode prod",
+    "build:local": "tsc -b && vite build --mode app-local",
+    "build:dev": "tsc -b && vite build --mode dev",
+    "build:prod": "tsc -b && vite build --mode prod",
+    "preview:local": "vite preview --mode app-local",
+    "preview:dev": "vite preview --mode dev",
+    "preview:prod": "vite preview --mode prod"
+  },
+  "dependencies": {
+    "antd": "^5.28.0",
+    "keycloak-js": "^26.2.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}
