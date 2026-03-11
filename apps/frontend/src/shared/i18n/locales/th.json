@@ -1,0 +1,27 @@
+{
+  "auth": {
+    "login_button": "เข้าสู่ระบบด้วย Keycloak",
+    "logout_button": "ออกจากระบบ",
+    "status_authenticated": "เข้าสู่ระบบแล้ว",
+    "status_anonymous": "ผู้เยี่ยมชม",
+    "status_loading": "กำลังโหลด",
+    "env_label": "สภาพแวดล้อม",
+    "api_url_label": "API Base URL",
+    "auth_url_label": "Auth Base URL",
+    "realm_label": "Keycloak Realm",
+    "client_label": "Keycloak Client",
+    "welcome_title": "ยินดีต้อนรับสู่ Operis",
+    "welcome_subtitle": "แพลตฟอร์มจัดการเอกสารและระบบงานระดับองค์กร"
+  },
+  "common": {
+    "theme": {
+      "light": "สว่าง",
+      "dark": "มืด",
+      "system": "ระบบ"
+    },
+    "language": {
+      "en": "อังกฤษ",
+      "th": "ไทย"
+    }
+  }
+}

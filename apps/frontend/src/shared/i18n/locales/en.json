@@ -1,0 +1,27 @@
+{
+  "auth": {
+    "login_button": "Login with Keycloak",
+    "logout_button": "Logout",
+    "status_authenticated": "Authenticated",
+    "status_anonymous": "Anonymous",
+    "status_loading": "Loading",
+    "env_label": "Environment",
+    "api_url_label": "API Base URL",
+    "auth_url_label": "Auth Base URL",
+    "realm_label": "Keycloak Realm",
+    "client_label": "Keycloak Client",
+    "welcome_title": "Welcome to Operis",
+    "welcome_subtitle": "Enterprise Paperless & Workflow Platform"
+  },
+  "common": {
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": {
+      "en": "English",
+      "th": "Thai"
+    }
+  }
+}
