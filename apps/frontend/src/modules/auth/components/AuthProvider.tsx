@@ -1,12 +1,5 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
-import {
-  clearAuthCallbackParams,
-  getAuthFlag,
-  hasAuthCallbackParams,
-  login,
-  logout,
-  setAuthFlag,
-} from "../services/keycloakAuth";
+import { bindAuthEvents, initKeycloak, login, logout } from "../services/keycloakAuth";
 
 interface AuthContextValue {
   isReady: boolean;
@@ -26,11 +19,39 @@ export function AuthProvider({ children }: PropsWithChildren) {
   });
 
   useEffect(() => {
-    if (hasAuthCallbackParams()) {
-      setAuthFlag(true);
-      clearAuthCallbackParams();
-    }
-    setState({ isReady: true, isAuthenticated: getAuthFlag(), login, logout });
+    let mounted = true;
+
+    bindAuthEvents({
+      onAuthenticatedChanged: (authenticated) => {
+        if (!mounted) {
+          return;
+        }
+        setState({ isReady: true, isAuthenticated: authenticated, login, logout });
+      },
+      onTokenExpired: () => {
+        if (!mounted) {
+          return;
+        }
+        setState({ isReady: true, isAuthenticated: false, login, logout });
+      },
+    });
+
+    initKeycloak()
+      .then((authenticated) => {
+        if (mounted) {
+          setState({ isReady: true, isAuthenticated: authenticated, login, logout });
+        }
+      })
+      .catch((err) => {
+        console.error("Keycloak init failed:", err);
+        if (mounted) {
+          setState({ isReady: true, isAuthenticated: false, login, logout });
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
