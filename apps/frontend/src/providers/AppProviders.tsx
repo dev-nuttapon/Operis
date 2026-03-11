@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { ConfigProvider, theme as antdTheme } from "antd";
 import { useThemeStore } from "../shared/store/useThemeStore";

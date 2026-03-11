@@ -10,24 +10,33 @@ function render(ui: React.ReactElement) {
   return tlRender(ui);
 }
 
+// Mock Keycloak Service
+vi.mock('../../modules/auth/services/keycloakAuth', () => ({
+  initKeycloak: vi.fn(),
+  login: vi.fn(),
+  logout: vi.fn(),
+  getToken: vi.fn(),
+}));
+
 // Mock Zustand
 vi.mock('../../shared/store/useThemeStore', () => ({
-  useThemeStore: () => ({
-    theme: 'light',
-    setTheme: vi.fn(),
-  }),
+  useThemeStore: vi.fn(),
 }));
 
 // Mock react-i18next to prevent Context issues
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    i18n: { 
-      language: 'en',
-      changeLanguage: vi.fn() 
-    },
-  }),
-}));
+vi.mock('react-i18next', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-i18next')>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string) => key,
+      i18n: { 
+        language: 'en',
+        changeLanguage: vi.fn() 
+      },
+    }),
+  };
+});
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -76,7 +85,7 @@ describe('AppRouter Integration Tests', () => {
     });
 
     // We should be bounced back to the root '/' and see the Login button
-    const loginBtn = await screen.findByRole('button', { name: /login with keycloak/i });
+    const loginBtn = await screen.findByText('auth.login_button');
     expect(loginBtn).toBeInTheDocument();
     expect(window.location.pathname).toBe('/');
   });
@@ -107,7 +116,7 @@ describe('AppRouter Integration Tests', () => {
     });
 
     // Should render the Landing page
-    const loginBtn = await screen.findByRole('button', { name: /login with keycloak/i });
+    const loginBtn = await screen.findByText('auth.login_button');
     expect(loginBtn).toBeInTheDocument();
     expect(window.location.pathname).toBe('/');
   });

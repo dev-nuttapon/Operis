@@ -23,6 +23,13 @@ export function AuthLandingPage() {
      document.documentElement.setAttribute('data-theme', actualTheme);
   }, [theme]);
 
+  // Auto-redirect to Keycloak if unauthenticated
+  useEffect(() => {
+    if (isReady && !isAuthenticated) {
+      void login();
+    }
+  }, [isReady, isAuthenticated, login]);
+
   const handleLanguageChange = (val: string) => {
     i18n.changeLanguage(val);
   };

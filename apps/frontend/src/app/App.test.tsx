@@ -1,7 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render as tlRender, screen, act } from '@testing-library/react';
-import { App } from './App';
 import * as keycloakAuthService from '../modules/auth/services/keycloakAuth';
 
 function render(ui: React.ReactElement) {
@@ -9,22 +8,33 @@ function render(ui: React.ReactElement) {
 }
 
 // Global Mocks for App tree
+vi.mock('../modules/auth/services/keycloakAuth', () => ({
+  initKeycloak: vi.fn(),
+  login: vi.fn(),
+  logout: vi.fn(),
+  getToken: vi.fn(),
+}));
+
 vi.mock('../shared/store/useThemeStore', () => ({
-  useThemeStore: () => ({
+  useThemeStore: vi.fn().mockReturnValue({
     theme: 'light',
     setTheme: vi.fn(),
   }),
 }));
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    i18n: { 
-      language: 'en',
-      changeLanguage: vi.fn() 
-    },
-  }),
-}));
+vi.mock('react-i18next', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-i18next')>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string) => key,
+      i18n: { 
+        language: 'en',
+        changeLanguage: vi.fn() 
+      },
+    }),
+  };
+});
 
 // Use actual React Context Providers instead of mocking `AppProviders` and `AppRouter`.
 // However, we MUST mock Window/DOM APIs that JSDOM cannot evaluate perfectly,
@@ -86,7 +96,7 @@ describe('App - Full Smoke Test', () => {
       render(<App />);
     });
 
-    const loginBtn = await screen.findByRole('button', { name: /login with keycloak/i });
+    const loginBtn = await screen.findByText('auth.login_button');
     expect(loginBtn).toBeInTheDocument();
   });
 });
