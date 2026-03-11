@@ -126,13 +126,7 @@ export async function login(redirectPath = "/app"): Promise<void> {
 
 export async function logout(): Promise<void> {
   setAuthFlag(false);
-  const redirectUri = `${window.location.origin}/login`;
-  const realmUrl = `${appEnv.keycloakUrl.replace(/\/$/, "")}/realms/${encodeURIComponent(appEnv.keycloakRealm)}`;
-  const logoutUrl =
-    `${realmUrl}/protocol/openid-connect/logout` +
-    `?client_id=${encodeURIComponent(appEnv.keycloakClientId)}` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}`;
-  window.location.href = logoutUrl;
+  window.location.href = `${window.location.origin}/login`;
 }
 
 export function getAccessToken(): string | undefined {
