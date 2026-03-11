@@ -11,6 +11,10 @@ export function LoginPage() {
   useEffect(() => {
     if (isReady && isAuthenticated) {
       navigate("/app", { replace: true });
+      return;
+    }
+    if (isReady && !isAuthenticated) {
+      void login("/app");
     }
   }, [isReady, isAuthenticated, navigate]);
 
