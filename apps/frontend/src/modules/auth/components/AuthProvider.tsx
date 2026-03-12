@@ -4,7 +4,7 @@ import { bindAuthEvents, initKeycloak, login, logout } from "../services/keycloa
 interface AuthContextValue {
   isReady: boolean;
   isAuthenticated: boolean;
-  user: any | null;
+  user?: any | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 }

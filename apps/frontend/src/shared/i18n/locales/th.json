@@ -14,14 +14,43 @@
     "welcome_subtitle": "แพลตฟอร์มจัดการเอกสารและระบบงานระดับองค์กร"
   },
   "common": {
+    "dashboard": "แดชบอร์ด",
+    "documents": "เอกสาร",
+    "notifications": "การแจ้งเตือน",
+    "mark_all_read": "อ่านทั้งหมด",
+    "view_all_notifications": "ดูทั้งหมด (3)",
+    "language": "ภาษา",
+    "theme_label": "ธีม",
     "theme": {
       "light": "สว่าง",
       "dark": "มืด",
       "system": "ระบบ"
     },
-    "language": {
-      "en": "อังกฤษ",
-      "th": "ไทย"
+    "version": "v1.0.0"
+  },
+  "documents": {
+    "page_title": "แดชบอร์ดเอกสาร",
+    "welcome": "ยินดีต้อนรับสู่ระบบจัดการเอกสาร",
+    "test_form_title": "ฟอร์มทดสอบเอกสาร",
+    "last_payload": "ข้อมูลที่ส่งล่าสุด",
+    "form": {
+      "title_label": "ชื่อเอกสาร",
+      "title_required": "กรุณากรอกชื่อเอกสาร",
+      "title_placeholder": "เช่น รายงานสต็อกรายเดือน",
+      "code_label": "รหัสเอกสาร",
+      "code_required": "กรุณากรอกรหัสเอกสาร",
+      "code_placeholder": "เช่น DOC-2026-001",
+      "owner_email_label": "อีเมลผู้รับผิดชอบ",
+      "owner_email_required": "กรุณากรอกอีเมลผู้รับผิดชอบ",
+      "owner_email_invalid": "กรุณากรอกอีเมลให้ถูกต้อง",
+      "owner_email_placeholder": "owner@example.com",
+      "effective_date_label": "วันที่มีผล",
+      "effective_date_required": "กรุณาเลือกวันที่มีผล",
+      "description_label": "รายละเอียด",
+      "description_placeholder": "คำอธิบายสั้นๆ สำหรับฟอร์มทดสอบ",
+      "submit": "ส่งฟอร์มทดสอบ",
+      "reset": "ล้างค่า",
+      "note": "นี่คือฟอร์มทดสอบในโมดูลเอกสาร (ยังไม่มีการเรียก API)"
     }
   }
 }

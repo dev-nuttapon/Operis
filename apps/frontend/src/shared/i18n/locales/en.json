@@ -14,14 +14,43 @@
     "welcome_subtitle": "Enterprise Paperless & Workflow Platform"
   },
   "common": {
+    "dashboard": "Dashboard",
+    "documents": "Documents",
+    "notifications": "Notifications",
+    "mark_all_read": "Mark all as read",
+    "view_all_notifications": "View all (3)",
+    "language": "Language",
+    "theme_label": "Theme",
     "theme": {
       "light": "Light",
       "dark": "Dark",
       "system": "System"
     },
-    "language": {
-      "en": "English",
-      "th": "Thai"
+    "version": "v1.0.0"
+  },
+  "documents": {
+    "page_title": "Document Dashboard",
+    "welcome": "Welcome to the Paperless Document System.",
+    "test_form_title": "Documents Test Form",
+    "last_payload": "Last Submitted Payload",
+    "form": {
+      "title_label": "Document Title",
+      "title_required": "Please input document title",
+      "title_placeholder": "e.g. Monthly Inventory Report",
+      "code_label": "Document Code",
+      "code_required": "Please input document code",
+      "code_placeholder": "e.g. DOC-2026-001",
+      "owner_email_label": "Owner Email",
+      "owner_email_required": "Please input owner email",
+      "owner_email_invalid": "Please input valid email",
+      "owner_email_placeholder": "owner@example.com",
+      "effective_date_label": "Effective Date",
+      "effective_date_required": "Please select effective date",
+      "description_label": "Description",
+      "description_placeholder": "Short description for test form",
+      "submit": "Submit Test Form",
+      "reset": "Reset",
+      "note": "This is a local test form in documents module (no API call yet)."
     }
   }
 }
