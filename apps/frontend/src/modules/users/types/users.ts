@@ -63,7 +63,19 @@ export interface CreateUserInput {
   email: string;
   firstName: string;
   lastName: string;
+  password: string;
+  confirmPassword: string;
   createdBy: string;
+  departmentId?: string;
+  jobTitleId?: string;
+  roleIds?: string[];
+}
+
+export interface UpdateUserInput {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
   departmentId?: string;
   jobTitleId?: string;
   roleIds?: string[];

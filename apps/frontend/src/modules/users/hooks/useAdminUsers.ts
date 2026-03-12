@@ -15,6 +15,7 @@ import {
   listRegistrationRequests,
   listUsers,
   rejectRegistration,
+  updateUser,
   updateDepartment,
   updateJobTitle,
 } from "../api/usersApi";
@@ -24,6 +25,7 @@ import type {
   CreateInvitationInput,
   CreateUserInput,
   RejectRegistrationInput,
+  UpdateUserInput,
   UpdateMasterDataInput,
 } from "../types/users";
 
@@ -88,6 +90,11 @@ export function useAdminUsers() {
     onSuccess: invalidateAll,
   });
 
+  const updateUserMutation = useMutation({
+    mutationFn: (input: UpdateUserInput) => updateUser(input),
+    onSuccess: invalidateAll,
+  });
+
   const deleteUserMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => deleteUser(id, { reason }),
     onSuccess: invalidateAll,
@@ -144,6 +151,7 @@ export function useAdminUsers() {
     rolesQuery,
     createInvitationMutation,
     createUserMutation,
+    updateUserMutation,
     deleteUserMutation,
     approveRegistrationMutation,
     rejectRegistrationMutation,

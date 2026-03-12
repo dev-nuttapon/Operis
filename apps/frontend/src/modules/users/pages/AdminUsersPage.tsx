@@ -76,6 +76,7 @@ export function AdminUsersPage() {
     rolesQuery,
     createInvitationMutation,
     createUserMutation,
+    updateUserMutation,
     deleteUserMutation,
     approveRegistrationMutation,
     rejectRegistrationMutation,
@@ -89,6 +90,8 @@ export function AdminUsersPage() {
 
   const [inviteForm] = Form.useForm();
   const [createUserForm] = Form.useForm();
+  const [editUserForm] = Form.useForm();
+  const [deleteUserForm] = Form.useForm();
   const [createDepartmentForm] = Form.useForm();
   const [editDepartmentForm] = Form.useForm();
   const [createJobTitleForm] = Form.useForm();
@@ -96,6 +99,8 @@ export function AdminUsersPage() {
   const [deleteDepartmentForm] = Form.useForm();
   const [deleteJobTitleForm] = Form.useForm();
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<MasterDataItem | null>(null);
   const [editingJobTitle, setEditingJobTitle] = useState<MasterDataItem | null>(null);
   const [creatingUser, setCreatingUser] = useState(false);
@@ -124,6 +129,16 @@ export function AdminUsersPage() {
       description: error instanceof Error ? error.message : "Unknown error",
     });
   };
+
+  const userRoleOptions = (rolesQuery.data ?? []).map((item) => ({
+    label: (
+      <Space direction="vertical" size={0}>
+        <Text>{item.name}</Text>
+        {item.description ? <Text type="secondary">{item.description}</Text> : null}
+      </Space>
+    ),
+    value: item.id,
+  }));
 
   const masterColumns = (
     label: string,
@@ -199,37 +214,39 @@ export function AdminUsersPage() {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
-        <Button
-          danger
-          icon={<DeleteOutlined />}
-          loading={deleteUserMutation.isPending}
-          onClick={() => {
-            Modal.confirm({
-              title: `Delete ${record.keycloak?.email || record.id}?`,
-              content: "This will soft delete the user.",
-              okText: "Delete",
-              cancelText: "Cancel",
-              onOk: () =>
-                new Promise<void>((resolve, reject) => {
-                  deleteUserMutation.mutate(
-                    { id: record.id, reason: "Deleted by administrator" },
-                    {
-                      onSuccess: () => {
-                        handleSuccess(`Deleted ${record.keycloak?.email || record.id}`);
-                        resolve();
-                      },
-                      onError: (error) => {
-                        handleError(`Failed to delete ${record.keycloak?.email || record.id}`, error);
-                        reject(error);
-                      },
-                    }
-                  );
-                }),
-            });
-          }}
-        >
+        <Space>
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => {
+              const matchedRoleIds = (rolesQuery.data ?? [])
+                .filter((item) => record.roles.includes(item.name))
+                .map((item) => item.id);
+
+              setEditingUser(record);
+              editUserForm.setFieldsValue({
+                email: record.keycloak?.email ?? "",
+                firstName: record.keycloak?.firstName ?? "",
+                lastName: record.keycloak?.lastName ?? "",
+                departmentId: record.departmentId ?? undefined,
+                jobTitleId: record.jobTitleId ?? undefined,
+                roleIds: matchedRoleIds,
+              });
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            loading={deleteUserMutation.isPending}
+            onClick={() => {
+              setDeletingUser(record);
+              deleteUserForm.resetFields();
+            }}
+          >
             Delete
-        </Button>
+          </Button>
+        </Space>
       ),
     },
   ];
@@ -479,7 +496,7 @@ export function AdminUsersPage() {
           <Card variant="borderless">
             <Typography.Title level={5}>จัดการผู้ใช้งานโดยผู้ดูแล</Typography.Title>
             <Paragraph type="secondary">
-              ใช้สำหรับเพิ่มผู้ใช้งานจากฝั่ง admin โดยตรง ตอนนี้รองรับการเพิ่มและดูรายการแล้ว ส่วนแก้ไขและลบยังต้องเพิ่ม endpoint ฝั่ง API
+              ใช้สำหรับเพิ่มผู้ใช้งานจากฝั่ง admin โดยตรง ตอนนี้รองรับการเพิ่มและดูรายการแล้ว ส่วนแก้ไขยังต้องเพิ่ม endpoint ฝั่ง API
             </Paragraph>
             <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreatingUser(true)}>
               เพิ่มผู้ใช้งาน
@@ -551,7 +568,10 @@ export function AdminUsersPage() {
       <Modal
         title="เพิ่มผู้ใช้งาน"
         open={creatingUser}
-        okText="Create"
+        width={820}
+        destroyOnHidden
+        okText="บันทึก"
+        cancelText="ยกเลิก"
         confirmLoading={createUserMutation.isPending}
         onCancel={() => {
           setCreatingUser(false);
@@ -560,12 +580,23 @@ export function AdminUsersPage() {
         onOk={() => {
           createUserForm
             .validateFields()
-            .then((values: { email: string; firstName: string; lastName: string; departmentId?: string; jobTitleId?: string; roles?: string[] }) => {
+            .then((values: {
+              email: string;
+              firstName: string;
+              lastName: string;
+              password: string;
+              confirmPassword: string;
+              departmentId?: string;
+              jobTitleId?: string;
+              roles?: string[];
+            }) => {
               createUserMutation.mutate(
                 {
                   email: values.email,
                   firstName: values.firstName,
                   lastName: values.lastName,
+                  password: values.password,
+                  confirmPassword: values.confirmPassword,
                   createdBy: actor,
                   departmentId: values.departmentId,
                   jobTitleId: values.jobTitleId,
@@ -585,54 +616,247 @@ export function AdminUsersPage() {
         }}
       >
         <Form layout="vertical" form={createUserForm}>
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
+          <Space direction="vertical" size={20} style={{ width: "100%" }}>
+            <Card size="small" variant="borderless" style={{ background: "rgba(14, 165, 233, 0.06)" }}>
+              <Typography.Title level={5} style={{ marginTop: 0 }}>
+                ข้อมูลบัญชีผู้ใช้งาน
+              </Typography.Title>
+              <Form.Item label="อีเมล" name="email" rules={[{ required: true, type: "email" }]}>
                 <Input placeholder="name@company.com" />
               </Form.Item>
-            </Col>
-            <Col xs={24} md={6}>
-              <Form.Item label="First name" name="firstName" rules={[{ required: true }]}>
-                <Input placeholder="First name" />
+              <Form.Item label="ชื่อ" name="firstName" rules={[{ required: true }]}>
+                <Input placeholder="ชื่อ" />
               </Form.Item>
-            </Col>
-            <Col xs={24} md={6}>
-              <Form.Item label="Last name" name="lastName" rules={[{ required: true }]}>
-                <Input placeholder="Last name" />
+              <Form.Item label="นามสกุล" name="lastName" rules={[{ required: true }]}>
+                <Input placeholder="นามสกุล" />
               </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Department" name="departmentId">
+              <Form.Item
+                label="รหัสผ่าน"
+                name="password"
+                rules={[
+                  { required: true, message: "กรุณากรอกรหัสผ่าน" },
+                  { min: 8, message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร" },
+                ]}
+              >
+                <Input.Password placeholder="อย่างน้อย 8 ตัวอักษร" />
+              </Form.Item>
+              <Form.Item
+                label="ยืนยันรหัสผ่าน"
+                name="confirmPassword"
+                dependencies={["password"]}
+                rules={[
+                  { required: true, message: "กรุณายืนยันรหัสผ่าน" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue("password") === value) {
+                        return Promise.resolve();
+                      }
+
+                      return Promise.reject(new Error("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน"));
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password placeholder="กรอกรหัสผ่านอีกครั้ง" />
+              </Form.Item>
+            </Card>
+
+            <Card size="small" variant="borderless" style={{ background: "rgba(15, 23, 42, 0.03)" }}>
+              <Typography.Title level={5} style={{ marginTop: 0 }}>
+                โครงสร้างองค์กร
+              </Typography.Title>
+              <Form.Item label="แผนก" name="departmentId">
                 <Select
                   allowClear
-                  placeholder="Select department"
+                  placeholder="เลือกแผนก"
                   loading={departmentsQuery.isLoading}
                   options={(departmentsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
                 />
               </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Job title" name="jobTitleId">
+              <Form.Item label="ตำแหน่ง" name="jobTitleId">
                 <Select
                   allowClear
-                  placeholder="Select job title"
+                  placeholder="เลือกตำแหน่ง"
                   loading={jobTitlesQuery.isLoading}
                   options={(jobTitlesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
                 />
               </Form.Item>
-            </Col>
-            <Col xs={24}>
-              <Form.Item label="Roles" name="roles">
+            </Card>
+
+            <Card size="small" variant="borderless" style={{ background: "rgba(22, 163, 74, 0.05)" }}>
+              <Typography.Title level={5} style={{ marginTop: 0 }}>
+                สิทธิ์การใช้งาน
+              </Typography.Title>
+              <Form.Item
+                label="Roles"
+                name="roles"
+                extra="เลือกจากรายการ role ในฐานข้อมูลของระบบ แล้วระบบจะ map ไป Keycloak ให้อัตโนมัติ"
+              >
                 <Select
                   mode="multiple"
                   allowClear
-                  placeholder="Select roles"
+                  placeholder="เลือกบทบาทผู้ใช้งาน"
                   loading={rolesQuery.isLoading}
-                  options={(rolesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                  options={userRoleOptions}
                 />
               </Form.Item>
-            </Col>
-          </Row>
+            </Card>
+          </Space>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="แก้ไขผู้ใช้งาน"
+        open={editingUser !== null}
+        width={820}
+        destroyOnHidden
+        okText="บันทึก"
+        cancelText="ยกเลิก"
+        confirmLoading={updateUserMutation.isPending}
+        onCancel={() => {
+          setEditingUser(null);
+          editUserForm.resetFields();
+        }}
+        onOk={() => {
+          editUserForm
+            .validateFields()
+            .then((values: {
+              email: string;
+              firstName: string;
+              lastName: string;
+              departmentId?: string;
+              jobTitleId?: string;
+              roleIds?: string[];
+            }) => {
+              if (!editingUser) {
+                return;
+              }
+
+              updateUserMutation.mutate(
+                {
+                  id: editingUser.id,
+                  email: values.email,
+                  firstName: values.firstName,
+                  lastName: values.lastName,
+                  departmentId: values.departmentId,
+                  jobTitleId: values.jobTitleId,
+                  roleIds: values.roleIds,
+                },
+                {
+                  onSuccess: () => {
+                    handleSuccess(`Updated ${values.email}`);
+                    setEditingUser(null);
+                    editUserForm.resetFields();
+                  },
+                  onError: (error) => handleError(`Failed to update ${values.email}`, error),
+                }
+              );
+            })
+            .catch(() => undefined);
+        }}
+      >
+        <Form layout="vertical" form={editUserForm}>
+          <Space direction="vertical" size={20} style={{ width: "100%" }}>
+            <Card size="small" variant="borderless" style={{ background: "rgba(14, 165, 233, 0.06)" }}>
+              <Typography.Title level={5} style={{ marginTop: 0 }}>
+                ข้อมูลบัญชีผู้ใช้งาน
+              </Typography.Title>
+              <Form.Item label="อีเมล" name="email" rules={[{ required: true, type: "email" }]}>
+                <Input placeholder="name@company.com" />
+              </Form.Item>
+              <Form.Item label="ชื่อ" name="firstName" rules={[{ required: true }]}>
+                <Input placeholder="ชื่อ" />
+              </Form.Item>
+              <Form.Item label="นามสกุล" name="lastName" rules={[{ required: true }]}>
+                <Input placeholder="นามสกุล" />
+              </Form.Item>
+            </Card>
+
+            <Card size="small" variant="borderless" style={{ background: "rgba(15, 23, 42, 0.03)" }}>
+              <Typography.Title level={5} style={{ marginTop: 0 }}>
+                โครงสร้างองค์กร
+              </Typography.Title>
+              <Form.Item label="แผนก" name="departmentId">
+                <Select
+                  allowClear
+                  placeholder="เลือกแผนก"
+                  loading={departmentsQuery.isLoading}
+                  options={(departmentsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                />
+              </Form.Item>
+              <Form.Item label="ตำแหน่ง" name="jobTitleId">
+                <Select
+                  allowClear
+                  placeholder="เลือกตำแหน่ง"
+                  loading={jobTitlesQuery.isLoading}
+                  options={(jobTitlesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                />
+              </Form.Item>
+            </Card>
+
+            <Card size="small" variant="borderless" style={{ background: "rgba(22, 163, 74, 0.05)" }}>
+              <Typography.Title level={5} style={{ marginTop: 0 }}>
+                สิทธิ์การใช้งาน
+              </Typography.Title>
+              <Form.Item
+                label="Roles"
+                name="roleIds"
+                extra="เลือกจากรายการ role ในฐานข้อมูลของระบบ แล้วระบบจะ map ไป Keycloak ให้อัตโนมัติ"
+              >
+                <Select
+                  mode="multiple"
+                  allowClear
+                  placeholder="เลือกบทบาทผู้ใช้งาน"
+                  loading={rolesQuery.isLoading}
+                  options={userRoleOptions}
+                />
+              </Form.Item>
+            </Card>
+          </Space>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={deletingUser ? `ลบผู้ใช้งาน ${deletingUser.keycloak?.email || deletingUser.id}` : "ลบผู้ใช้งาน"}
+        open={deletingUser !== null}
+        okText="ยืนยันการลบ"
+        cancelText="ยกเลิก"
+        okButtonProps={{ danger: true }}
+        confirmLoading={deleteUserMutation.isPending}
+        onCancel={() => {
+          setDeletingUser(null);
+          deleteUserForm.resetFields();
+        }}
+        onOk={() => {
+          if (!deletingUser) {
+            return;
+          }
+
+          deleteUserForm
+            .validateFields(["reason"])
+            .then((values: { reason: string }) => {
+              deleteUserMutation.mutate(
+                { id: deletingUser.id, reason: values.reason },
+                {
+                  onSuccess: () => {
+                    handleSuccess(`Deleted ${deletingUser.keycloak?.email || deletingUser.id}`);
+                    setDeletingUser(null);
+                    deleteUserForm.resetFields();
+                  },
+                  onError: (error) => handleError(`Failed to delete ${deletingUser.keycloak?.email || deletingUser.id}`, error),
+                }
+              );
+            })
+            .catch(() => undefined);
+        }}
+      >
+        <Form layout="vertical" form={deleteUserForm}>
+          <Paragraph type="secondary">
+            การดำเนินการนี้จะ soft delete ผู้ใช้งานในระบบ และปิดการใช้งานบัญชีที่ Keycloak
+          </Paragraph>
+          <Form.Item name="reason" label="เหตุผลในการลบ" rules={[{ required: true, message: "กรุณาระบุเหตุผลในการลบ" }]}>
+            <Input.TextArea rows={4} placeholder="เช่น พนักงานลาออก / บัญชีสร้างผิด / ยกเลิกการใช้งาน" />
+          </Form.Item>
         </Form>
       </Modal>
 

@@ -4,6 +4,7 @@ import type {
   CreateMasterDataInput,
   CreateInvitationInput,
   CreateUserInput,
+  UpdateUserInput,
   Invitation,
   InvitationStatus,
   AppRoleItem,
@@ -42,6 +43,20 @@ export function createUser(input: CreateUserInput) {
   return apiRequest<User>("/api/v1/users", {
     method: "POST",
     body: input,
+  });
+}
+
+export function updateUser(input: UpdateUserInput) {
+  return apiRequest<User>(`/api/v1/users/${input.id}`, {
+    method: "PUT",
+    body: {
+      email: input.email,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      departmentId: input.departmentId,
+      jobTitleId: input.jobTitleId,
+      roleIds: input.roleIds,
+    },
   });
 }
 
