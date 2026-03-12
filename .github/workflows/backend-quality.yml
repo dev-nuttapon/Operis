@@ -1,0 +1,35 @@
+name: Backend Quality
+
+on:
+  pull_request:
+    paths:
+      - "apps/backend/**"
+      - "scripts/check-backend-architecture.mjs"
+      - ".github/workflows/backend-quality.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "apps/backend/**"
+      - "scripts/check-backend-architecture.mjs"
+      - ".github/workflows/backend-quality.yml"
+
+jobs:
+  backend-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Check backend architecture
+        run: node scripts/check-backend-architecture.mjs
+
+      - name: Build backend
+        run: dotnet build apps/backend/Operis_API/Operis_API.csproj

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MainLayout } from '../MainLayout';
 import { MemoryRouter } from 'react-router-dom';
 import { useAuth } from '../../../../modules/auth';
@@ -93,7 +94,8 @@ describe('MainLayout', () => {
     expect(screen.getByText('Test User')).toBeInTheDocument();
   });
 
-  it('handles sidebar toggling correctly', () => {
+  it('handles sidebar toggling correctly', async () => {
+    const user = userEvent.setup();
     render(
       <MemoryRouter>
         <MainLayout />
@@ -108,34 +110,27 @@ describe('MainLayout', () => {
     
     expect(screen.getByText('OPERIS')).toBeInTheDocument();
     
-    act(() => {
-      fireEvent.click(toggleBtn);
-    });
+    await user.click(toggleBtn);
     
     expect(screen.queryByText('OPERIS')).not.toBeInTheDocument();
     
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'right' }));
-    });
+    await user.click(screen.getByRole('button', { name: 'right' }));
 
     expect(screen.getByText('OPERIS')).toBeInTheDocument();
   });
 
   it('calls logout when logout button is clicked', async () => {
+    const user = userEvent.setup();
     render(
       <MemoryRouter>
         <MainLayout />
       </MemoryRouter>
     );
 
-    act(() => {
-      fireEvent.click(screen.getByText('Test User'));
-    });
+    await user.click(screen.getByText('Test User'));
 
     const logoutBtn = await screen.findByText('Logout');
-    act(() => {
-      fireEvent.click(logoutBtn);
-    });
+    await user.click(logoutBtn);
 
     await waitFor(() => {
       expect(mockLogout).toHaveBeenCalled();

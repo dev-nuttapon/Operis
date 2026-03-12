@@ -1,0 +1,443 @@
+using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
+using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Users.Contracts;
+using Operis_API.Modules.Users.Domain;
+using Operis_API.Modules.Users.Infrastructure;
+using Operis_API.Shared.Auditing;
+
+namespace Operis_API.Modules.Users.Application;
+
+public sealed class UserInvitationCommands(
+    OperisDbContext dbContext,
+    IAuditLogWriter auditLogWriter,
+    IKeycloakAdminClient keycloakAdminClient) : IUserInvitationCommands
+{
+    public async Task<InvitationCommandResult> CreateInvitationAsync(CreateInvitationRequest request, CancellationToken cancellationToken)
+    {
+        var email = NormalizeEmail(request.Email);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Email is required.");
+        }
+
+        var invitedBy = request.InvitedBy?.Trim();
+        if (string.IsNullOrWhiteSpace(invitedBy))
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Invited by is required.");
+        }
+
+        var emailConflict = await ValidateEmailAvailabilityAsync(email, cancellationToken: cancellationToken);
+        if (emailConflict is not null)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.Conflict, emailConflict);
+        }
+
+        if (request.ExpiresAt.HasValue && request.ExpiresAt.Value <= DateTimeOffset.UtcNow)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Expiration date must be in the future.");
+        }
+
+        if (request.DepartmentId.HasValue)
+        {
+            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
+            if (!departmentExists)
+            {
+                return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Department does not exist.");
+            }
+        }
+
+        if (request.JobTitleId.HasValue)
+        {
+            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
+            if (!jobTitleExists)
+            {
+                return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Job title does not exist.");
+            }
+        }
+
+        var invitation = new UserInvitationEntity
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            InvitationToken = GenerateInvitationToken(),
+            InvitedBy = invitedBy,
+            DepartmentId = request.DepartmentId,
+            JobTitleId = request.JobTitleId,
+            Status = InvitationStatus.Pending,
+            InvitedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = request.ExpiresAt
+        };
+
+        dbContext.UserInvitations.Add(invitation);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "invite",
+            EntityType: "invitation",
+            EntityId: invitation.Id.ToString(),
+            StatusCode: StatusCodes.Status201Created,
+            ActorEmail: invitedBy,
+            DepartmentId: invitation.DepartmentId,
+            After: ToInvitationAuditState(invitation),
+            Metadata: new
+            {
+                setupPath = $"/invite/{invitation.InvitationToken}"
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        return new InvitationCommandResult(
+            InvitationCommandStatus.Success,
+            Response: ToResponse(invitation, departments, jobTitles));
+    }
+
+    public async Task<InvitationCommandResult> UpdateInvitationAsync(Guid invitationId, UpdateInvitationRequest request, CancellationToken cancellationToken)
+    {
+        var invitation = await dbContext.UserInvitations.FirstOrDefaultAsync(x => x.Id == invitationId, cancellationToken);
+        if (invitation is null)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.NotFound);
+        }
+
+        var status = GetInvitationStatus(invitation);
+        if (status == InvitationStatus.Accepted)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Accepted invitation cannot be updated.");
+        }
+
+        if (status == InvitationStatus.Cancelled)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Cancelled invitation cannot be updated.");
+        }
+
+        if (status == InvitationStatus.Rejected)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Rejected invitation cannot be updated.");
+        }
+
+        var email = NormalizeEmail(request.Email);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Email is required.");
+        }
+
+        if (request.ExpiresAt.HasValue && request.ExpiresAt.Value <= DateTimeOffset.UtcNow)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Expiration date must be in the future.");
+        }
+
+        if (request.DepartmentId.HasValue)
+        {
+            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
+            if (!departmentExists)
+            {
+                return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Department does not exist.");
+            }
+        }
+
+        if (request.JobTitleId.HasValue)
+        {
+            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
+            if (!jobTitleExists)
+            {
+                return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Job title does not exist.");
+            }
+        }
+
+        var before = ToInvitationAuditState(invitation);
+        var emailChanged = !string.Equals(invitation.Email, email, StringComparison.OrdinalIgnoreCase);
+        if (emailChanged)
+        {
+            var emailConflict = await ValidateEmailAvailabilityAsync(email, cancellationToken, invitation.Id);
+            if (emailConflict is not null)
+            {
+                return new InvitationCommandResult(InvitationCommandStatus.Conflict, emailConflict);
+            }
+        }
+
+        invitation.Email = email;
+        invitation.DepartmentId = request.DepartmentId;
+        invitation.JobTitleId = request.JobTitleId;
+        invitation.ExpiresAt = request.ExpiresAt;
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "update",
+            EntityType: "invitation",
+            EntityId: invitation.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorEmail: invitation.InvitedBy,
+            DepartmentId: invitation.DepartmentId,
+            Before: before,
+            After: ToInvitationAuditState(invitation),
+            Changes: new
+            {
+                invitation.Email,
+                invitation.DepartmentId,
+                invitation.JobTitleId,
+                invitation.ExpiresAt
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        return new InvitationCommandResult(
+            InvitationCommandStatus.Success,
+            Response: ToResponse(invitation, departments, jobTitles));
+    }
+
+    public async Task<InvitationCommandResult> CancelInvitationAsync(Guid invitationId, CancellationToken cancellationToken)
+    {
+        var invitation = await dbContext.UserInvitations.FirstOrDefaultAsync(x => x.Id == invitationId, cancellationToken);
+        if (invitation is null)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.NotFound);
+        }
+
+        var before = ToInvitationAuditState(invitation);
+        var status = GetInvitationStatus(invitation);
+        if (status == InvitationStatus.Accepted)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Accepted invitation cannot be cancelled.");
+        }
+
+        invitation.Status = InvitationStatus.Cancelled;
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "cancel_invitation",
+            EntityType: "invitation",
+            EntityId: invitation.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorEmail: invitation.InvitedBy,
+            DepartmentId: invitation.DepartmentId,
+            Before: before,
+            After: ToInvitationAuditState(invitation),
+            Changes: new
+            {
+                invitation.Status
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        return new InvitationCommandResult(
+            InvitationCommandStatus.Success,
+            Response: ToResponse(invitation, departments, jobTitles));
+    }
+
+    public async Task<InvitationCommandResult> AcceptInvitationAsync(string token, AcceptInvitationRequest request, CancellationToken cancellationToken)
+    {
+        var invitation = await dbContext.UserInvitations
+            .FirstOrDefaultAsync(x => x.InvitationToken == token, cancellationToken);
+        if (invitation is null)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.NotFound);
+        }
+
+        var before = ToInvitationAuditState(invitation);
+        var status = GetInvitationStatus(invitation);
+        if (status == InvitationStatus.Accepted)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.Conflict, "Invitation has already been accepted.");
+        }
+
+        if (status == InvitationStatus.Rejected)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.Conflict, "Invitation has already been rejected.");
+        }
+
+        if (status == InvitationStatus.Cancelled)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Invitation has been cancelled.");
+        }
+
+        if (status == InvitationStatus.Expired)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Invitation has expired.");
+        }
+
+        var password = request.Password?.Trim();
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Password is required.");
+        }
+
+        if (password.Length < 8)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Password must be at least 8 characters.");
+        }
+
+        if (!string.Equals(password, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Password and confirmation do not match.");
+        }
+
+        var emailConflict = await ValidateEmailAvailabilityAsync(invitation.Email, cancellationToken, invitation.Id);
+        if (emailConflict is not null)
+        {
+            return new InvitationCommandResult(InvitationCommandStatus.Conflict, emailConflict);
+        }
+
+        var firstName = request.FirstName.Trim();
+        var lastName = request.LastName.Trim();
+        var keycloakResult = await keycloakAdminClient.CreateUserAsync(
+            invitation.Email,
+            firstName,
+            lastName,
+            password,
+            cancellationToken);
+        if (!keycloakResult.Success)
+        {
+            return new InvitationCommandResult(
+                InvitationCommandStatus.ExternalFailure,
+                keycloakResult.ErrorMessage,
+                "Unable to provision user in Keycloak.",
+                StatusCodes.Status502BadGateway);
+        }
+
+        var user = new UserEntity
+        {
+            Id = keycloakResult.UserId ?? throw new InvalidOperationException("Keycloak user id is required."),
+            Status = UserStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = invitation.InvitedBy,
+            DepartmentId = invitation.DepartmentId,
+            JobTitleId = invitation.JobTitleId
+        };
+
+        invitation.Status = InvitationStatus.Accepted;
+        invitation.AcceptedAt = DateTimeOffset.UtcNow;
+
+        dbContext.Users.Add(user);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "accept_invitation",
+            EntityType: "invitation",
+            EntityId: invitation.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorType: "anonymous",
+            ActorUserId: user.Id,
+            ActorEmail: invitation.Email,
+            DepartmentId: invitation.DepartmentId,
+            Before: before,
+            After: ToInvitationAuditState(invitation),
+            Changes: new
+            {
+                invitation.Status,
+                invitation.AcceptedAt
+            },
+            Metadata: new
+            {
+                userId = user.Id,
+                firstName,
+                lastName
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        return new InvitationCommandResult(
+            InvitationCommandStatus.Success,
+            Response: ToResponse(invitation, departments, jobTitles));
+    }
+
+    private async Task<(IReadOnlyDictionary<Guid, string> Departments, IReadOnlyDictionary<Guid, string> JobTitles)> LoadReferenceMapsAsync(CancellationToken cancellationToken)
+    {
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        return (departments, jobTitles);
+    }
+
+    private async Task<string?> ValidateEmailAvailabilityAsync(string email, CancellationToken cancellationToken, Guid? ignoredInvitationId = null)
+    {
+        var userExists = await LocalUserExistsForEmailAsync(email, cancellationToken);
+        if (userExists)
+        {
+            return "User already exists.";
+        }
+
+        var pendingInvitationExists = await dbContext.UserInvitations
+            .AnyAsync(
+                x => x.Email == email
+                    && x.Status == InvitationStatus.Pending
+                    && (!x.ExpiresAt.HasValue || x.ExpiresAt > DateTimeOffset.UtcNow)
+                    && (!ignoredInvitationId.HasValue || x.Id != ignoredInvitationId.Value),
+                cancellationToken);
+        if (pendingInvitationExists)
+        {
+            return "Pending invitation already exists.";
+        }
+
+        var pendingRequestExists = await dbContext.UserRegistrationRequests
+            .AnyAsync(x => x.Email == email && x.Status == RegistrationRequestStatus.Pending, cancellationToken);
+        if (pendingRequestExists)
+        {
+            return "Pending registration request already exists.";
+        }
+
+        return null;
+    }
+
+    private async Task<bool> LocalUserExistsForEmailAsync(string email, CancellationToken cancellationToken)
+    {
+        var keycloakUser = await keycloakAdminClient.FindUserByEmailAsync(email, cancellationToken);
+        return keycloakUser is not null;
+    }
+
+    private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private static string GenerateInvitationToken()
+    {
+        Span<byte> bytes = stackalloc byte[24];
+        RandomNumberGenerator.Fill(bytes);
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    private static InvitationStatus GetInvitationStatus(UserInvitationEntity entity)
+    {
+        if (entity.Status == InvitationStatus.Pending && entity.ExpiresAt.HasValue && entity.ExpiresAt.Value <= DateTimeOffset.UtcNow)
+        {
+            return InvitationStatus.Expired;
+        }
+
+        return entity.Status;
+    }
+
+    private static object ToInvitationAuditState(UserInvitationEntity entity) => new
+    {
+        entity.Id,
+        entity.Email,
+        entity.InvitationToken,
+        entity.InvitedBy,
+        entity.DepartmentId,
+        entity.JobTitleId,
+        Status = GetInvitationStatus(entity),
+        entity.InvitedAt,
+        entity.ExpiresAt,
+        entity.AcceptedAt,
+        entity.RejectedAt
+    };
+
+    private static InvitationResponse ToResponse(
+        UserInvitationEntity entity,
+        IReadOnlyDictionary<Guid, string> departments,
+        IReadOnlyDictionary<Guid, string> jobTitles) =>
+        new(
+            entity.Id,
+            entity.Email,
+            entity.InvitationToken,
+            entity.InvitedBy,
+            entity.DepartmentId,
+            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            entity.JobTitleId,
+            entity.JobTitleId.HasValue && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
+            GetInvitationStatus(entity),
+            entity.InvitedAt,
+            entity.ExpiresAt,
+            entity.AcceptedAt,
+            entity.RejectedAt,
+            $"/invite/{entity.InvitationToken}");
+}

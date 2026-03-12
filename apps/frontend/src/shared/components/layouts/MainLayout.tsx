@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Layout, Menu, Button, Typography, Flex, theme, Avatar, Dropdown, Popover, List } from 'antd';
+import { useEffect, useRef, useState } from 'react';
+import { Layout, Menu, Button, Typography, Flex, theme, Avatar, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   FileTextOutlined,
@@ -27,7 +27,9 @@ export function MainLayout() {
   const language = useI18nLanguage();
   const tr = (key: string) => i18n.t(key, { lng: language });
   const [collapsed, setCollapsed] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const notificationRef = useRef<HTMLDivElement | null>(null);
   const [currentLanguage, setCurrentLanguage] = useState<'th' | 'en'>(
     i18n.language.startsWith('th') ? 'th' : 'en'
   );
@@ -79,6 +81,23 @@ export function MainLayout() {
 
     setOpenKeys(getOpenKeys(location.pathname));
   }, [collapsed, location.pathname]);
+
+  useEffect(() => {
+    if (!notificationOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!notificationRef.current?.contains(event.target as Node)) {
+        setNotificationOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [notificationOpen]);
 
   const menuItems = [
     {
@@ -216,47 +235,6 @@ export function MainLayout() {
     setOpenKeys(keys);
   };
 
-  const notificationContent = (
-    <div style={{ width: 360 }}>
-      <Flex justify="space-between" align="center" style={{ padding: '12px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
-        <Typography.Text strong>{tr('common.notifications')}</Typography.Text>
-        <Typography.Link style={{ fontSize: 12 }}>{tr('common.mark_all_read')}</Typography.Link>
-      </Flex>
-      <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-        <List
-          itemLayout="horizontal"
-          dataSource={notifications}
-          renderItem={(item) => (
-            <List.Item 
-              style={{ 
-                padding: '12px 16px', 
-                cursor: 'pointer',
-                background: item.read ? 'transparent' : (currentTheme === 'dark' ? 'rgba(14, 165, 233, 0.05)' : 'rgba(14, 165, 233, 0.02)')
-              }}
-              className="notification-item"
-            >
-              <List.Item.Meta
-                avatar={<Avatar style={{ backgroundColor: item.read ? '#cbd5e1' : '#0ea5e9' }} icon={<BellOutlined />} />}
-                title={<Typography.Text strong={!item.read} style={{ fontSize: 13 }}>{item.title}</Typography.Text>}
-                description={
-                  <div>
-                    <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>{item.description}</Typography.Text>
-                    <Typography.Text type="secondary" style={{ fontSize: 11 }}>{item.time}</Typography.Text>
-                  </div>
-                }
-              />
-            </List.Item>
-          )}
-        />
-      </div>
-      <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}>
-        <Button type="text" block style={{ height: 48, borderRadius: 0 }}>
-          {tr('common.view_all_notifications')}
-        </Button>
-      </div>
-    </div>
-  );
-
   return (
     <Layout style={{ minHeight: '100vh', background: token.colorBgBase }}>
       <Sider 
@@ -353,28 +331,23 @@ export function MainLayout() {
           </div>
 
           <Flex align="center" gap={40}>
-            <Popover 
-              content={notificationContent} 
-              trigger="click" 
-              placement="bottomRight"
-              overlayInnerStyle={{ padding: 0 }}
-            >
+            <div ref={notificationRef} style={{ position: 'relative' }}>
               <div style={{ position: 'relative', cursor: 'pointer' }}>
-                <Button 
-                  shape="circle" 
-                  icon={<BellOutlined style={{ fontSize: 20, color: bellText }} />} 
-                  style={{ 
-                    width: 44, 
-                    height: 44, 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <Button
+                  aria-label={tr('common.notifications')}
+                  shape="circle"
+                  icon={<BellOutlined style={{ fontSize: 20, color: bellText }} />}
+                  onClick={() => setNotificationOpen((current) => !current)}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
-                    background: bellBg, 
+                    background: bellBg,
                     border: `1px solid ${bellBorder}`,
-                    pointerEvents: 'none' // Let the parent div handle the click
                   }}
                 />
-                {/* Notification Indicator Dot */}
                 <div 
                   style={{ 
                     position: 'absolute',
@@ -389,7 +362,61 @@ export function MainLayout() {
                   }}
                 />
               </div>
-            </Popover>
+
+              {notificationOpen ? (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 12px)',
+                    right: 0,
+                    width: 360,
+                    background: token.colorBgContainer,
+                    border: `1px solid ${token.colorBorderSecondary}`,
+                    borderRadius: 18,
+                    overflow: 'hidden',
+                    boxShadow: isDarkMode
+                      ? '0 24px 60px rgba(2, 6, 23, 0.55)'
+                      : '0 24px 60px rgba(148, 163, 184, 0.22)',
+                    zIndex: 20,
+                  }}
+                >
+                  <Flex justify="space-between" align="center" style={{ padding: '12px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+                    <Typography.Text strong>{tr('common.notifications')}</Typography.Text>
+                    <Typography.Link style={{ fontSize: 12 }}>{tr('common.mark_all_read')}</Typography.Link>
+                  </Flex>
+                  <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                    {notifications.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: '12px 16px',
+                          cursor: 'pointer',
+                          display: 'grid',
+                          gridTemplateColumns: 'auto 1fr',
+                          gap: 12,
+                          alignItems: 'start',
+                          background: item.read ? 'transparent' : (currentTheme === 'dark' ? 'rgba(14, 165, 233, 0.05)' : 'rgba(14, 165, 233, 0.02)'),
+                          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                        }}
+                        className="notification-item"
+                      >
+                        <Avatar style={{ backgroundColor: item.read ? '#cbd5e1' : '#0ea5e9' }} icon={<BellOutlined />} />
+                        <div>
+                          <Typography.Text strong={!item.read} style={{ fontSize: 13, display: 'block' }}>{item.title}</Typography.Text>
+                          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>{item.description}</Typography.Text>
+                          <Typography.Text type="secondary" style={{ fontSize: 11 }}>{item.time}</Typography.Text>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+                    <Button type="text" block style={{ height: 48, borderRadius: 0 }}>
+                      {tr('common.view_all_notifications')}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
             
             <Dropdown menu={{ items: profileMenuItems, onClick: handleProfileMenuClick }} trigger={['click']}>
               <Flex align="center" gap="middle" style={{ cursor: 'pointer' }}>

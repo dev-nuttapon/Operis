@@ -89,6 +89,10 @@ Each module contains
 * services
 * types
 
+Readiness reference
+
+* `docs/MODULE_READINESS.md`
+
 ```
 
 ---

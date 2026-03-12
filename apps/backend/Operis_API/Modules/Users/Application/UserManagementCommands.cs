@@ -1,0 +1,371 @@
+using Microsoft.EntityFrameworkCore;
+using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Users.Contracts;
+using Operis_API.Modules.Users.Domain;
+using Operis_API.Modules.Users.Infrastructure;
+using Operis_API.Shared.Auditing;
+
+namespace Operis_API.Modules.Users.Application;
+
+public sealed class UserManagementCommands(
+    OperisDbContext dbContext,
+    IAuditLogWriter auditLogWriter,
+    IKeycloakAdminClient keycloakAdminClient) : IUserManagementCommands
+{
+    public async Task<UserCommandResult> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken)
+    {
+        var email = NormalizeEmail(request.Email);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Email is required.");
+        }
+
+        var password = request.Password?.Trim();
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Password is required.");
+        }
+
+        if (password.Length < 8)
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Password must be at least 8 characters.");
+        }
+
+        if (!string.Equals(password, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Password and confirmation do not match.");
+        }
+
+        if (request.DepartmentId.HasValue)
+        {
+            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value, cancellationToken);
+            if (!departmentExists)
+            {
+                return new UserCommandResult(UserCommandStatus.ValidationError, "Department does not exist.");
+            }
+        }
+
+        if (request.JobTitleId.HasValue)
+        {
+            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value, cancellationToken);
+            if (!jobTitleExists)
+            {
+                return new UserCommandResult(UserCommandStatus.ValidationError, "Job title does not exist.");
+            }
+        }
+
+        var roleIds = request.RoleIds ?? [];
+        var selectedRoles = roleIds.Count == 0
+            ? []
+            : await dbContext.AppRoles
+                .Where(x => roleIds.Contains(x.Id) && x.DeletedAt == null)
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .ToListAsync(cancellationToken);
+
+        if (selectedRoles.Count != roleIds.Count)
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "One or more selected roles do not exist.");
+        }
+
+        var existingKeycloakUser = await keycloakAdminClient.FindUserByEmailAsync(email, cancellationToken);
+        var userExists = existingKeycloakUser is not null
+            && await dbContext.Users.AnyAsync(x => x.Id == existingKeycloakUser.Id, cancellationToken);
+        if (userExists)
+        {
+            return new UserCommandResult(UserCommandStatus.Conflict, "User already exists.");
+        }
+
+        var keycloakResult = await keycloakAdminClient.CreateUserAsync(
+            email,
+            request.FirstName.Trim(),
+            request.LastName.Trim(),
+            password,
+            cancellationToken);
+        if (!keycloakResult.Success)
+        {
+            return new UserCommandResult(
+                UserCommandStatus.ExternalFailure,
+                keycloakResult.ErrorMessage,
+                "Unable to provision user in Keycloak.",
+                StatusCodes.Status502BadGateway);
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var user = new UserEntity
+        {
+            Id = keycloakResult.UserId ?? throw new InvalidOperationException("Keycloak user id is required."),
+            Status = UserStatus.Active,
+            CreatedAt = now,
+            CreatedBy = request.CreatedBy.Trim(),
+            DepartmentId = request.DepartmentId,
+            JobTitleId = request.JobTitleId
+        };
+
+        var keycloakRoleNames = selectedRoles.Select(x => x.KeycloakRoleName).ToArray();
+        if (keycloakRoleNames.Length > 0)
+        {
+            var roleAssigned = await keycloakAdminClient.AssignRealmRolesAsync(user.Id, keycloakRoleNames, cancellationToken);
+            if (!roleAssigned)
+            {
+                return new UserCommandResult(
+                    UserCommandStatus.ExternalFailure,
+                    "The selected roles could not be mapped in Keycloak.",
+                    "Unable to assign roles in Keycloak.",
+                    StatusCodes.Status502BadGateway);
+            }
+        }
+
+        dbContext.Users.Add(user);
+        var selectedRoleNames = selectedRoles.Select(x => x.Name).ToArray();
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "create",
+            EntityType: "user",
+            EntityId: user.Id,
+            StatusCode: StatusCodes.Status201Created,
+            DepartmentId: user.DepartmentId,
+            After: ToUserAuditState(
+                user,
+                new KeycloakUserProfile(user.Id, email, email, request.FirstName.Trim(), request.LastName.Trim(), true, true),
+                selectedRoleNames),
+            Metadata: new
+            {
+                roleNames = selectedRoleNames
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new UserCommandResult(
+            UserCommandStatus.Success,
+            Response: ToResponse(user, selectedRoleNames));
+    }
+
+    public async Task<UserCommandResult> UpdateUserAsync(string userId, UpdateUserRequest request, CancellationToken cancellationToken)
+    {
+        var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == userId && x.DeletedAt == null, cancellationToken);
+        if (user is null)
+        {
+            return new UserCommandResult(UserCommandStatus.NotFound);
+        }
+
+        var email = NormalizeEmail(request.Email);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Email is required.");
+        }
+
+        if (request.DepartmentId.HasValue)
+        {
+            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
+            if (!departmentExists)
+            {
+                return new UserCommandResult(UserCommandStatus.ValidationError, "Department does not exist.");
+            }
+        }
+
+        if (request.JobTitleId.HasValue)
+        {
+            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
+            if (!jobTitleExists)
+            {
+                return new UserCommandResult(UserCommandStatus.ValidationError, "Job title does not exist.");
+            }
+        }
+
+        var roleIds = request.RoleIds ?? [];
+        var selectedRoles = roleIds.Count == 0
+            ? []
+            : await dbContext.AppRoles
+                .Where(x => roleIds.Contains(x.Id) && x.DeletedAt == null)
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .ToListAsync(cancellationToken);
+        if (selectedRoles.Count != roleIds.Count)
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "One or more selected roles do not exist.");
+        }
+
+        var existingProfile = await ResolveKeycloakProfileAsync(user, cancellationToken);
+        var before = ToUserAuditState(user, existingProfile, null);
+        var existingKeycloakUser = await keycloakAdminClient.FindUserByEmailAsync(email, cancellationToken);
+        if (existingKeycloakUser is not null && !string.Equals(existingKeycloakUser.Id, user.Id, StringComparison.Ordinal))
+        {
+            return new UserCommandResult(UserCommandStatus.Conflict, "User already exists.");
+        }
+
+        var keycloakResult = await keycloakAdminClient.UpdateUserAsync(
+            user.Id,
+            email,
+            request.FirstName.Trim(),
+            request.LastName.Trim(),
+            cancellationToken);
+        if (!keycloakResult.Success)
+        {
+            return keycloakResult.Conflict
+                ? new UserCommandResult(UserCommandStatus.Conflict, "User already exists.")
+                : new UserCommandResult(
+                    UserCommandStatus.ExternalFailure,
+                    keycloakResult.ErrorMessage,
+                    "Unable to update user in Keycloak.",
+                    StatusCodes.Status502BadGateway);
+        }
+
+        var managedRoleNames = await dbContext.AppRoles
+            .Where(x => x.DeletedAt == null)
+            .Select(x => x.KeycloakRoleName)
+            .ToListAsync(cancellationToken);
+        var desiredRoleNames = selectedRoles.Select(x => x.KeycloakRoleName).ToArray();
+        var rolesUpdated = await keycloakAdminClient.SetManagedRolesAsync(user.Id, managedRoleNames, desiredRoleNames, cancellationToken);
+        if (!rolesUpdated)
+        {
+            return new UserCommandResult(
+                UserCommandStatus.ExternalFailure,
+                "The selected roles could not be synchronized in Keycloak.",
+                "Unable to update roles in Keycloak.",
+                StatusCodes.Status502BadGateway);
+        }
+
+        user.DepartmentId = request.DepartmentId;
+        user.JobTitleId = request.JobTitleId;
+        var selectedRoleNames = selectedRoles.Select(x => x.Name).ToArray();
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "update",
+            EntityType: "user",
+            EntityId: user.Id,
+            StatusCode: StatusCodes.Status200OK,
+            DepartmentId: user.DepartmentId,
+            Before: before,
+            After: ToUserAuditState(
+                user,
+                new KeycloakUserProfile(user.Id, email, email, request.FirstName.Trim(), request.LastName.Trim(), true, true),
+                selectedRoleNames),
+            Changes: new
+            {
+                email,
+                firstName = request.FirstName.Trim(),
+                lastName = request.LastName.Trim(),
+                departmentId = user.DepartmentId,
+                jobTitleId = user.JobTitleId,
+                roleNames = selectedRoleNames
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new UserCommandResult(
+            UserCommandStatus.Success,
+            Response: ToResponse(user, selectedRoleNames));
+    }
+
+    public async Task<UserCommandResult> DeleteUserAsync(string userId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == userId && x.DeletedAt == null, cancellationToken);
+        if (entity is null)
+        {
+            return new UserCommandResult(UserCommandStatus.NotFound);
+        }
+
+        var before = ToUserAuditState(entity);
+        var keycloakResult = await keycloakAdminClient.DisableUserAsync(entity.Id, cancellationToken);
+        if (!keycloakResult.Success)
+        {
+            return new UserCommandResult(
+                UserCommandStatus.ExternalFailure,
+                keycloakResult.ErrorMessage,
+                "Unable to disable user in Keycloak.",
+                StatusCodes.Status502BadGateway);
+        }
+
+        entity.DeletedAt = DateTimeOffset.UtcNow;
+        entity.DeletedBy = actor;
+        entity.DeletedReason = NormalizeDeleteReason(request.Reason);
+        entity.Status = UserStatus.Deleted;
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "soft_delete",
+            EntityType: "user",
+            EntityId: entity.Id,
+            StatusCode: StatusCodes.Status204NoContent,
+            Reason: entity.DeletedReason,
+            DepartmentId: entity.DepartmentId,
+            Before: before,
+            After: ToUserAuditState(entity),
+            Changes: new
+            {
+                status = entity.Status,
+                entity.DeletedAt,
+                entity.DeletedBy,
+                entity.DeletedReason
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new UserCommandResult(UserCommandStatus.Success);
+    }
+
+    private async Task<KeycloakUserProfile?> ResolveKeycloakProfileAsync(UserEntity user, CancellationToken cancellationToken)
+    {
+        return string.IsNullOrWhiteSpace(user.Id)
+            ? null
+            : await keycloakAdminClient.GetUserByIdAsync(user.Id, cancellationToken);
+    }
+
+    private static UserResponse ToResponse(UserEntity entity, IReadOnlyList<string> roles) =>
+        new(
+            entity.Id,
+            entity.Status,
+            entity.CreatedAt,
+            entity.CreatedBy,
+            entity.DepartmentId,
+            null,
+            entity.JobTitleId,
+            null,
+            roles,
+            entity.PreferredLanguage,
+            entity.PreferredTheme,
+            entity.DeletedReason,
+            entity.DeletedBy,
+            entity.DeletedAt,
+            null);
+
+    private static object ToUserAuditState(
+        UserEntity entity,
+        KeycloakUserProfile? keycloakProfile = null,
+        IReadOnlyList<string>? roleNames = null) => new
+    {
+        entity.Id,
+        entity.Status,
+        entity.CreatedAt,
+        entity.CreatedBy,
+        entity.DepartmentId,
+        entity.JobTitleId,
+        entity.PreferredLanguage,
+        entity.PreferredTheme,
+        entity.DeletedReason,
+        entity.DeletedBy,
+        entity.DeletedAt,
+        keycloak = keycloakProfile is null
+            ? null
+            : new
+            {
+                keycloakProfile.Email,
+                keycloakProfile.Username,
+                keycloakProfile.FirstName,
+                keycloakProfile.LastName,
+                keycloakProfile.Enabled,
+                keycloakProfile.EmailVerified
+            },
+        roles = roleNames
+    };
+
+    private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private static string NormalizeDeleteReason(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "No reason provided";
+        }
+
+        var normalized = value.Trim();
+        return normalized.Length > 500 ? normalized[..500] : normalized;
+    }
+}

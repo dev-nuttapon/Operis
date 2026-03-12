@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Documents.Application;
 using Operis_API.Modules.Documents.Domain;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Modules;
@@ -10,6 +11,7 @@ public sealed class DocumentsModule : IModule
 {
     public IServiceCollection RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<IDocumentQueries, DocumentQueries>();
         return services;
     }
 
@@ -19,27 +21,17 @@ public sealed class DocumentsModule : IModule
             .WithTags("Documents")
             .RequireAuthorization();
 
-        group.MapGet("/", async (OperisDbContext dbContext, IAuditLogWriter auditLogWriter, CancellationToken cancellationToken) =>
-            {
-                var items = await dbContext.Documents
-                    .AsNoTracking()
-                    .OrderByDescending(x => x.UploadedAt)
-                    .Take(50)
-                    .Select(x => new DocumentListItem(x.Id, x.FileName, x.UploadedAt))
-                    .ToListAsync(cancellationToken);
-
-                auditLogWriter.Append(new AuditLogEntry(
-                    Module: "documents",
-                    Action: "list",
-                    EntityType: "document",
-                    StatusCode: StatusCodes.Status200OK,
-                    Metadata: new { count = items.Count }));
-                await dbContext.SaveChangesAsync(cancellationToken);
-
-                return Results.Ok(items);
-            })
+        group.MapGet("/", ListDocumentsAsync)
             .WithName("Documents_List");
 
         return endpoints;
+    }
+
+    private static async Task<IResult> ListDocumentsAsync(
+        IDocumentQueries queries,
+        CancellationToken cancellationToken)
+    {
+        var items = await queries.ListDocumentsAsync(cancellationToken);
+        return Results.Ok(items);
     }
 }
