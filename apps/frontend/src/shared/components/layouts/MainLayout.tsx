@@ -27,6 +27,7 @@ export function MainLayout() {
   const language = useI18nLanguage();
   const tr = (key: string, fallback: string) => i18n.t(key, { lng: language, defaultValue: fallback });
   const [collapsed, setCollapsed] = useState(false);
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
   const [currentLanguage, setCurrentLanguage] = useState<'th' | 'en'>(
     i18n.language.startsWith('th') ? 'th' : 'en'
   );
@@ -69,6 +70,15 @@ export function MainLayout() {
       i18n.off('languageChanged', onLanguageChanged);
     };
   }, []);
+
+  useEffect(() => {
+    if (collapsed) {
+      setOpenKeys([]);
+      return;
+    }
+
+    setOpenKeys(getOpenKeys(location.pathname));
+  }, [collapsed, location.pathname]);
 
   const menuItems = [
     {
@@ -179,6 +189,10 @@ export function MainLayout() {
     return tr('common.dashboard', 'Dashboard');
   };
 
+  const handleMenuOpenChange = (keys: string[]) => {
+    setOpenKeys(keys);
+  };
+
   const notificationContent = (
     <div style={{ width: 360 }}>
       <Flex justify="space-between" align="center" style={{ padding: '12px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
@@ -270,6 +284,8 @@ export function MainLayout() {
               theme={isDarkMode ? 'dark' : 'light'}
               mode="inline"
               selectedKeys={[location.pathname]}
+              openKeys={openKeys}
+              onOpenChange={handleMenuOpenChange}
               onClick={({ key }) => navigate(key)}
               items={menuItems}
               style={{ borderRight: 0, marginTop: 16, background: 'transparent' }}
@@ -382,4 +398,24 @@ export function MainLayout() {
       </Layout>
     </Layout>
   );
+}
+
+function getOpenKeys(path: string) {
+  if (path.startsWith('/app/admin/master/')) {
+    return ['/app/admin', '/app/admin/master'];
+  }
+
+  if (
+    path.startsWith('/app/admin/users') ||
+    path.startsWith('/app/admin/invitations') ||
+    path.startsWith('/app/admin/registrations')
+  ) {
+    return ['/app/admin', '/app/admin/users-group'];
+  }
+
+  if (path.startsWith('/app/admin')) {
+    return ['/app/admin'];
+  }
+
+  return [];
 }
