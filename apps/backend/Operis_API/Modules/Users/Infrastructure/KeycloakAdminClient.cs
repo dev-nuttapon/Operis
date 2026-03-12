@@ -76,7 +76,7 @@ public sealed class KeycloakAdminClient(HttpClient httpClient, IOptions<Keycloak
         string email,
         string firstName,
         string lastName,
-        string password,
+        string? password,
         CancellationToken cancellationToken)
     {
         if (!IsConfigured())
@@ -96,15 +96,18 @@ public sealed class KeycloakAdminClient(HttpClient httpClient, IOptions<Keycloak
             return new KeycloakCreateUserResult(false, false, null, "Unable to acquire Keycloak access token.");
         }
 
-        var payload = JsonSerializer.Serialize(new KeycloakCreateUserDto
+        var createUserPayload = new KeycloakCreateUserDto
         {
             Username = email,
             Email = email,
             FirstName = firstName,
             LastName = lastName,
             Enabled = true,
-            EmailVerified = true,
-            Credentials =
+            EmailVerified = true
+        };
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            createUserPayload.Credentials =
             [
                 new KeycloakCredentialDto
                 {
@@ -112,8 +115,10 @@ public sealed class KeycloakAdminClient(HttpClient httpClient, IOptions<Keycloak
                     Value = password,
                     Temporary = false
                 }
-            ]
-        }, JsonOptions);
+            ];
+        }
+
+        var payload = JsonSerializer.Serialize(createUserPayload, JsonOptions);
 
         var request = new HttpRequestMessage(
             HttpMethod.Post,
@@ -235,6 +240,117 @@ public sealed class KeycloakAdminClient(HttpClient httpClient, IOptions<Keycloak
         var request = new HttpRequestMessage(
             HttpMethod.Put,
             $"{TrimTrailingSlash(_options.BaseUrl)}/admin/realms/{_options.Realm}/users/{Uri.EscapeDataString(keycloakUserId)}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            return new KeycloakUpdateUserResult(false, false, error);
+        }
+
+        return new KeycloakUpdateUserResult(true, false, null);
+    }
+
+    public async Task<KeycloakUpdateUserResult> DeleteUserAsync(string keycloakUserId, CancellationToken cancellationToken)
+    {
+        if (!IsConfigured() || string.IsNullOrWhiteSpace(keycloakUserId))
+        {
+            return new KeycloakUpdateUserResult(false, false, "Keycloak is not configured.");
+        }
+
+        var token = await GetAccessTokenAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return new KeycloakUpdateUserResult(false, false, "Unable to acquire Keycloak access token.");
+        }
+
+        var request = new HttpRequestMessage(
+            HttpMethod.Delete,
+            $"{TrimTrailingSlash(_options.BaseUrl)}/admin/realms/{_options.Realm}/users/{Uri.EscapeDataString(keycloakUserId)}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            return new KeycloakUpdateUserResult(false, false, error);
+        }
+
+        return new KeycloakUpdateUserResult(true, false, null);
+    }
+
+    public async Task<KeycloakUpdateUserResult> ExecuteActionsEmailAsync(
+        string keycloakUserId,
+        IEnumerable<string> actions,
+        CancellationToken cancellationToken)
+    {
+        if (!IsConfigured() || string.IsNullOrWhiteSpace(keycloakUserId))
+        {
+            return new KeycloakUpdateUserResult(false, false, "Keycloak is not configured.");
+        }
+
+        var actionList = actions
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (actionList.Length == 0)
+        {
+            return new KeycloakUpdateUserResult(false, false, "No required actions were provided.");
+        }
+
+        var token = await GetAccessTokenAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return new KeycloakUpdateUserResult(false, false, "Unable to acquire Keycloak access token.");
+        }
+
+        var payload = JsonSerializer.Serialize(actionList, JsonOptions);
+        var request = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"{TrimTrailingSlash(_options.BaseUrl)}/admin/realms/{_options.Realm}/users/{Uri.EscapeDataString(keycloakUserId)}/execute-actions-email");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            return new KeycloakUpdateUserResult(false, false, error);
+        }
+
+        return new KeycloakUpdateUserResult(true, false, null);
+    }
+
+    public async Task<KeycloakUpdateUserResult> UpdatePasswordAsync(
+        string keycloakUserId,
+        string password,
+        bool temporary,
+        CancellationToken cancellationToken)
+    {
+        if (!IsConfigured() || string.IsNullOrWhiteSpace(keycloakUserId))
+        {
+            return new KeycloakUpdateUserResult(false, false, "Keycloak is not configured.");
+        }
+
+        var token = await GetAccessTokenAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return new KeycloakUpdateUserResult(false, false, "Unable to acquire Keycloak access token.");
+        }
+
+        var payload = JsonSerializer.Serialize(new KeycloakCredentialDto
+        {
+            Type = "password",
+            Value = password,
+            Temporary = temporary
+        }, JsonOptions);
+
+        var request = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"{TrimTrailingSlash(_options.BaseUrl)}/admin/realms/{_options.Realm}/users/{Uri.EscapeDataString(keycloakUserId)}/reset-password");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
 
@@ -755,7 +871,8 @@ public sealed class KeycloakAdminClient(HttpClient httpClient, IOptions<Keycloak
         public string LastName { get; init; } = string.Empty;
         public bool Enabled { get; init; }
         public bool EmailVerified { get; init; }
-        public List<KeycloakCredentialDto> Credentials { get; init; } = [];
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<KeycloakCredentialDto>? Credentials { get; set; }
     }
 
     private sealed class KeycloakCredentialDto

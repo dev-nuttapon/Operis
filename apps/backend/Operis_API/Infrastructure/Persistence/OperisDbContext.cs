@@ -100,12 +100,21 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Email).HasColumnName("email").HasMaxLength(320);
             entity.Property(x => x.FirstName).HasColumnName("first_name").HasMaxLength(120);
             entity.Property(x => x.LastName).HasColumnName("last_name").HasMaxLength(120);
+            entity.Property(x => x.DepartmentId).HasColumnName("department_id");
+            entity.Property(x => x.JobTitleId).HasColumnName("job_title_id");
+            entity.Property(x => x.ProvisionedUserId).HasColumnName("provisioned_user_id").HasMaxLength(64);
+            entity.Property(x => x.PasswordSetupToken).HasColumnName("password_setup_token").HasMaxLength(128);
+            entity.Property(x => x.PasswordSetupExpiresAt).HasColumnName("password_setup_expires_at");
+            entity.Property(x => x.PasswordSetupCompletedAt).HasColumnName("password_setup_completed_at");
             entity.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.RequestedAt).HasColumnName("requested_at");
             entity.Property(x => x.ReviewedAt).HasColumnName("reviewed_at");
             entity.Property(x => x.ReviewedBy).HasColumnName("reviewed_by").HasMaxLength(120);
             entity.Property(x => x.RejectionReason).HasColumnName("rejection_reason").HasMaxLength(500);
+            entity.HasOne<DepartmentEntity>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<JobTitleEntity>().WithMany().HasForeignKey(x => x.JobTitleId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => new { x.Email, x.Status });
+            entity.HasIndex(x => x.PasswordSetupToken).IsUnique();
         });
 
         modelBuilder.Entity<UserInvitationEntity>(entity =>

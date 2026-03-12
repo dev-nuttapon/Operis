@@ -4,9 +4,12 @@ public interface IKeycloakAdminClient
 {
     Task<KeycloakUserProfile?> FindUserByEmailAsync(string email, CancellationToken cancellationToken);
     Task<KeycloakUserProfile?> GetUserByIdAsync(string keycloakUserId, CancellationToken cancellationToken);
-    Task<KeycloakCreateUserResult> CreateUserAsync(string email, string firstName, string lastName, string password, CancellationToken cancellationToken);
+    Task<KeycloakCreateUserResult> CreateUserAsync(string email, string firstName, string lastName, string? password, CancellationToken cancellationToken);
     Task<KeycloakUpdateUserResult> UpdateUserAsync(string keycloakUserId, string email, string firstName, string lastName, CancellationToken cancellationToken);
+    Task<KeycloakUpdateUserResult> UpdatePasswordAsync(string keycloakUserId, string password, bool temporary, CancellationToken cancellationToken);
     Task<KeycloakUpdateUserResult> DisableUserAsync(string keycloakUserId, CancellationToken cancellationToken);
+    Task<KeycloakUpdateUserResult> DeleteUserAsync(string keycloakUserId, CancellationToken cancellationToken);
+    Task<KeycloakUpdateUserResult> ExecuteActionsEmailAsync(string keycloakUserId, IEnumerable<string> actions, CancellationToken cancellationToken);
     Task<IReadOnlyList<KeycloakRole>> ListRealmRolesAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<KeycloakRole>> GetUserRealmRolesAsync(string keycloakUserId, CancellationToken cancellationToken);
     Task<bool> AssignRealmRolesAsync(string keycloakUserId, IEnumerable<string> roleNames, CancellationToken cancellationToken);

@@ -25,7 +25,7 @@ const { useToken } = theme;
 export function MainLayout() {
   const { token } = useToken();
   const language = useI18nLanguage();
-  const tr = (key: string, fallback: string) => i18n.t(key, { lng: language, defaultValue: fallback });
+  const tr = (key: string) => i18n.t(key, { lng: language });
   const [collapsed, setCollapsed] = useState(false);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   const [currentLanguage, setCurrentLanguage] = useState<'th' | 'en'>(
@@ -44,7 +44,7 @@ export function MainLayout() {
       'operis_system_admin',
     ].includes(role)
   );
-  const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback', 'User');
+  const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
   const isDarkMode = token.colorBgBase.toLowerCase() === '#020617';
   const avatarBg = isDarkMode ? '#1e293b' : '#dbeafe';
@@ -56,10 +56,10 @@ export function MainLayout() {
   const currentLanguageLabel = currentLanguage === 'th' ? 'TH' : 'EN';
   const currentThemeLabel =
     currentTheme === 'light'
-      ? tr('common.theme.light', 'Light')
+      ? tr('common.theme.light')
       : currentTheme === 'dark'
-        ? tr('common.theme.dark', 'Dark')
-        : tr('common.theme.system', 'System');
+        ? tr('common.theme.dark')
+        : tr('common.theme.system');
 
   useEffect(() => {
     const onLanguageChanged = (lng: string) => {
@@ -84,48 +84,48 @@ export function MainLayout() {
     {
       key: '/app/dashboard',
       icon: <DashboardOutlined />,
-      label: tr('common.dashboard', 'Dashboard'),
+      label: tr('common.dashboard'),
     },
     {
       key: '/app/documents',
       icon: <FileTextOutlined />,
-      label: tr('common.documents', 'Documents'),
+      label: tr('common.documents'),
     },
     ...(hasAdminAccess
       ? [{
           key: '/app/admin',
           icon: <TeamOutlined />,
-          label: tr('common.admin', 'ผู้ดูแลระบบ'),
+          label: tr('common.admin'),
           children: [
             {
               key: '/app/admin/users-group',
-              label: tr('common.user_admin_group', 'จัดการผู้ใช้งาน'),
+              label: tr('common.user_admin_group'),
               children: [
                 {
                   key: '/app/admin/users',
-                  label: tr('common.user_management', 'รายการผู้ใช้งาน'),
+                  label: tr('common.user_management'),
                 },
                 {
                   key: '/app/admin/invitations',
-                  label: tr('common.user_invitations', 'เชิญผู้ใช้งาน'),
+                  label: tr('common.user_invitations'),
                 },
                 {
                   key: '/app/admin/registrations',
-                  label: tr('common.registration_approvals', 'อนุมัติการลงทะเบียน'),
+                  label: tr('common.registration_approvals'),
                 },
               ],
             },
             {
               key: '/app/admin/master',
-              label: tr('common.master_data_management', 'จัดการข้อมูล Master'),
+              label: tr('common.master_data_management'),
               children: [
                 {
                   key: '/app/admin/master/departments',
-                  label: tr('common.master_departments', 'แผนก'),
+                  label: tr('common.master_departments'),
                 },
                 {
                   key: '/app/admin/master/job-titles',
-                  label: tr('common.master_job_titles', 'ตำแหน่ง'),
+                  label: tr('common.master_job_titles'),
                 },
               ],
             },
@@ -137,27 +137,27 @@ export function MainLayout() {
   const profileMenuItems: MenuProps['items'] = [
     {
       key: 'language',
-      label: `${tr('common.language', 'Language')}: ${currentLanguageLabel}`,
+      label: `${tr('common.language')}: ${currentLanguageLabel}`,
       icon: <GlobalOutlined />,
       children: [
-        { key: 'th', label: tr('common.language_th', 'Thai') },
-        { key: 'en', label: tr('common.language_en', 'English') },
+        { key: 'th', label: tr('common.language_th') },
+        { key: 'en', label: tr('common.language_en') },
       ]
     },
     {
       key: 'theme',
-      label: `${tr('common.theme_label', 'Theme')}: ${currentThemeLabel}`,
+      label: `${tr('common.theme_label')}: ${currentThemeLabel}`,
       icon: isDarkMode ? <BulbFilled /> : <BulbOutlined />,
       children: [
-        { key: 'light', label: tr('common.theme.light', 'Light') },
-        { key: 'dark', label: tr('common.theme.dark', 'Dark') },
-        { key: 'system', label: tr('common.theme.system', 'System') },
+        { key: 'light', label: tr('common.theme.light') },
+        { key: 'dark', label: tr('common.theme.dark') },
+        { key: 'system', label: tr('common.theme.system') },
       ]
     },
     { type: 'divider' },
     {
       key: 'logout',
-      label: tr('auth.logout_button', 'Logout'),
+      label: tr('auth.logout_button'),
       icon: <LogoutOutlined />,
       danger: true,
     }
@@ -174,37 +174,37 @@ export function MainLayout() {
   const notifications = [
     {
       id: 1,
-      title: tr('layout.notifications.items.draft_created.title', 'New document draft created'),
-      description: tr('layout.notifications.items.draft_created.description', 'Document "Monthly Report" was created successfully'),
-      time: tr('layout.notifications.items.draft_created.time', '5 minutes ago'),
+      title: tr('layout.notifications.items.draft_created.title'),
+      description: tr('layout.notifications.items.draft_created.description'),
+      time: tr('layout.notifications.items.draft_created.time'),
       read: false,
     },
     {
       id: 2,
-      title: tr('layout.notifications.items.request_returned.title', 'Request returned to creator'),
-      description: tr('layout.notifications.items.request_returned.description', 'Request REF-2024-001 has been returned'),
-      time: tr('layout.notifications.items.request_returned.time', '1 hour ago'),
+      title: tr('layout.notifications.items.request_returned.title'),
+      description: tr('layout.notifications.items.request_returned.description'),
+      time: tr('layout.notifications.items.request_returned.time'),
       read: false,
     },
     {
       id: 3,
-      title: tr('layout.notifications.items.registration_completed.title', 'Registration completed'),
-      description: tr('layout.notifications.items.registration_completed.description', 'New user identity has been verified'),
-      time: tr('layout.notifications.items.registration_completed.time', '2 hours ago'),
+      title: tr('layout.notifications.items.registration_completed.title'),
+      description: tr('layout.notifications.items.registration_completed.description'),
+      time: tr('layout.notifications.items.registration_completed.time'),
       read: true,
     },
   ];
 
   const getPageTitle = (path: string) => {
-    if (path.includes('dashboard')) return tr('common.dashboard', 'Dashboard');
-    if (path.includes('documents')) return tr('common.documents', 'Documents');
-    if (path.includes('admin/users')) return tr('common.user_management', 'จัดการผู้ใช้งาน');
-    if (path.includes('admin/master/departments')) return tr('common.master_departments', 'แผนก');
-    if (path.includes('admin/master/job-titles')) return tr('common.master_job_titles', 'ตำแหน่ง');
-    if (path.includes('admin/master')) return tr('common.master_data_management', 'จัดการข้อมูล Master');
-    if (path.includes('admin/invitations')) return tr('common.user_invitations', 'เชิญผู้ใช้งาน');
-    if (path.includes('admin/registrations')) return tr('common.registration_approvals', 'อนุมัติการลงทะเบียน');
-    return tr('common.dashboard', 'Dashboard');
+    if (path.includes('dashboard')) return tr('common.dashboard');
+    if (path.includes('documents')) return tr('common.documents');
+    if (path.includes('admin/users')) return tr('common.user_management');
+    if (path.includes('admin/master/departments')) return tr('common.master_departments');
+    if (path.includes('admin/master/job-titles')) return tr('common.master_job_titles');
+    if (path.includes('admin/master')) return tr('common.master_data_management');
+    if (path.includes('admin/invitations')) return tr('common.user_invitations');
+    if (path.includes('admin/registrations')) return tr('common.registration_approvals');
+    return tr('common.dashboard');
   };
 
   const handleMenuOpenChange = (keys: string[]) => {
@@ -214,8 +214,8 @@ export function MainLayout() {
   const notificationContent = (
     <div style={{ width: 360 }}>
       <Flex justify="space-between" align="center" style={{ padding: '12px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
-        <Typography.Text strong>{tr('common.notifications', 'Notifications')}</Typography.Text>
-        <Typography.Link style={{ fontSize: 12 }}>{tr('common.mark_all_read', 'Mark all as read')}</Typography.Link>
+        <Typography.Text strong>{tr('common.notifications')}</Typography.Text>
+        <Typography.Link style={{ fontSize: 12 }}>{tr('common.mark_all_read')}</Typography.Link>
       </Flex>
       <div style={{ maxHeight: 400, overflowY: 'auto' }}>
         <List
@@ -246,7 +246,7 @@ export function MainLayout() {
       </div>
       <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}>
         <Button type="text" block style={{ height: 48, borderRadius: 0 }}>
-          {tr('common.view_all_notifications', 'View all (3)')}
+          {tr('common.view_all_notifications')}
         </Button>
       </div>
     </div>
@@ -278,7 +278,7 @@ export function MainLayout() {
         >
           {!collapsed && (
             <Typography.Text style={{ fontWeight: 700, fontSize: 16 }}>
-              {tr('common.application_name', 'Operis')}
+              {tr('common.application_name')}
             </Typography.Text>
           )}
           <Button
@@ -313,7 +313,7 @@ export function MainLayout() {
           <div style={{ padding: '16px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
             {!collapsed ? (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {tr('common.version', 'v1.0.0')}
+                {tr('common.version')}
               </Typography.Text>
             ) : (
               <div style={{ textAlign: 'center' }}>

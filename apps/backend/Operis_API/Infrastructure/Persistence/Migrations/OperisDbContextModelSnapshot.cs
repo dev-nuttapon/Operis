@@ -343,6 +343,10 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("department_id");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(320)
@@ -360,6 +364,28 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
                         .HasColumnName("last_name");
+
+                    b.Property<Guid?>("JobTitleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_title_id");
+
+                    b.Property<DateTimeOffset?>("PasswordSetupCompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("password_setup_completed_at");
+
+                    b.Property<DateTimeOffset?>("PasswordSetupExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("password_setup_expires_at");
+
+                    b.Property<string>("PasswordSetupToken")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("password_setup_token");
+
+                    b.Property<string>("ProvisionedUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("provisioned_user_id");
 
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(500)
@@ -387,7 +413,14 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DepartmentId");
+
                     b.HasIndex("Email", "Status");
+
+                    b.HasIndex("JobTitleId");
+
+                    b.HasIndex("PasswordSetupToken")
+                        .IsUnique();
 
                     b.ToTable("user_registration_requests", (string)null);
                 });
@@ -406,6 +439,19 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserInvitationEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.JobTitleEntity", null)
+                        .WithMany()
+                        .HasForeignKey("JobTitleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserRegistrationRequestEntity", b =>
                 {
                     b.HasOne("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", null)
                         .WithMany()

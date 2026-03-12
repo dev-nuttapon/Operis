@@ -35,11 +35,29 @@ export interface RegistrationRequest {
   email: string;
   firstName: string;
   lastName: string;
+  departmentId: string | null;
+  departmentName: string | null;
+  jobTitleId: string | null;
+  jobTitleName: string | null;
   status: RegistrationRequestStatus;
   requestedAt: string;
   reviewedAt: string | null;
   reviewedBy: string | null;
   rejectionReason: string | null;
+  passwordSetupLink: string | null;
+  passwordSetupExpiresAt: string | null;
+  passwordSetupCompletedAt: string | null;
+}
+
+export interface RegistrationPasswordSetupDetail {
+  email: string;
+  firstName: string;
+  lastName: string;
+  departmentName: string | null;
+  jobTitleName: string | null;
+  isExpired: boolean;
+  isCompleted: boolean;
+  expiresAt: string | null;
 }
 
 export interface Invitation {
@@ -159,7 +177,20 @@ export interface RejectRegistrationInput {
   reason: string;
 }
 
+export interface CreateRegistrationRequestInput {
+  email: string;
+  firstName: string;
+  lastName: string;
+  departmentId?: string;
+  jobTitleId?: string;
+}
+
 export interface UpdateCurrentUserPreferencesInput {
   preferredLanguage: string | null;
   preferredTheme: "light" | "dark" | "system" | null;
+}
+
+export interface CompleteRegistrationPasswordSetupInput {
+  password: string;
+  confirmPassword: string;
 }

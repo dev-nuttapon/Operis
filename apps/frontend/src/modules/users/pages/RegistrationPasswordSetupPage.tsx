@@ -3,23 +3,23 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { BulbFilled, BulbOutlined, CheckCircleFilled, GlobalOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { acceptInvitation, getInvitationByToken } from "../api/usersApi";
-import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { completeRegistrationPasswordSetup, getRegistrationPasswordSetup } from "../api/usersApi";
+import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { useThemeStore, type ThemeMode } from "../../../shared/store/useThemeStore";
 import { useTranslation } from "react-i18next";
 
 const { Paragraph, Title } = Typography;
 
-export function InvitationAcceptPage() {
+export function RegistrationPasswordSetupPage() {
   const { notification } = App.useApp();
   const { token: designToken } = antdTheme.useToken();
   const { theme, setTheme } = useThemeStore();
-  const { t, i18n: i18nInstance } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { token } = useParams<{ token: string }>();
   const [form] = Form.useForm();
   const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const currentLanguage = i18nInstance.language.startsWith("th") ? "th" : "en";
+  const currentLanguage = i18n.language.startsWith("th") ? "th" : "en";
   const isDarkMode = designToken.colorBgBase.toLowerCase() === "#020617";
   const pageBackground = isDarkMode
     ? "radial-gradient(circle at top, rgba(14, 165, 233, 0.16) 0%, rgba(15, 23, 42, 0.98) 42%, rgba(2, 6, 23, 1) 100%)"
@@ -34,65 +34,21 @@ export function InvitationAcceptPage() {
     document.documentElement.setAttribute("data-theme", actualTheme);
   }, [theme]);
 
-  const getInvitationErrorNotification = (error: unknown) => {
-    const presentation = getApiErrorPresentation(error, t("invitation_page.notifications.submit_failed_title"));
-
-    if (!(error instanceof ApiError)) {
-      return presentation;
-    }
-
-    if (error.message === t("errors.invitation_expired")) {
-      return {
-        title: t("invitation_page.notifications.expired_title"),
-        description: t("invitation_page.notifications.expired_description"),
-      };
-    }
-
-    if (error.message === t("errors.invitation_cancelled")) {
-      return {
-        title: t("invitation_page.notifications.cancelled_title"),
-        description: t("invitation_page.notifications.cancelled_description"),
-      };
-    }
-
-    if (error.message === t("errors.invitation_accepted")) {
-      return {
-        title: t("invitation_page.notifications.accepted_title"),
-        description: t("invitation_page.notifications.accepted_description"),
-      };
-    }
-
-    if (error.message === t("errors.user_exists") || error.message === t("errors.keycloak_user_exists")) {
-      return {
-        title: t("invitation_page.notifications.email_in_use_title"),
-        description: t("invitation_page.notifications.email_in_use_description"),
-      };
-    }
-
-    if (error.category === "network") {
-      return {
-        title: t("invitation_page.notifications.server_unavailable_title"),
-        description: t("invitation_page.notifications.server_unavailable_description"),
-      };
-    }
-
-    return presentation;
-  };
-
-  const invitationQuery = useQuery({
-    queryKey: ["public", "invitation", token],
-    queryFn: () => getInvitationByToken(token ?? ""),
+  const setupQuery = useQuery({
+    queryKey: ["public", "registration-password-setup", token],
+    queryFn: () => getRegistrationPasswordSetup(token ?? ""),
     enabled: Boolean(token),
   });
 
-  const acceptInvitationMutation = useMutation({
-    mutationFn: (values: { firstName: string; lastName: string; password: string; confirmPassword: string }) =>
-      acceptInvitation(token ?? "", values),
+  const completeMutation = useMutation({
+    mutationFn: (values: { password: string; confirmPassword: string }) =>
+      completeRegistrationPasswordSetup(token ?? "", values),
     onSuccess: () => {
       setSuccessModalOpen(true);
+      form.resetFields();
     },
     onError: (error) => {
-      const presentation = getInvitationErrorNotification(error);
+      const presentation = getApiErrorPresentation(error, t("errors.complete_registration_password_setup_failed"));
       notification.error({
         message: presentation.title,
         description: presentation.description,
@@ -101,10 +57,10 @@ export function InvitationAcceptPage() {
   });
 
   if (!token) {
-    return <Result status="404" title={t("invitation_page.not_found_title")} />;
+    return <Result status="404" title={t("registration_password_setup.not_found_title")} />;
   }
 
-  if (invitationQuery.isLoading) {
+  if (setupQuery.isLoading) {
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
         <Spin size="large" />
@@ -112,20 +68,16 @@ export function InvitationAcceptPage() {
     );
   }
 
-  if (invitationQuery.isError || !invitationQuery.data) {
-    return <Result status="error" title={t("invitation_page.not_found_title")} subTitle={t("invitation_page.not_found_subtitle")} />;
+  if (setupQuery.isError || !setupQuery.data) {
+    return <Result status="error" title={t("registration_password_setup.not_found_title")} subTitle={t("registration_password_setup.not_found_subtitle")} />;
   }
 
-  if (invitationQuery.data.status === "Accepted") {
-    return <Result status="success" title={t("invitation_page.accepted_title")} subTitle={t("invitation_page.accepted_subtitle")} />;
+  if (setupQuery.data.isCompleted) {
+    return <Result status="success" title={t("registration_password_setup.completed_title")} subTitle={t("registration_password_setup.completed_subtitle")} />;
   }
 
-  if (invitationQuery.data.status === "Expired") {
-    return <Result status="warning" title={t("invitation_page.expired_title")} subTitle={t("invitation_page.expired_subtitle")} />;
-  }
-
-  if (invitationQuery.data.status === "Rejected") {
-    return <Result status="warning" title={t("invitation_page.unavailable_title")} subTitle={t("invitation_page.unavailable_subtitle")} />;
+  if (setupQuery.data.isExpired) {
+    return <Result status="warning" title={t("registration_password_setup.expired_title")} subTitle={t("registration_password_setup.expired_subtitle")} />;
   }
 
   return (
@@ -138,7 +90,10 @@ export function InvitationAcceptPage() {
         background: pageBackground,
       }}
     >
-      <Flex justify="flex-end" align="center" style={{ width: "100%", marginBottom: 24 }} gap="middle">
+      <Flex justify="space-between" align="center" style={{ width: "100%", marginBottom: 24 }} gap="middle" wrap>
+        <Button type="text" onClick={() => navigate("/login")}>
+          {t("public_registration.back_to_login")}
+        </Button>
         <Flex
           gap={12}
           align="center"
@@ -161,7 +116,7 @@ export function InvitationAcceptPage() {
               popupMatchSelectWidth={false}
               style={{ width: 128 }}
               onChange={(value: "th" | "en") => {
-                void i18nInstance.changeLanguage(value);
+                void i18n.changeLanguage(value);
               }}
               options={[
                 { value: "en", label: t("common.language_en") },
@@ -200,31 +155,28 @@ export function InvitationAcceptPage() {
           <Space direction="vertical" size={20} style={{ width: "100%" }}>
             <div>
               <Title level={3} style={{ marginBottom: 8 }}>
-                {t("invitation_page.page_title")}
+                {t("registration_password_setup.page_title")}
               </Title>
+              <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                {t("registration_password_setup.page_description")}
+              </Paragraph>
             </div>
 
             <Form
               form={form}
               layout="vertical"
               onFinish={(values) => {
-                acceptInvitationMutation.mutate(values);
+                completeMutation.mutate(values);
               }}
             >
               <Form.Item label={t("admin_users.fields.email")}>
-                <Input value={invitationQuery.data.email} disabled />
+                <Input value={setupQuery.data.email} disabled />
               </Form.Item>
-              <Form.Item label={t("invitation_page.department_label")}>
-                <Input value={invitationQuery.data.departmentName || "-"} disabled />
+              <Form.Item label={t("admin_users.fields.department")}>
+                <Input value={setupQuery.data.departmentName || "-"} disabled />
               </Form.Item>
-              <Form.Item label={t("invitation_page.job_title_label")}>
-                <Input value={invitationQuery.data.jobTitleName || "-"} disabled />
-              </Form.Item>
-              <Form.Item label={t("invitation_page.first_name_label")} name="firstName" rules={[{ required: true, message: t("invitation_page.first_name_required") }]}>
-                <Input placeholder={t("invitation_page.first_name_placeholder")} />
-              </Form.Item>
-              <Form.Item label={t("invitation_page.last_name_label")} name="lastName" rules={[{ required: true, message: t("invitation_page.last_name_required") }]}>
-                <Input placeholder={t("invitation_page.last_name_placeholder")} />
+              <Form.Item label={t("admin_users.fields.job_title")}>
+                <Input value={setupQuery.data.jobTitleName || "-"} disabled />
               </Form.Item>
               <Form.Item
                 label={t("invitation_page.password_label")}
@@ -255,8 +207,8 @@ export function InvitationAcceptPage() {
               >
                 <Input.Password placeholder={t("invitation_page.confirm_password_placeholder")} />
               </Form.Item>
-              <Button type="primary" htmlType="submit" block loading={acceptInvitationMutation.isPending}>
-                {t("invitation_page.submit")}
+              <Button type="primary" htmlType="submit" block loading={completeMutation.isPending}>
+                {t("registration_password_setup.submit")}
               </Button>
             </Form>
           </Space>
@@ -264,7 +216,7 @@ export function InvitationAcceptPage() {
       </div>
 
       <Modal
-        title={t("invitation_page.success_title")}
+        title={t("registration_password_setup.success_title")}
         open={successModalOpen}
         closable={false}
         maskClosable={false}
@@ -278,7 +230,7 @@ export function InvitationAcceptPage() {
                 navigate("/login", { replace: true });
               }}
             >
-              {t("invitation_page.go_login")}
+              {t("registration_password_setup.go_login")}
             </Button>
           </Flex>,
         ]}
@@ -286,10 +238,10 @@ export function InvitationAcceptPage() {
         <Flex vertical align="center" gap={12} style={{ textAlign: "center", padding: "8px 0" }}>
           <CheckCircleFilled style={{ fontSize: 56, color: designToken.colorSuccess }} />
           <Title level={4} style={{ margin: 0 }}>
-            {t("invitation_page.success_title")}
+            {t("registration_password_setup.success_title")}
           </Title>
           <Paragraph style={{ marginBottom: 0, maxWidth: 360, whiteSpace: "pre-line" }}>
-            {t("invitation_page.success_description")}
+            {t("registration_password_setup.success_description")}
           </Paragraph>
         </Flex>
       </Modal>

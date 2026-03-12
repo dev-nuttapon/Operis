@@ -1,4 +1,4 @@
-import { Button, Flex, Typography, Spin } from "antd";
+import { Button, Flex, Typography, Spin, Space } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../modules/auth/hooks/useAuth";
@@ -13,7 +13,7 @@ export function AppEntryGate() {
     return (
       <Flex justify="center" align="center" style={{ minHeight: "100vh", flexDirection: "column", gap: 12 }}>
         <Spin size="large" />
-        <Typography.Text type="secondary">{t("auth.checking_login", { defaultValue: "Checking login..." })}</Typography.Text>
+        <Typography.Text type="secondary">{t("auth.checking_login")}</Typography.Text>
       </Flex>
     );
   }
@@ -24,13 +24,18 @@ export function AppEntryGate() {
 
   return (
     <Flex justify="center" align="center" style={{ minHeight: "100vh", flexDirection: "column", gap: 12 }}>
-      <Typography.Title level={3} style={{ marginBottom: 0 }}>{t("common.application_name", { defaultValue: "Operis" })}</Typography.Title>
-      <Typography.Text type="secondary">{t("auth.login_to_continue", { defaultValue: "Please login to continue" })}</Typography.Text>
+      <Typography.Title level={3} style={{ marginBottom: 0 }}>{t("common.application_name")}</Typography.Title>
+      <Typography.Text type="secondary">{t("auth.login_to_continue")}</Typography.Text>
       <Flex gap={12} style={{ marginTop: 16 }}>
         <Button type="primary" onClick={() => void login("/app")} disabled={!isReady}>
-          {t("auth.login_short", { defaultValue: "Login" })}
+          {t("auth.login_short")}
         </Button>
       </Flex>
+      <Space style={{ marginTop: 8 }}>
+        <Button ghost onClick={() => navigate("/register")}>
+          {t("public_registration.open_registration")}
+        </Button>
+      </Space>
     </Flex>
   );
 }

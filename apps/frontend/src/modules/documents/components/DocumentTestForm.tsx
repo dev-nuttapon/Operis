@@ -11,7 +11,7 @@ interface DocumentTestFormProps {
 export function DocumentTestForm({ onSubmit }: DocumentTestFormProps) {
   const [form] = Form.useForm();
   const language = useI18nLanguage();
-  const tr = (key: string, fallback: string) => i18n.t(key, { lng: language, defaultValue: fallback });
+  const tr = (key: string) => i18n.t(key, { lng: language });
 
   const handleFinish = (values: {
     title: string;
@@ -43,58 +43,58 @@ export function DocumentTestForm({ onSubmit }: DocumentTestFormProps) {
     >
       <Form.Item
         name="title"
-        label={tr("documents.form.title_label", "Document Title")}
-        rules={[{ required: true, message: tr("documents.form.title_required", "Please input document title") }]}
+        label={tr("documents.form.title_label")}
+        rules={[{ required: true, message: tr("documents.form.title_required") }]}
       >
-        <Input placeholder={tr("documents.form.title_placeholder", "e.g. Monthly Inventory Report")} />
+        <Input placeholder={tr("documents.form.title_placeholder")} />
       </Form.Item>
 
       <Form.Item
         name="documentCode"
-        label={tr("documents.form.code_label", "Document Code")}
-        rules={[{ required: true, message: tr("documents.form.code_required", "Please input document code") }]}
+        label={tr("documents.form.code_label")}
+        rules={[{ required: true, message: tr("documents.form.code_required") }]}
       >
-        <Input placeholder={tr("documents.form.code_placeholder", "e.g. DOC-2026-001")} />
+        <Input placeholder={tr("documents.form.code_placeholder")} />
       </Form.Item>
 
       <Form.Item
         name="ownerEmail"
-        label={tr("documents.form.owner_email_label", "Owner Email")}
+        label={tr("documents.form.owner_email_label")}
         rules={[
-          { required: true, message: tr("documents.form.owner_email_required", "Please input owner email") },
-          { type: "email", message: tr("documents.form.owner_email_invalid", "Please input valid email") },
+          { required: true, message: tr("documents.form.owner_email_required") },
+          { type: "email", message: tr("documents.form.owner_email_invalid") },
         ]}
       >
-        <Input placeholder={tr("documents.form.owner_email_placeholder", "owner@example.com")} />
+        <Input placeholder={tr("documents.form.owner_email_placeholder")} />
       </Form.Item>
 
       <Form.Item
         name="effectiveDate"
-        label={tr("documents.form.effective_date_label", "Effective Date")}
-        rules={[{ required: true, message: tr("documents.form.effective_date_required", "Please select effective date") }]}
+        label={tr("documents.form.effective_date_label")}
+        rules={[{ required: true, message: tr("documents.form.effective_date_required") }]}
       >
         <DatePicker style={{ width: "100%" }} />
       </Form.Item>
 
-      <Form.Item name="description" label={tr("documents.form.description_label", "Description")}>
-        <Input.TextArea rows={4} placeholder={tr("documents.form.description_placeholder", "Short description for test form")} />
+      <Form.Item name="description" label={tr("documents.form.description_label")}>
+        <Input.TextArea rows={4} placeholder={tr("documents.form.description_placeholder")} />
       </Form.Item>
 
       <Space>
         <Button type="primary" htmlType="submit">
-          {tr("documents.form.submit", "Submit Test Form")}
+          {tr("documents.form.submit")}
         </Button>
         <Button
           onClick={() => {
             form.resetFields();
           }}
         >
-          {tr("documents.form.reset", "Reset")}
+          {tr("documents.form.reset")}
         </Button>
       </Space>
 
       <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-        {tr("documents.form.note", "This is a local test form in documents module (no API call yet).")}
+        {tr("documents.form.note")}
       </Typography.Paragraph>
     </Form>
   );

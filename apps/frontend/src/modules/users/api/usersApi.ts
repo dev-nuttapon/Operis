@@ -2,14 +2,17 @@ import { apiRequest, publicApiRequest } from "../../../shared/lib/apiClient";
 import type {
   AcceptInvitationInput,
   ApproveRegistrationInput,
+  CompleteRegistrationPasswordSetupInput,
   CreateMasterDataInput,
   CreateInvitationInput,
   CreateUserInput,
+  RegistrationPasswordSetupDetail,
   UpdateUserInput,
   InvitationDetail,
   Invitation,
   InvitationStatus,
   AppRoleItem,
+  CreateRegistrationRequestInput,
   MasterDataItem,
   RegistrationRequest,
   RegistrationRequestStatus,
@@ -25,9 +28,27 @@ export function listUsers(signal?: AbortSignal) {
   return apiRequest<User[]>("/api/v1/users", { signal });
 }
 
+export function createRegistrationRequest(input: CreateRegistrationRequestInput) {
+  return publicApiRequest<RegistrationRequest>("/api/v1/users/register", {
+    method: "POST",
+    body: input,
+  });
+}
+
 export function listRegistrationRequests(status?: RegistrationRequestStatus, signal?: AbortSignal) {
   const query = status ? `?status=${encodeURIComponent(status)}` : "";
   return apiRequest<RegistrationRequest[]>(`/api/v1/users/registration-requests${query}`, { signal });
+}
+
+export function getRegistrationPasswordSetup(token: string) {
+  return publicApiRequest<RegistrationPasswordSetupDetail>(`/api/v1/users/registration-requests/${encodeURIComponent(token)}/setup-password`);
+}
+
+export function completeRegistrationPasswordSetup(token: string, input: CompleteRegistrationPasswordSetupInput) {
+  return publicApiRequest<void>(`/api/v1/users/registration-requests/${encodeURIComponent(token)}/setup-password`, {
+    method: "POST",
+    body: input,
+  });
 }
 
 export function listInvitations(status?: InvitationStatus, signal?: AbortSignal) {
@@ -103,6 +124,10 @@ export function listDepartments(signal?: AbortSignal) {
   return apiRequest<MasterDataItem[]>("/api/v1/users/departments", { signal });
 }
 
+export function listPublicDepartments(signal?: AbortSignal) {
+  return publicApiRequest<MasterDataItem[]>("/api/v1/users/departments", { signal });
+}
+
 export function listRoles(signal?: AbortSignal) {
   return apiRequest<AppRoleItem[]>("/api/v1/users/roles", { signal });
 }
@@ -132,6 +157,10 @@ export function listJobTitles(signal?: AbortSignal) {
   return apiRequest<MasterDataItem[]>("/api/v1/users/job-titles", { signal });
 }
 
+export function listPublicJobTitles(signal?: AbortSignal) {
+  return publicApiRequest<MasterDataItem[]>("/api/v1/users/job-titles", { signal });
+}
+
 export function createJobTitle(input: CreateMasterDataInput) {
   return apiRequest<MasterDataItem>("/api/v1/users/job-titles", {
     method: "POST",
@@ -154,7 +183,7 @@ export function deleteJobTitle(id: string, input: SoftDeleteInput) {
 }
 
 export function approveRegistration(requestId: string, input: ApproveRegistrationInput) {
-  return apiRequest<User>(`/api/v1/users/registration-requests/${requestId}/approve`, {
+  return apiRequest<RegistrationRequest>(`/api/v1/users/registration-requests/${requestId}/approve`, {
     method: "POST",
     body: input,
   });

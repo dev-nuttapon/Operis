@@ -2,9 +2,10 @@ using Operis_API.Modules.Users.Domain;
 
 namespace Operis_API.Modules.Users.Contracts;
 
-public sealed record CreateRegistrationRequest(string Email, string FirstName, string LastName);
+public sealed record CreateRegistrationRequest(string Email, string FirstName, string LastName, Guid? DepartmentId, Guid? JobTitleId);
 public sealed record ReviewRegistrationRequest(string ReviewedBy);
 public sealed record RejectRegistrationRequest(string ReviewedBy, string Reason);
+public sealed record CompleteRegistrationPasswordSetupRequest(string Password, string ConfirmPassword);
 public sealed record CreateInvitationRequest(string Email, string InvitedBy, DateTimeOffset? ExpiresAt, Guid? DepartmentId, Guid? JobTitleId);
 public sealed record UpdateInvitationRequest(string Email, DateTimeOffset? ExpiresAt, Guid? DepartmentId, Guid? JobTitleId);
 public sealed record AcceptInvitationRequest(string FirstName, string LastName, string Password, string ConfirmPassword);
@@ -46,11 +47,28 @@ public sealed record RegistrationRequestResponse(
     string Email,
     string FirstName,
     string LastName,
+    Guid? DepartmentId,
+    string? DepartmentName,
+    Guid? JobTitleId,
+    string? JobTitleName,
     RegistrationRequestStatus Status,
     DateTimeOffset RequestedAt,
     DateTimeOffset? ReviewedAt,
     string? ReviewedBy,
-    string? RejectionReason);
+    string? RejectionReason,
+    string? PasswordSetupLink,
+    DateTimeOffset? PasswordSetupExpiresAt,
+    DateTimeOffset? PasswordSetupCompletedAt);
+
+public sealed record RegistrationPasswordSetupDetailResponse(
+    string Email,
+    string FirstName,
+    string LastName,
+    string? DepartmentName,
+    string? JobTitleName,
+    bool IsExpired,
+    bool IsCompleted,
+    DateTimeOffset? ExpiresAt);
 
 public sealed record InvitationResponse(
     Guid Id,

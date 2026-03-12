@@ -39,6 +39,7 @@ public sealed class UsersModule : IModule
             .WithName("Users_Update");
 
         group.MapGet("/departments", ListDepartmentsAsync)
+            .AllowAnonymous()
             .WithName("Users_ListDepartments");
 
         group.MapGet("/roles", ListRolesAsync)
@@ -54,6 +55,7 @@ public sealed class UsersModule : IModule
             .WithName("Users_DeleteDepartment");
 
         group.MapGet("/job-titles", ListJobTitlesAsync)
+            .AllowAnonymous()
             .WithName("Users_ListJobTitles");
 
         group.MapPost("/job-titles", CreateJobTitleAsync)
@@ -74,6 +76,14 @@ public sealed class UsersModule : IModule
 
         group.MapGet("/registration-requests", ListRegistrationRequestsAsync)
             .WithName("Users_ListRegistrationRequests");
+
+        group.MapGet("/registration-requests/{token}/setup-password", GetRegistrationPasswordSetupAsync)
+            .AllowAnonymous()
+            .WithName("Users_GetRegistrationPasswordSetup");
+
+        group.MapPost("/registration-requests/{token}/setup-password", CompleteRegistrationPasswordSetupAsync)
+            .AllowAnonymous()
+            .WithName("Users_CompleteRegistrationPasswordSetup");
 
         group.MapGet("/invitations", ListInvitationsAsync)
             .WithName("Users_ListInvitations");
@@ -509,12 +519,34 @@ public sealed class UsersModule : IModule
             return Results.Conflict(emailConflict);
         }
 
+        if (request.DepartmentId.HasValue)
+        {
+            var departmentExists = await dbContext.Departments
+                .AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
+            if (!departmentExists)
+            {
+                return Results.BadRequest("Department does not exist.");
+            }
+        }
+
+        if (request.JobTitleId.HasValue)
+        {
+            var jobTitleExists = await dbContext.JobTitles
+                .AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
+            if (!jobTitleExists)
+            {
+                return Results.BadRequest("Job title does not exist.");
+            }
+        }
+
         var registrationRequest = new UserRegistrationRequestEntity
         {
             Id = Guid.NewGuid(),
             Email = email,
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
+            DepartmentId = request.DepartmentId,
+            JobTitleId = request.JobTitleId,
             Status = RegistrationRequestStatus.Pending,
             RequestedAt = DateTimeOffset.UtcNow
         };
@@ -522,9 +554,19 @@ public sealed class UsersModule : IModule
         dbContext.UserRegistrationRequests.Add(registrationRequest);
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
         return Results.Created(
             $"/api/v1/users/registration-requests/{registrationRequest.Id}",
-            ToResponse(registrationRequest));
+            ToResponse(registrationRequest, departments, jobTitles));
     }
 
     private static async Task<IResult> UpdateCurrentUserPreferencesAsync(
@@ -567,10 +609,21 @@ public sealed class UsersModule : IModule
         var requests = await query
             .OrderByDescending(x => x.RequestedAt)
             .Take(100)
-            .Select(x => ToResponse(x))
             .ToListAsync(cancellationToken);
 
-        return Results.Ok(requests);
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToListAsync(cancellationToken);
+
+        var jobTitleMap = jobTitles.ToDictionary(x => x.Id, x => x.Name);
+
+        return Results.Ok(requests.Select(x => ToResponse(x, departments, jobTitleMap)));
     }
 
     private static async Task<IResult> ApproveRegistrationRequestAsync(
@@ -605,7 +658,7 @@ public sealed class UsersModule : IModule
             registrationRequest.Email,
             registrationRequest.FirstName,
             registrationRequest.LastName,
-            GenerateInitialPassword(),
+            null,
             cancellationToken);
         if (!keycloakResult.Success)
         {
@@ -616,22 +669,40 @@ public sealed class UsersModule : IModule
         }
 
         var now = DateTimeOffset.UtcNow;
+        var passwordSetupToken = GenerateRegistrationPasswordSetupToken();
+        var passwordSetupExpiresAt = now.AddDays(7);
         registrationRequest.Status = RegistrationRequestStatus.Approved;
         registrationRequest.ReviewedAt = now;
         registrationRequest.ReviewedBy = request.ReviewedBy.Trim();
+        registrationRequest.ProvisionedUserId = keycloakResult.UserId;
+        registrationRequest.PasswordSetupToken = passwordSetupToken;
+        registrationRequest.PasswordSetupExpiresAt = passwordSetupExpiresAt;
+        registrationRequest.PasswordSetupCompletedAt = null;
 
         var user = new UserEntity
         {
             Id = keycloakResult.UserId ?? throw new InvalidOperationException("Keycloak user id is required."),
             Status = UserStatus.Active,
             CreatedAt = now,
-            CreatedBy = registrationRequest.ReviewedBy
+            CreatedBy = registrationRequest.ReviewedBy,
+            DepartmentId = registrationRequest.DepartmentId,
+            JobTitleId = registrationRequest.JobTitleId
         };
 
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(ToResponse(user, null, [], null, null));
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        return Results.Ok(ToResponse(registrationRequest, departments, jobTitles));
     }
 
     private static async Task<IResult> RejectRegistrationRequestAsync(
@@ -660,7 +731,117 @@ public sealed class UsersModule : IModule
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(ToResponse(registrationRequest));
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        return Results.Ok(ToResponse(registrationRequest, departments, jobTitles));
+    }
+
+    private static async Task<IResult> GetRegistrationPasswordSetupAsync(
+        string token,
+        OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var registrationRequest = await dbContext.UserRegistrationRequests
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.PasswordSetupToken == token, cancellationToken);
+
+        if (registrationRequest is null)
+        {
+            return Results.NotFound();
+        }
+
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        return Results.Ok(ToPasswordSetupResponse(registrationRequest, departments, jobTitles));
+    }
+
+    private static async Task<IResult> CompleteRegistrationPasswordSetupAsync(
+        string token,
+        CompleteRegistrationPasswordSetupRequest request,
+        OperisDbContext dbContext,
+        IKeycloakAdminClient keycloakAdminClient,
+        CancellationToken cancellationToken)
+    {
+        var registrationRequest = await dbContext.UserRegistrationRequests
+            .FirstOrDefaultAsync(x => x.PasswordSetupToken == token, cancellationToken);
+
+        if (registrationRequest is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (registrationRequest.Status != RegistrationRequestStatus.Approved)
+        {
+            return Results.BadRequest("Registration request is not approved.");
+        }
+
+        if (registrationRequest.PasswordSetupCompletedAt.HasValue)
+        {
+            return Results.Conflict("Password setup has already been completed.");
+        }
+
+        if (registrationRequest.PasswordSetupExpiresAt.HasValue &&
+            registrationRequest.PasswordSetupExpiresAt.Value <= DateTimeOffset.UtcNow)
+        {
+            return Results.BadRequest("Password setup link has expired.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            return Results.BadRequest("Password is required.");
+        }
+
+        if (request.Password.Length < 8)
+        {
+            return Results.BadRequest("Password must be at least 8 characters.");
+        }
+
+        if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            return Results.BadRequest("Password and confirmation do not match.");
+        }
+
+        if (string.IsNullOrWhiteSpace(registrationRequest.ProvisionedUserId))
+        {
+            return Results.Problem(
+                title: "Unable to resolve provisioned user.",
+                detail: "The approved registration is missing a provisioned Keycloak user reference.",
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
+
+        var passwordUpdated = await keycloakAdminClient.UpdatePasswordAsync(
+            registrationRequest.ProvisionedUserId,
+            request.Password,
+            temporary: false,
+            cancellationToken);
+        if (!passwordUpdated.Success)
+        {
+            return Results.Problem(
+                title: "Unable to update password in Keycloak.",
+                detail: passwordUpdated.ErrorMessage,
+                statusCode: StatusCodes.Status502BadGateway);
+        }
+
+        registrationRequest.PasswordSetupCompletedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Results.NoContent();
     }
 
     private static async Task<IResult> ListInvitationsAsync(
@@ -1204,6 +1385,13 @@ public sealed class UsersModule : IModule
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
+    private static string GenerateRegistrationPasswordSetupToken()
+    {
+        Span<byte> bytes = stackalloc byte[24];
+        RandomNumberGenerator.Fill(bytes);
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
     private static string GenerateInitialPassword() =>
         $"Operis!{Guid.NewGuid():N}"[..16];
 
@@ -1262,17 +1450,41 @@ public sealed class UsersModule : IModule
         return keycloakUser is not null;
     }
 
-    private static RegistrationRequestResponse ToResponse(UserRegistrationRequestEntity entity) =>
+    private static RegistrationRequestResponse ToResponse(
+        UserRegistrationRequestEntity entity,
+        IReadOnlyDictionary<Guid, string> departments,
+        IReadOnlyDictionary<Guid, string> jobTitles) =>
         new(
             entity.Id,
             entity.Email,
             entity.FirstName,
             entity.LastName,
+            entity.DepartmentId,
+            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            entity.JobTitleId,
+            entity.JobTitleId.HasValue && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             entity.Status,
             entity.RequestedAt,
             entity.ReviewedAt,
             entity.ReviewedBy,
-            entity.RejectionReason);
+            entity.RejectionReason,
+            !string.IsNullOrWhiteSpace(entity.PasswordSetupToken) ? $"/register/setup-password/{entity.PasswordSetupToken}" : null,
+            entity.PasswordSetupExpiresAt,
+            entity.PasswordSetupCompletedAt);
+
+    private static RegistrationPasswordSetupDetailResponse ToPasswordSetupResponse(
+        UserRegistrationRequestEntity entity,
+        IReadOnlyDictionary<Guid, string> departments,
+        IReadOnlyDictionary<Guid, string> jobTitles) =>
+        new(
+            entity.Email,
+            entity.FirstName,
+            entity.LastName,
+            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            entity.JobTitleId.HasValue && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
+            entity.PasswordSetupExpiresAt.HasValue && entity.PasswordSetupExpiresAt.Value <= DateTimeOffset.UtcNow,
+            entity.PasswordSetupCompletedAt.HasValue,
+            entity.PasswordSetupExpiresAt);
 
     private static InvitationResponse ToResponse(
         UserInvitationEntity entity,

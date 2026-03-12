@@ -55,6 +55,9 @@ const messageKeyMap: Record<string, string> = {
   "Password is required.": "errors.password_required",
   "Password must be at least 8 characters.": "errors.password_min_length",
   "Password and confirmation do not match.": "errors.password_mismatch",
+  "Password setup has already been completed.": "errors.password_setup_completed",
+  "Password setup link has expired.": "errors.password_setup_expired",
+  "Registration request is not approved.": "errors.registration_not_approved",
   "Invitation not found.": "errors.invitation_not_found",
   "Keycloak user already exists.": "errors.keycloak_user_exists",
   "Keycloak user already exists but cannot resolve id.": "errors.keycloak_user_exists",
@@ -63,17 +66,14 @@ const messageKeyMap: Record<string, string> = {
 function localizeApiMessage(message: string, status: number) {
   const key = messageKeyMap[message];
   if (key) {
-    return i18n.t(key, { defaultValue: message });
+    return i18n.t(key);
   }
 
   if (message.startsWith("Request failed with status")) {
-    return i18n.t("errors.request_failed", {
-      status,
-      defaultValue: `Request failed with status ${status}`,
-    });
+    return i18n.t("errors.request_failed", { status });
   }
 
-  return message || i18n.t("errors.unknown", { defaultValue: "Unknown error" });
+  return message || i18n.t("errors.unknown");
 }
 
 function getErrorCategory(status: number): ApiError["category"] {
@@ -101,21 +101,21 @@ export function getApiErrorPresentation(error: unknown, fallbackTitle?: string) 
     }[error.category];
 
     return {
-      title: i18n.t(titleKey, { defaultValue: fallbackTitle || "Request failed" }),
+      title: fallbackTitle || i18n.t(titleKey),
       description: error.message,
     };
   }
 
   if (error instanceof Error) {
     return {
-      title: fallbackTitle || i18n.t("errors.title_generic", { defaultValue: "Request failed" }),
+      title: fallbackTitle || i18n.t("errors.title_generic"),
       description: error.message,
     };
   }
 
   return {
-    title: fallbackTitle || i18n.t("errors.title_generic", { defaultValue: "Request failed" }),
-    description: i18n.t("errors.unknown", { defaultValue: "Unknown error" }),
+    title: fallbackTitle || i18n.t("errors.title_generic"),
+    description: i18n.t("errors.unknown"),
   };
 }
 
@@ -143,19 +143,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     });
   } catch {
     throw new ApiError(
-      i18n.t("errors.network_unreachable", {
-        defaultValue: "Unable to connect to the server. Please check your connection and try again.",
-      }),
+      i18n.t("errors.network_unreachable"),
       0,
       "network"
     );
   }
 
   if (!response.ok) {
-    let message = i18n.t("errors.request_failed", {
-      status: response.status,
-      defaultValue: `Request failed with status ${response.status}`,
-    });
+    let message = i18n.t("errors.request_failed", { status: response.status });
 
     try {
       const contentType = response.headers.get("content-type") ?? "";
