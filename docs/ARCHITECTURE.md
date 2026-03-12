@@ -103,6 +103,7 @@ Readiness reference
 * `docs/DATA_OWNERSHIP.md`
 * `docs/MODULE_TEMPLATE.md`
 * `docs/NEW_MODULE_CHECKLIST.md`
+* `docs/PERFORMANCE_HOTSPOTS.md`
 
 ```
 
