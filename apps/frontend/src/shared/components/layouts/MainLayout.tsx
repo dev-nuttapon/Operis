@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Layout, Menu, Button, Typography, Flex, theme, Avatar, Dropdown, Popover, List } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -16,13 +16,15 @@ import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../modules/auth/hooks/useAuth';
 import { useThemeStore, ThemeMode } from '../../store/useThemeStore';
 import i18n from '../../i18n/config';
+import { useI18nLanguage } from '../../i18n/hooks/useI18nLanguage';
 
 const { Header, Sider, Content } = Layout;
 const { useToken } = theme;
 
 export function MainLayout() {
   const { token } = useToken();
-  const tr = (key: string, fallback: string) => i18n.t(key, { defaultValue: fallback });
+  const language = useI18nLanguage();
+  const tr = (key: string, fallback: string) => i18n.t(key, { lng: language, defaultValue: fallback });
   const [collapsed, setCollapsed] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState<'th' | 'en'>(
     i18n.language.startsWith('th') ? 'th' : 'en'
@@ -35,6 +37,16 @@ export function MainLayout() {
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
   const avatarBg = currentTheme === 'dark' ? '#334155' : '#cbd5e1';
   const avatarText = currentTheme === 'dark' ? '#e2e8f0' : '#334155';
+
+  useEffect(() => {
+    const onLanguageChanged = (lng: string) => {
+      setCurrentLanguage(lng.startsWith('th') ? 'th' : 'en');
+    };
+    i18n.on('languageChanged', onLanguageChanged);
+    return () => {
+      i18n.off('languageChanged', onLanguageChanged);
+    };
+  }, []);
 
   const menuItems = [
     {
@@ -83,7 +95,6 @@ export function MainLayout() {
     if (['light', 'dark', 'system'].includes(key)) setTheme(key as ThemeMode);
     if (key === 'th' || key === 'en') {
       void i18n.changeLanguage(key);
-      setCurrentLanguage(key);
     }
   };
 

@@ -2,6 +2,7 @@ import { Button, DatePicker, Form, Input, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import type { DocumentFormValues } from "../types/documentForm";
 import i18n from "../../../shared/i18n/config";
+import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
 
 interface DocumentTestFormProps {
   onSubmit: (values: DocumentFormValues) => void;
@@ -9,7 +10,8 @@ interface DocumentTestFormProps {
 
 export function DocumentTestForm({ onSubmit }: DocumentTestFormProps) {
   const [form] = Form.useForm();
-  const tr = (key: string, fallback: string) => i18n.t(key, { defaultValue: fallback });
+  const language = useI18nLanguage();
+  const tr = (key: string, fallback: string) => i18n.t(key, { lng: language, defaultValue: fallback });
 
   const handleFinish = (values: {
     title: string;

@@ -5,13 +5,15 @@ import { useAuth } from "../../../modules/auth/hooks/useAuth";
 import { DocumentTestForm } from "../components/DocumentTestForm";
 import type { DocumentFormValues } from "../types/documentForm";
 import i18n from "../../../shared/i18n/config";
+import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
 
 const { Title, Paragraph } = Typography;
 
 export function DocumentDashboardPage() {
   const { logout, isAuthenticated } = useAuth();
+  const language = useI18nLanguage();
   const [submittedData, setSubmittedData] = useState<DocumentFormValues | null>(null);
-  const tr = (key: string, fallback: string) => i18n.t(key, { defaultValue: fallback });
+  const tr = (key: string, fallback: string) => i18n.t(key, { lng: language, defaultValue: fallback });
 
   return (
     <Card bordered={false} style={{ borderRadius: 16 }}>

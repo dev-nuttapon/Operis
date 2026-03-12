@@ -1,6 +1,45 @@
 @Operis_API_HostAddress = http://localhost:5124
 
-GET {{Operis_API_HostAddress}}/weatherforecast/
+GET {{Operis_API_HostAddress}}/health
 Accept: application/json
+
+###
+
+POST {{Operis_API_HostAddress}}/api/v1/users/register
+Content-Type: application/json
+
+{
+  "email": "new.user@operis.local",
+  "firstName": "New",
+  "lastName": "User"
+}
+
+###
+
+GET {{Operis_API_HostAddress}}/api/v1/users/registration-requests?status=Pending
+Accept: application/json
+
+###
+
+POST {{Operis_API_HostAddress}}/api/v1/users/invitations
+Content-Type: application/json
+
+{
+  "email": "invite.user@operis.local",
+  "invitedBy": "admin@operis.local",
+  "expiresInDays": 7
+}
+
+###
+
+POST {{Operis_API_HostAddress}}/api/v1/users
+Content-Type: application/json
+
+{
+  "email": "direct.user@operis.local",
+  "firstName": "Direct",
+  "lastName": "User",
+  "createdBy": "admin@operis.local"
+}
 
 ###
