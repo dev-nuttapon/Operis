@@ -132,11 +132,13 @@
     "documents": "เอกสาร",
     "admin": "ผู้ดูแลระบบ",
     "user_admin_group": "จัดการผู้ใช้งาน",
+    "audit_group": "บันทึกการใช้งาน",
     "user_management": "รายการผู้ใช้งาน",
     "user_admin": "จัดการผู้ใช้งาน",
     "admin_created_users": "จัดการผู้ใช้งาน",
     "user_invitations": "เชิญผู้ใช้งาน",
     "registration_approvals": "อนุมัติการลงทะเบียน",
+    "audit_logs": "บันทึกการใช้งาน",
     "master_data_management": "จัดการข้อมูล Master",
     "master_departments": "แผนก",
     "master_job_titles": "ตำแหน่ง",
@@ -278,7 +280,13 @@
       "department_delete_reason": "เช่น ยุบหน่วยงาน / สร้างรายการใหม่แทน",
       "job_title_name": "Document Controller",
       "job_title_delete_reason": "เช่น ปรับโครงสร้างตำแหน่ง / ยกเลิกรายการเดิม",
-      "invitation_reject_reason": "ระบุเหตุผลที่ปฏิเสธ"
+      "invitation_reject_reason": "ระบุเหตุผลที่ปฏิเสธ",
+      "search_users": "ค้นหาด้วยรหัสผู้ใช้หรือผู้สร้าง",
+      "search_invitations": "ค้นหาด้วยอีเมลหรือผู้เชิญ",
+      "search_registrations": "ค้นหาด้วยอีเมลหรือชื่อผู้สมัคร",
+      "search_departments": "ค้นหาชื่อแผนก",
+      "search_job_titles": "ค้นหาชื่อตำแหน่ง",
+      "select_status": "เลือกสถานะ"
     },
     "validation": {
       "delete_reason_required": "กรุณาระบุเหตุผลในการลบ",
@@ -325,7 +333,6 @@
       "page_title": "จัดการผู้ใช้งาน",
       "page_description": "จัดการผู้ใช้งานจากฝั่งผู้ดูแลระบบ",
       "card_title": "จัดการผู้ใช้งานโดยผู้ดูแล",
-      "card_description": "ใช้สำหรับเพิ่ม แก้ไข และลบผู้ใช้งานจากฝั่งผู้ดูแลระบบ",
       "create_user": "เพิ่มผู้ใช้งาน",
       "list_title": "รายการผู้ใช้งาน",
       "create_modal_title": "เพิ่มผู้ใช้งาน",
@@ -351,7 +358,6 @@
       "page_title": "อนุมัติการลงทะเบียน",
       "page_description": "ตรวจคำขอลงทะเบียนที่ผู้ใช้ส่งเข้ามา แล้วอนุมัติหรือปฏิเสธตามนโยบาย",
       "pending_title": "คำขอลงทะเบียนที่รออนุมัติ",
-      "pending_description": "ใช้สำหรับคำขอที่ผู้ใช้ลงทะเบียนเข้ามาเอง แล้วให้ผู้ดูแลตรวจและอนุมัติหรือปฏิเสธ",
       "default_rejection_reason": "ไม่อนุมัติ",
       "reject_reason_placeholder": "เหตุผลในการปฏิเสธ",
       "manage_modal_title": "จัดการคำขอลงทะเบียน",
@@ -409,6 +415,60 @@
       "submit": "ส่งฟอร์มทดสอบ",
       "reset": "ล้างค่า",
       "note": "นี่คือฟอร์มทดสอบในโมดูลเอกสาร (ยังไม่มีการเรียก API)"
+    }
+  },
+  "audit_logs": {
+    "title": "บันทึกการใช้งาน",
+    "description": "ตรวจสอบกิจกรรมที่เกิดขึ้นในระบบย้อนหลังตามโมดูล ผู้กระทำ และผลลัพธ์ของคำขอ",
+    "empty": "ยังไม่มีข้อมูลบันทึกการใช้งาน",
+    "empty_error": "ไม่สามารถโหลดข้อมูลบันทึกการใช้งานได้",
+    "columns": {
+      "occurred_at": "วันเวลา",
+      "module": "โมดูล",
+      "action": "การกระทำ",
+      "entity": "รายการที่เกี่ยวข้อง",
+      "actor": "ผู้กระทำ",
+      "status": "ผลลัพธ์",
+      "request": "คำขอ",
+      "actions": "การจัดการ"
+    },
+    "filters": {
+      "module": "โมดูล",
+      "action": "การกระทำ",
+      "entity_type": "ประเภทข้อมูล",
+      "entity_id": "รหัสข้อมูล",
+      "actor": "ผู้กระทำ",
+      "status": "ผลลัพธ์",
+      "date_range": "ช่วงเวลา"
+    },
+    "placeholders": {
+      "module": "เช่น users",
+      "action": "เช่น update",
+      "entity_type": "เช่น user",
+      "entity_id": "ค้นหาด้วยรหัสอ้างอิง",
+      "actor": "อีเมล หรือชื่อผู้กระทำ"
+    },
+    "actions": {
+      "search": "ค้นหา",
+      "reset": "ล้างค่า",
+      "view": "ดู",
+      "close": "ปิด"
+    },
+    "detail": {
+      "title": "รายละเอียดบันทึกการใช้งาน",
+      "summary": "สรุปรายการ",
+      "before": "ข้อมูลก่อนเปลี่ยน",
+      "after": "ข้อมูลหลังเปลี่ยน",
+      "changes": "รายการเปลี่ยนแปลง",
+      "metadata": "ข้อมูลเพิ่มเติม"
+    },
+    "status": {
+      "success": "success",
+      "failed": "failed",
+      "denied": "denied"
+    },
+    "notifications": {
+      "load_failed_title": "ไม่สามารถโหลดบันทึกการใช้งานได้"
     }
   }
 }

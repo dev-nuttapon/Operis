@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operis_API.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Operis_API.Infrastructure.Persistence;
 namespace Operis_API.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(OperisDbContext))]
-    partial class OperisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260312101453_AddAuditLogs")]
+    partial class AddAuditLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -40,8 +43,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnName("uploaded_at");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UploadedAt");
 
                     b.ToTable("documents", (string)null);
                 });
@@ -106,8 +107,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("\"deleted_at\" IS NULL");
 
-                    b.HasIndex("DeletedAt", "DisplayOrder", "Name");
-
                     b.ToTable("app_roles", (string)null);
                 });
 
@@ -156,8 +155,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("\"deleted_at\" IS NULL");
 
-                    b.HasIndex("DeletedAt", "DisplayOrder", "Name");
-
                     b.ToTable("departments", (string)null);
                 });
 
@@ -205,8 +202,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("Name")
                         .IsUnique()
                         .HasFilter("\"deleted_at\" IS NULL");
-
-                    b.HasIndex("DeletedAt", "DisplayOrder", "Name");
 
                     b.ToTable("job_titles", (string)null);
                 });
@@ -271,8 +266,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("JobTitleId");
-
-                    b.HasIndex("DeletedAt", "CreatedAt");
 
                     b.ToTable("users", (string)null);
                 });
@@ -342,8 +335,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("JobTitleId");
 
                     b.HasIndex("Email", "Status");
-
-                    b.HasIndex("Status", "InvitedAt");
 
                     b.ToTable("user_invitations", (string)null);
                 });
@@ -433,8 +424,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("Email", "Status");
-
-                    b.HasIndex("Status", "RequestedAt");
 
                     b.ToTable("user_registration_requests", (string)null);
                 });
@@ -601,10 +590,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("OccurredAt");
 
                     b.HasIndex("RequestId");
-
-                    b.HasIndex("Action", "OccurredAt");
-
-                    b.HasIndex("ActorEmail", "OccurredAt");
 
                     b.HasIndex("ActorUserId", "OccurredAt");
 

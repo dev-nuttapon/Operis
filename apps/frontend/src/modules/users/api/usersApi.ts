@@ -1,4 +1,5 @@
 import { apiRequest, publicApiRequest } from "../../../shared/lib/apiClient";
+import type { PaginatedResult, PaginationInput } from "../../../shared/types/pagination";
 import type {
   AcceptInvitationInput,
   ApproveRegistrationInput,
@@ -10,12 +11,13 @@ import type {
   UpdateUserInput,
   InvitationDetail,
   Invitation,
-  InvitationStatus,
   AppRoleItem,
   CreateRegistrationRequestInput,
+  ListInvitationsInput,
+  ListRegistrationRequestsInput,
+  ListUsersInput,
   MasterDataItem,
   RegistrationRequest,
-  RegistrationRequestStatus,
   RejectRegistrationInput,
   SoftDeleteInput,
   UpdateMasterDataInput,
@@ -24,8 +26,39 @@ import type {
   User,
 } from "../types/users";
 
-export function listUsers(signal?: AbortSignal) {
-  return apiRequest<User[]>("/api/v1/users", { signal });
+type ListQueryInput = PaginationInput & {
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  from?: string;
+  to?: string;
+};
+
+function toListQuery(input?: ListQueryInput) {
+  const params = new URLSearchParams();
+  if (input?.page) params.set("page", String(input.page));
+  if (input?.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input?.search) params.set("search", input.search);
+  if (input?.sortBy) params.set("sortBy", input.sortBy);
+  if (input?.sortOrder) params.set("sortOrder", input.sortOrder);
+  if (input?.from) params.set("from", input.from);
+  if (input?.to) params.set("to", input.to);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export function listUsers(input?: ListUsersInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input?.status) params.set("status", input.status);
+  if (input?.page) params.set("page", String(input.page));
+  if (input?.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input?.search) params.set("search", input.search);
+  if (input?.sortBy) params.set("sortBy", input.sortBy);
+  if (input?.sortOrder) params.set("sortOrder", input.sortOrder);
+  if (input?.from) params.set("from", input.from);
+  if (input?.to) params.set("to", input.to);
+  const query = params.toString();
+  return apiRequest<PaginatedResult<User>>(`/api/v1/users${query ? `?${query}` : ""}`, { signal });
 }
 
 export function createRegistrationRequest(input: CreateRegistrationRequestInput) {
@@ -35,9 +68,18 @@ export function createRegistrationRequest(input: CreateRegistrationRequestInput)
   });
 }
 
-export function listRegistrationRequests(status?: RegistrationRequestStatus, signal?: AbortSignal) {
-  const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  return apiRequest<RegistrationRequest[]>(`/api/v1/users/registration-requests${query}`, { signal });
+export function listRegistrationRequests(input?: ListRegistrationRequestsInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input?.status) params.set("status", input.status);
+  if (input?.page) params.set("page", String(input.page));
+  if (input?.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input?.search) params.set("search", input.search);
+  if (input?.sortBy) params.set("sortBy", input.sortBy);
+  if (input?.sortOrder) params.set("sortOrder", input.sortOrder);
+  if (input?.from) params.set("from", input.from);
+  if (input?.to) params.set("to", input.to);
+  const query = params.toString();
+  return apiRequest<PaginatedResult<RegistrationRequest>>(`/api/v1/users/registration-requests${query ? `?${query}` : ""}`, { signal });
 }
 
 export function getRegistrationPasswordSetup(token: string) {
@@ -51,9 +93,18 @@ export function completeRegistrationPasswordSetup(token: string, input: Complete
   });
 }
 
-export function listInvitations(status?: InvitationStatus, signal?: AbortSignal) {
-  const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  return apiRequest<Invitation[]>(`/api/v1/users/invitations${query}`, { signal });
+export function listInvitations(input?: ListInvitationsInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input?.status) params.set("status", input.status);
+  if (input?.page) params.set("page", String(input.page));
+  if (input?.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input?.search) params.set("search", input.search);
+  if (input?.sortBy) params.set("sortBy", input.sortBy);
+  if (input?.sortOrder) params.set("sortOrder", input.sortOrder);
+  if (input?.from) params.set("from", input.from);
+  if (input?.to) params.set("to", input.to);
+  const query = params.toString();
+  return apiRequest<PaginatedResult<Invitation>>(`/api/v1/users/invitations${query ? `?${query}` : ""}`, { signal });
 }
 
 export function createInvitation(input: CreateInvitationInput) {
@@ -120,12 +171,12 @@ export function deleteUser(id: string, input: SoftDeleteInput) {
   });
 }
 
-export function listDepartments(signal?: AbortSignal) {
-  return apiRequest<MasterDataItem[]>("/api/v1/users/departments", { signal });
+export function listDepartments(input?: ListQueryInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/departments${toListQuery(input)}`, { signal });
 }
 
 export function listPublicDepartments(signal?: AbortSignal) {
-  return publicApiRequest<MasterDataItem[]>("/api/v1/users/departments", { signal });
+  return publicApiRequest<PaginatedResult<MasterDataItem>>("/api/v1/users/departments?page=1&pageSize=100", { signal });
 }
 
 export function listRoles(signal?: AbortSignal) {
@@ -153,12 +204,12 @@ export function deleteDepartment(id: string, input: SoftDeleteInput) {
   });
 }
 
-export function listJobTitles(signal?: AbortSignal) {
-  return apiRequest<MasterDataItem[]>("/api/v1/users/job-titles", { signal });
+export function listJobTitles(input?: ListQueryInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/job-titles${toListQuery(input)}`, { signal });
 }
 
 export function listPublicJobTitles(signal?: AbortSignal) {
-  return publicApiRequest<MasterDataItem[]>("/api/v1/users/job-titles", { signal });
+  return publicApiRequest<PaginatedResult<MasterDataItem>>("/api/v1/users/job-titles?page=1&pageSize=100", { signal });
 }
 
 export function createJobTitle(input: CreateMasterDataInput) {

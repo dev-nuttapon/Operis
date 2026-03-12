@@ -129,6 +129,10 @@ export function MainLayout() {
                 },
               ],
             },
+            {
+              key: '/app/admin/audit-logs',
+              label: tr('common.audit_logs'),
+            },
           ],
         }]
       : []),
@@ -204,6 +208,7 @@ export function MainLayout() {
     if (path.includes('admin/master')) return tr('common.master_data_management');
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
     if (path.includes('admin/registrations')) return tr('common.registration_approvals');
+    if (path.includes('admin/audit-logs')) return tr('common.audit_logs');
     return tr('common.dashboard');
   };
 
@@ -421,6 +426,10 @@ export function MainLayout() {
 function getOpenKeys(path: string) {
   if (path.startsWith('/app/admin/master/')) {
     return ['/app/admin', '/app/admin/master'];
+  }
+
+  if (path.startsWith('/app/admin/audit-logs')) {
+    return ['/app/admin'];
   }
 
   if (

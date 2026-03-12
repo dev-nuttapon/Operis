@@ -6,6 +6,8 @@ using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Domain;
 using Operis_API.Modules.Users.Infrastructure;
+using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 using Operis_API.Shared.Modules;
 
 namespace Operis_API.Modules.Users;
@@ -119,14 +121,46 @@ public sealed class UsersModule : IModule
 
     private static async Task<IResult> ListUsersAsync(
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         bool includeIdentity = true,
+        UserStatus? status = null,
+        DateTimeOffset? from = null,
+        DateTimeOffset? to = null,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var users = await dbContext.Users
-            .Where(x => x.DeletedAt == null)
-            .OrderByDescending(x => x.CreatedAt)
-            .Take(100)
+        var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(page, pageSize);
+        var baseQuery = dbContext.Users.Where(x => x.DeletedAt == null);
+        if (status.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.Status == status.Value);
+        }
+        if (from.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.CreatedAt >= from.Value);
+        }
+        if (to.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.CreatedAt <= to.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLowerInvariant();
+            baseQuery = baseQuery.Where(x =>
+                x.Id.ToLower().Contains(normalizedSearch)
+                || x.CreatedBy.ToLower().Contains(normalizedSearch)
+                || (x.DeletedBy != null && x.DeletedBy.ToLower().Contains(normalizedSearch)));
+        }
+        baseQuery = ApplyUserSorting(baseQuery, sortBy, sortOrder);
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var users = await baseQuery
+            .Skip(skip)
+            .Take(normalizedPageSize)
             .ToListAsync(cancellationToken);
 
         var departments = await dbContext.Departments
@@ -145,7 +179,14 @@ public sealed class UsersModule : IModule
         if (!includeIdentity)
         {
             var localOnly = users.Select(x => ToResponse(x, null, [], departments, jobTitles)).ToList();
-            return Results.Ok(localOnly);
+            auditLogWriter.Append(new AuditLogEntry(
+                Module: "users",
+                Action: "list",
+                EntityType: "user",
+                StatusCode: StatusCodes.Status200OK,
+                Metadata: new { count = localOnly.Count, total, includeIdentity = false, status, from, to, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Results.Ok(new PagedResult<UserResponse>(localOnly, total, normalizedPage, normalizedPageSize));
         }
 
         var responses = new List<UserResponse>(users.Count);
@@ -163,11 +204,20 @@ public sealed class UsersModule : IModule
             responses.Add(ToResponse(user, profile, mappedRoles, departments, jobTitles));
         }
 
-        return Results.Ok(responses);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "user",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = responses.Count, total, includeIdentity = true, status, from, to, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(new PagedResult<UserResponse>(responses, total, normalizedPage, normalizedPageSize));
     }
 
     private static async Task<IResult> ListRolesAsync(
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var roles = await dbContext.AppRoles
@@ -177,27 +227,58 @@ public sealed class UsersModule : IModule
             .ThenBy(x => x.Name)
             .Select(x => new AppRoleResponse(x.Id, x.Name, x.KeycloakRoleName, x.Description, x.DisplayOrder))
             .ToListAsync(cancellationToken);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "app_role",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = roles.Count }));
+        await dbContext.SaveChangesAsync(cancellationToken);
         return Results.Ok(roles);
     }
 
     private static async Task<IResult> ListDepartmentsAsync(
         OperisDbContext dbContext,
-        CancellationToken cancellationToken)
+        IAuditLogWriter auditLogWriter,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
-        var items = await dbContext.Departments
+        var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(page, pageSize);
+        var query = dbContext.Departments
             .AsNoTracking()
-            .Where(x => x.DeletedAt == null)
-            .OrderBy(x => x.DisplayOrder)
-            .ThenBy(x => x.Name)
+            .Where(x => x.DeletedAt == null);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLowerInvariant();
+            query = query.Where(x => x.Name.ToLower().Contains(normalizedSearch));
+        }
+        query = ApplyDepartmentSorting(query, sortBy, sortOrder);
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip(skip)
+            .Take(normalizedPageSize)
             .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
             .ToListAsync(cancellationToken);
 
-        return Results.Ok(items);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "department",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = items.Count, total, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(new PagedResult<MasterDataResponse>(items, total, normalizedPage, normalizedPageSize));
     }
 
     private static async Task<IResult> CreateDepartmentAsync(
         CreateMasterDataRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var name = NormalizeRequiredName(request.Name);
@@ -221,6 +302,13 @@ public sealed class UsersModule : IModule
         };
 
         dbContext.Departments.Add(entity);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "create",
+            EntityType: "department",
+            EntityId: entity.Id.ToString(),
+            StatusCode: StatusCodes.Status201Created,
+            After: ToDepartmentAuditState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Results.Created($"/api/v1/users/departments/{entity.Id}", ToResponse(entity));
@@ -230,6 +318,7 @@ public sealed class UsersModule : IModule
         Guid departmentId,
         UpdateMasterDataRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var entity = await dbContext.Departments.FirstOrDefaultAsync(x => x.Id == departmentId && x.DeletedAt == null, cancellationToken);
@@ -250,9 +339,24 @@ public sealed class UsersModule : IModule
             return Results.Conflict("Department already exists.");
         }
 
+        var before = ToDepartmentAuditState(entity);
         entity.Name = name;
         entity.DisplayOrder = request.DisplayOrder;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "update",
+            EntityType: "department",
+            EntityId: entity.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Before: before,
+            After: ToDepartmentAuditState(entity),
+            Changes: new
+            {
+                entity.Name,
+                entity.DisplayOrder,
+                entity.UpdatedAt
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Results.Ok(ToResponse(entity));
@@ -263,6 +367,7 @@ public sealed class UsersModule : IModule
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
         [FromServices] OperisDbContext dbContext,
+        [FromServices] IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var entity = await dbContext.Departments.FirstOrDefaultAsync(x => x.Id == departmentId && x.DeletedAt == null, cancellationToken);
@@ -271,31 +376,71 @@ public sealed class UsersModule : IModule
             return Results.NotFound();
         }
 
+        var before = ToDepartmentAuditState(entity);
         entity.DeletedAt = DateTimeOffset.UtcNow;
         entity.DeletedBy = ResolveActor(principal);
         entity.DeletedReason = NormalizeDeleteReason(request.Reason);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "soft_delete",
+            EntityType: "department",
+            EntityId: entity.Id.ToString(),
+            StatusCode: StatusCodes.Status204NoContent,
+            Reason: entity.DeletedReason,
+            Before: before,
+            After: ToDepartmentAuditState(entity),
+            Changes: new
+            {
+                entity.DeletedAt,
+                entity.DeletedBy,
+                entity.DeletedReason
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
 
     private static async Task<IResult> ListJobTitlesAsync(
         OperisDbContext dbContext,
-        CancellationToken cancellationToken)
+        IAuditLogWriter auditLogWriter,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
-        var items = await dbContext.JobTitles
+        var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(page, pageSize);
+        var query = dbContext.JobTitles
             .AsNoTracking()
-            .Where(x => x.DeletedAt == null)
-            .OrderBy(x => x.DisplayOrder)
-            .ThenBy(x => x.Name)
+            .Where(x => x.DeletedAt == null);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLowerInvariant();
+            query = query.Where(x => x.Name.ToLower().Contains(normalizedSearch));
+        }
+        query = ApplyJobTitleSorting(query, sortBy, sortOrder);
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip(skip)
+            .Take(normalizedPageSize)
             .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
             .ToListAsync(cancellationToken);
 
-        return Results.Ok(items);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "job_title",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = items.Count, total, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(new PagedResult<MasterDataResponse>(items, total, normalizedPage, normalizedPageSize));
     }
 
     private static async Task<IResult> CreateJobTitleAsync(
         CreateMasterDataRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var name = NormalizeRequiredName(request.Name);
@@ -319,6 +464,13 @@ public sealed class UsersModule : IModule
         };
 
         dbContext.JobTitles.Add(entity);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "create",
+            EntityType: "job_title",
+            EntityId: entity.Id.ToString(),
+            StatusCode: StatusCodes.Status201Created,
+            After: ToJobTitleAuditState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Results.Created($"/api/v1/users/job-titles/{entity.Id}", ToResponse(entity));
@@ -328,6 +480,7 @@ public sealed class UsersModule : IModule
         Guid jobTitleId,
         UpdateMasterDataRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var entity = await dbContext.JobTitles.FirstOrDefaultAsync(x => x.Id == jobTitleId && x.DeletedAt == null, cancellationToken);
@@ -348,9 +501,24 @@ public sealed class UsersModule : IModule
             return Results.Conflict("Job title already exists.");
         }
 
+        var before = ToJobTitleAuditState(entity);
         entity.Name = name;
         entity.DisplayOrder = request.DisplayOrder;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "update",
+            EntityType: "job_title",
+            EntityId: entity.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Before: before,
+            After: ToJobTitleAuditState(entity),
+            Changes: new
+            {
+                entity.Name,
+                entity.DisplayOrder,
+                entity.UpdatedAt
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Results.Ok(ToResponse(entity));
@@ -361,6 +529,7 @@ public sealed class UsersModule : IModule
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
         [FromServices] OperisDbContext dbContext,
+        [FromServices] IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var entity = await dbContext.JobTitles.FirstOrDefaultAsync(x => x.Id == jobTitleId && x.DeletedAt == null, cancellationToken);
@@ -369,9 +538,25 @@ public sealed class UsersModule : IModule
             return Results.NotFound();
         }
 
+        var before = ToJobTitleAuditState(entity);
         entity.DeletedAt = DateTimeOffset.UtcNow;
         entity.DeletedBy = ResolveActor(principal);
         entity.DeletedReason = NormalizeDeleteReason(request.Reason);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "soft_delete",
+            EntityType: "job_title",
+            EntityId: entity.Id.ToString(),
+            StatusCode: StatusCodes.Status204NoContent,
+            Reason: entity.DeletedReason,
+            Before: before,
+            After: ToJobTitleAuditState(entity),
+            Changes: new
+            {
+                entity.DeletedAt,
+                entity.DeletedBy,
+                entity.DeletedReason
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
@@ -381,6 +566,7 @@ public sealed class UsersModule : IModule
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
         [FromServices] OperisDbContext dbContext,
+        [FromServices] IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
@@ -390,6 +576,7 @@ public sealed class UsersModule : IModule
             return Results.NotFound();
         }
 
+        var before = ToUserAuditState(entity);
         var keycloakResult = await keycloakAdminClient.DisableUserAsync(entity.Id, cancellationToken);
         if (!keycloakResult.Success)
         {
@@ -404,6 +591,23 @@ public sealed class UsersModule : IModule
         entity.DeletedReason = NormalizeDeleteReason(request.Reason);
         entity.Status = UserStatus.Deleted;
 
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "soft_delete",
+            EntityType: "user",
+            EntityId: entity.Id,
+            StatusCode: StatusCodes.Status204NoContent,
+            Reason: entity.DeletedReason,
+            DepartmentId: entity.DepartmentId,
+            Before: before,
+            After: ToUserAuditState(entity),
+            Changes: new
+            {
+                status = entity.Status,
+                entity.DeletedAt,
+                entity.DeletedBy,
+                entity.DeletedReason
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
@@ -412,6 +616,7 @@ public sealed class UsersModule : IModule
         string userId,
         UpdateUserRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
@@ -458,6 +663,8 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("One or more selected roles do not exist.");
         }
 
+        var existingProfile = await ResolveKeycloakProfileAsync(user, keycloakAdminClient, cancellationToken);
+        var before = ToUserAuditState(user, existingProfile, null);
         var existingKeycloakUser = await keycloakAdminClient.FindUserByEmailAsync(email, cancellationToken);
         if (existingKeycloakUser is not null && !string.Equals(existingKeycloakUser.Id, user.Id, StringComparison.Ordinal))
         {
@@ -496,14 +703,37 @@ public sealed class UsersModule : IModule
 
         user.DepartmentId = request.DepartmentId;
         user.JobTitleId = request.JobTitleId;
+        var selectedRoleNames = selectedRoles.Select(x => x.Name).ToArray();
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "update",
+            EntityType: "user",
+            EntityId: user.Id,
+            StatusCode: StatusCodes.Status200OK,
+            DepartmentId: user.DepartmentId,
+            Before: before,
+            After: ToUserAuditState(
+                user,
+                new KeycloakUserProfile(user.Id, email, email, request.FirstName.Trim(), request.LastName.Trim(), true, true),
+                selectedRoleNames),
+            Changes: new
+            {
+                email,
+                firstName = request.FirstName.Trim(),
+                lastName = request.LastName.Trim(),
+                departmentId = user.DepartmentId,
+                jobTitleId = user.JobTitleId,
+                roleNames = selectedRoleNames
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(ToResponse(user, null, selectedRoles.Select(x => x.Name).ToArray(), null, null));
+        return Results.Ok(ToResponse(user, null, selectedRoleNames, null, null));
     }
 
     private static async Task<IResult> CreateRegistrationRequestAsync(
         CreateRegistrationRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
@@ -552,6 +782,16 @@ public sealed class UsersModule : IModule
         };
 
         dbContext.UserRegistrationRequests.Add(registrationRequest);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "register",
+            EntityType: "registration_request",
+            EntityId: registrationRequest.Id.ToString(),
+            StatusCode: StatusCodes.Status201Created,
+            ActorType: "anonymous",
+            ActorEmail: registrationRequest.Email,
+            DepartmentId: registrationRequest.DepartmentId,
+            After: ToRegistrationRequestAuditState(registrationRequest)));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var departments = await dbContext.Departments
@@ -573,6 +813,7 @@ public sealed class UsersModule : IModule
         UpdateUserPreferencesRequest request,
         ClaimsPrincipal principal,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var currentUserId = principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -587,28 +828,80 @@ public sealed class UsersModule : IModule
             return Results.NotFound();
         }
 
+        var before = new
+        {
+            user.Id,
+            user.PreferredLanguage,
+            user.PreferredTheme
+        };
         user.PreferredLanguage = NormalizeLanguage(request.PreferredLanguage);
         user.PreferredTheme = NormalizeTheme(request.PreferredTheme);
 
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "update_preferences",
+            EntityType: "user",
+            EntityId: user.Id,
+            StatusCode: StatusCodes.Status204NoContent,
+            DepartmentId: user.DepartmentId,
+            Before: before,
+            After: new
+            {
+                user.Id,
+                user.PreferredLanguage,
+                user.PreferredTheme
+            },
+            Changes: new
+            {
+                user.PreferredLanguage,
+                user.PreferredTheme
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
 
     private static async Task<IResult> ListRegistrationRequestsAsync(
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         RegistrationRequestStatus? status,
-        CancellationToken cancellationToken)
+        DateTimeOffset? from = null,
+        DateTimeOffset? to = null,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
+        var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(page, pageSize);
         var query = dbContext.UserRegistrationRequests.AsNoTracking();
 
         if (status.HasValue)
         {
             query = query.Where(x => x.Status == status.Value);
         }
+        if (from.HasValue)
+        {
+            query = query.Where(x => x.RequestedAt >= from.Value);
+        }
+        if (to.HasValue)
+        {
+            query = query.Where(x => x.RequestedAt <= to.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLowerInvariant();
+            query = query.Where(x =>
+                x.Email.ToLower().Contains(normalizedSearch)
+                || x.FirstName.ToLower().Contains(normalizedSearch)
+                || x.LastName.ToLower().Contains(normalizedSearch));
+        }
+        query = ApplyRegistrationSorting(query, sortBy, sortOrder);
 
+        var total = await query.CountAsync(cancellationToken);
         var requests = await query
-            .OrderByDescending(x => x.RequestedAt)
-            .Take(100)
+            .Skip(skip)
+            .Take(normalizedPageSize)
             .ToListAsync(cancellationToken);
 
         var departments = await dbContext.Departments
@@ -623,13 +916,26 @@ public sealed class UsersModule : IModule
 
         var jobTitleMap = jobTitles.ToDictionary(x => x.Id, x => x.Name);
 
-        return Results.Ok(requests.Select(x => ToResponse(x, departments, jobTitleMap)));
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "registration_request",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = requests.Count, total, status, from, to, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(new PagedResult<RegistrationRequestResponse>(
+            requests.Select(x => ToResponse(x, departments, jobTitleMap)).ToList(),
+            total,
+            normalizedPage,
+            normalizedPageSize));
     }
 
     private static async Task<IResult> ApproveRegistrationRequestAsync(
         Guid requestId,
         ReviewRegistrationRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
@@ -646,6 +952,7 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Registration request has already been reviewed.");
         }
 
+        var before = ToRegistrationRequestAuditState(registrationRequest);
         var existingKeycloakUser = await keycloakAdminClient.FindUserByEmailAsync(registrationRequest.Email, cancellationToken);
         var userExists = existingKeycloakUser is not null
             && await dbContext.Users.AnyAsync(x => x.Id == existingKeycloakUser.Id, cancellationToken);
@@ -690,6 +997,30 @@ public sealed class UsersModule : IModule
         };
 
         dbContext.Users.Add(user);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "approve",
+            EntityType: "registration_request",
+            EntityId: registrationRequest.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorEmail: request.ReviewedBy.Trim(),
+            DepartmentId: registrationRequest.DepartmentId,
+            Before: before,
+            After: ToRegistrationRequestAuditState(registrationRequest),
+            Changes: new
+            {
+                status = registrationRequest.Status,
+                registrationRequest.ReviewedBy,
+                registrationRequest.ReviewedAt,
+                registrationRequest.ProvisionedUserId,
+                registrationRequest.PasswordSetupToken,
+                registrationRequest.PasswordSetupExpiresAt
+            },
+            Metadata: new
+            {
+                userId = user.Id,
+                setupPath = $"/register/setup-password/{passwordSetupToken}"
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var departments = await dbContext.Departments
@@ -709,6 +1040,7 @@ public sealed class UsersModule : IModule
         Guid requestId,
         RejectRegistrationRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var registrationRequest = await dbContext.UserRegistrationRequests
@@ -724,11 +1056,30 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Registration request has already been reviewed.");
         }
 
+        var before = ToRegistrationRequestAuditState(registrationRequest);
         registrationRequest.Status = RegistrationRequestStatus.Rejected;
         registrationRequest.ReviewedBy = request.ReviewedBy.Trim();
         registrationRequest.ReviewedAt = DateTimeOffset.UtcNow;
         registrationRequest.RejectionReason = request.Reason.Trim();
 
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "reject",
+            EntityType: "registration_request",
+            EntityId: registrationRequest.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorEmail: registrationRequest.ReviewedBy,
+            DepartmentId: registrationRequest.DepartmentId,
+            Reason: registrationRequest.RejectionReason,
+            Before: before,
+            After: ToRegistrationRequestAuditState(registrationRequest),
+            Changes: new
+            {
+                status = registrationRequest.Status,
+                registrationRequest.ReviewedBy,
+                registrationRequest.ReviewedAt,
+                registrationRequest.RejectionReason
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var departments = await dbContext.Departments
@@ -747,6 +1098,7 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> GetRegistrationPasswordSetupAsync(
         string token,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var registrationRequest = await dbContext.UserRegistrationRequests
@@ -768,6 +1120,22 @@ public sealed class UsersModule : IModule
             .Where(x => x.DeletedAt == null)
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "view_password_setup",
+            EntityType: "registration_request",
+            EntityId: registrationRequest.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorType: "anonymous",
+            ActorEmail: registrationRequest.Email,
+            DepartmentId: registrationRequest.DepartmentId,
+            Metadata: new
+            {
+                completed = registrationRequest.PasswordSetupCompletedAt.HasValue,
+                expired = registrationRequest.PasswordSetupExpiresAt.HasValue && registrationRequest.PasswordSetupExpiresAt.Value <= DateTimeOffset.UtcNow
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
         return Results.Ok(ToPasswordSetupResponse(registrationRequest, departments, jobTitles));
     }
 
@@ -775,6 +1143,7 @@ public sealed class UsersModule : IModule
         string token,
         CompleteRegistrationPasswordSetupRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
@@ -825,6 +1194,7 @@ public sealed class UsersModule : IModule
                 statusCode: StatusCodes.Status500InternalServerError);
         }
 
+        var before = ToRegistrationRequestAuditState(registrationRequest);
         var passwordUpdated = await keycloakAdminClient.UpdatePasswordAsync(
             registrationRequest.ProvisionedUserId,
             request.Password,
@@ -839,6 +1209,26 @@ public sealed class UsersModule : IModule
         }
 
         registrationRequest.PasswordSetupCompletedAt = DateTimeOffset.UtcNow;
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "complete_password_setup",
+            EntityType: "registration_request",
+            EntityId: registrationRequest.Id.ToString(),
+            StatusCode: StatusCodes.Status204NoContent,
+            ActorType: "anonymous",
+            ActorEmail: registrationRequest.Email,
+            DepartmentId: registrationRequest.DepartmentId,
+            Before: before,
+            After: ToRegistrationRequestAuditState(registrationRequest),
+            Changes: new
+            {
+                registrationRequest.PasswordSetupCompletedAt
+            },
+            Metadata: new
+            {
+                provisionedUserId = registrationRequest.ProvisionedUserId
+            },
+            IsSensitive: true));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Results.NoContent();
@@ -846,15 +1236,40 @@ public sealed class UsersModule : IModule
 
     private static async Task<IResult> ListInvitationsAsync(
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         InvitationStatus? status,
-        CancellationToken cancellationToken)
+        DateTimeOffset? from = null,
+        DateTimeOffset? to = null,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
+        var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(page, pageSize);
         var query = dbContext.UserInvitations.AsNoTracking();
 
         if (status.HasValue)
         {
             query = query.Where(x => x.Status == status.Value);
         }
+        if (from.HasValue)
+        {
+            query = query.Where(x => x.InvitedAt >= from.Value);
+        }
+        if (to.HasValue)
+        {
+            query = query.Where(x => x.InvitedAt <= to.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLowerInvariant();
+            query = query.Where(x =>
+                x.Email.ToLower().Contains(normalizedSearch)
+                || x.InvitedBy.ToLower().Contains(normalizedSearch));
+        }
+        query = ApplyInvitationSorting(query, sortBy, sortOrder);
 
         var departments = await dbContext.Departments
             .AsNoTracking()
@@ -864,17 +1279,31 @@ public sealed class UsersModule : IModule
             .AsNoTracking()
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
+        var total = await query.CountAsync(cancellationToken);
         var invitations = await query
-            .OrderByDescending(x => x.InvitedAt)
-            .Take(100)
+            .Skip(skip)
+            .Take(normalizedPageSize)
             .ToListAsync(cancellationToken);
 
-        return Results.Ok(invitations.Select(x => ToResponse(x, departments, jobTitles)));
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "invitation",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = invitations.Count, total, status, from, to, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(new PagedResult<InvitationResponse>(
+            invitations.Select(x => ToResponse(x, departments, jobTitles)).ToList(),
+            total,
+            normalizedPage,
+            normalizedPageSize));
     }
 
     private static async Task<IResult> GetInvitationByTokenAsync(
         string token,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var invitation = await dbContext.UserInvitations
@@ -894,6 +1323,17 @@ public sealed class UsersModule : IModule
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
         var status = GetInvitationStatus(invitation);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "view_invitation",
+            EntityType: "invitation",
+            EntityId: invitation.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorType: "anonymous",
+            ActorEmail: invitation.Email,
+            DepartmentId: invitation.DepartmentId,
+            Metadata: new { status }));
+        await dbContext.SaveChangesAsync(cancellationToken);
         return Results.Ok(new InvitationDetailResponse(
             invitation.Id,
             invitation.Email,
@@ -909,6 +1349,7 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> CreateInvitationAsync(
         CreateInvitationRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
@@ -967,6 +1408,19 @@ public sealed class UsersModule : IModule
         };
 
         dbContext.UserInvitations.Add(invitation);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "invite",
+            EntityType: "invitation",
+            EntityId: invitation.Id.ToString(),
+            StatusCode: StatusCodes.Status201Created,
+            ActorEmail: invitedBy,
+            DepartmentId: invitation.DepartmentId,
+            After: ToInvitationAuditState(invitation),
+            Metadata: new
+            {
+                setupPath = $"/invite/{invitation.InvitationToken}"
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var departments = await dbContext.Departments
@@ -984,6 +1438,7 @@ public sealed class UsersModule : IModule
         Guid invitationId,
         UpdateInvitationRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
@@ -1038,6 +1493,7 @@ public sealed class UsersModule : IModule
             }
         }
 
+        var before = ToInvitationAuditState(invitation);
         var emailChanged = !string.Equals(invitation.Email, email, StringComparison.OrdinalIgnoreCase);
         if (emailChanged)
         {
@@ -1057,6 +1513,23 @@ public sealed class UsersModule : IModule
         invitation.DepartmentId = request.DepartmentId;
         invitation.JobTitleId = request.JobTitleId;
         invitation.ExpiresAt = request.ExpiresAt;
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "update",
+            EntityType: "invitation",
+            EntityId: invitation.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorEmail: invitation.InvitedBy,
+            DepartmentId: invitation.DepartmentId,
+            Before: before,
+            After: ToInvitationAuditState(invitation),
+            Changes: new
+            {
+                invitation.Email,
+                invitation.DepartmentId,
+                invitation.JobTitleId,
+                invitation.ExpiresAt
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var departments = await dbContext.Departments
@@ -1073,6 +1546,7 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> CancelInvitationAsync(
         Guid invitationId,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var invitation = await dbContext.UserInvitations.FirstOrDefaultAsync(x => x.Id == invitationId, cancellationToken);
@@ -1081,6 +1555,7 @@ public sealed class UsersModule : IModule
             return Results.NotFound();
         }
 
+        var before = ToInvitationAuditState(invitation);
         var status = GetInvitationStatus(invitation);
         if (status == InvitationStatus.Accepted)
         {
@@ -1088,6 +1563,20 @@ public sealed class UsersModule : IModule
         }
 
         invitation.Status = InvitationStatus.Cancelled;
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "cancel_invitation",
+            EntityType: "invitation",
+            EntityId: invitation.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorEmail: invitation.InvitedBy,
+            DepartmentId: invitation.DepartmentId,
+            Before: before,
+            After: ToInvitationAuditState(invitation),
+            Changes: new
+            {
+                invitation.Status
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
         var departments = await dbContext.Departments
             .AsNoTracking()
@@ -1104,6 +1593,7 @@ public sealed class UsersModule : IModule
         string token,
         AcceptInvitationRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
@@ -1114,6 +1604,7 @@ public sealed class UsersModule : IModule
             return Results.NotFound();
         }
 
+        var before = ToInvitationAuditState(invitation);
         var status = GetInvitationStatus(invitation);
         if (status == InvitationStatus.Accepted)
         {
@@ -1190,6 +1681,29 @@ public sealed class UsersModule : IModule
         invitation.AcceptedAt = DateTimeOffset.UtcNow;
 
         dbContext.Users.Add(user);
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "accept_invitation",
+            EntityType: "invitation",
+            EntityId: invitation.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            ActorType: "anonymous",
+            ActorUserId: user.Id,
+            ActorEmail: invitation.Email,
+            DepartmentId: invitation.DepartmentId,
+            Before: before,
+            After: ToInvitationAuditState(invitation),
+            Changes: new
+            {
+                invitation.Status,
+                invitation.AcceptedAt
+            },
+            Metadata: new
+            {
+                userId = user.Id,
+                firstName = request.FirstName.Trim(),
+                lastName = request.LastName.Trim()
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var departments = await dbContext.Departments
@@ -1206,6 +1720,7 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> CreateUserAsync(
         CreateUserRequest request,
         OperisDbContext dbContext,
+        IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
@@ -1310,9 +1825,25 @@ public sealed class UsersModule : IModule
         }
 
         dbContext.Users.Add(user);
+        var selectedRoleNames = selectedRoles.Select(x => x.Name).ToArray();
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "create",
+            EntityType: "user",
+            EntityId: user.Id,
+            StatusCode: StatusCodes.Status201Created,
+            DepartmentId: user.DepartmentId,
+            After: ToUserAuditState(
+                user,
+                new KeycloakUserProfile(user.Id, email, email, request.FirstName.Trim(), request.LastName.Trim(), true, true),
+                selectedRoleNames),
+            Metadata: new
+            {
+                roleNames = selectedRoleNames
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Created($"/api/v1/users/{user.Id}", ToResponse(user, null, selectedRoles.Select(x => x.Name).ToArray(), null, null));
+        return Results.Created($"/api/v1/users/{user.Id}", ToResponse(user, null, selectedRoleNames, null, null));
     }
 
     private static async Task<KeycloakUserProfile?> ResolveKeycloakProfileAsync(
@@ -1392,9 +1923,6 @@ public sealed class UsersModule : IModule
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    private static string GenerateInitialPassword() =>
-        $"Operis!{Guid.NewGuid():N}"[..16];
-
     private static InvitationStatus GetInvitationStatus(UserInvitationEntity entity)
     {
         if (entity.Status == InvitationStatus.Pending && entity.ExpiresAt.HasValue && entity.ExpiresAt.Value <= DateTimeOffset.UtcNow)
@@ -1449,6 +1977,156 @@ public sealed class UsersModule : IModule
         var keycloakUser = await keycloakAdminClient.FindUserByEmailAsync(email, cancellationToken);
         return keycloakUser is not null;
     }
+
+    private static (int page, int pageSize, int skip) NormalizePaging(int page, int pageSize)
+    {
+        var normalizedPage = page < 1 ? 1 : page;
+        var normalizedPageSize = Math.Clamp(pageSize, 10, 100);
+        var skip = (normalizedPage - 1) * normalizedPageSize;
+        return (normalizedPage, normalizedPageSize, skip);
+    }
+
+    private static bool IsDescending(string? sortOrder) =>
+        string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+
+    private static IQueryable<UserEntity> ApplyUserSorting(IQueryable<UserEntity> query, string? sortBy, string? sortOrder)
+    {
+        var desc = IsDescending(sortOrder);
+        return sortBy?.ToLowerInvariant() switch
+        {
+            "status" => desc ? query.OrderByDescending(x => x.Status).ThenByDescending(x => x.CreatedAt) : query.OrderBy(x => x.Status).ThenByDescending(x => x.CreatedAt),
+            "createdby" => desc ? query.OrderByDescending(x => x.CreatedBy).ThenByDescending(x => x.CreatedAt) : query.OrderBy(x => x.CreatedBy).ThenByDescending(x => x.CreatedAt),
+            _ => desc ? query.OrderByDescending(x => x.CreatedAt) : query.OrderBy(x => x.CreatedAt)
+        };
+    }
+
+    private static IQueryable<DepartmentEntity> ApplyDepartmentSorting(IQueryable<DepartmentEntity> query, string? sortBy, string? sortOrder)
+    {
+        var desc = IsDescending(sortOrder);
+        return sortBy?.ToLowerInvariant() switch
+        {
+            "name" => desc ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name),
+            "createdat" => desc ? query.OrderByDescending(x => x.CreatedAt) : query.OrderBy(x => x.CreatedAt),
+            _ => desc ? query.OrderByDescending(x => x.DisplayOrder).ThenByDescending(x => x.Name) : query.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name)
+        };
+    }
+
+    private static IQueryable<JobTitleEntity> ApplyJobTitleSorting(IQueryable<JobTitleEntity> query, string? sortBy, string? sortOrder)
+    {
+        var desc = IsDescending(sortOrder);
+        return sortBy?.ToLowerInvariant() switch
+        {
+            "name" => desc ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name),
+            "createdat" => desc ? query.OrderByDescending(x => x.CreatedAt) : query.OrderBy(x => x.CreatedAt),
+            _ => desc ? query.OrderByDescending(x => x.DisplayOrder).ThenByDescending(x => x.Name) : query.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name)
+        };
+    }
+
+    private static IQueryable<UserRegistrationRequestEntity> ApplyRegistrationSorting(IQueryable<UserRegistrationRequestEntity> query, string? sortBy, string? sortOrder)
+    {
+        var desc = IsDescending(sortOrder);
+        return sortBy?.ToLowerInvariant() switch
+        {
+            "email" => desc ? query.OrderByDescending(x => x.Email).ThenByDescending(x => x.RequestedAt) : query.OrderBy(x => x.Email).ThenByDescending(x => x.RequestedAt),
+            "status" => desc ? query.OrderByDescending(x => x.Status).ThenByDescending(x => x.RequestedAt) : query.OrderBy(x => x.Status).ThenByDescending(x => x.RequestedAt),
+            _ => desc ? query.OrderByDescending(x => x.RequestedAt) : query.OrderBy(x => x.RequestedAt)
+        };
+    }
+
+    private static IQueryable<UserInvitationEntity> ApplyInvitationSorting(IQueryable<UserInvitationEntity> query, string? sortBy, string? sortOrder)
+    {
+        var desc = IsDescending(sortOrder);
+        return sortBy?.ToLowerInvariant() switch
+        {
+            "email" => desc ? query.OrderByDescending(x => x.Email).ThenByDescending(x => x.InvitedAt) : query.OrderBy(x => x.Email).ThenByDescending(x => x.InvitedAt),
+            "status" => desc ? query.OrderByDescending(x => x.Status).ThenByDescending(x => x.InvitedAt) : query.OrderBy(x => x.Status).ThenByDescending(x => x.InvitedAt),
+            "expiresat" => desc ? query.OrderByDescending(x => x.ExpiresAt).ThenByDescending(x => x.InvitedAt) : query.OrderBy(x => x.ExpiresAt).ThenByDescending(x => x.InvitedAt),
+            _ => desc ? query.OrderByDescending(x => x.InvitedAt) : query.OrderBy(x => x.InvitedAt)
+        };
+    }
+
+    private static object ToDepartmentAuditState(DepartmentEntity entity) => new
+    {
+        entity.Id,
+        entity.Name,
+        entity.DisplayOrder,
+        entity.CreatedAt,
+        entity.UpdatedAt,
+        entity.DeletedReason,
+        entity.DeletedBy,
+        entity.DeletedAt
+    };
+
+    private static object ToJobTitleAuditState(JobTitleEntity entity) => new
+    {
+        entity.Id,
+        entity.Name,
+        entity.DisplayOrder,
+        entity.CreatedAt,
+        entity.UpdatedAt,
+        entity.DeletedReason,
+        entity.DeletedBy,
+        entity.DeletedAt
+    };
+
+    private static object ToUserAuditState(
+        UserEntity entity,
+        KeycloakUserProfile? keycloakProfile = null,
+        IReadOnlyList<string>? roleNames = null) => new
+    {
+        entity.Id,
+        entity.Status,
+        entity.CreatedAt,
+        entity.CreatedBy,
+        entity.DepartmentId,
+        entity.JobTitleId,
+        entity.PreferredLanguage,
+        entity.PreferredTheme,
+        entity.DeletedReason,
+        entity.DeletedBy,
+        entity.DeletedAt,
+        Email = keycloakProfile?.Email,
+        Username = keycloakProfile?.Username,
+        FirstName = keycloakProfile?.FirstName,
+        LastName = keycloakProfile?.LastName,
+        Enabled = keycloakProfile?.Enabled,
+        EmailVerified = keycloakProfile?.EmailVerified,
+        Roles = roleNames ?? []
+    };
+
+    private static object ToRegistrationRequestAuditState(UserRegistrationRequestEntity entity) => new
+    {
+        entity.Id,
+        entity.Email,
+        entity.FirstName,
+        entity.LastName,
+        entity.DepartmentId,
+        entity.JobTitleId,
+        entity.ProvisionedUserId,
+        entity.PasswordSetupToken,
+        entity.PasswordSetupExpiresAt,
+        entity.PasswordSetupCompletedAt,
+        entity.Status,
+        entity.RequestedAt,
+        entity.ReviewedAt,
+        entity.ReviewedBy,
+        entity.RejectionReason
+    };
+
+    private static object ToInvitationAuditState(UserInvitationEntity entity) => new
+    {
+        entity.Id,
+        entity.Email,
+        entity.InvitationToken,
+        entity.InvitedBy,
+        entity.DepartmentId,
+        entity.JobTitleId,
+        Status = GetInvitationStatus(entity),
+        entity.InvitedAt,
+        entity.ExpiresAt,
+        entity.AcceptedAt,
+        entity.RejectedAt
+    };
 
     private static RegistrationRequestResponse ToResponse(
         UserRegistrationRequestEntity entity,

@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Infrastructure;
+using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Modules;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.ApplyDatabaseUrlOverride();
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuditLogWriter, AuditLogWriter>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -132,6 +135,7 @@ if (hasHttpsEndpoint)
 app.UseCors("LocalFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AuditFailureLoggingMiddleware>();
 
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapModules();

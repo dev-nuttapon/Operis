@@ -1,0 +1,25 @@
+namespace Operis_API.Shared.Auditing;
+
+public sealed record AuditLogEntry(
+    string Module,
+    string Action,
+    string EntityType,
+    string? EntityId = null,
+    string Status = "success",
+    int? StatusCode = null,
+    string? ErrorCode = null,
+    string? ErrorMessage = null,
+    string? Reason = null,
+    string Source = "api",
+    string ActorType = "user",
+    string? ActorUserId = null,
+    string? ActorEmail = null,
+    string? ActorDisplayName = null,
+    Guid? DepartmentId = null,
+    string? TenantId = null,
+    object? Before = null,
+    object? After = null,
+    object? Changes = null,
+    object? Metadata = null,
+    bool IsSensitive = false,
+    string? RetentionClass = null);

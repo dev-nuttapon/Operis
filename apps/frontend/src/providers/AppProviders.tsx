@@ -8,7 +8,16 @@ import { useAuth } from "../modules/auth";
 import { useI18nLanguage } from "../shared/i18n/hooks/useI18nLanguage";
 import { updateCurrentUserPreferences } from "../modules/users/api/usersApi";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function UserPreferenceSync() {
   const { isAuthenticated } = useAuth();

@@ -132,11 +132,13 @@
     "documents": "Documents",
     "admin": "Admin",
     "user_admin_group": "User Management",
+    "audit_group": "Audit Logs",
     "user_management": "User List",
     "user_admin": "User Administration",
     "admin_created_users": "Admin Created Users",
     "user_invitations": "Invitations",
     "registration_approvals": "Registration Approvals",
+    "audit_logs": "Audit Logs",
     "master_data_management": "Master Data Management",
     "master_departments": "Departments",
     "master_job_titles": "Job Titles",
@@ -278,7 +280,13 @@
       "department_delete_reason": "e.g. department merged / replaced with a new record",
       "job_title_name": "Document Controller",
       "job_title_delete_reason": "e.g. title structure updated / previous item removed",
-      "invitation_reject_reason": "Reason for rejection"
+      "invitation_reject_reason": "Reason for rejection",
+      "search_users": "Search by user id or creator",
+      "search_invitations": "Search by email or inviter",
+      "search_registrations": "Search by email or applicant name",
+      "search_departments": "Search department name",
+      "search_job_titles": "Search job title name",
+      "select_status": "Select status"
     },
     "validation": {
       "delete_reason_required": "Please provide a deletion reason.",
@@ -325,7 +333,6 @@
       "page_title": "User Management",
       "page_description": "Manage users from the administrator side.",
       "card_title": "Administrator User Management",
-      "card_description": "Create, update, and delete users directly from the administrator side.",
       "create_user": "Add User",
       "list_title": "User List",
       "create_modal_title": "Add User",
@@ -351,7 +358,6 @@
       "page_title": "Registration Approvals",
       "page_description": "Review user registration requests and approve or reject them.",
       "pending_title": "Pending Registration Requests",
-      "pending_description": "Review self-registration requests and approve or reject them.",
       "default_rejection_reason": "Not approved",
       "reject_reason_placeholder": "Reason for rejection",
       "manage_modal_title": "Manage registration request",
@@ -409,6 +415,60 @@
       "submit": "Submit Test Form",
       "reset": "Reset",
       "note": "This is a local test form in documents module (no API call yet)."
+    }
+  },
+  "audit_logs": {
+    "title": "Audit Logs",
+    "description": "Review system activity by module, actor, entity, and request outcome.",
+    "empty": "No audit logs found.",
+    "empty_error": "Unable to load audit logs.",
+    "columns": {
+      "occurred_at": "Occurred At",
+      "module": "Module",
+      "action": "Action",
+      "entity": "Entity",
+      "actor": "Actor",
+      "status": "Status",
+      "request": "Request",
+      "actions": "Actions"
+    },
+    "filters": {
+      "module": "Module",
+      "action": "Action",
+      "entity_type": "Entity Type",
+      "entity_id": "Entity ID",
+      "actor": "Actor",
+      "status": "Status",
+      "date_range": "Date Range"
+    },
+    "placeholders": {
+      "module": "e.g. users",
+      "action": "e.g. update",
+      "entity_type": "e.g. user",
+      "entity_id": "Search by entity reference",
+      "actor": "Actor email or name"
+    },
+    "actions": {
+      "search": "Search",
+      "reset": "Reset",
+      "view": "View",
+      "close": "Close"
+    },
+    "detail": {
+      "title": "Audit Log Details",
+      "summary": "Summary",
+      "before": "Before",
+      "after": "After",
+      "changes": "Changes",
+      "metadata": "Metadata"
+    },
+    "status": {
+      "success": "success",
+      "failed": "failed",
+      "denied": "denied"
+    },
+    "notifications": {
+      "load_failed_title": "Unable to load audit logs"
     }
   }
 }

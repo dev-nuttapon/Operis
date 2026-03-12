@@ -2,6 +2,39 @@ export type UserStatus = "Active" | "Rejected" | "Deleted";
 export type RegistrationRequestStatus = "Pending" | "Approved" | "Rejected";
 export type InvitationStatus = "Pending" | "Accepted" | "Rejected" | "Expired" | "Cancelled";
 
+export interface ListUsersInput {
+  status?: UserStatus;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListRegistrationRequestsInput {
+  status?: RegistrationRequestStatus;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListInvitationsInput {
+  status?: InvitationStatus;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 export interface KeycloakUserSummary {
   id: string;
   email: string;

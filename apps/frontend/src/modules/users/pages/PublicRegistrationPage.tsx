@@ -248,7 +248,7 @@ export function PublicRegistrationPage() {
                   allowClear
                   placeholder={t("admin_users.placeholders.select_department")}
                   loading={departmentsQuery.isLoading}
-                  options={(departmentsQuery.data ?? []).map((item) => ({
+                  options={(departmentsQuery.data?.items ?? []).map((item) => ({
                     label: item.name,
                     value: item.id,
                   }))}
@@ -259,7 +259,7 @@ export function PublicRegistrationPage() {
                   allowClear
                   placeholder={t("admin_users.placeholders.select_job_title")}
                   loading={jobTitlesQuery.isLoading}
-                  options={(jobTitlesQuery.data ?? []).map((item) => ({
+                  options={(jobTitlesQuery.data?.items ?? []).map((item) => ({
                     label: item.name,
                     value: item.id,
                   }))}

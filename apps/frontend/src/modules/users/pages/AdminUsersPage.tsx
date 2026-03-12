@@ -17,14 +17,16 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { CheckCircleOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MailOutlined, TeamOutlined, UserAddOutlined } from "@ant-design/icons";
+import type { SortOrder, SorterResult } from "antd/es/table/interface";
+import { CheckCircleOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MailOutlined, PlusOutlined, TeamOutlined, UserAddOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useAdminUsers } from "../hooks/useAdminUsers";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
-import type { Invitation, MasterDataItem, RegistrationRequest, User } from "../types/users";
+import type { Invitation, InvitationStatus, MasterDataItem, RegistrationRequest, RegistrationRequestStatus, User, UserStatus } from "../types/users";
 
 const { Paragraph, Text } = Typography;
 
@@ -43,6 +45,19 @@ function getDisplayActor(user: { name?: string | null; email?: string | null } |
   return user?.email || user?.name || "admin@operis.local";
 }
 
+function toApiSortOrder(order?: SortOrder): "asc" | "desc" | undefined {
+  if (order === "ascend") return "asc";
+  if (order === "descend") return "desc";
+  return undefined;
+}
+
+function toRange(range?: [Dayjs | null, Dayjs | null]) {
+  return {
+    from: range?.[0] ? range[0].startOf("day").toISOString() : undefined,
+    to: range?.[1] ? range[1].endOf("day").toISOString() : undefined,
+  };
+}
+
 export function AdminUsersPage() {
   const { t, i18n: i18nInstance } = useTranslation();
   const { notification } = App.useApp();
@@ -50,12 +65,46 @@ export function AdminUsersPage() {
   const { user } = useAuth();
   const currentLanguage = i18nInstance.language;
   const actor = getDisplayActor(user);
+  const [usersPaging, setUsersPaging] = useState({
+    page: 1,
+    pageSize: 10,
+    search: "",
+    status: undefined as UserStatus | undefined,
+    from: undefined as string | undefined,
+    to: undefined as string | undefined,
+    sortBy: "createdAt",
+    sortOrder: "desc" as "asc" | "desc",
+  });
+  const [registrationPaging, setRegistrationPaging] = useState({
+    page: 1,
+    pageSize: 10,
+    search: "",
+    status: undefined as RegistrationRequestStatus | undefined,
+    from: undefined as string | undefined,
+    to: undefined as string | undefined,
+    sortBy: "requestedAt",
+    sortOrder: "desc" as "asc" | "desc",
+  });
+  const [invitationPaging, setInvitationPaging] = useState({
+    page: 1,
+    pageSize: 10,
+    search: "",
+    status: undefined as InvitationStatus | undefined,
+    from: undefined as string | undefined,
+    to: undefined as string | undefined,
+    sortBy: "invitedAt",
+    sortOrder: "desc" as "asc" | "desc",
+  });
+  const [departmentPaging, setDepartmentPaging] = useState({ page: 1, pageSize: 10, search: "", sortBy: "displayOrder", sortOrder: "asc" as "asc" | "desc" });
+  const [jobTitlePaging, setJobTitlePaging] = useState({ page: 1, pageSize: 10, search: "", sortBy: "displayOrder", sortOrder: "asc" as "asc" | "desc" });
   const {
     usersQuery,
     registrationRequestsQuery,
     invitationsQuery,
     departmentsQuery,
     jobTitlesQuery,
+    departmentOptionsQuery,
+    jobTitleOptionsQuery,
     rolesQuery,
     createInvitationMutation,
     updateInvitationMutation,
@@ -71,7 +120,13 @@ export function AdminUsersPage() {
     createJobTitleMutation,
     updateJobTitleMutation,
     deleteJobTitleMutation,
-  } = useAdminUsers();
+  } = useAdminUsers({
+    users: usersPaging,
+    registrationRequests: registrationPaging,
+    invitations: invitationPaging,
+    departments: departmentPaging,
+    jobTitles: jobTitlePaging,
+  });
 
   const [inviteForm] = Form.useForm();
   const [editInvitationForm] = Form.useForm();
@@ -188,11 +243,14 @@ export function AdminUsersPage() {
     ),
     value: item.id,
   }));
+  const departmentOptions = (departmentOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const jobTitleOptions = (jobTitleOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
 
   const invitationColumns: ColumnsType<Invitation> = [
     {
       title: t("admin_users.columns.email"),
       dataIndex: "email",
+      sorter: true,
     },
     {
       title: t("admin_users.columns.invited_by"),
@@ -211,6 +269,7 @@ export function AdminUsersPage() {
     {
       title: t("admin_users.columns.status"),
       dataIndex: "status",
+      sorter: true,
       render: (status: Invitation["status"]) => (
         <Tag
           color={
@@ -232,6 +291,7 @@ export function AdminUsersPage() {
     {
       title: t("admin_users.columns.expires_at"),
       dataIndex: "expiresAt",
+      sorter: true,
       render: (value: string | null) => formatDate(value, currentLanguage),
     },
     {
@@ -239,6 +299,26 @@ export function AdminUsersPage() {
       key: "actions",
       render: () => null,
     },
+  ];
+
+  const userStatusOptions = [
+    { value: "Active", label: "Active" },
+    { value: "Rejected", label: "Rejected" },
+    { value: "Deleted", label: "Deleted" },
+  ];
+
+  const invitationStatusOptions = [
+    { value: "Pending", label: "Pending" },
+    { value: "Accepted", label: "Accepted" },
+    { value: "Rejected", label: "Rejected" },
+    { value: "Expired", label: "Expired" },
+    { value: "Cancelled", label: "Cancelled" },
+  ];
+
+  const registrationStatusOptions = [
+    { value: "Pending", label: "Pending" },
+    { value: "Approved", label: "Approved" },
+    { value: "Rejected", label: "Rejected" },
   ];
 
   const masterColumns = (
@@ -250,10 +330,12 @@ export function AdminUsersPage() {
     {
       title: label,
       dataIndex: "name",
+      sorter: true,
     },
     {
       title: t("admin_users.master.display_order"),
       dataIndex: "displayOrder",
+      sorter: true,
     },
     {
       title: t("admin_users.columns.actions"),
@@ -285,6 +367,7 @@ export function AdminUsersPage() {
     {
       title: t("admin_users.columns.status"),
       dataIndex: "status",
+      sorter: true,
       render: (status: User["status"]) => (
         <Tag color={status === "Active" ? "green" : status === "Deleted" ? "red" : "default"}>
           {status}
@@ -313,6 +396,7 @@ export function AdminUsersPage() {
     {
       title: t("admin_users.columns.created_at"),
       dataIndex: "createdAt",
+      sorter: true,
       render: (value: string) => formatDate(value, currentLanguage),
     },
     {
@@ -370,6 +454,7 @@ export function AdminUsersPage() {
     {
       title: t("admin_users.columns.requested_at"),
       dataIndex: "requestedAt",
+      sorter: true,
       render: (value: string) => formatDate(value, currentLanguage),
     },
     {
@@ -385,6 +470,7 @@ export function AdminUsersPage() {
     {
       title: t("admin_users.columns.status"),
       dataIndex: "status",
+      sorter: true,
       render: (status: RegistrationRequest["status"]) => (
         <Tag color={status === "Pending" ? "gold" : status === "Approved" ? "green" : "red"}>
           {status}
@@ -434,17 +520,45 @@ export function AdminUsersPage() {
     pageContent = (
       <Space direction="vertical" size={20} style={{ width: "100%" }}>
         <Card variant="borderless">
-          <Typography.Title level={5}>{t("admin_users.invitations.page_title")}</Typography.Title>
-          <Paragraph type="secondary">
-            {t("admin_users.invitations.card_description")}
-          </Paragraph>
-          <Button type="primary" icon={<MailOutlined />} onClick={() => setCreatingInvitation(true)}>
-            {t("admin_users.invitations.open_create")}
-          </Button>
-        </Card>
-
-        <Card variant="borderless">
           <Typography.Title level={5}>{t("admin_users.invitations.latest_title")}</Typography.Title>
+          <Space
+            wrap
+            size={[12, 12]}
+            style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }}
+          >
+            <Input.Search
+              allowClear
+              style={{ width: 320 }}
+              placeholder={t("admin_users.placeholders.search_invitations")}
+              onSearch={(value) => setInvitationPaging((current) => ({ ...current, page: 1, search: value }))}
+              onChange={(event) => {
+                if (event.target.value === "") {
+                  setInvitationPaging((current) => ({ ...current, page: 1, search: "" }));
+                }
+              }}
+            />
+            <Select
+              allowClear
+              style={{ width: 180 }}
+              placeholder={t("admin_users.placeholders.select_status")}
+              options={invitationStatusOptions}
+              value={invitationPaging.status}
+              onChange={(value) => setInvitationPaging((current) => ({ ...current, page: 1, status: value }))}
+            />
+            <DatePicker.RangePicker
+              value={[
+                invitationPaging.from ? dayjs(invitationPaging.from) : null,
+                invitationPaging.to ? dayjs(invitationPaging.to) : null,
+              ]}
+              onChange={(range) => {
+                const normalized = toRange(range as [Dayjs | null, Dayjs | null] | undefined);
+                setInvitationPaging((current) => ({ ...current, page: 1, ...normalized }));
+              }}
+            />
+            <Button type="primary" icon={<MailOutlined />} size="large" onClick={() => setCreatingInvitation(true)}>
+              {t("admin_users.invitations.open_create")}
+            </Button>
+          </Space>
           <Table
             rowKey="id"
             columns={invitationColumns.map((column) =>
@@ -511,9 +625,25 @@ export function AdminUsersPage() {
                     ),
                   }
             )}
-            dataSource={invitationsQuery.data ?? []}
+            dataSource={invitationsQuery.data?.items ?? []}
             loading={invitationsQuery.isLoading}
-            pagination={{ pageSize: 8 }}
+            pagination={{
+              current: invitationsQuery.data?.page ?? invitationPaging.page,
+              pageSize: invitationsQuery.data?.pageSize ?? invitationPaging.pageSize,
+              total: invitationsQuery.data?.total ?? 0,
+              showSizeChanger: true,
+              pageSizeOptions: [10, 25, 50, 100],
+            }}
+            onChange={(pagination, _, sorter) => {
+              const sort = sorter as SorterResult<Invitation>;
+              setInvitationPaging((current) => ({
+                ...current,
+                page: pagination.current ?? current.page,
+                pageSize: pagination.pageSize ?? current.pageSize,
+                sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
+                sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
+              }));
+            }}
           />
         </Card>
       </Space>
@@ -524,16 +654,60 @@ export function AdminUsersPage() {
     pageContent = (
       <Card variant="borderless">
         <Typography.Title level={5}>{t("admin_users.registration.pending_title")}</Typography.Title>
-        <Paragraph type="secondary">
-          {t("admin_users.registration.pending_description")}
-        </Paragraph>
         <Divider />
+        <Space wrap size={12} style={{ marginBottom: 16 }}>
+          <Input.Search
+            allowClear
+            style={{ width: 320 }}
+            placeholder={t("admin_users.placeholders.search_registrations")}
+            onSearch={(value) => setRegistrationPaging((current) => ({ ...current, page: 1, search: value }))}
+            onChange={(event) => {
+              if (event.target.value === "") {
+                setRegistrationPaging((current) => ({ ...current, page: 1, search: "" }));
+              }
+            }}
+          />
+          <Select
+            allowClear
+            style={{ width: 180 }}
+            placeholder={t("admin_users.placeholders.select_status")}
+            options={registrationStatusOptions}
+            value={registrationPaging.status}
+            onChange={(value) => setRegistrationPaging((current) => ({ ...current, page: 1, status: value }))}
+          />
+          <DatePicker.RangePicker
+            value={[
+              registrationPaging.from ? dayjs(registrationPaging.from) : null,
+              registrationPaging.to ? dayjs(registrationPaging.to) : null,
+            ]}
+            onChange={(range) => {
+              const normalized = toRange(range as [Dayjs | null, Dayjs | null] | undefined);
+              setRegistrationPaging((current) => ({ ...current, page: 1, ...normalized }));
+            }}
+          />
+        </Space>
         <Table
           rowKey="id"
           columns={reviewColumns}
-          dataSource={registrationRequestsQuery.data ?? []}
+          dataSource={registrationRequestsQuery.data?.items ?? []}
           loading={registrationRequestsQuery.isLoading}
-          pagination={{ pageSize: 8 }}
+          pagination={{
+            current: registrationRequestsQuery.data?.page ?? registrationPaging.page,
+            pageSize: registrationRequestsQuery.data?.pageSize ?? registrationPaging.pageSize,
+            total: registrationRequestsQuery.data?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+          }}
+          onChange={(pagination, _, sorter) => {
+            const sort = sorter as SorterResult<RegistrationRequest>;
+            setRegistrationPaging((current) => ({
+              ...current,
+              page: pagination.current ?? current.page,
+              pageSize: pagination.pageSize ?? current.pageSize,
+              sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
+              sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
+            }));
+          }}
         />
       </Card>
     );
@@ -544,8 +718,18 @@ export function AdminUsersPage() {
         <Paragraph type="secondary">
           {t("admin_users.master.departments_description")}
         </Paragraph>
-        <Space style={{ marginBottom: 16 }}>
-          <Button type="primary" onClick={() => setCreatingDepartment(true)}>
+        <Space
+          wrap
+          style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }}
+          size={[12, 12]}
+        >
+          <Input.Search
+            allowClear
+            style={{ width: 360, maxWidth: "100%" }}
+            placeholder={t("admin_users.placeholders.search_departments")}
+            onSearch={(value) => setDepartmentPaging((current) => ({ ...current, page: 1, search: value }))}
+          />
+          <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreatingDepartment(true)}>
             {t("admin_users.master.create_department")}
           </Button>
         </Space>
@@ -564,9 +748,25 @@ export function AdminUsersPage() {
             },
             deleteDepartmentMutation.isPending
           )}
-          dataSource={departmentsQuery.data ?? []}
+          dataSource={departmentsQuery.data?.items ?? []}
           loading={departmentsQuery.isLoading}
-          pagination={{ pageSize: 8 }}
+          pagination={{
+            current: departmentsQuery.data?.page ?? departmentPaging.page,
+            pageSize: departmentsQuery.data?.pageSize ?? departmentPaging.pageSize,
+            total: departmentsQuery.data?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+          }}
+          onChange={(pagination, _, sorter) => {
+            const sort = sorter as SorterResult<MasterDataItem>;
+            setDepartmentPaging((current) => ({
+              ...current,
+              page: pagination.current ?? current.page,
+              pageSize: pagination.pageSize ?? current.pageSize,
+              sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
+              sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
+            }));
+          }}
         />
       </Card>
     );
@@ -577,8 +777,18 @@ export function AdminUsersPage() {
         <Paragraph type="secondary">
           {t("admin_users.master.job_titles_description")}
         </Paragraph>
-        <Space style={{ marginBottom: 16 }}>
-          <Button type="primary" onClick={() => setCreatingJobTitle(true)}>
+        <Space
+          wrap
+          style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }}
+          size={[12, 12]}
+        >
+          <Input.Search
+            allowClear
+            style={{ width: 360, maxWidth: "100%" }}
+            placeholder={t("admin_users.placeholders.search_job_titles")}
+            onSearch={(value) => setJobTitlePaging((current) => ({ ...current, page: 1, search: value }))}
+          />
+          <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreatingJobTitle(true)}>
             {t("admin_users.master.create_job_title")}
           </Button>
         </Space>
@@ -597,9 +807,25 @@ export function AdminUsersPage() {
             },
             deleteJobTitleMutation.isPending
           )}
-          dataSource={jobTitlesQuery.data ?? []}
+          dataSource={jobTitlesQuery.data?.items ?? []}
           loading={jobTitlesQuery.isLoading}
-          pagination={{ pageSize: 8 }}
+          pagination={{
+            current: jobTitlesQuery.data?.page ?? jobTitlePaging.page,
+            pageSize: jobTitlesQuery.data?.pageSize ?? jobTitlePaging.pageSize,
+            total: jobTitlesQuery.data?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+          }}
+          onChange={(pagination, _, sorter) => {
+            const sort = sorter as SorterResult<MasterDataItem>;
+            setJobTitlePaging((current) => ({
+              ...current,
+              page: pagination.current ?? current.page,
+              pageSize: pagination.pageSize ?? current.pageSize,
+              sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
+              sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
+            }));
+          }}
         />
       </Card>
     );
@@ -616,23 +842,67 @@ export function AdminUsersPage() {
       pageContent = (
         <Space direction="vertical" size={20} style={{ width: "100%" }}>
           <Card variant="borderless">
-            <Typography.Title level={5}>{t("admin_users.directory.card_title")}</Typography.Title>
-            <Paragraph type="secondary">
-              {t("admin_users.directory.card_description")}
-            </Paragraph>
-            <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreatingUser(true)}>
-              {t("admin_users.directory.create_user")}
-            </Button>
-          </Card>
-
-          <Card variant="borderless">
             <Typography.Title level={5}>{t("admin_users.directory.list_title")}</Typography.Title>
+            <Space
+              wrap
+              size={[12, 12]}
+              style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }}
+            >
+              <Input.Search
+                allowClear
+                style={{ width: 320 }}
+                placeholder={t("admin_users.placeholders.search_users")}
+                onSearch={(value) => setUsersPaging((current) => ({ ...current, page: 1, search: value }))}
+                onChange={(event) => {
+                  if (event.target.value === "") {
+                    setUsersPaging((current) => ({ ...current, page: 1, search: "" }));
+                  }
+                }}
+              />
+              <Select
+                allowClear
+                style={{ width: 180 }}
+                placeholder={t("admin_users.placeholders.select_status")}
+                options={userStatusOptions}
+                value={usersPaging.status}
+                onChange={(value) => setUsersPaging((current) => ({ ...current, page: 1, status: value }))}
+              />
+              <DatePicker.RangePicker
+                value={[
+                  usersPaging.from ? dayjs(usersPaging.from) : null,
+                  usersPaging.to ? dayjs(usersPaging.to) : null,
+                ]}
+                onChange={(range) => {
+                  const normalized = toRange(range as [Dayjs | null, Dayjs | null] | undefined);
+                  setUsersPaging((current) => ({ ...current, page: 1, ...normalized }));
+                }}
+              />
+              <Button type="primary" icon={<UserAddOutlined />} size="large" onClick={() => setCreatingUser(true)}>
+                {t("admin_users.directory.create_user")}
+              </Button>
+            </Space>
             <Table
               rowKey="id"
               columns={userColumns}
-              dataSource={usersQuery.data ?? []}
+              dataSource={usersQuery.data?.items ?? []}
               loading={usersQuery.isLoading}
-              pagination={{ pageSize: 8 }}
+              pagination={{
+                current: usersQuery.data?.page ?? usersPaging.page,
+                pageSize: usersQuery.data?.pageSize ?? usersPaging.pageSize,
+                total: usersQuery.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 25, 50, 100],
+              }}
+              onChange={(pagination, _, sorter) => {
+                const sort = sorter as SorterResult<User>;
+                setUsersPaging((current) => ({
+                  ...current,
+                  page: pagination.current ?? current.page,
+                  pageSize: pagination.pageSize ?? current.pageSize,
+                  sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
+                  sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
+                }));
+              }}
             />
           </Card>
         </Space>
@@ -908,20 +1178,14 @@ export function AdminUsersPage() {
             <Select
               allowClear
               placeholder={t("admin_users.placeholders.select_department")}
-              options={(departmentsQuery.data ?? []).map((item) => ({
-                label: item.name,
-                value: item.id,
-              }))}
+              options={departmentOptions}
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
             <Select
               allowClear
               placeholder={t("admin_users.placeholders.select_job_title")}
-              options={(jobTitlesQuery.data ?? []).map((item) => ({
-                label: item.name,
-                value: item.id,
-              }))}
+              options={jobTitleOptions}
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.expires_at")} name="expiresAt">
@@ -982,20 +1246,14 @@ export function AdminUsersPage() {
             <Select
               allowClear
               placeholder={t("admin_users.placeholders.select_department")}
-              options={(departmentsQuery.data ?? []).map((item) => ({
-                label: item.name,
-                value: item.id,
-              }))}
+              options={departmentOptions}
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
             <Select
               allowClear
               placeholder={t("admin_users.placeholders.select_job_title")}
-              options={(jobTitlesQuery.data ?? []).map((item) => ({
-                label: item.name,
-                value: item.id,
-              }))}
+              options={jobTitleOptions}
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.expires_at")} name="expiresAt">
@@ -1114,7 +1372,7 @@ export function AdminUsersPage() {
                   allowClear
                   placeholder={t("admin_users.placeholders.select_department")}
                   loading={departmentsQuery.isLoading}
-                  options={(departmentsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                  options={departmentOptions}
                 />
               </Form.Item>
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
@@ -1122,7 +1380,7 @@ export function AdminUsersPage() {
                   allowClear
                   placeholder={t("admin_users.placeholders.select_job_title")}
                   loading={jobTitlesQuery.isLoading}
-                  options={(jobTitlesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                  options={jobTitleOptions}
                 />
               </Form.Item>
             </Card>
@@ -1225,7 +1483,7 @@ export function AdminUsersPage() {
                   allowClear
                   placeholder={t("admin_users.placeholders.select_department")}
                   loading={departmentsQuery.isLoading}
-                  options={(departmentsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                  options={departmentOptions}
                 />
               </Form.Item>
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
@@ -1233,7 +1491,7 @@ export function AdminUsersPage() {
                   allowClear
                   placeholder={t("admin_users.placeholders.select_job_title")}
                   loading={jobTitlesQuery.isLoading}
-                  options={(jobTitlesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                  options={jobTitleOptions}
                 />
               </Form.Item>
             </Card>

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Documents.Domain;
+using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Modules;
 
 namespace Operis_API.Modules.Documents;
@@ -18,7 +19,7 @@ public sealed class DocumentsModule : IModule
             .WithTags("Documents")
             .RequireAuthorization();
 
-        group.MapGet("/", async (OperisDbContext dbContext, CancellationToken cancellationToken) =>
+        group.MapGet("/", async (OperisDbContext dbContext, IAuditLogWriter auditLogWriter, CancellationToken cancellationToken) =>
             {
                 var items = await dbContext.Documents
                     .AsNoTracking()
@@ -26,6 +27,14 @@ public sealed class DocumentsModule : IModule
                     .Take(50)
                     .Select(x => new DocumentListItem(x.Id, x.FileName, x.UploadedAt))
                     .ToListAsync(cancellationToken);
+
+                auditLogWriter.Append(new AuditLogEntry(
+                    Module: "documents",
+                    Action: "list",
+                    EntityType: "document",
+                    StatusCode: StatusCodes.Status200OK,
+                    Metadata: new { count = items.Count }));
+                await dbContext.SaveChangesAsync(cancellationToken);
 
                 return Results.Ok(items);
             })

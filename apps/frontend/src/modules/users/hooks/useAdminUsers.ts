@@ -21,11 +21,15 @@ import {
   updateDepartment,
   updateJobTitle,
 } from "../api/usersApi";
+import type { PaginationInput } from "../../../shared/types/pagination";
 import type {
   ApproveRegistrationInput,
   CreateMasterDataInput,
   CreateInvitationInput,
   CreateUserInput,
+  ListInvitationsInput,
+  ListRegistrationRequestsInput,
+  ListUsersInput,
   RejectRegistrationInput,
   UpdateInvitationInput,
   UpdateUserInput,
@@ -37,39 +41,65 @@ const requestsQueryKey = ["admin", "registration-requests"];
 const invitationsQueryKey = ["admin", "invitations"];
 const departmentsQueryKey = ["admin", "departments"];
 const jobTitlesQueryKey = ["admin", "job-titles"];
+const departmentOptionsQueryKey = ["admin", "department-options"];
+const jobTitleOptionsQueryKey = ["admin", "job-title-options"];
 const rolesQueryKey = ["admin", "roles"];
 
-export function useAdminUsers() {
+export function useAdminUsers(paging: {
+  users: ListUsersInput;
+  registrationRequests: ListRegistrationRequestsInput;
+  invitations: ListInvitationsInput;
+  departments: PaginationInput;
+  jobTitles: PaginationInput;
+}) {
   const queryClient = useQueryClient();
 
   const usersQuery = useQuery({
-    queryKey: usersQueryKey,
-    queryFn: ({ signal }) => listUsers(signal),
+    queryKey: [...usersQueryKey, paging.users],
+    queryFn: ({ signal }) => listUsers(paging.users, signal),
+    staleTime: 15_000,
   });
 
   const registrationRequestsQuery = useQuery({
-    queryKey: requestsQueryKey,
-    queryFn: ({ signal }) => listRegistrationRequests(undefined, signal),
+    queryKey: [...requestsQueryKey, paging.registrationRequests],
+    queryFn: ({ signal }) => listRegistrationRequests(paging.registrationRequests, signal),
+    staleTime: 15_000,
   });
 
   const invitationsQuery = useQuery({
-    queryKey: invitationsQueryKey,
-    queryFn: ({ signal }) => listInvitations(undefined, signal),
+    queryKey: [...invitationsQueryKey, paging.invitations],
+    queryFn: ({ signal }) => listInvitations(paging.invitations, signal),
+    staleTime: 15_000,
   });
 
   const departmentsQuery = useQuery({
-    queryKey: departmentsQueryKey,
-    queryFn: ({ signal }) => listDepartments(signal),
+    queryKey: [...departmentsQueryKey, paging.departments],
+    queryFn: ({ signal }) => listDepartments(paging.departments, signal),
+    staleTime: 60_000,
   });
 
   const jobTitlesQuery = useQuery({
-    queryKey: jobTitlesQueryKey,
-    queryFn: ({ signal }) => listJobTitles(signal),
+    queryKey: [...jobTitlesQueryKey, paging.jobTitles],
+    queryFn: ({ signal }) => listJobTitles(paging.jobTitles, signal),
+    staleTime: 60_000,
+  });
+
+  const departmentOptionsQuery = useQuery({
+    queryKey: departmentOptionsQueryKey,
+    queryFn: ({ signal }) => listDepartments({ page: 1, pageSize: 100 }, signal),
+    staleTime: 5 * 60_000,
+  });
+
+  const jobTitleOptionsQuery = useQuery({
+    queryKey: jobTitleOptionsQueryKey,
+    queryFn: ({ signal }) => listJobTitles({ page: 1, pageSize: 100 }, signal),
+    staleTime: 5 * 60_000,
   });
 
   const rolesQuery = useQuery({
     queryKey: rolesQueryKey,
     queryFn: ({ signal }) => listRoles(signal),
+    staleTime: 5 * 60_000,
   });
 
   const invalidateAll = async () => {
@@ -79,6 +109,8 @@ export function useAdminUsers() {
       queryClient.invalidateQueries({ queryKey: invitationsQueryKey }),
       queryClient.invalidateQueries({ queryKey: departmentsQueryKey }),
       queryClient.invalidateQueries({ queryKey: jobTitlesQueryKey }),
+      queryClient.invalidateQueries({ queryKey: departmentOptionsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: jobTitleOptionsQueryKey }),
       queryClient.invalidateQueries({ queryKey: rolesQueryKey }),
     ]);
   };
@@ -161,6 +193,8 @@ export function useAdminUsers() {
     invitationsQuery,
     departmentsQuery,
     jobTitlesQuery,
+    departmentOptionsQuery,
+    jobTitleOptionsQuery,
     rolesQuery,
     createInvitationMutation,
     updateInvitationMutation,
