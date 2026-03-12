@@ -5,8 +5,8 @@ namespace Operis_API.Modules.Users.Contracts;
 public sealed record CreateRegistrationRequest(string Email, string FirstName, string LastName);
 public sealed record ReviewRegistrationRequest(string ReviewedBy);
 public sealed record RejectRegistrationRequest(string ReviewedBy, string Reason);
-public sealed record CreateInvitationRequest(string Email, string InvitedBy, DateTimeOffset? ExpiresAt);
-public sealed record UpdateInvitationRequest(string Email, DateTimeOffset? ExpiresAt);
+public sealed record CreateInvitationRequest(string Email, string InvitedBy, DateTimeOffset? ExpiresAt, Guid? DepartmentId, Guid? JobTitleId);
+public sealed record UpdateInvitationRequest(string Email, DateTimeOffset? ExpiresAt, Guid? DepartmentId, Guid? JobTitleId);
 public sealed record AcceptInvitationRequest(string FirstName, string LastName, string Password, string ConfirmPassword);
 public sealed record CreateUserRequest(string Email, string FirstName, string LastName, string Password, string ConfirmPassword, string CreatedBy, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
 public sealed record UpdateUserRequest(string Email, string FirstName, string LastName, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
@@ -57,6 +57,10 @@ public sealed record InvitationResponse(
     string Email,
     string InvitationToken,
     string InvitedBy,
+    Guid? DepartmentId,
+    string? DepartmentName,
+    Guid? JobTitleId,
+    string? JobTitleName,
     InvitationStatus Status,
     DateTimeOffset InvitedAt,
     DateTimeOffset? ExpiresAt,
@@ -67,6 +71,10 @@ public sealed record InvitationResponse(
 public sealed record InvitationDetailResponse(
     Guid Id,
     string Email,
+    Guid? DepartmentId,
+    string? DepartmentName,
+    Guid? JobTitleId,
+    string? JobTitleName,
     InvitationStatus Status,
     DateTimeOffset InvitedAt,
     DateTimeOffset? ExpiresAt);

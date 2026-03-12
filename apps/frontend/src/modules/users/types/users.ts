@@ -47,6 +47,10 @@ export interface Invitation {
   email: string;
   invitationToken: string;
   invitedBy: string;
+  departmentId: string | null;
+  departmentName: string | null;
+  jobTitleId: string | null;
+  jobTitleName: string | null;
   status: InvitationStatus;
   invitedAt: string;
   expiresAt: string | null;
@@ -59,17 +63,25 @@ export interface CreateInvitationInput {
   email: string;
   invitedBy: string;
   expiresAt?: string;
+  departmentId?: string;
+  jobTitleId?: string;
 }
 
 export interface UpdateInvitationInput {
   id: string;
   email: string;
   expiresAt?: string;
+  departmentId?: string;
+  jobTitleId?: string;
 }
 
 export interface InvitationDetail {
   id: string;
   email: string;
+  departmentId: string | null;
+  departmentName: string | null;
+  jobTitleId: string | null;
+  jobTitleName: string | null;
   status: InvitationStatus;
   invitedAt: string;
   expiresAt: string | null;

@@ -8,6 +8,8 @@ public sealed class UserInvitationEntity
     public string Email { get; set; } = string.Empty;
     public string InvitationToken { get; init; } = string.Empty;
     public string InvitedBy { get; init; } = string.Empty;
+    public Guid? DepartmentId { get; set; }
+    public Guid? JobTitleId { get; set; }
     public InvitationStatus Status { get; set; } = InvitationStatus.Pending;
     public DateTimeOffset InvitedAt { get; init; }
     public DateTimeOffset? ExpiresAt { get; set; }

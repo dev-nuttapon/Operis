@@ -48,6 +48,8 @@ export function updateInvitation(input: UpdateInvitationInput) {
     body: {
       email: input.email,
       expiresAt: input.expiresAt,
+      departmentId: input.departmentId,
+      jobTitleId: input.jobTitleId,
     },
   });
 }

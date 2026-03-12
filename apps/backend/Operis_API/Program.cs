@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi;
 using Operis_API.Shared.Configuration;
@@ -14,6 +15,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.ApplyDatabaseUrlOverride();
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 builder.Services.AddSwaggerGen(options =>
 {
     var bearerScheme = new OpenApiSecurityScheme

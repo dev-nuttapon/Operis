@@ -675,13 +675,20 @@ public sealed class UsersModule : IModule
             query = query.Where(x => x.Status == status.Value);
         }
 
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
         var invitations = await query
             .OrderByDescending(x => x.InvitedAt)
             .Take(100)
-            .Select(x => ToResponse(x))
             .ToListAsync(cancellationToken);
 
-        return Results.Ok(invitations);
+        return Results.Ok(invitations.Select(x => ToResponse(x, departments, jobTitles)));
     }
 
     private static async Task<IResult> GetInvitationByTokenAsync(
@@ -697,20 +704,22 @@ public sealed class UsersModule : IModule
             return Results.NotFound();
         }
 
-        var status = GetInvitationStatus(invitation);
-        if (status is InvitationStatus.Accepted or InvitationStatus.Rejected or InvitationStatus.Expired)
-        {
-            return Results.Ok(new InvitationDetailResponse(
-                invitation.Id,
-                invitation.Email,
-                status,
-                invitation.InvitedAt,
-                invitation.ExpiresAt));
-        }
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var status = GetInvitationStatus(invitation);
         return Results.Ok(new InvitationDetailResponse(
             invitation.Id,
             invitation.Email,
+            invitation.DepartmentId,
+            invitation.DepartmentId.HasValue && departments.TryGetValue(invitation.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            invitation.JobTitleId,
+            invitation.JobTitleId.HasValue && jobTitles.TryGetValue(invitation.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             status,
             invitation.InvitedAt,
             invitation.ExpiresAt));
@@ -745,12 +754,32 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Expiration date must be in the future.");
         }
 
+        if (request.DepartmentId.HasValue)
+        {
+            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
+            if (!departmentExists)
+            {
+                return Results.BadRequest("Department does not exist.");
+            }
+        }
+
+        if (request.JobTitleId.HasValue)
+        {
+            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
+            if (!jobTitleExists)
+            {
+                return Results.BadRequest("Job title does not exist.");
+            }
+        }
+
         var invitation = new UserInvitationEntity
         {
             Id = Guid.NewGuid(),
             Email = email,
             InvitationToken = GenerateInvitationToken(),
             InvitedBy = invitedBy,
+            DepartmentId = request.DepartmentId,
+            JobTitleId = request.JobTitleId,
             Status = InvitationStatus.Pending,
             InvitedAt = DateTimeOffset.UtcNow,
             ExpiresAt = request.ExpiresAt
@@ -759,7 +788,15 @@ public sealed class UsersModule : IModule
         dbContext.UserInvitations.Add(invitation);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Created($"/api/v1/users/invitations/{invitation.Id}", ToResponse(invitation));
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        return Results.Created($"/api/v1/users/invitations/{invitation.Id}", ToResponse(invitation, departments, jobTitles));
     }
 
     private static async Task<IResult> UpdateInvitationAsync(
@@ -802,6 +839,24 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Expiration date must be in the future.");
         }
 
+        if (request.DepartmentId.HasValue)
+        {
+            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
+            if (!departmentExists)
+            {
+                return Results.BadRequest("Department does not exist.");
+            }
+        }
+
+        if (request.JobTitleId.HasValue)
+        {
+            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
+            if (!jobTitleExists)
+            {
+                return Results.BadRequest("Job title does not exist.");
+            }
+        }
+
         var emailChanged = !string.Equals(invitation.Email, email, StringComparison.OrdinalIgnoreCase);
         if (emailChanged)
         {
@@ -818,10 +873,20 @@ public sealed class UsersModule : IModule
         }
 
         invitation.Email = email;
+        invitation.DepartmentId = request.DepartmentId;
+        invitation.JobTitleId = request.JobTitleId;
         invitation.ExpiresAt = request.ExpiresAt;
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(ToResponse(invitation));
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        return Results.Ok(ToResponse(invitation, departments, jobTitles));
     }
 
     private static async Task<IResult> CancelInvitationAsync(
@@ -841,19 +906,17 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Accepted invitation cannot be cancelled.");
         }
 
-        if (status == InvitationStatus.Expired)
-        {
-            return Results.BadRequest("Expired invitation cannot be cancelled.");
-        }
-
-        if (status == InvitationStatus.Cancelled)
-        {
-            return Results.BadRequest("Invitation has already been cancelled.");
-        }
-
         invitation.Status = InvitationStatus.Cancelled;
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Results.Ok(ToResponse(invitation));
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        return Results.Ok(ToResponse(invitation, departments, jobTitles));
     }
 
     private static async Task<IResult> AcceptInvitationAsync(
@@ -937,7 +1000,9 @@ public sealed class UsersModule : IModule
             Id = keycloakResult.UserId ?? throw new InvalidOperationException("Keycloak user id is required."),
             Status = UserStatus.Active,
             CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = invitation.InvitedBy
+            CreatedBy = invitation.InvitedBy,
+            DepartmentId = invitation.DepartmentId,
+            JobTitleId = invitation.JobTitleId
         };
 
         invitation.Status = InvitationStatus.Accepted;
@@ -946,7 +1011,15 @@ public sealed class UsersModule : IModule
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(ToResponse(invitation));
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var jobTitles = await dbContext.JobTitles
+            .AsNoTracking()
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        return Results.Ok(ToResponse(invitation, departments, jobTitles));
     }
 
     private static async Task<IResult> CreateUserAsync(
@@ -1201,12 +1274,19 @@ public sealed class UsersModule : IModule
             entity.ReviewedBy,
             entity.RejectionReason);
 
-    private static InvitationResponse ToResponse(UserInvitationEntity entity) =>
+    private static InvitationResponse ToResponse(
+        UserInvitationEntity entity,
+        IReadOnlyDictionary<Guid, string> departments,
+        IReadOnlyDictionary<Guid, string> jobTitles) =>
         new(
             entity.Id,
             entity.Email,
             entity.InvitationToken,
             entity.InvitedBy,
+            entity.DepartmentId,
+            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            entity.JobTitleId,
+            entity.JobTitleId.HasValue && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             GetInvitationStatus(entity),
             entity.InvitedAt,
             entity.ExpiresAt,

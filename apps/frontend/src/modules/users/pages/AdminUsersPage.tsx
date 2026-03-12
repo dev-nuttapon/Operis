@@ -17,7 +17,7 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { CheckCircleOutlined, DeleteOutlined, EditOutlined, MailOutlined, TeamOutlined, UserAddOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MailOutlined, TeamOutlined, UserAddOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -53,6 +53,16 @@ const invitationColumns: ColumnsType<Invitation> = [
     dataIndex: "invitedBy",
   },
   {
+    title: "Department",
+    dataIndex: "departmentName",
+    render: (value: string | null) => value || "-",
+  },
+  {
+    title: "Title",
+    dataIndex: "jobTitleName",
+    render: (value: string | null) => value || "-",
+  },
+  {
     title: "Status",
     dataIndex: "status",
     render: (status: Invitation["status"]) => (
@@ -63,8 +73,10 @@ const invitationColumns: ColumnsType<Invitation> = [
             : status === "Accepted"
               ? "green"
               : status === "Cancelled"
-                ? "red"
-                : "default"
+                ? "volcano"
+                : status === "Rejected"
+                  ? "red"
+                  : "default"
         }
       >
         {status}
@@ -75,27 +87,6 @@ const invitationColumns: ColumnsType<Invitation> = [
     title: "Expires",
     dataIndex: "expiresAt",
     render: (value: string | null) => formatDate(value),
-  },
-  {
-    title: "Link",
-    key: "link",
-    render: (_, record) => {
-      const invitationUrl = `${window.location.origin}${record.invitationLink}`;
-      return (
-        <Space>
-          <Button
-            onClick={() => {
-              void navigator.clipboard.writeText(invitationUrl);
-            }}
-          >
-            Copy link
-          </Button>
-          <Button href={invitationUrl} target="_blank">
-            Open
-          </Button>
-        </Space>
-      );
-    },
   },
   {
     title: "Actions",
@@ -148,6 +139,7 @@ export function AdminUsersPage() {
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [creatingInvitation, setCreatingInvitation] = useState(false);
   const [editingInvitation, setEditingInvitation] = useState<Invitation | null>(null);
+  const [viewingInvitation, setViewingInvitation] = useState<Invitation | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<MasterDataItem | null>(null);
   const [editingJobTitle, setEditingJobTitle] = useState<MasterDataItem | null>(null);
   const [creatingUser, setCreatingUser] = useState(false);
@@ -322,7 +314,11 @@ export function AdminUsersPage() {
     {
       title: "Status",
       dataIndex: "status",
-      render: (status: RegistrationRequest["status"]) => <Tag color={status === "Pending" ? "gold" : status === "Approved" ? "green" : "red"}>{status}</Tag>,
+      render: (status: RegistrationRequest["status"]) => (
+        <Tag color={status === "Pending" ? "gold" : status === "Approved" ? "green" : "red"}>
+          {status}
+        </Tag>
+      ),
     },
     {
       title: "Actions",
@@ -409,12 +405,23 @@ export function AdminUsersPage() {
                     render: (_, record: Invitation) => (
                       <Space>
                         <Button
+                          icon={<EyeOutlined />}
+                          disabled={record.status === "Accepted"}
+                          onClick={() => {
+                            setViewingInvitation(record);
+                          }}
+                        >
+                          View
+                        </Button>
+                        <Button
                           icon={<EditOutlined />}
                           disabled={record.status === "Accepted" || record.status === "Cancelled" || record.status === "Rejected"}
                           onClick={() => {
                             setEditingInvitation(record);
                             editInvitationForm.setFieldsValue({
                               email: record.email,
+                              departmentId: record.departmentId ?? undefined,
+                              jobTitleId: record.jobTitleId ?? undefined,
                               expiresAt: record.expiresAt ? dayjs(record.expiresAt) : undefined,
                             });
                           }}
@@ -423,7 +430,7 @@ export function AdminUsersPage() {
                         </Button>
                         <Button
                           danger
-                          disabled={record.status !== "Pending"}
+                          disabled={record.status === "Accepted"}
                           loading={cancelInvitationMutation.isPending}
                           onClick={() => {
                             Modal.confirm({
@@ -629,6 +636,50 @@ export function AdminUsersPage() {
       {pageContent}
 
       <Modal
+        title="ลิงก์คำเชิญ"
+        open={viewingInvitation !== null}
+        onCancel={() => {
+          setViewingInvitation(null);
+        }}
+        footer={[
+          <Button
+            key="copy"
+            type="primary"
+            onClick={() => {
+              if (!viewingInvitation) {
+                return;
+              }
+
+              const invitationUrl = `${window.location.origin}${viewingInvitation.invitationLink}`;
+              void navigator.clipboard.writeText(invitationUrl);
+              handleSuccess(`Copied invitation link for ${viewingInvitation.email}`);
+            }}
+          >
+            Copy link
+          </Button>,
+          <Button
+            key="close"
+            onClick={() => {
+              setViewingInvitation(null);
+            }}
+          >
+            ปิด
+          </Button>,
+        ]}
+      >
+        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Text strong>{viewingInvitation?.email}</Text>
+          <Text type="secondary">Department: {viewingInvitation?.departmentName || "-"}</Text>
+          <Text type="secondary">Job title: {viewingInvitation?.jobTitleName || "-"}</Text>
+          <Input.TextArea
+            value={viewingInvitation ? `${window.location.origin}${viewingInvitation.invitationLink}` : ""}
+            autoSize={{ minRows: 3, maxRows: 5 }}
+            readOnly
+          />
+        </Space>
+      </Modal>
+
+      <Modal
         title="เชิญผู้ใช้งาน"
         open={creatingInvitation}
         okText="ส่งคำเชิญ"
@@ -641,11 +692,13 @@ export function AdminUsersPage() {
         onOk={() => {
           inviteForm
             .validateFields()
-            .then((values: { email: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
+            .then((values: { email: string; departmentId?: string; jobTitleId?: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
               createInvitationMutation.mutate(
                 {
                   email: values.email,
                   invitedBy: actor,
+                  departmentId: values.departmentId,
+                  jobTitleId: values.jobTitleId,
                   expiresAt: values.expiresAt ? values.expiresAt.endOf("day").toISOString() : undefined,
                 },
                 {
@@ -664,6 +717,26 @@ export function AdminUsersPage() {
         <Form layout="vertical" form={inviteForm}>
           <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
             <Input prefix={<MailOutlined />} placeholder="invitee@company.com" />
+          </Form.Item>
+          <Form.Item label="แผนก" name="departmentId">
+            <Select
+              allowClear
+              placeholder="เลือกแผนก"
+              options={(departmentsQuery.data ?? []).map((item) => ({
+                label: item.name,
+                value: item.id,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item label="ตำแหน่ง" name="jobTitleId">
+            <Select
+              allowClear
+              placeholder="เลือกตำแหน่ง"
+              options={(jobTitlesQuery.data ?? []).map((item) => ({
+                label: item.name,
+                value: item.id,
+              }))}
+            />
           </Form.Item>
           <Form.Item label="วันหมดอายุ" name="expiresAt">
             <DatePicker
@@ -693,11 +766,13 @@ export function AdminUsersPage() {
 
           editInvitationForm
             .validateFields()
-            .then((values: { email: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
+            .then((values: { email: string; departmentId?: string; jobTitleId?: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
               updateInvitationMutation.mutate(
                 {
                   id: editingInvitation.id,
                   email: values.email,
+                  departmentId: values.departmentId,
+                  jobTitleId: values.jobTitleId,
                   expiresAt: values.expiresAt ? values.expiresAt.endOf("day").toISOString() : undefined,
                 },
                 {
@@ -716,6 +791,26 @@ export function AdminUsersPage() {
         <Form layout="vertical" form={editInvitationForm}>
           <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
             <Input prefix={<MailOutlined />} placeholder="invitee@company.com" />
+          </Form.Item>
+          <Form.Item label="แผนก" name="departmentId">
+            <Select
+              allowClear
+              placeholder="เลือกแผนก"
+              options={(departmentsQuery.data ?? []).map((item) => ({
+                label: item.name,
+                value: item.id,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item label="ตำแหน่ง" name="jobTitleId">
+            <Select
+              allowClear
+              placeholder="เลือกตำแหน่ง"
+              options={(jobTitlesQuery.data ?? []).map((item) => ({
+                label: item.name,
+                value: item.id,
+              }))}
+            />
           </Form.Item>
           <Form.Item label="วันหมดอายุ" name="expiresAt">
             <DatePicker
