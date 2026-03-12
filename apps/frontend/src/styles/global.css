@@ -9,18 +9,15 @@ html, body, #root {
   overflow-x: hidden;
 }
 
-/* Background animated gradient */
+/* Global background matching dashboard Base Color */
 body {
-  background: linear-gradient(-45deg, #182b3a, #203a43, #2c5364);
-  background-size: 400% 400%;
-  animation: gradientBG 15s ease infinite;
-  transition: background 0.5s ease;
+  background-color: #020617; /* Slate 950 */
+  transition: background-color 0.3s ease;
 }
 
 /* Light mode specific override if needed */
 html[data-theme='light'] body {
-  background: linear-gradient(-45deg, #f0f2f5, #e6f7ff, #bae0ff);
-  background-size: 400% 400%;
+  background-color: #f8fafc; /* Slate 50 */
 }
 
 @keyframes gradientBG {

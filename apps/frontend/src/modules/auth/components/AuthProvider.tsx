@@ -4,6 +4,7 @@ import { bindAuthEvents, initKeycloak, login, logout } from "../services/keycloa
 interface AuthContextValue {
   isReady: boolean;
   isAuthenticated: boolean;
+  user: any | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -14,6 +15,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AuthContextValue>({
     isReady: false,
     isAuthenticated: false,
+    user: null,
     login,
     logout,
   });
@@ -21,31 +23,53 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let mounted = true;
 
+    const updateAuthState = async (authenticated: boolean) => {
+      if (!mounted) return;
+      
+      let user = null;
+      if (authenticated) {
+        try {
+          const { getUserProfile, getTokenParsed } = await import("../services/keycloakAuth");
+          const profile = await getUserProfile();
+          const tokenParsed = getTokenParsed();
+          user = {
+            ...profile,
+            email: profile?.email || tokenParsed?.email,
+            name: profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (tokenParsed?.name || tokenParsed?.preferred_username),
+          };
+        } catch (err) {
+          console.error("Failed to load user profile:", err);
+        }
+      }
+
+      setState({ 
+        isReady: true, 
+        isAuthenticated: authenticated, 
+        user,
+        login, 
+        logout 
+      });
+    };
+
     bindAuthEvents({
       onAuthenticatedChanged: (authenticated) => {
-        if (!mounted) {
-          return;
-        }
-        setState({ isReady: true, isAuthenticated: authenticated, login, logout });
+        updateAuthState(authenticated);
       },
       onTokenExpired: () => {
-        if (!mounted) {
-          return;
+        if (mounted) {
+          setState({ isReady: true, isAuthenticated: false, user: null, login, logout });
         }
-        setState({ isReady: true, isAuthenticated: false, login, logout });
       },
     });
 
     initKeycloak()
       .then((authenticated) => {
-        if (mounted) {
-          setState({ isReady: true, isAuthenticated: authenticated, login, logout });
-        }
+        updateAuthState(authenticated);
       })
       .catch((err) => {
         console.error("Keycloak init failed:", err);
         if (mounted) {
-          setState({ isReady: true, isAuthenticated: false, login, logout });
+          setState({ isReady: true, isAuthenticated: false, user: null, login, logout });
         }
       });
 

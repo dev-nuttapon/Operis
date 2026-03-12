@@ -80,6 +80,15 @@ export async function logout(): Promise<void> {
   });
 }
 
+export async function getUserProfile() {
+  if (!keycloak.authenticated) return null;
+  return await keycloak.loadUserProfile();
+}
+
+export function getTokenParsed() {
+  return keycloak.tokenParsed;
+}
+
 export function getAccessToken(): string | undefined {
   return keycloak.token;
 }
