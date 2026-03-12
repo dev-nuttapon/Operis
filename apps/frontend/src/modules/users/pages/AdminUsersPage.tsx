@@ -4,13 +4,12 @@ import {
   App,
   Button,
   Card,
-  Col,
+  DatePicker,
   Divider,
   Form,
   Input,
   InputNumber,
   Modal,
-  Row,
   Select,
   Space,
   Table,
@@ -19,9 +18,12 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { CheckCircleOutlined, DeleteOutlined, EditOutlined, MailOutlined, TeamOutlined, UserAddOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useAdminUsers } from "../hooks/useAdminUsers";
+import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import i18n from "../../../shared/i18n/config";
 import type { Invitation, MasterDataItem, RegistrationRequest, User } from "../types/users";
 
 const { Paragraph, Text } = Typography;
@@ -53,12 +55,52 @@ const invitationColumns: ColumnsType<Invitation> = [
   {
     title: "Status",
     dataIndex: "status",
-    render: (status: Invitation["status"]) => <Tag color={status === "Pending" ? "gold" : "default"}>{status}</Tag>,
+    render: (status: Invitation["status"]) => (
+      <Tag
+        color={
+          status === "Pending"
+            ? "gold"
+            : status === "Accepted"
+              ? "green"
+              : status === "Cancelled"
+                ? "red"
+                : "default"
+        }
+      >
+        {status}
+      </Tag>
+    ),
   },
   {
     title: "Expires",
     dataIndex: "expiresAt",
     render: (value: string | null) => formatDate(value),
+  },
+  {
+    title: "Link",
+    key: "link",
+    render: (_, record) => {
+      const invitationUrl = `${window.location.origin}${record.invitationLink}`;
+      return (
+        <Space>
+          <Button
+            onClick={() => {
+              void navigator.clipboard.writeText(invitationUrl);
+            }}
+          >
+            Copy link
+          </Button>
+          <Button href={invitationUrl} target="_blank">
+            Open
+          </Button>
+        </Space>
+      );
+    },
+  },
+  {
+    title: "Actions",
+    key: "actions",
+    render: () => null,
   },
 ];
 
@@ -75,6 +117,8 @@ export function AdminUsersPage() {
     jobTitlesQuery,
     rolesQuery,
     createInvitationMutation,
+    updateInvitationMutation,
+    cancelInvitationMutation,
     createUserMutation,
     updateUserMutation,
     deleteUserMutation,
@@ -89,6 +133,7 @@ export function AdminUsersPage() {
   } = useAdminUsers();
 
   const [inviteForm] = Form.useForm();
+  const [editInvitationForm] = Form.useForm();
   const [createUserForm] = Form.useForm();
   const [editUserForm] = Form.useForm();
   const [deleteUserForm] = Form.useForm();
@@ -101,6 +146,8 @@ export function AdminUsersPage() {
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [creatingInvitation, setCreatingInvitation] = useState(false);
+  const [editingInvitation, setEditingInvitation] = useState<Invitation | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<MasterDataItem | null>(null);
   const [editingJobTitle, setEditingJobTitle] = useState<MasterDataItem | null>(null);
   const [creatingUser, setCreatingUser] = useState(false);
@@ -124,9 +171,10 @@ export function AdminUsersPage() {
   };
 
   const handleError = (message: string, error: unknown) => {
+    const presentation = getApiErrorPresentation(error, message);
     notification.error({
-      message,
-      description: error instanceof Error ? error.message : "Unknown error",
+      message: presentation.title,
+      description: presentation.description,
     });
   };
 
@@ -184,7 +232,11 @@ export function AdminUsersPage() {
     {
       title: "Status",
       dataIndex: "status",
-      render: (status: User["status"]) => <Tag color={status === "Active" ? "green" : "default"}>{status}</Tag>,
+      render: (status: User["status"]) => (
+        <Tag color={status === "Active" ? "green" : status === "Deleted" ? "red" : "default"}>
+          {status}
+        </Tag>
+      ),
     },
     {
       title: "Department",
@@ -287,7 +339,7 @@ export function AdminUsersPage() {
                   { requestId: record.id, input: { reviewedBy: actor } },
                   {
                     onSuccess: () => handleSuccess(`Approved ${record.email}`),
-                    onError: (error) => handleError(`Failed to approve ${record.email}`, error),
+                    onError: (error) => handleError(i18n.t("errors.approve_registration_failed"), error),
                   }
                 );
               }}
@@ -303,7 +355,7 @@ export function AdminUsersPage() {
                   { requestId: record.id, input: { reviewedBy: actor, reason } },
                   {
                     onSuccess: () => handleSuccess(`Rejected ${record.email}`),
-                    onError: (error) => handleError(`Failed to reject ${record.email}`, error),
+                    onError: (error) => handleError(i18n.t("errors.reject_registration_failed"), error),
                   }
                 );
               }}
@@ -338,57 +390,70 @@ export function AdminUsersPage() {
         <Card variant="borderless">
           <Typography.Title level={5}>เชิญผู้ใช้งาน</Typography.Title>
           <Paragraph type="secondary">
-            ใช้สำหรับสร้างคำเชิญก่อน ตอนนี้ระบบบันทึกรายการเชิญแล้ว แต่ขั้นสร้างลิงก์ยืนยันเฉพาะรายและหน้าตอบรับยังต้องเพิ่มต่อ
+            ใช้สำหรับสร้างคำเชิญก่อน แล้วส่งลิงก์ให้ปลายทางยืนยันและตั้งค่าบัญชีด้วยตนเอง
           </Paragraph>
-          <Form
-            layout="vertical"
-            form={inviteForm}
-            onFinish={(values: { email: string; expiresInDays?: number }) => {
-              createInvitationMutation.mutate(
-                { ...values, invitedBy: actor },
-                {
-                  onSuccess: () => {
-                    inviteForm.resetFields();
-                    handleSuccess(`Invitation sent to ${values.email}`);
-                  },
-                  onError: (error) => handleError(`Failed to invite ${values.email}`, error),
-                }
-              );
-            }}
-          >
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
-                  <Input prefix={<MailOutlined />} placeholder="invitee@company.com" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={6}>
-                <Form.Item label="Expires in days" name="expiresInDays">
-                  <InputNumber min={1} max={90} style={{ width: "100%" }} placeholder="7" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={6}>
-                <Form.Item label=" " colon={false}>
-                  <Button
-                    htmlType="submit"
-                    type="primary"
-                    icon={<MailOutlined />}
-                    loading={createInvitationMutation.isPending}
-                    block
-                  >
-                    Send invite
-                  </Button>
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form>
+          <Button type="primary" icon={<MailOutlined />} onClick={() => setCreatingInvitation(true)}>
+            เชิญผู้ใช้งาน
+          </Button>
         </Card>
 
         <Card variant="borderless">
           <Typography.Title level={5}>รายการเชิญล่าสุด</Typography.Title>
           <Table
             rowKey="id"
-            columns={invitationColumns}
+            columns={invitationColumns.map((column) =>
+              column.key !== "actions"
+                ? column
+                : {
+                    ...column,
+                    render: (_, record: Invitation) => (
+                      <Space>
+                        <Button
+                          icon={<EditOutlined />}
+                          disabled={record.status === "Accepted" || record.status === "Cancelled" || record.status === "Rejected"}
+                          onClick={() => {
+                            setEditingInvitation(record);
+                            editInvitationForm.setFieldsValue({
+                              email: record.email,
+                              expiresAt: record.expiresAt ? dayjs(record.expiresAt) : undefined,
+                            });
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          danger
+                          disabled={record.status !== "Pending"}
+                          loading={cancelInvitationMutation.isPending}
+                          onClick={() => {
+                            Modal.confirm({
+                              title: `ยกเลิกคำเชิญ ${record.email}`,
+                              content: "เมื่อยกเลิกแล้ว ลิงก์คำเชิญนี้จะใช้งานไม่ได้อีก",
+                              okText: "ยืนยัน",
+                              cancelText: "ยกเลิก",
+                              okButtonProps: { danger: true },
+                              onOk: () =>
+                                new Promise<void>((resolve, reject) => {
+                                  cancelInvitationMutation.mutate(record.id, {
+                                    onSuccess: () => {
+                                      handleSuccess(`Cancelled invitation for ${record.email}`);
+                                      resolve();
+                                    },
+                                    onError: (error) => {
+                                      handleError(i18n.t("errors.cancel_invitation_failed"), error);
+                                      reject(error);
+                                    },
+                                  });
+                                }),
+                            });
+                          }}
+                        >
+                          ยกเลิกคำเชิญ
+                        </Button>
+                      </Space>
+                    ),
+                  }
+            )}
             dataSource={invitationsQuery.data ?? []}
             loading={invitationsQuery.isLoading}
             pagination={{ pageSize: 8 }}
@@ -550,20 +615,118 @@ export function AdminUsersPage() {
         <Alert
           type="error"
           showIcon
-          message="Unable to load admin data"
+          message={i18n.t("errors.load_admin_data")}
           description={
-            usersQuery.error instanceof Error
-              ? usersQuery.error.message
-              : registrationRequestsQuery.error instanceof Error
-                ? registrationRequestsQuery.error.message
-                : invitationsQuery.error instanceof Error
-                  ? invitationsQuery.error.message
-                  : "Unknown error"
+            (() => {
+              const sourceError = usersQuery.error ?? registrationRequestsQuery.error ?? invitationsQuery.error;
+              const presentation = getApiErrorPresentation(sourceError, i18n.t("errors.load_admin_data"));
+              return presentation.description;
+            })()
           }
         />
       ) : null}
 
       {pageContent}
+
+      <Modal
+        title="เชิญผู้ใช้งาน"
+        open={creatingInvitation}
+        okText="ส่งคำเชิญ"
+        cancelText="ยกเลิก"
+        confirmLoading={createInvitationMutation.isPending}
+        onCancel={() => {
+          setCreatingInvitation(false);
+          inviteForm.resetFields();
+        }}
+        onOk={() => {
+          inviteForm
+            .validateFields()
+            .then((values: { email: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
+              createInvitationMutation.mutate(
+                {
+                  email: values.email,
+                  invitedBy: actor,
+                  expiresAt: values.expiresAt ? values.expiresAt.endOf("day").toISOString() : undefined,
+                },
+                {
+                  onSuccess: () => {
+                    setCreatingInvitation(false);
+                    inviteForm.resetFields();
+                    handleSuccess(`Invitation sent to ${values.email}`);
+                  },
+                  onError: (error) => handleError(i18n.t("errors.invite_user_failed"), error),
+                }
+              );
+            })
+            .catch(() => undefined);
+        }}
+      >
+        <Form layout="vertical" form={inviteForm}>
+          <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
+            <Input prefix={<MailOutlined />} placeholder="invitee@company.com" />
+          </Form.Item>
+          <Form.Item label="วันหมดอายุ" name="expiresAt">
+            <DatePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              placeholder="เลือกวันหมดอายุ"
+              disabledDate={(current) => Boolean(current && current.endOf("day").valueOf() <= Date.now())}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="แก้ไขคำเชิญ"
+        open={editingInvitation !== null}
+        okText="บันทึก"
+        cancelText="ยกเลิก"
+        confirmLoading={updateInvitationMutation.isPending}
+        onCancel={() => {
+          setEditingInvitation(null);
+          editInvitationForm.resetFields();
+        }}
+        onOk={() => {
+          if (!editingInvitation) {
+            return;
+          }
+
+          editInvitationForm
+            .validateFields()
+            .then((values: { email: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
+              updateInvitationMutation.mutate(
+                {
+                  id: editingInvitation.id,
+                  email: values.email,
+                  expiresAt: values.expiresAt ? values.expiresAt.endOf("day").toISOString() : undefined,
+                },
+                {
+                  onSuccess: () => {
+                    setEditingInvitation(null);
+                    editInvitationForm.resetFields();
+                    handleSuccess(`Updated invitation for ${values.email}`);
+                  },
+                  onError: (error) => handleError(i18n.t("errors.update_invitation_failed"), error),
+                }
+              );
+            })
+            .catch(() => undefined);
+        }}
+      >
+        <Form layout="vertical" form={editInvitationForm}>
+          <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
+            <Input prefix={<MailOutlined />} placeholder="invitee@company.com" />
+          </Form.Item>
+          <Form.Item label="วันหมดอายุ" name="expiresAt">
+            <DatePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              placeholder="เลือกวันหมดอายุ"
+              disabledDate={(current) => Boolean(current && current.endOf("day").valueOf() <= Date.now())}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Modal
         title="เพิ่มผู้ใช้งาน"
@@ -608,7 +771,7 @@ export function AdminUsersPage() {
                     createUserForm.resetFields();
                     handleSuccess(`Created ${values.email}`);
                   },
-                  onError: (error) => handleError(`Failed to create ${values.email}`, error),
+                  onError: (error) => handleError(i18n.t("errors.create_user_failed"), error),
                 }
               );
             })
@@ -748,7 +911,7 @@ export function AdminUsersPage() {
                     setEditingUser(null);
                     editUserForm.resetFields();
                   },
-                  onError: (error) => handleError(`Failed to update ${values.email}`, error),
+                  onError: (error) => handleError(i18n.t("errors.update_user_failed"), error),
                 }
               );
             })
@@ -843,7 +1006,7 @@ export function AdminUsersPage() {
                     setDeletingUser(null);
                     deleteUserForm.resetFields();
                   },
-                  onError: (error) => handleError(`Failed to delete ${deletingUser.keycloak?.email || deletingUser.id}`, error),
+                  onError: (error) => handleError(i18n.t("errors.delete_user_failed"), error),
                 }
               );
             })
@@ -881,7 +1044,7 @@ export function AdminUsersPage() {
                     createDepartmentForm.resetFields();
                     handleSuccess(`Created department ${values.name}`);
                   },
-                  onError: (error) => handleError(`Failed to create department ${values.name}`, error),
+                  onError: (error) => handleError(i18n.t("errors.create_department_failed"), error),
                 }
               );
             })
@@ -922,7 +1085,7 @@ export function AdminUsersPage() {
                     setEditingDepartment(null);
                     handleSuccess(`Updated department ${values.editName}`);
                   },
-                  onError: (error) => handleError(`Failed to update department ${editingDepartment.name}`, error),
+                  onError: (error) => handleError(i18n.t("errors.update_department_failed"), error),
                 }
               );
             })
@@ -965,7 +1128,7 @@ export function AdminUsersPage() {
                     deleteDepartmentForm.resetFields();
                     handleSuccess(`Deleted department ${deletingDepartment.name}`);
                   },
-                  onError: (error) => handleError(`Failed to delete department ${deletingDepartment.name}`, error),
+                  onError: (error) => handleError(i18n.t("errors.delete_department_failed"), error),
                 }
               );
             })
@@ -1001,7 +1164,7 @@ export function AdminUsersPage() {
                     createJobTitleForm.resetFields();
                     handleSuccess(`Created job title ${values.name}`);
                   },
-                  onError: (error) => handleError(`Failed to create job title ${values.name}`, error),
+                  onError: (error) => handleError(i18n.t("errors.create_job_title_failed"), error),
                 }
               );
             })
@@ -1042,7 +1205,7 @@ export function AdminUsersPage() {
                     setEditingJobTitle(null);
                     handleSuccess(`Updated job title ${values.editName}`);
                   },
-                  onError: (error) => handleError(`Failed to update job title ${editingJobTitle.name}`, error),
+                  onError: (error) => handleError(i18n.t("errors.update_job_title_failed"), error),
                 }
               );
             })
@@ -1085,7 +1248,7 @@ export function AdminUsersPage() {
                     deleteJobTitleForm.resetFields();
                     handleSuccess(`Deleted job title ${deletingJobTitle.name}`);
                   },
-                  onError: (error) => handleError(`Failed to delete job title ${deletingJobTitle.name}`, error),
+                  onError: (error) => handleError(i18n.t("errors.delete_job_title_failed"), error),
                 }
               );
             })

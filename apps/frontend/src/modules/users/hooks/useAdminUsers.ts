@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   approveRegistration,
+  cancelInvitation,
   createDepartment,
   createInvitation,
   createJobTitle,
@@ -15,6 +16,7 @@ import {
   listRegistrationRequests,
   listUsers,
   rejectRegistration,
+  updateInvitation,
   updateUser,
   updateDepartment,
   updateJobTitle,
@@ -25,6 +27,7 @@ import type {
   CreateInvitationInput,
   CreateUserInput,
   RejectRegistrationInput,
+  UpdateInvitationInput,
   UpdateUserInput,
   UpdateMasterDataInput,
 } from "../types/users";
@@ -82,6 +85,16 @@ export function useAdminUsers() {
 
   const createInvitationMutation = useMutation({
     mutationFn: (input: CreateInvitationInput) => createInvitation(input),
+    onSuccess: invalidateAll,
+  });
+
+  const updateInvitationMutation = useMutation({
+    mutationFn: (input: UpdateInvitationInput) => updateInvitation(input),
+    onSuccess: invalidateAll,
+  });
+
+  const cancelInvitationMutation = useMutation({
+    mutationFn: (invitationId: string) => cancelInvitation(invitationId),
     onSuccess: invalidateAll,
   });
 
@@ -150,6 +163,8 @@ export function useAdminUsers() {
     jobTitlesQuery,
     rolesQuery,
     createInvitationMutation,
+    updateInvitationMutation,
+    cancelInvitationMutation,
     createUserMutation,
     updateUserMutation,
     deleteUserMutation,

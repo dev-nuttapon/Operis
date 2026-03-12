@@ -1,10 +1,12 @@
-import { apiRequest } from "../../../shared/lib/apiClient";
+import { apiRequest, publicApiRequest } from "../../../shared/lib/apiClient";
 import type {
+  AcceptInvitationInput,
   ApproveRegistrationInput,
   CreateMasterDataInput,
   CreateInvitationInput,
   CreateUserInput,
   UpdateUserInput,
+  InvitationDetail,
   Invitation,
   InvitationStatus,
   AppRoleItem,
@@ -15,6 +17,7 @@ import type {
   SoftDeleteInput,
   UpdateMasterDataInput,
   UpdateCurrentUserPreferencesInput,
+  UpdateInvitationInput,
   User,
 } from "../types/users";
 
@@ -34,6 +37,33 @@ export function listInvitations(status?: InvitationStatus, signal?: AbortSignal)
 
 export function createInvitation(input: CreateInvitationInput) {
   return apiRequest<Invitation>("/api/v1/users/invitations", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export function updateInvitation(input: UpdateInvitationInput) {
+  return apiRequest<Invitation>(`/api/v1/users/invitations/${input.id}`, {
+    method: "PUT",
+    body: {
+      email: input.email,
+      expiresAt: input.expiresAt,
+    },
+  });
+}
+
+export function cancelInvitation(invitationId: string) {
+  return apiRequest<Invitation>(`/api/v1/users/invitations/${invitationId}/cancel`, {
+    method: "POST",
+  });
+}
+
+export function getInvitationByToken(token: string) {
+  return publicApiRequest<InvitationDetail>(`/api/v1/users/invitations/${encodeURIComponent(token)}`);
+}
+
+export function acceptInvitation(token: string, input: AcceptInvitationInput) {
+  return publicApiRequest<Invitation>(`/api/v1/users/invitations/${encodeURIComponent(token)}/accept`, {
     method: "POST",
     body: input,
   });

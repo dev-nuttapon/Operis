@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
@@ -77,6 +78,10 @@ public sealed class UsersModule : IModule
         group.MapGet("/invitations", ListInvitationsAsync)
             .WithName("Users_ListInvitations");
 
+        group.MapGet("/invitations/{token}", GetInvitationByTokenAsync)
+            .AllowAnonymous()
+            .WithName("Users_GetInvitationByToken");
+
         group.MapPost("/registration-requests/{requestId:guid}/approve", ApproveRegistrationRequestAsync)
             .WithName("Users_ApproveRegistrationRequest");
 
@@ -85,6 +90,16 @@ public sealed class UsersModule : IModule
 
         group.MapPost("/invitations", CreateInvitationAsync)
             .WithName("Users_CreateInvitation");
+
+        group.MapPut("/invitations/{invitationId:guid}", UpdateInvitationAsync)
+            .WithName("Users_UpdateInvitation");
+
+        group.MapPost("/invitations/{invitationId:guid}/cancel", CancelInvitationAsync)
+            .WithName("Users_CancelInvitation");
+
+        group.MapPost("/invitations/{token}/accept", AcceptInvitationAsync)
+            .AllowAnonymous()
+            .WithName("Users_AcceptInvitation");
 
         group.MapPost("/", CreateUserAsync)
             .WithName("Users_CreateUser");
@@ -377,6 +392,7 @@ public sealed class UsersModule : IModule
         entity.DeletedAt = DateTimeOffset.UtcNow;
         entity.DeletedBy = ResolveActor(principal);
         entity.DeletedReason = NormalizeDeleteReason(request.Reason);
+        entity.Status = UserStatus.Deleted;
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
@@ -487,17 +503,10 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Email is required.");
         }
 
-        var userExists = await LocalUserExistsForEmailAsync(email, dbContext, keycloakAdminClient, cancellationToken);
-        if (userExists)
+        var emailConflict = await ValidateEmailAvailabilityAsync(email, dbContext, keycloakAdminClient, cancellationToken: cancellationToken);
+        if (emailConflict is not null)
         {
-            return Results.Conflict("User already exists.");
-        }
-
-        var pendingRequestExists = await dbContext.UserRegistrationRequests
-            .AnyAsync(x => x.Email == email && x.Status == RegistrationRequestStatus.Pending, cancellationToken);
-        if (pendingRequestExists)
-        {
-            return Results.Conflict("Pending registration request already exists.");
+            return Results.Conflict(emailConflict);
         }
 
         var registrationRequest = new UserRegistrationRequestEntity
@@ -675,6 +684,38 @@ public sealed class UsersModule : IModule
         return Results.Ok(invitations);
     }
 
+    private static async Task<IResult> GetInvitationByTokenAsync(
+        string token,
+        OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var invitation = await dbContext.UserInvitations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.InvitationToken == token, cancellationToken);
+        if (invitation is null)
+        {
+            return Results.NotFound();
+        }
+
+        var status = GetInvitationStatus(invitation);
+        if (status is InvitationStatus.Accepted or InvitationStatus.Rejected or InvitationStatus.Expired)
+        {
+            return Results.Ok(new InvitationDetailResponse(
+                invitation.Id,
+                invitation.Email,
+                status,
+                invitation.InvitedAt,
+                invitation.ExpiresAt));
+        }
+
+        return Results.Ok(new InvitationDetailResponse(
+            invitation.Id,
+            invitation.Email,
+            status,
+            invitation.InvitedAt,
+            invitation.ExpiresAt));
+    }
+
     private static async Task<IResult> CreateInvitationAsync(
         CreateInvitationRequest request,
         OperisDbContext dbContext,
@@ -687,28 +728,225 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Email is required.");
         }
 
-        var userExists = await LocalUserExistsForEmailAsync(email, dbContext, keycloakAdminClient, cancellationToken);
-        if (userExists)
+        var invitedBy = request.InvitedBy?.Trim();
+        if (string.IsNullOrWhiteSpace(invitedBy))
         {
-            return Results.Conflict("User already exists.");
+            return Results.BadRequest("Invited by is required.");
+        }
+
+        var emailConflict = await ValidateEmailAvailabilityAsync(email, dbContext, keycloakAdminClient, cancellationToken: cancellationToken);
+        if (emailConflict is not null)
+        {
+            return Results.Conflict(emailConflict);
+        }
+
+        if (request.ExpiresAt.HasValue && request.ExpiresAt.Value <= DateTimeOffset.UtcNow)
+        {
+            return Results.BadRequest("Expiration date must be in the future.");
         }
 
         var invitation = new UserInvitationEntity
         {
             Id = Guid.NewGuid(),
             Email = email,
-            InvitedBy = request.InvitedBy.Trim(),
+            InvitationToken = GenerateInvitationToken(),
+            InvitedBy = invitedBy,
             Status = InvitationStatus.Pending,
             InvitedAt = DateTimeOffset.UtcNow,
-            ExpiresAt = request.ExpiresInDays.HasValue
-                ? DateTimeOffset.UtcNow.AddDays(Math.Max(1, request.ExpiresInDays.Value))
-                : null
+            ExpiresAt = request.ExpiresAt
         };
 
         dbContext.UserInvitations.Add(invitation);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Results.Created($"/api/v1/users/invitations/{invitation.Id}", ToResponse(invitation));
+    }
+
+    private static async Task<IResult> UpdateInvitationAsync(
+        Guid invitationId,
+        UpdateInvitationRequest request,
+        OperisDbContext dbContext,
+        IKeycloakAdminClient keycloakAdminClient,
+        CancellationToken cancellationToken)
+    {
+        var invitation = await dbContext.UserInvitations.FirstOrDefaultAsync(x => x.Id == invitationId, cancellationToken);
+        if (invitation is null)
+        {
+            return Results.NotFound();
+        }
+
+        var status = GetInvitationStatus(invitation);
+        if (status == InvitationStatus.Accepted)
+        {
+            return Results.BadRequest("Accepted invitation cannot be updated.");
+        }
+
+        if (status == InvitationStatus.Cancelled)
+        {
+            return Results.BadRequest("Cancelled invitation cannot be updated.");
+        }
+
+        if (status == InvitationStatus.Rejected)
+        {
+            return Results.BadRequest("Rejected invitation cannot be updated.");
+        }
+
+        var email = NormalizeEmail(request.Email);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return Results.BadRequest("Email is required.");
+        }
+
+        if (request.ExpiresAt.HasValue && request.ExpiresAt.Value <= DateTimeOffset.UtcNow)
+        {
+            return Results.BadRequest("Expiration date must be in the future.");
+        }
+
+        var emailChanged = !string.Equals(invitation.Email, email, StringComparison.OrdinalIgnoreCase);
+        if (emailChanged)
+        {
+            var emailConflict = await ValidateEmailAvailabilityAsync(
+                email,
+                dbContext,
+                keycloakAdminClient,
+                cancellationToken,
+                ignoredInvitationId: invitation.Id);
+            if (emailConflict is not null)
+            {
+                return Results.Conflict(emailConflict);
+            }
+        }
+
+        invitation.Email = email;
+        invitation.ExpiresAt = request.ExpiresAt;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(ToResponse(invitation));
+    }
+
+    private static async Task<IResult> CancelInvitationAsync(
+        Guid invitationId,
+        OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var invitation = await dbContext.UserInvitations.FirstOrDefaultAsync(x => x.Id == invitationId, cancellationToken);
+        if (invitation is null)
+        {
+            return Results.NotFound();
+        }
+
+        var status = GetInvitationStatus(invitation);
+        if (status == InvitationStatus.Accepted)
+        {
+            return Results.BadRequest("Accepted invitation cannot be cancelled.");
+        }
+
+        if (status == InvitationStatus.Expired)
+        {
+            return Results.BadRequest("Expired invitation cannot be cancelled.");
+        }
+
+        if (status == InvitationStatus.Cancelled)
+        {
+            return Results.BadRequest("Invitation has already been cancelled.");
+        }
+
+        invitation.Status = InvitationStatus.Cancelled;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Results.Ok(ToResponse(invitation));
+    }
+
+    private static async Task<IResult> AcceptInvitationAsync(
+        string token,
+        AcceptInvitationRequest request,
+        OperisDbContext dbContext,
+        IKeycloakAdminClient keycloakAdminClient,
+        CancellationToken cancellationToken)
+    {
+        var invitation = await dbContext.UserInvitations
+            .FirstOrDefaultAsync(x => x.InvitationToken == token, cancellationToken);
+        if (invitation is null)
+        {
+            return Results.NotFound();
+        }
+
+        var status = GetInvitationStatus(invitation);
+        if (status == InvitationStatus.Accepted)
+        {
+            return Results.Conflict("Invitation has already been accepted.");
+        }
+
+        if (status == InvitationStatus.Rejected)
+        {
+            return Results.Conflict("Invitation has already been rejected.");
+        }
+
+        if (status == InvitationStatus.Cancelled)
+        {
+            return Results.BadRequest("Invitation has been cancelled.");
+        }
+
+        if (status == InvitationStatus.Expired)
+        {
+            return Results.BadRequest("Invitation has expired.");
+        }
+
+        var password = request.Password?.Trim();
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return Results.BadRequest("Password is required.");
+        }
+
+        if (password.Length < 8)
+        {
+            return Results.BadRequest("Password must be at least 8 characters.");
+        }
+
+        if (!string.Equals(password, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            return Results.BadRequest("Password and confirmation do not match.");
+        }
+
+        var emailConflict = await ValidateEmailAvailabilityAsync(
+            invitation.Email,
+            dbContext,
+            keycloakAdminClient,
+            ignoredInvitationId: invitation.Id,
+            cancellationToken: cancellationToken);
+        if (emailConflict is not null)
+        {
+            return Results.Conflict(emailConflict);
+        }
+
+        var keycloakResult = await keycloakAdminClient.CreateUserAsync(
+            invitation.Email,
+            request.FirstName.Trim(),
+            request.LastName.Trim(),
+            password,
+            cancellationToken);
+        if (!keycloakResult.Success)
+        {
+            return Results.Problem(
+                title: "Unable to provision user in Keycloak.",
+                detail: keycloakResult.ErrorMessage,
+                statusCode: StatusCodes.Status502BadGateway);
+        }
+
+        var user = new UserEntity
+        {
+            Id = keycloakResult.UserId ?? throw new InvalidOperationException("Keycloak user id is required."),
+            Status = UserStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = invitation.InvitedBy
+        };
+
+        invitation.Status = InvitationStatus.Accepted;
+        invitation.AcceptedAt = DateTimeOffset.UtcNow;
+
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(ToResponse(invitation));
     }
 
     private static async Task<IResult> CreateUserAsync(
@@ -886,8 +1124,60 @@ public sealed class UsersModule : IModule
         return normalized.Length > 500 ? normalized[..500] : normalized;
     }
 
+    private static string GenerateInvitationToken()
+    {
+        Span<byte> bytes = stackalloc byte[24];
+        RandomNumberGenerator.Fill(bytes);
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
     private static string GenerateInitialPassword() =>
         $"Operis!{Guid.NewGuid():N}"[..16];
+
+    private static InvitationStatus GetInvitationStatus(UserInvitationEntity entity)
+    {
+        if (entity.Status == InvitationStatus.Pending && entity.ExpiresAt.HasValue && entity.ExpiresAt.Value <= DateTimeOffset.UtcNow)
+        {
+            return InvitationStatus.Expired;
+        }
+
+        return entity.Status;
+    }
+
+    private static async Task<string?> ValidateEmailAvailabilityAsync(
+        string email,
+        OperisDbContext dbContext,
+        IKeycloakAdminClient keycloakAdminClient,
+        CancellationToken cancellationToken,
+        Guid? ignoredInvitationId = null)
+    {
+        var userExists = await LocalUserExistsForEmailAsync(email, dbContext, keycloakAdminClient, cancellationToken);
+        if (userExists)
+        {
+            return "User already exists.";
+        }
+
+        var pendingInvitationExists = await dbContext.UserInvitations
+            .AnyAsync(
+                x => x.Email == email
+                    && x.Status == InvitationStatus.Pending
+                    && (!x.ExpiresAt.HasValue || x.ExpiresAt > DateTimeOffset.UtcNow)
+                    && (!ignoredInvitationId.HasValue || x.Id != ignoredInvitationId.Value),
+                cancellationToken);
+        if (pendingInvitationExists)
+        {
+            return "Pending invitation already exists.";
+        }
+
+        var pendingRequestExists = await dbContext.UserRegistrationRequests
+            .AnyAsync(x => x.Email == email && x.Status == RegistrationRequestStatus.Pending, cancellationToken);
+        if (pendingRequestExists)
+        {
+            return "Pending registration request already exists.";
+        }
+
+        return null;
+    }
 
     private static async Task<bool> LocalUserExistsForEmailAsync(
         string email,
@@ -896,12 +1186,7 @@ public sealed class UsersModule : IModule
         CancellationToken cancellationToken)
     {
         var keycloakUser = await keycloakAdminClient.FindUserByEmailAsync(email, cancellationToken);
-        if (keycloakUser is null)
-        {
-            return false;
-        }
-
-        return await dbContext.Users.AnyAsync(x => x.Id == keycloakUser.Id, cancellationToken);
+        return keycloakUser is not null;
     }
 
     private static RegistrationRequestResponse ToResponse(UserRegistrationRequestEntity entity) =>
@@ -920,12 +1205,14 @@ public sealed class UsersModule : IModule
         new(
             entity.Id,
             entity.Email,
+            entity.InvitationToken,
             entity.InvitedBy,
-            entity.Status,
+            GetInvitationStatus(entity),
             entity.InvitedAt,
             entity.ExpiresAt,
             entity.AcceptedAt,
-            entity.RejectedAt);
+            entity.RejectedAt,
+            $"/invite/{entity.InvitationToken}");
 
     private static MasterDataResponse ToResponse(DepartmentEntity entity) =>
         new(entity.Id, entity.Name, entity.DisplayOrder, entity.CreatedAt, entity.UpdatedAt, entity.DeletedReason, entity.DeletedBy, entity.DeletedAt);

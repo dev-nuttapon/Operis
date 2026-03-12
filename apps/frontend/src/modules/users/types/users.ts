@@ -1,6 +1,6 @@
-export type UserStatus = "Active" | "Rejected";
+export type UserStatus = "Active" | "Rejected" | "Deleted";
 export type RegistrationRequestStatus = "Pending" | "Approved" | "Rejected";
-export type InvitationStatus = "Pending" | "Accepted" | "Rejected" | "Expired";
+export type InvitationStatus = "Pending" | "Accepted" | "Rejected" | "Expired" | "Cancelled";
 
 export interface KeycloakUserSummary {
   id: string;
@@ -45,18 +45,41 @@ export interface RegistrationRequest {
 export interface Invitation {
   id: string;
   email: string;
+  invitationToken: string;
   invitedBy: string;
   status: InvitationStatus;
   invitedAt: string;
   expiresAt: string | null;
   acceptedAt: string | null;
   rejectedAt: string | null;
+  invitationLink: string;
 }
 
 export interface CreateInvitationInput {
   email: string;
   invitedBy: string;
-  expiresInDays?: number;
+  expiresAt?: string;
+}
+
+export interface UpdateInvitationInput {
+  id: string;
+  email: string;
+  expiresAt?: string;
+}
+
+export interface InvitationDetail {
+  id: string;
+  email: string;
+  status: InvitationStatus;
+  invitedAt: string;
+  expiresAt: string | null;
+}
+
+export interface AcceptInvitationInput {
+  firstName: string;
+  lastName: string;
+  password: string;
+  confirmPassword: string;
 }
 
 export interface CreateUserInput {

@@ -3,7 +3,7 @@ import { ProtectedRoute } from "../shared/components/ProtectedRoute";
 import { MainLayout } from "../shared/components/layouts/MainLayout";
 import { DocumentDashboardPage } from "../modules/documents/pages/DocumentDashboardPage";
 import { LoginPage } from "../modules/auth";
-import { AdminUsersPage } from "../modules/users";
+import { AdminUsersPage, InvitationAcceptPage } from "../modules/users";
 
 export function AppRouter() {
   return (
@@ -12,6 +12,7 @@ export function AppRouter() {
         {/* Root → login page */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/invite/:token" element={<InvitationAcceptPage />} />
 
         {/* Protected Dashboard Routes */}
         <Route path="/app" element={<ProtectedRoute />}>

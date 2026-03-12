@@ -5,7 +5,9 @@ namespace Operis_API.Modules.Users.Contracts;
 public sealed record CreateRegistrationRequest(string Email, string FirstName, string LastName);
 public sealed record ReviewRegistrationRequest(string ReviewedBy);
 public sealed record RejectRegistrationRequest(string ReviewedBy, string Reason);
-public sealed record CreateInvitationRequest(string Email, string InvitedBy, int? ExpiresInDays);
+public sealed record CreateInvitationRequest(string Email, string InvitedBy, DateTimeOffset? ExpiresAt);
+public sealed record UpdateInvitationRequest(string Email, DateTimeOffset? ExpiresAt);
+public sealed record AcceptInvitationRequest(string FirstName, string LastName, string Password, string ConfirmPassword);
 public sealed record CreateUserRequest(string Email, string FirstName, string LastName, string Password, string ConfirmPassword, string CreatedBy, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
 public sealed record UpdateUserRequest(string Email, string FirstName, string LastName, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
 public sealed record UpdateUserPreferencesRequest(string? PreferredLanguage, string? PreferredTheme);
@@ -53,12 +55,21 @@ public sealed record RegistrationRequestResponse(
 public sealed record InvitationResponse(
     Guid Id,
     string Email,
+    string InvitationToken,
     string InvitedBy,
     InvitationStatus Status,
     DateTimeOffset InvitedAt,
     DateTimeOffset? ExpiresAt,
     DateTimeOffset? AcceptedAt,
-    DateTimeOffset? RejectedAt);
+    DateTimeOffset? RejectedAt,
+    string InvitationLink);
+
+public sealed record InvitationDetailResponse(
+    Guid Id,
+    string Email,
+    InvitationStatus Status,
+    DateTimeOffset InvitedAt,
+    DateTimeOffset? ExpiresAt);
 
 public sealed record MasterDataResponse(
     Guid Id,

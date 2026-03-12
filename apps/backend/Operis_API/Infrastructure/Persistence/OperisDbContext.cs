@@ -114,6 +114,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.Email).HasColumnName("email").HasMaxLength(320);
+            entity.Property(x => x.InvitationToken).HasColumnName("invitation_token").HasMaxLength(128);
             entity.Property(x => x.InvitedBy).HasColumnName("invited_by").HasMaxLength(120);
             entity.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.InvitedAt).HasColumnName("invited_at");
@@ -121,6 +122,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.AcceptedAt).HasColumnName("accepted_at");
             entity.Property(x => x.RejectedAt).HasColumnName("rejected_at");
             entity.HasIndex(x => new { x.Email, x.Status });
+            entity.HasIndex(x => x.InvitationToken).IsUnique();
         });
     }
 }
