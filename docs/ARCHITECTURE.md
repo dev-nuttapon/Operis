@@ -43,29 +43,36 @@ Observability
 
 # Backend Architecture
 
-The backend follows **Modular Monolith**
+The backend follows **Modular Monolith**.
+
+Current module shape:
 
 ```
 Modules/
-  Users
-  Organizations
-  Documents
-  Files
-  Workflows
-  Approvals
-  Audits
-  Notifications
-  Reports
-  Settings
+  Users/
+    Application/
+    Contracts/
+    Domain/
+    Infrastructure/
+    UsersModule.cs
+  Audits/
+    Application/
+    Contracts/
+    AuditsModule.cs
+  Documents/
+    Application/
+    Contracts/
+    Infrastructure/
+    DocumentsModule.cs
 ```
 
-Each module contains
+Module rules:
 
-* Controllers
-* Services
-* Repositories
-* DTOs
-* Domain Models
+* `*Module.cs` is composition only
+* `Application/` owns query and command orchestration
+* `Contracts/` owns API-facing request/response contracts
+* `Domain/` holds business concepts when needed
+* `Infrastructure/` owns persistence and external integrations
 
 ---
 
@@ -80,18 +87,20 @@ src/
   app/
 ```
 
-Each module contains
+Each module should contain:
 
-* pages
-* hooks
-* api
-* components
-* services
-* types
+* `pages`
+* `hooks`
+* `api`
+* `components`
+* `types`
+* `index.ts` or `public.ts`
 
 Readiness reference
 
 * `docs/MODULE_READINESS.md`
+* `docs/MODULE_CONTRACTS.md`
+* `docs/DATA_OWNERSHIP.md`
 
 ```
 

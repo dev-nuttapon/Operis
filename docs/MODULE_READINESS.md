@@ -97,29 +97,31 @@ Scoring guidance:
 
 # Project Snapshot
 
-Current module status based on the repository state on `2026-03-12`:
+Current module status based on the repository state on `2026-03-13`:
 
 | Module | Frontend | Backend | Overall | Notes |
 | --- | --- | --- | --- | --- |
-| `users` | `8/10` | `5.5/10` | `7/10` | Frontend boundary is the strongest in the repo. Backend still mixes module registration and infrastructure concerns. |
+| `users` | `8/10` | `8/10` | `8/10` | Backend now has application-level queries and commands for user, registration, invitation, and reference-data flows. |
 | `auth` | `7/10` | `n/a` | `7/10` | Public API is clearer now, but this is still a cross-cutting module with high app-shell coupling. |
-| `audits` | `6.5/10` | `5/10` | `6/10` | Domain boundary is promising, but both frontend and backend are still comparatively thin and under-structured. |
-| `documents` | `6/10` | `4.5/10` | `5.5/10` | Public entry now exists, but the module is still early-stage and lacks mature internal layers. |
+| `audits` | `6.5/10` | `7/10` | `6.5/10` | Backend query layer now exists, giving the module a real extraction boundary even though the surface area is still small. |
+| `documents` | `6/10` | `6.5/10` | `6/10` | Backend now follows `Module -> Application -> Contracts`, but the module still has a small feature surface. |
 
 ---
 
 # Current Priorities
 
-Priority 1: backend boundary cleanup
+Priority 1: ownership and contract clarity
 
-* add explicit application/use-case layers for `Users` and `Audits`
-* reduce orchestration inside `*Module.cs`
-* make data ownership and dependency direction clearer
+* keep module surfaces explicit
+* document data ownership before module count grows
+* keep endpoint layers thin and compositional
 
 Priority 2: CI quality gates
 
 * keep `check:architecture` mandatory
+* keep `node scripts/check-backend-architecture.mjs` mandatory
 * keep frontend build and tests mandatory
+* keep backend build mandatory
 * keep bundle reporting visible in CI output
 
 Priority 3: performance readiness
@@ -142,7 +144,6 @@ Strengths:
 
 Needs before future extraction:
 
-* backend application layer
 * clearer data ownership notes
 * more complete module-level tests
 
@@ -167,7 +168,6 @@ Strengths:
 
 Needs before future extraction:
 
-* backend layering beyond contracts
 * stronger frontend module shape if the UI expands
 
 ## documents
@@ -181,7 +181,7 @@ Needs before future extraction:
 
 * mature `api/` and `hooks/`
 * stronger separation between page, form, and data flow
-* backend module layering
+* more complete contracts if write flows expand
 
 ---
 
@@ -194,6 +194,11 @@ Before a module is marked as "ready to move later", verify:
 3. tests cover key module workflows
 4. bundle impact is known if the module is frontend-heavy
 5. backend ownership is documented if the module touches persistence
+
+Related docs:
+
+* `docs/DATA_OWNERSHIP.md`
+* `docs/MODULE_CONTRACTS.md`
 
 ---
 

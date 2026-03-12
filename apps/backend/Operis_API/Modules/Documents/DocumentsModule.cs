@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Documents.Application;
-using Operis_API.Modules.Documents.Domain;
+using Operis_API.Modules.Documents.Contracts;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Modules;
 

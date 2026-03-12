@@ -1,4 +1,4 @@
-using Operis_API.Modules.Documents.Domain;
+using Operis_API.Modules.Documents.Contracts;
 
 namespace Operis_API.Modules.Documents.Application;
 
