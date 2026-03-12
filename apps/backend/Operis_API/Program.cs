@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.OpenApi;
 using Operis_API.Shared.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,7 +14,28 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.ApplyDatabaseUrlOverride();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var bearerScheme = new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Paste a Keycloak access token. Example: Bearer eyJ..."
+    };
+
+    options.AddSecurityDefinition("Bearer", bearerScheme);
+
+    options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecuritySchemeReference("Bearer", null!, string.Empty),
+            []
+        }
+    });
+});
 builder.Services.AddHealthChecks();
 
 var keycloakOptions = builder.Configuration.GetSection(KeycloakOptions.SectionName).Get<KeycloakOptions>()
@@ -71,14 +93,23 @@ builder.Services.AddDbContext<OperisDbContext>(options =>
 builder.Services.AddModules(builder.Configuration);
 
 var app = builder.Build();
+var serverUrls = builder.Configuration["ASPNETCORE_URLS"] ?? builder.Configuration["urls"];
+var hasHttpsEndpoint = !string.IsNullOrWhiteSpace(serverUrls)
+                       && serverUrls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                           .Any(url => url.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+var enableSwagger = app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Local");
 
-if (app.Environment.IsDevelopment())
+if (enableSwagger)
 {
-    app.UseSwagger();
+    app.MapSwagger().AllowAnonymous();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (hasHttpsEndpoint)
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 
