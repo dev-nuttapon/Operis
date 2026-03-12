@@ -11,6 +11,7 @@ import {
   RightOutlined,
   DashboardOutlined,
   GlobalOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../modules/auth/hooks/useAuth';
@@ -33,6 +34,15 @@ export function MainLayout() {
   const location = useLocation();
   const { logout, user } = useAuth();
   const { theme: currentTheme, setTheme } = useThemeStore();
+  const roles = Array.isArray(user?.roles) ? user.roles : [];
+  const hasAdminAccess = roles.some((role) =>
+    [
+      'operis:super_admin',
+      'operis:system_admin',
+      'operis_super_admin',
+      'operis_system_admin',
+    ].includes(role)
+  );
   const displayName = user?.name || user?.email?.split('@')[0] || 'User';
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
   const isDarkMode = token.colorBgBase.toLowerCase() === '#020617';
@@ -71,6 +81,27 @@ export function MainLayout() {
       icon: <FileTextOutlined />,
       label: tr('common.documents', 'Documents'),
     },
+    ...(hasAdminAccess
+      ? [{
+          key: '/app/admin',
+          icon: <TeamOutlined />,
+          label: tr('common.admin', 'Admin'),
+          children: [
+            {
+              key: '/app/admin/users',
+              label: tr('common.admin_created_users', 'Admin Created Users'),
+            },
+            {
+              key: '/app/admin/invitations',
+              label: tr('common.user_invitations', 'Invitations'),
+            },
+            {
+              key: '/app/admin/registrations',
+              label: tr('common.registration_approvals', 'Registration Approvals'),
+            },
+          ],
+        }]
+      : []),
   ];
 
   const profileMenuItems: MenuProps['items'] = [
@@ -119,6 +150,9 @@ export function MainLayout() {
   const getPageTitle = (path: string) => {
     if (path.includes('dashboard')) return tr('common.dashboard', 'Dashboard');
     if (path.includes('documents')) return tr('common.documents', 'Documents');
+    if (path.includes('admin/users')) return tr('common.admin_created_users', 'Admin Created Users');
+    if (path.includes('admin/invitations')) return tr('common.user_invitations', 'Invitations');
+    if (path.includes('admin/registrations')) return tr('common.registration_approvals', 'Registration Approvals');
     return tr('common.dashboard', 'Dashboard');
   };
 

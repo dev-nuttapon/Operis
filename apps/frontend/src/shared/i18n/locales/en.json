@@ -16,6 +16,11 @@
   "common": {
     "dashboard": "Dashboard",
     "documents": "Documents",
+    "admin": "Admin",
+    "user_admin": "User Administration",
+    "admin_created_users": "Admin Created Users",
+    "user_invitations": "Invitations",
+    "registration_approvals": "Registration Approvals",
     "notifications": "Notifications",
     "mark_all_read": "Mark all as read",
     "view_all_notifications": "View all (3)",

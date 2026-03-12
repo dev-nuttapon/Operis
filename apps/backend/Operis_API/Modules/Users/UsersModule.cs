@@ -36,6 +36,9 @@ public sealed class UsersModule : IModule
         group.MapGet("/registration-requests", ListRegistrationRequestsAsync)
             .WithName("Users_ListRegistrationRequests");
 
+        group.MapGet("/invitations", ListInvitationsAsync)
+            .WithName("Users_ListInvitations");
+
         group.MapPost("/registration-requests/{requestId:guid}/approve", ApproveRegistrationRequestAsync)
             .WithName("Users_ApproveRegistrationRequest");
 
@@ -244,6 +247,27 @@ public sealed class UsersModule : IModule
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Results.Ok(ToResponse(registrationRequest));
+    }
+
+    private static async Task<IResult> ListInvitationsAsync(
+        OperisDbContext dbContext,
+        InvitationStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var query = dbContext.UserInvitations.AsNoTracking();
+
+        if (status.HasValue)
+        {
+            query = query.Where(x => x.Status == status.Value);
+        }
+
+        var invitations = await query
+            .OrderByDescending(x => x.InvitedAt)
+            .Take(100)
+            .Select(x => ToResponse(x))
+            .ToListAsync(cancellationToken);
+
+        return Results.Ok(invitations);
     }
 
     private static async Task<IResult> CreateInvitationAsync(

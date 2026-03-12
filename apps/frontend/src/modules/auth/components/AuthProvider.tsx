@@ -10,10 +10,19 @@ import {
   refreshToken,
 } from "../services/keycloakAuth";
 
+interface AuthUser {
+  email?: string | null;
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  roles: string[];
+  [key: string]: unknown;
+}
+
 interface AuthContextValue {
   isReady: boolean;
   isAuthenticated: boolean;
-  user?: any | null;
+  user?: AuthUser | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -38,10 +47,93 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setState({ isReady: true, isAuthenticated: false, user: null, login, logout });
     };
 
+    const extractRoles = (tokenParsed: Record<string, unknown> | undefined) => {
+      if (!tokenParsed) {
+        return [];
+      }
+
+      const roles = new Set<string>();
+
+      const realmAccess = tokenParsed.realm_access as { roles?: unknown } | undefined;
+      if (Array.isArray(realmAccess?.roles)) {
+        for (const role of realmAccess.roles) {
+          if (typeof role === "string" && role.trim()) {
+            roles.add(role);
+          }
+        }
+      }
+
+      const resourceAccess = tokenParsed.resource_access as Record<string, { roles?: unknown } | undefined> | undefined;
+      if (resourceAccess) {
+        for (const resource of Object.values(resourceAccess)) {
+          if (!Array.isArray(resource?.roles)) {
+            continue;
+          }
+
+          for (const role of resource.roles) {
+            if (typeof role === "string" && role.trim()) {
+              roles.add(role);
+            }
+          }
+        }
+      }
+
+      return Array.from(roles);
+    };
+
+    const buildUser = async (): Promise<AuthUser | null> => {
+      const tokenParsed = getTokenParsed() as Record<string, unknown> | undefined;
+      const roles = extractRoles(tokenParsed);
+
+      try {
+        const profile = await getUserProfile();
+        return {
+          ...profile,
+          email: profile?.email || (typeof tokenParsed?.email === "string" ? tokenParsed.email : undefined),
+          name: profile?.firstName
+            ? `${profile.firstName} ${profile.lastName}`
+            : (typeof tokenParsed?.name === "string" ? tokenParsed.name : (typeof tokenParsed?.preferred_username === "string" ? tokenParsed.preferred_username : undefined)),
+          roles,
+        };
+      } catch (err) {
+        console.error("Failed to load user profile:", err);
+        return {
+          email: typeof tokenParsed?.email === "string" ? tokenParsed.email : undefined,
+          name: typeof tokenParsed?.name === "string" ? tokenParsed.name : (typeof tokenParsed?.preferred_username === "string" ? tokenParsed.preferred_username : undefined),
+          roles,
+        };
+      }
+    };
+
+    const updateAuthState = async (authenticated: boolean) => {
+      if (!mounted) return;
+
+      const user = authenticated ? await buildUser() : null;
+
+      setState({
+        isReady: true,
+        isAuthenticated: authenticated,
+        user,
+        login,
+        logout
+      });
+
+      if (authenticated) {
+        startRefreshLoop();
+      } else {
+        stopRefreshLoop();
+      }
+    };
+
     const ensureFreshSession = async (minValidity = 60) => {
       const refreshed = await refreshToken(minValidity);
       if (!refreshed && !isAuthenticated()) {
         setAnonymous();
+        return;
+      }
+
+      if (isAuthenticated()) {
+        void updateAuthState(true);
       }
     };
 
@@ -56,39 +148,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (!refreshIntervalId) return;
       clearInterval(refreshIntervalId);
       refreshIntervalId = null;
-    };
-
-    const updateAuthState = async (authenticated: boolean) => {
-      if (!mounted) return;
-      
-      let user = null;
-      if (authenticated) {
-        try {
-          const profile = await getUserProfile();
-          const tokenParsed = getTokenParsed();
-          user = {
-            ...profile,
-            email: profile?.email || tokenParsed?.email,
-            name: profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (tokenParsed?.name || tokenParsed?.preferred_username),
-          };
-        } catch (err) {
-          console.error("Failed to load user profile:", err);
-        }
-      }
-
-      setState({ 
-        isReady: true, 
-        isAuthenticated: authenticated, 
-        user,
-        login, 
-        logout 
-      });
-
-      if (authenticated) {
-        startRefreshLoop();
-      } else {
-        stopRefreshLoop();
-      }
     };
 
     bindAuthEvents({

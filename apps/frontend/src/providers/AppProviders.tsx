@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import type { PropsWithChildren } from "react";
-import { ConfigProvider, theme as antdTheme } from "antd";
+import { App, ConfigProvider, theme as antdTheme } from "antd";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useThemeStore } from "../shared/store/useThemeStore";
 import { AuthProvider } from "../modules/auth/components/AuthProvider";
+
+const queryClient = new QueryClient();
 
 export function AppProviders({ children }: PropsWithChildren) {
   const { theme } = useThemeStore();
@@ -24,34 +27,38 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   return (
     <AuthProvider>
-      <ConfigProvider
-        theme={{
-          algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-          token: {
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
-            colorPrimary: '#0284c7', // sky-600
-            colorBgBase: isDarkMode ? '#020617' : '#f8fafc', // slate-950 / slate-50
-            colorBgContainer: isDarkMode ? '#0f172a' : '#ffffff', // slate-900 / white
-            colorBgElevated: isDarkMode ? '#0f172a' : '#ffffff', 
-            colorTextBase: isDarkMode ? '#f1f5f9' : '#0f172a', // slate-100 / slate-900
-            colorTextSecondary: isDarkMode ? '#94a3b8' : '#64748b', // slate-400 / slate-500
-            colorBorder: isDarkMode ? '#1e293b' : '#e2e8f0', // slate-800 / slate-200
-            colorLink: '#0284c7',
-            colorLinkHover: '#0369a1', // sky-700
-            borderRadius: 6,
-          },
-          components: {
-            Card: {
-              borderRadiusLG: 12,
+      <QueryClientProvider client={queryClient}>
+        <ConfigProvider
+          theme={{
+            algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+            token: {
+              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+              colorPrimary: '#0284c7', // sky-600
+              colorBgBase: isDarkMode ? '#020617' : '#f8fafc', // slate-950 / slate-50
+              colorBgContainer: isDarkMode ? '#0f172a' : '#ffffff', // slate-900 / white
+              colorBgElevated: isDarkMode ? '#0f172a' : '#ffffff',
+              colorTextBase: isDarkMode ? '#f1f5f9' : '#0f172a', // slate-100 / slate-900
+              colorTextSecondary: isDarkMode ? '#94a3b8' : '#64748b', // slate-400 / slate-500
+              colorBorder: isDarkMode ? '#1e293b' : '#e2e8f0', // slate-800 / slate-200
+              colorLink: '#0284c7',
+              colorLinkHover: '#0369a1', // sky-700
+              borderRadius: 6,
             },
-            Button: {
-              controlHeight: 40,
+            components: {
+              Card: {
+                borderRadiusLG: 12,
+              },
+              Button: {
+                controlHeight: 40,
+              }
             }
-          }
-        }}
-      >
-        {children}
-      </ConfigProvider>
+          }}
+        >
+          <App>
+            {children}
+          </App>
+        </ConfigProvider>
+      </QueryClientProvider>
     </AuthProvider>
   );
 }

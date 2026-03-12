@@ -3,6 +3,7 @@ import { ProtectedRoute } from "../shared/components/ProtectedRoute";
 import { MainLayout } from "../shared/components/layouts/MainLayout";
 import { DocumentDashboardPage } from "../modules/documents/pages/DocumentDashboardPage";
 import { LoginPage } from "../modules/auth";
+import { AdminUsersPage } from "../modules/users";
 
 export function AppRouter() {
   return (
@@ -17,6 +18,9 @@ export function AppRouter() {
           <Route element={<MainLayout />}>
             <Route index element={<Navigate to="documents" replace />} />
             <Route path="documents" element={<DocumentDashboardPage />} />
+            <Route path="admin/users" element={<AdminUsersPage />} />
+            <Route path="admin/invitations" element={<AdminUsersPage />} />
+            <Route path="admin/registrations" element={<AdminUsersPage />} />
           </Route>
         </Route>
 
