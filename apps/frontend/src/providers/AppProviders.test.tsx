@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { AppProviders } from './AppProviders';
 import { useThemeStore } from '../shared/store/useThemeStore';
+import { useAuth } from '../modules/auth';
+import { useUserPreferencesSync } from '../modules/users/public';
+import { useI18nLanguage } from '../shared/i18n/hooks/useI18nLanguage';
 
 // Mock matchMedia specifically for this test
 const matchMediaMock = vi.fn().mockImplementation((query) => ({
@@ -24,12 +28,30 @@ vi.mock('../shared/store/useThemeStore', () => ({
   useThemeStore: vi.fn(),
 }));
 
-// Mock i18n
-vi.mock('../shared/i18n/config', () => ({}));
+vi.mock('../modules/auth', () => ({
+  AuthProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  useAuth: vi.fn(),
+}));
+
+vi.mock('../modules/users/public', () => ({
+  useUserPreferencesSync: vi.fn(),
+}));
+
+vi.mock('../shared/i18n/hooks/useI18nLanguage', () => ({
+  useI18nLanguage: vi.fn(),
+}));
 
 describe('AppProviders', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useAuth).mockReturnValue({
+      isReady: true,
+      isAuthenticated: false,
+      user: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+    vi.mocked(useI18nLanguage).mockReturnValue('en');
   });
 
   it('renders children correctly', () => {
@@ -73,5 +95,30 @@ describe('AppProviders', () => {
     // Verify cleanup
     unmount();
     expect(removeEventListenerMock).toHaveBeenCalledWith('change', expect.any(Function));
+  });
+
+  it('syncs user preferences through the users module hook', () => {
+    vi.mocked(useThemeStore).mockReturnValue({ theme: 'light', setTheme: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue({
+      isReady: true,
+      isAuthenticated: true,
+      user: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <AppProviders>
+        <div>Content</div>
+      </AppProviders>
+    );
+
+    expect(useUserPreferencesSync).toHaveBeenCalledWith(
+      {
+        preferredLanguage: expect.any(String),
+        preferredTheme: 'light',
+      },
+      true
+    );
   });
 });

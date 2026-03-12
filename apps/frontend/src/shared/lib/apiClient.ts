@@ -1,5 +1,5 @@
 import { appEnv } from "../config/env";
-import { getAccessToken, refreshToken } from "../../modules/auth/services/keycloakAuth";
+import { getAccessToken, refreshToken } from "../../modules/auth";
 import i18n from "../i18n/config";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";

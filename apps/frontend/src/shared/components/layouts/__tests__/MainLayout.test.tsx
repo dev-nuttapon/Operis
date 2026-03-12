@@ -1,17 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MainLayout } from '../MainLayout';
 import { MemoryRouter } from 'react-router-dom';
-import { useAuth } from '../../../../modules/auth/hooks/useAuth';
+import { useAuth } from '../../../../modules/auth';
 import { useThemeStore } from '../../../store/useThemeStore';
+import { useI18nLanguage } from '../../../i18n/hooks/useI18nLanguage';
 
 // Mocks
-vi.mock('../../../../modules/auth/hooks/useAuth', () => ({
+vi.mock('../../../../modules/auth', () => ({
   useAuth: vi.fn(),
 }));
 
 vi.mock('../../../store/useThemeStore', () => ({
   useThemeStore: vi.fn(),
+}));
+
+vi.mock('../../../i18n/config', () => ({
+  default: {
+    t: (key: string, options?: { lng?: string }) => {
+      if (key === 'common.application_name') return 'OPERIS';
+      if (key === 'common.documents') return 'Documents';
+      if (key === 'auth.logout_button') return 'Logout';
+      if (key === 'common.user_fallback') return 'User';
+      if (key === 'common.version') return 'Version';
+      return options?.lng ? `${key}:${options.lng}` : key;
+    },
+    language: 'en',
+    on: vi.fn(),
+    off: vi.fn(),
+    changeLanguage: vi.fn(),
+  },
+}));
+
+vi.mock('../../../i18n/hooks/useI18nLanguage', () => ({
+  useI18nLanguage: vi.fn(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -43,6 +65,7 @@ describe('MainLayout', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: true,
+      user: { name: 'Test User', email: 'user@example.com', roles: [] },
       login: vi.fn(),
       logout: mockLogout,
     });
@@ -51,6 +74,7 @@ describe('MainLayout', () => {
       theme: 'light',
       setTheme: mockSetTheme,
     });
+    vi.mocked(useI18nLanguage).mockReturnValue('en');
   });
 
   it('renders correctly with sidebar and header elements', () => {
@@ -66,9 +90,7 @@ describe('MainLayout', () => {
     // Verify menu items
     expect(screen.getByText('Documents')).toBeInTheDocument();
     
-    // Verify Logout button exists exactly once (assuming standard layout rendering)
-    const logoutBtn = screen.getByRole('button', { name: /logout/i });
-    expect(logoutBtn).toBeInTheDocument();
+    expect(screen.getByText('Test User')).toBeInTheDocument();
   });
 
   it('handles sidebar toggling correctly', () => {
@@ -82,33 +104,41 @@ describe('MainLayout', () => {
     // The closest role is button, and it has no text, just an icon.
     // It's the first button in the header structure usually.
     // We can query by class or assume it's the first button since logout is named.
-    const buttons = screen.getAllByRole('button');
-    const toggleBtn = buttons[0]; // Assuming it's the first one in Header
+    const toggleBtn = screen.getByRole('button', { name: 'left' });
     
-    // Initially not collapsed (Logo reads "OPERIS")
     expect(screen.getByText('OPERIS')).toBeInTheDocument();
     
-    // Click to collapse
-    fireEvent.click(toggleBtn);
+    act(() => {
+      fireEvent.click(toggleBtn);
+    });
     
-    // Logo should change to "OP"
-    expect(screen.getByText('OP')).toBeInTheDocument();
+    expect(screen.queryByText('OPERIS')).not.toBeInTheDocument();
     
-    // Click to uncollapse
-    fireEvent.click(toggleBtn);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'right' }));
+    });
+
     expect(screen.getByText('OPERIS')).toBeInTheDocument();
   });
 
-  it('calls logout when logout button is clicked', () => {
+  it('calls logout when logout button is clicked', async () => {
     render(
       <MemoryRouter>
         <MainLayout />
       </MemoryRouter>
     );
 
-    const logoutBtn = screen.getByRole('button', { name: /logout/i });
-    fireEvent.click(logoutBtn);
+    act(() => {
+      fireEvent.click(screen.getByText('Test User'));
+    });
 
-    expect(mockLogout).toHaveBeenCalled();
+    const logoutBtn = await screen.findByText('Logout');
+    act(() => {
+      fireEvent.click(logoutBtn);
+    });
+
+    await waitFor(() => {
+      expect(mockLogout).toHaveBeenCalled();
+    });
   });
 });

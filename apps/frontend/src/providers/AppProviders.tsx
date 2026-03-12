@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { App, ConfigProvider, theme as antdTheme } from "antd";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useThemeStore } from "../shared/store/useThemeStore";
-import { AuthProvider } from "../modules/auth/components/AuthProvider";
-import { useAuth } from "../modules/auth";
+import { AuthProvider, useAuth } from "../modules/auth";
 import { useI18nLanguage } from "../shared/i18n/hooks/useI18nLanguage";
-import { updateCurrentUserPreferences } from "../modules/users/api/usersApi";
+import { useUserPreferencesSync } from "../modules/users/public";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,35 +22,14 @@ function UserPreferenceSync() {
   const { isAuthenticated } = useAuth();
   const language = useI18nLanguage();
   const { theme } = useThemeStore();
-  const lastSyncedRef = useRef<string | null>(null);
-  const isTestMode = import.meta.env.MODE === "test";
 
-  useEffect(() => {
-    if (isTestMode) {
-      return;
-    }
-
-    if (!isAuthenticated) {
-      lastSyncedRef.current = null;
-      return;
-    }
-
-    const preferenceKey = `${language}:${theme}`;
-    if (lastSyncedRef.current === preferenceKey) {
-      return;
-    }
-
-    void updateCurrentUserPreferences({
+  useUserPreferencesSync(
+    {
       preferredLanguage: language || null,
       preferredTheme: theme,
-    })
-      .then(() => {
-        lastSyncedRef.current = preferenceKey;
-      })
-      .catch((error: unknown) => {
-        console.error("Unable to sync user preferences:", error);
-      });
-  }, [isAuthenticated, isTestMode, language, theme]);
+    },
+    isAuthenticated
+  );
 
   return null;
 }

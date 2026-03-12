@@ -3,15 +3,16 @@ import { render, screen } from '@testing-library/react';
 import { AppRouter } from './AppRouter';
 
 // Mock dependencies
-vi.mock('../modules/auth', () => ({
-  AuthLandingPage: () => <div data-testid="mock-auth-landing-page">Auth Landing Page</div>
+vi.mock('../modules/auth/pages/LoginPage', () => ({
+  LoginPage: () => <div data-testid="mock-login-page">Login Page</div>
 }));
 
 describe('AppRouter', () => {
-  it('should render AuthLandingPage correctly', () => {
+  it('redirects root traffic to the login page', async () => {
+    window.history.pushState({}, '', '/');
+
     render(<AppRouter />);
-    
-    // Check if the mock landing page is rendered
-    expect(screen.getByTestId('mock-auth-landing-page')).toBeInTheDocument();
+
+    expect(await screen.findByTestId('mock-login-page')).toBeInTheDocument();
   });
 });

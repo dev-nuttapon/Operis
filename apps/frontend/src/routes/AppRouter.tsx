@@ -8,22 +8,22 @@ const DocumentDashboardPage = lazy(() =>
   import("../modules/documents/pages/DocumentDashboardPage").then((module) => ({ default: module.DocumentDashboardPage }))
 );
 const LoginPage = lazy(() =>
-  import("../modules/auth").then((module) => ({ default: module.LoginPage }))
+  import("../modules/auth/pages/LoginPage").then((module) => ({ default: module.LoginPage }))
 );
 const AdminUsersPage = lazy(() =>
-  import("../modules/users").then((module) => ({ default: module.AdminUsersPage }))
+  import("../modules/users/pages/AdminUsersPage").then((module) => ({ default: module.AdminUsersPage }))
 );
 const InvitationAcceptPage = lazy(() =>
-  import("../modules/users").then((module) => ({ default: module.InvitationAcceptPage }))
+  import("../modules/users/pages/InvitationAcceptPage").then((module) => ({ default: module.InvitationAcceptPage }))
 );
 const PublicRegistrationPage = lazy(() =>
-  import("../modules/users").then((module) => ({ default: module.PublicRegistrationPage }))
+  import("../modules/users/pages/PublicRegistrationPage").then((module) => ({ default: module.PublicRegistrationPage }))
 );
 const RegistrationPasswordSetupPage = lazy(() =>
-  import("../modules/users").then((module) => ({ default: module.RegistrationPasswordSetupPage }))
+  import("../modules/users/pages/RegistrationPasswordSetupPage").then((module) => ({ default: module.RegistrationPasswordSetupPage }))
 );
 const AuditLogsPage = lazy(() =>
-  import("../modules/audits").then((module) => ({ default: module.AuditLogsPage }))
+  import("../modules/audits/pages/AuditLogsPage").then((module) => ({ default: module.AuditLogsPage }))
 );
 
 function RouteFallback() {

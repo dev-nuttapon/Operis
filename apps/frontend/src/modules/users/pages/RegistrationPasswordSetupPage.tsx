@@ -1,14 +1,16 @@
-import { App, Button, Card, Flex, Form, Input, Modal, Result, Select, Space, Spin, Typography, theme as antdTheme } from "antd";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { BulbFilled, BulbOutlined, CheckCircleFilled, GlobalOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
+import { App, Button, Card, Flex, Form, Input, Result, Select, Space, Spin, Typography, theme as antdTheme } from "antd";
+import { BulbFilled, BulbOutlined, GlobalOutlined } from "@ant-design/icons";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { completeRegistrationPasswordSetup, getRegistrationPasswordSetup } from "../api/usersApi";
+import { useRegistrationPasswordSetup } from "../hooks/useRegistrationPasswordSetup";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { useThemeStore, type ThemeMode } from "../../../shared/store/useThemeStore";
 import { useTranslation } from "react-i18next";
 
 const { Paragraph, Title } = Typography;
+const PublicActionSuccessModal = lazy(() =>
+  import("../components/publicUsers/PublicActionSuccessModal").then((module) => ({ default: module.PublicActionSuccessModal }))
+);
 
 export function RegistrationPasswordSetupPage() {
   const { notification } = App.useApp();
@@ -19,6 +21,7 @@ export function RegistrationPasswordSetupPage() {
   const { token } = useParams<{ token: string }>();
   const [form] = Form.useForm();
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const { completeMutation, setupQuery } = useRegistrationPasswordSetup(token);
   const currentLanguage = i18n.language.startsWith("th") ? "th" : "en";
   const isDarkMode = designToken.colorBgBase.toLowerCase() === "#020617";
   const pageBackground = isDarkMode
@@ -34,27 +37,26 @@ export function RegistrationPasswordSetupPage() {
     document.documentElement.setAttribute("data-theme", actualTheme);
   }, [theme]);
 
-  const setupQuery = useQuery({
-    queryKey: ["public", "registration-password-setup", token],
-    queryFn: () => getRegistrationPasswordSetup(token ?? ""),
-    enabled: Boolean(token),
-  });
+  useEffect(() => {
+    if (!completeMutation.isSuccess) {
+      return;
+    }
 
-  const completeMutation = useMutation({
-    mutationFn: (values: { password: string; confirmPassword: string }) =>
-      completeRegistrationPasswordSetup(token ?? "", values),
-    onSuccess: () => {
-      setSuccessModalOpen(true);
-      form.resetFields();
-    },
-    onError: (error) => {
-      const presentation = getApiErrorPresentation(error, t("errors.complete_registration_password_setup_failed"));
-      notification.error({
-        message: presentation.title,
-        description: presentation.description,
-      });
-    },
-  });
+    setSuccessModalOpen(true);
+    form.resetFields();
+  }, [completeMutation.isSuccess, form]);
+
+  useEffect(() => {
+    if (!completeMutation.isError) {
+      return;
+    }
+
+    const presentation = getApiErrorPresentation(completeMutation.error, t("errors.complete_registration_password_setup_failed"));
+    notification.error({
+      message: presentation.title,
+      description: presentation.description,
+    });
+  }, [completeMutation.error, completeMutation.isError, notification, t]);
 
   if (!token) {
     return <Result status="404" title={t("registration_password_setup.not_found_title")} />;
@@ -215,36 +217,21 @@ export function RegistrationPasswordSetupPage() {
         </Card>
       </div>
 
-      <Modal
-        title={t("registration_password_setup.success_title")}
-        open={successModalOpen}
-        closable={false}
-        maskClosable={false}
-        keyboard={false}
-        footer={[
-          <Flex key="actions" justify="center">
-            <Button
-              type="primary"
-              onClick={() => {
-                setSuccessModalOpen(false);
-                navigate("/login", { replace: true });
-              }}
-            >
-              {t("registration_password_setup.go_login")}
-            </Button>
-          </Flex>,
-        ]}
-      >
-        <Flex vertical align="center" gap={12} style={{ textAlign: "center", padding: "8px 0" }}>
-          <CheckCircleFilled style={{ fontSize: 56, color: designToken.colorSuccess }} />
-          <Title level={4} style={{ margin: 0 }}>
-            {t("registration_password_setup.success_title")}
-          </Title>
-          <Paragraph style={{ marginBottom: 0, maxWidth: 360, whiteSpace: "pre-line" }}>
-            {t("registration_password_setup.success_description")}
-          </Paragraph>
-        </Flex>
-      </Modal>
+      {successModalOpen ? (
+        <Suspense fallback={null}>
+          <PublicActionSuccessModal
+            actionLabel={t("registration_password_setup.go_login")}
+            description={t("registration_password_setup.success_description")}
+            onConfirm={() => {
+              setSuccessModalOpen(false);
+              navigate("/login", { replace: true });
+            }}
+            open={successModalOpen}
+            successColor={designToken.colorSuccess}
+            title={t("registration_password_setup.success_title")}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

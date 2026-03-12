@@ -14,6 +14,7 @@ using Operis_API.Shared.Modules;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.ApplyDatabaseUrlOverride();
+builder.Configuration.ApplyRedisUrlOverride();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
@@ -112,6 +113,19 @@ builder.Services.AddDbContext<OperisDbContext>(options =>
                            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
     options.UseNpgsql(connectionString);
 });
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+        options.InstanceName = "operis:";
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
 builder.Services.AddModules(builder.Configuration);
 
 var app = builder.Build();

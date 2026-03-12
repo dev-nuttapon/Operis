@@ -14,7 +14,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../../../modules/auth/hooks/useAuth';
+import { useAuth } from '../../../modules/auth';
 import { useThemeStore, ThemeMode } from '../../store/useThemeStore';
 import i18n from '../../i18n/config';
 import { useI18nLanguage } from '../../i18n/hooks/useI18nLanguage';

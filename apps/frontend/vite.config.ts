@@ -19,6 +19,10 @@ export default defineConfig({
             return "antd-core-vendor";
           }
 
+          if (id.includes("/dayjs/")) {
+            return "date-vendor";
+          }
+
           if (id.includes("/react-query/") || id.includes("/@tanstack/")) {
             return "query-vendor";
           }

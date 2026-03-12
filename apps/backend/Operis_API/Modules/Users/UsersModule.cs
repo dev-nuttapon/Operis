@@ -17,6 +17,7 @@ public sealed class UsersModule : IModule
     public IServiceCollection RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<KeycloakOptions>(configuration.GetSection(KeycloakOptions.SectionName));
+        services.AddSingleton<IReferenceDataCache, ReferenceDataCache>();
         services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);
@@ -123,6 +124,7 @@ public sealed class UsersModule : IModule
         OperisDbContext dbContext,
         IAuditLogWriter auditLogWriter,
         IKeycloakAdminClient keycloakAdminClient,
+        IReferenceDataCache referenceDataCache,
         bool includeIdentity = true,
         UserStatus? status = null,
         DateTimeOffset? from = null,
@@ -163,18 +165,13 @@ public sealed class UsersModule : IModule
             .Take(normalizedPageSize)
             .ToListAsync(cancellationToken);
 
-        var departments = await dbContext.Departments
-            .AsNoTracking()
-            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+        var departments = (await referenceDataCache.GetDepartmentsAsync(dbContext, cancellationToken))
+            .ToDictionary(x => x.Id, x => x.Name);
 
-        var jobTitles = await dbContext.JobTitles
-            .AsNoTracking()
-            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+        var jobTitles = (await referenceDataCache.GetJobTitlesAsync(dbContext, cancellationToken))
+            .ToDictionary(x => x.Id, x => x.Name);
 
-        var appRoles = await dbContext.AppRoles
-            .AsNoTracking()
-            .Where(x => x.DeletedAt == null)
-            .ToListAsync(cancellationToken);
+        var appRoles = await referenceDataCache.GetAppRolesAsync(dbContext, cancellationToken);
 
         if (!includeIdentity)
         {
@@ -218,15 +215,12 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> ListRolesAsync(
         OperisDbContext dbContext,
         IAuditLogWriter auditLogWriter,
+        IReferenceDataCache referenceDataCache,
         CancellationToken cancellationToken)
     {
-        var roles = await dbContext.AppRoles
-            .AsNoTracking()
-            .Where(x => x.DeletedAt == null)
-            .OrderBy(x => x.DisplayOrder)
-            .ThenBy(x => x.Name)
+        var roles = (await referenceDataCache.GetAppRolesAsync(dbContext, cancellationToken))
             .Select(x => new AppRoleResponse(x.Id, x.Name, x.KeycloakRoleName, x.Description, x.DisplayOrder))
-            .ToListAsync(cancellationToken);
+            .ToList();
         auditLogWriter.Append(new AuditLogEntry(
             Module: "users",
             Action: "list",
@@ -240,6 +234,7 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> ListDepartmentsAsync(
         OperisDbContext dbContext,
         IAuditLogWriter auditLogWriter,
+        IReferenceDataCache referenceDataCache,
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
@@ -248,37 +243,39 @@ public sealed class UsersModule : IModule
         CancellationToken cancellationToken = default)
     {
         var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(page, pageSize);
-        var query = dbContext.Departments
-            .AsNoTracking()
-            .Where(x => x.DeletedAt == null);
+        var items = (await referenceDataCache.GetDepartmentsAsync(dbContext, cancellationToken))
+            .AsEnumerable();
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             var normalizedSearch = search.Trim().ToLowerInvariant();
-            query = query.Where(x => x.Name.ToLower().Contains(normalizedSearch));
+            items = items.Where(x => x.Name.ToLowerInvariant().Contains(normalizedSearch));
         }
-        query = ApplyDepartmentSorting(query, sortBy, sortOrder);
-        var total = await query.CountAsync(cancellationToken);
-        var items = await query
+
+        items = ApplyDepartmentSorting(items, sortBy, sortOrder);
+        var total = items.Count();
+        var pagedItems = items
             .Skip(skip)
             .Take(normalizedPageSize)
             .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "users",
             Action: "list",
             EntityType: "department",
             StatusCode: StatusCodes.Status200OK,
-            Metadata: new { count = items.Count, total, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
+            Metadata: new { count = pagedItems.Count, total, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(new PagedResult<MasterDataResponse>(items, total, normalizedPage, normalizedPageSize));
+        return Results.Ok(new PagedResult<MasterDataResponse>(pagedItems, total, normalizedPage, normalizedPageSize));
     }
 
     private static async Task<IResult> CreateDepartmentAsync(
         CreateMasterDataRequest request,
         OperisDbContext dbContext,
         IAuditLogWriter auditLogWriter,
+        IReferenceDataCache referenceDataCache,
         CancellationToken cancellationToken)
     {
         var name = NormalizeRequiredName(request.Name);
@@ -310,6 +307,7 @@ public sealed class UsersModule : IModule
             StatusCode: StatusCodes.Status201Created,
             After: ToDepartmentAuditState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await referenceDataCache.InvalidateDepartmentsAsync(cancellationToken);
 
         return Results.Created($"/api/v1/users/departments/{entity.Id}", ToResponse(entity));
     }
@@ -319,6 +317,7 @@ public sealed class UsersModule : IModule
         UpdateMasterDataRequest request,
         OperisDbContext dbContext,
         IAuditLogWriter auditLogWriter,
+        IReferenceDataCache referenceDataCache,
         CancellationToken cancellationToken)
     {
         var entity = await dbContext.Departments.FirstOrDefaultAsync(x => x.Id == departmentId && x.DeletedAt == null, cancellationToken);
@@ -358,6 +357,7 @@ public sealed class UsersModule : IModule
                 entity.UpdatedAt
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await referenceDataCache.InvalidateDepartmentsAsync(cancellationToken);
 
         return Results.Ok(ToResponse(entity));
     }
@@ -368,6 +368,7 @@ public sealed class UsersModule : IModule
         ClaimsPrincipal principal,
         [FromServices] OperisDbContext dbContext,
         [FromServices] IAuditLogWriter auditLogWriter,
+        [FromServices] IReferenceDataCache referenceDataCache,
         CancellationToken cancellationToken)
     {
         var entity = await dbContext.Departments.FirstOrDefaultAsync(x => x.Id == departmentId && x.DeletedAt == null, cancellationToken);
@@ -396,12 +397,14 @@ public sealed class UsersModule : IModule
                 entity.DeletedReason
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await referenceDataCache.InvalidateDepartmentsAsync(cancellationToken);
         return Results.NoContent();
     }
 
     private static async Task<IResult> ListJobTitlesAsync(
         OperisDbContext dbContext,
         IAuditLogWriter auditLogWriter,
+        IReferenceDataCache referenceDataCache,
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
@@ -410,37 +413,37 @@ public sealed class UsersModule : IModule
         CancellationToken cancellationToken = default)
     {
         var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(page, pageSize);
-        var query = dbContext.JobTitles
-            .AsNoTracking()
-            .Where(x => x.DeletedAt == null);
+        var items = (await referenceDataCache.GetJobTitlesAsync(dbContext, cancellationToken))
+            .AsEnumerable();
         if (!string.IsNullOrWhiteSpace(search))
         {
             var normalizedSearch = search.Trim().ToLowerInvariant();
-            query = query.Where(x => x.Name.ToLower().Contains(normalizedSearch));
+            items = items.Where(x => x.Name.ToLowerInvariant().Contains(normalizedSearch));
         }
-        query = ApplyJobTitleSorting(query, sortBy, sortOrder);
-        var total = await query.CountAsync(cancellationToken);
-        var items = await query
+        items = ApplyJobTitleSorting(items, sortBy, sortOrder);
+        var total = items.Count();
+        var pagedItems = items
             .Skip(skip)
             .Take(normalizedPageSize)
             .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "users",
             Action: "list",
             EntityType: "job_title",
             StatusCode: StatusCodes.Status200OK,
-            Metadata: new { count = items.Count, total, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
+            Metadata: new { count = pagedItems.Count, total, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(new PagedResult<MasterDataResponse>(items, total, normalizedPage, normalizedPageSize));
+        return Results.Ok(new PagedResult<MasterDataResponse>(pagedItems, total, normalizedPage, normalizedPageSize));
     }
 
     private static async Task<IResult> CreateJobTitleAsync(
         CreateMasterDataRequest request,
         OperisDbContext dbContext,
         IAuditLogWriter auditLogWriter,
+        IReferenceDataCache referenceDataCache,
         CancellationToken cancellationToken)
     {
         var name = NormalizeRequiredName(request.Name);
@@ -472,6 +475,7 @@ public sealed class UsersModule : IModule
             StatusCode: StatusCodes.Status201Created,
             After: ToJobTitleAuditState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await referenceDataCache.InvalidateJobTitlesAsync(cancellationToken);
 
         return Results.Created($"/api/v1/users/job-titles/{entity.Id}", ToResponse(entity));
     }
@@ -481,6 +485,7 @@ public sealed class UsersModule : IModule
         UpdateMasterDataRequest request,
         OperisDbContext dbContext,
         IAuditLogWriter auditLogWriter,
+        IReferenceDataCache referenceDataCache,
         CancellationToken cancellationToken)
     {
         var entity = await dbContext.JobTitles.FirstOrDefaultAsync(x => x.Id == jobTitleId && x.DeletedAt == null, cancellationToken);
@@ -520,6 +525,7 @@ public sealed class UsersModule : IModule
                 entity.UpdatedAt
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await referenceDataCache.InvalidateJobTitlesAsync(cancellationToken);
 
         return Results.Ok(ToResponse(entity));
     }
@@ -530,6 +536,7 @@ public sealed class UsersModule : IModule
         ClaimsPrincipal principal,
         [FromServices] OperisDbContext dbContext,
         [FromServices] IAuditLogWriter auditLogWriter,
+        [FromServices] IReferenceDataCache referenceDataCache,
         CancellationToken cancellationToken)
     {
         var entity = await dbContext.JobTitles.FirstOrDefaultAsync(x => x.Id == jobTitleId && x.DeletedAt == null, cancellationToken);
@@ -558,6 +565,7 @@ public sealed class UsersModule : IModule
                 entity.DeletedReason
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await referenceDataCache.InvalidateJobTitlesAsync(cancellationToken);
         return Results.NoContent();
     }
 
@@ -2011,7 +2019,29 @@ public sealed class UsersModule : IModule
         };
     }
 
+    private static IEnumerable<CachedDepartmentItem> ApplyDepartmentSorting(IEnumerable<CachedDepartmentItem> query, string? sortBy, string? sortOrder)
+    {
+        var desc = IsDescending(sortOrder);
+        return sortBy?.ToLowerInvariant() switch
+        {
+            "name" => desc ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name),
+            "createdat" => desc ? query.OrderByDescending(x => x.CreatedAt) : query.OrderBy(x => x.CreatedAt),
+            _ => desc ? query.OrderByDescending(x => x.DisplayOrder).ThenByDescending(x => x.Name) : query.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name)
+        };
+    }
+
     private static IQueryable<JobTitleEntity> ApplyJobTitleSorting(IQueryable<JobTitleEntity> query, string? sortBy, string? sortOrder)
+    {
+        var desc = IsDescending(sortOrder);
+        return sortBy?.ToLowerInvariant() switch
+        {
+            "name" => desc ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name),
+            "createdat" => desc ? query.OrderByDescending(x => x.CreatedAt) : query.OrderBy(x => x.CreatedAt),
+            _ => desc ? query.OrderByDescending(x => x.DisplayOrder).ThenByDescending(x => x.Name) : query.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name)
+        };
+    }
+
+    private static IEnumerable<CachedJobTitleItem> ApplyJobTitleSorting(IEnumerable<CachedJobTitleItem> query, string? sortBy, string? sortOrder)
     {
         var desc = IsDescending(sortOrder);
         return sortBy?.ToLowerInvariant() switch

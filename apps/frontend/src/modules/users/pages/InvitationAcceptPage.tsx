@@ -1,14 +1,16 @@
-import { App, Button, Card, Flex, Form, Input, Modal, Result, Select, Space, Spin, Typography, theme as antdTheme } from "antd";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { BulbFilled, BulbOutlined, CheckCircleFilled, GlobalOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
+import { App, Button, Card, Flex, Form, Input, Result, Select, Space, Spin, Typography, theme as antdTheme } from "antd";
+import { BulbFilled, BulbOutlined, GlobalOutlined } from "@ant-design/icons";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { acceptInvitation, getInvitationByToken } from "../api/usersApi";
+import { useInvitationAcceptance } from "../hooks/useInvitationAcceptance";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { useThemeStore, type ThemeMode } from "../../../shared/store/useThemeStore";
 import { useTranslation } from "react-i18next";
 
-const { Paragraph, Title } = Typography;
+const { Title } = Typography;
+const PublicActionSuccessModal = lazy(() =>
+  import("../components/publicUsers/PublicActionSuccessModal").then((module) => ({ default: module.PublicActionSuccessModal }))
+);
 
 export function InvitationAcceptPage() {
   const { notification } = App.useApp();
@@ -19,6 +21,7 @@ export function InvitationAcceptPage() {
   const { token } = useParams<{ token: string }>();
   const [form] = Form.useForm();
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const { acceptInvitationMutation, invitationQuery } = useInvitationAcceptance(token);
   const currentLanguage = i18nInstance.language.startsWith("th") ? "th" : "en";
   const isDarkMode = designToken.colorBgBase.toLowerCase() === "#020617";
   const pageBackground = isDarkMode
@@ -79,26 +82,26 @@ export function InvitationAcceptPage() {
     return presentation;
   };
 
-  const invitationQuery = useQuery({
-    queryKey: ["public", "invitation", token],
-    queryFn: () => getInvitationByToken(token ?? ""),
-    enabled: Boolean(token),
-  });
+  useEffect(() => {
+    if (!acceptInvitationMutation.isSuccess) {
+      return;
+    }
 
-  const acceptInvitationMutation = useMutation({
-    mutationFn: (values: { firstName: string; lastName: string; password: string; confirmPassword: string }) =>
-      acceptInvitation(token ?? "", values),
-    onSuccess: () => {
-      setSuccessModalOpen(true);
-    },
-    onError: (error) => {
-      const presentation = getInvitationErrorNotification(error);
-      notification.error({
-        message: presentation.title,
-        description: presentation.description,
-      });
-    },
-  });
+    setSuccessModalOpen(true);
+    form.resetFields();
+  }, [acceptInvitationMutation.isSuccess, form]);
+
+  useEffect(() => {
+    if (!acceptInvitationMutation.isError) {
+      return;
+    }
+
+    const presentation = getInvitationErrorNotification(acceptInvitationMutation.error);
+    notification.error({
+      message: presentation.title,
+      description: presentation.description,
+    });
+  }, [acceptInvitationMutation.error, acceptInvitationMutation.isError, notification]);
 
   if (!token) {
     return <Result status="404" title={t("invitation_page.not_found_title")} />;
@@ -263,36 +266,21 @@ export function InvitationAcceptPage() {
         </Card>
       </div>
 
-      <Modal
-        title={t("invitation_page.success_title")}
-        open={successModalOpen}
-        closable={false}
-        maskClosable={false}
-        keyboard={false}
-        footer={[
-          <Flex key="actions" justify="center">
-            <Button
-              type="primary"
-              onClick={() => {
-                setSuccessModalOpen(false);
-                navigate("/login", { replace: true });
-              }}
-            >
-              {t("invitation_page.go_login")}
-            </Button>
-          </Flex>,
-        ]}
-      >
-        <Flex vertical align="center" gap={12} style={{ textAlign: "center", padding: "8px 0" }}>
-          <CheckCircleFilled style={{ fontSize: 56, color: designToken.colorSuccess }} />
-          <Title level={4} style={{ margin: 0 }}>
-            {t("invitation_page.success_title")}
-          </Title>
-          <Paragraph style={{ marginBottom: 0, maxWidth: 360, whiteSpace: "pre-line" }}>
-            {t("invitation_page.success_description")}
-          </Paragraph>
-        </Flex>
-      </Modal>
+      {successModalOpen ? (
+        <Suspense fallback={null}>
+          <PublicActionSuccessModal
+            actionLabel={t("invitation_page.go_login")}
+            description={t("invitation_page.success_description")}
+            onConfirm={() => {
+              setSuccessModalOpen(false);
+              navigate("/login", { replace: true });
+            }}
+            open={successModalOpen}
+            successColor={designToken.colorSuccess}
+            title={t("invitation_page.success_title")}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

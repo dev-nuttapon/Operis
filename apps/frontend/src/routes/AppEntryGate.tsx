@@ -1,8 +1,7 @@
 import { Button, Flex, Typography, Spin, Space } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../modules/auth/hooks/useAuth";
-import { login } from "../modules/auth/services/keycloakAuth";
+import { login, useAuth } from "../modules/auth";
 
 export function AppEntryGate() {
   const { t } = useTranslation();

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Typography, Card, Button, Space, Divider } from "antd";
 import { LogoutOutlined } from "@ant-design/icons";
-import { useAuth } from "../../../modules/auth/hooks/useAuth";
+import { useAuth } from "../../../modules/auth";
 import { DocumentTestForm } from "../components/DocumentTestForm";
 import type { DocumentFormValues } from "../types/documentForm";
 import i18n from "../../../shared/i18n/config";

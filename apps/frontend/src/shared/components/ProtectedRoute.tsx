@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { Flex, Spin } from "antd";
-import { useAuth } from "../../modules/auth/hooks/useAuth";
+import { useAuth } from "../../modules/auth";
 
 export function ProtectedRoute() {
   const { isAuthenticated, isReady } = useAuth();
