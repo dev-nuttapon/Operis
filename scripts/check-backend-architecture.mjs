@@ -35,9 +35,21 @@ for (const file of files) {
   }
 
   const hasApplicationFolder = files.some((candidate) => candidate.startsWith(path.join(path.dirname(file), "Application")));
+  const hasContractsFolder = files.some((candidate) => candidate.startsWith(path.join(path.dirname(file), "Contracts")));
   const mapsEndpoints = /Map(Get|Post|Put|Delete)\(/.test(source);
   if (mapsEndpoints && !hasApplicationFolder) {
     violations.push(`${relPath}: module exposes endpoints but has no Application layer folder.`);
+  }
+  if (mapsEndpoints && !hasContractsFolder) {
+    violations.push(`${relPath}: module exposes endpoints but has no Contracts layer folder.`);
+  }
+
+  if (/OperisDbContext\s+\w+/.test(source) || /DbContext\s+\w+/.test(source)) {
+    violations.push(`${relPath}: module composition layer must not depend on DbContext directly. Move persistence orchestration into Application or Infrastructure services.`);
+  }
+
+  if (source.includes("SaveChangesAsync(")) {
+    violations.push(`${relPath}: module composition layer must not call SaveChangesAsync directly.`);
   }
 }
 

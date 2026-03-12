@@ -6,6 +6,7 @@ const projectRoot = process.cwd();
 const srcRoot = path.join(projectRoot, "src");
 const modulesRoot = path.join(srcRoot, "modules");
 const allowedPublicEntries = new Set(["index.ts", "index.tsx", "public.ts", "public.tsx"]);
+const requiredModuleDirectories = ["api", "hooks", "pages", "types"];
 const sourceExtensions = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 const ignoredDirectories = new Set(["dist", "coverage", "node_modules"]);
 
@@ -123,6 +124,25 @@ function isAllowedPublicTarget(targetFile) {
 
 const sourceFiles = walk(srcRoot);
 const violations = [];
+
+const moduleEntries = fs.readdirSync(modulesRoot, { withFileTypes: true });
+for (const entry of moduleEntries) {
+  if (!entry.isDirectory() || entry.name.startsWith(".")) {
+    continue;
+  }
+
+  const modulePath = path.join(modulesRoot, entry.name);
+  const hasPublicEntry = [...allowedPublicEntries].some((entryName) => fileExists(path.join(modulePath, entryName)));
+  if (!hasPublicEntry) {
+    violations.push(`src/modules/${entry.name}: missing public entry file. Add index.ts or public.ts.`);
+  }
+
+  for (const directoryName of requiredModuleDirectories) {
+    if (!directoryExists(path.join(modulePath, directoryName))) {
+      violations.push(`src/modules/${entry.name}: missing required directory '${directoryName}'.`);
+    }
+  }
+}
 
 for (const sourceFile of sourceFiles) {
   const sourceContent = fs.readFileSync(sourceFile, "utf8");

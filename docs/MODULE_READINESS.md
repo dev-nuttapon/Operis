@@ -199,6 +199,8 @@ Related docs:
 
 * `docs/DATA_OWNERSHIP.md`
 * `docs/MODULE_CONTRACTS.md`
+* `docs/MODULE_TEMPLATE.md`
+* `docs/NEW_MODULE_CHECKLIST.md`
 
 ---
 

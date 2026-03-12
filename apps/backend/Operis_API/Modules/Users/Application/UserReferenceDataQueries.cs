@@ -1,19 +1,31 @@
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
+using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Users.Application;
 
 public sealed class UserReferenceDataQueries(
     OperisDbContext dbContext,
-    IReferenceDataCache referenceDataCache) : IUserReferenceDataQueries
+    IReferenceDataCache referenceDataCache,
+    IAuditLogWriter auditLogWriter) : IUserReferenceDataQueries
 {
     public async Task<IReadOnlyList<AppRoleResponse>> ListRolesAsync(CancellationToken cancellationToken)
     {
-        return (await referenceDataCache.GetAppRolesAsync(dbContext, cancellationToken))
+        var roles = (await referenceDataCache.GetAppRolesAsync(dbContext, cancellationToken))
             .Select(x => new AppRoleResponse(x.Id, x.Name, x.KeycloakRoleName, x.Description, x.DisplayOrder))
             .ToList();
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "app_role",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = roles.Count }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return roles;
     }
 
     public async Task<PagedResult<MasterDataResponse>> ListDepartmentsAsync(ReferenceDataQuery query, CancellationToken cancellationToken)
@@ -35,6 +47,14 @@ public sealed class UserReferenceDataQueries(
             .Take(normalizedPageSize)
             .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
             .ToList();
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "department",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = pagedItems.Count, total, page = normalizedPage, pageSize = normalizedPageSize, query.Search, query.SortBy, query.SortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new PagedResult<MasterDataResponse>(pagedItems, total, normalizedPage, normalizedPageSize);
     }
@@ -58,6 +78,14 @@ public sealed class UserReferenceDataQueries(
             .Take(normalizedPageSize)
             .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
             .ToList();
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "job_title",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = pagedItems.Count, total, page = normalizedPage, pageSize = normalizedPageSize, query.Search, query.SortBy, query.SortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new PagedResult<MasterDataResponse>(pagedItems, total, normalizedPage, normalizedPageSize);
     }

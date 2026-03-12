@@ -18,6 +18,7 @@ public sealed class UsersModule : IModule
     {
         services.Configure<KeycloakOptions>(configuration.GetSection(KeycloakOptions.SectionName));
         services.AddScoped<IUserManagementCommands, UserManagementCommands>();
+        services.AddScoped<IUserPreferenceCommands, UserPreferenceCommands>();
         services.AddScoped<IUserQueries, UserQueries>();
         services.AddScoped<IUserInvitationCommands, UserInvitationCommands>();
         services.AddScoped<IUserInvitationQueries, UserInvitationQueries>();
@@ -148,26 +149,15 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> ListRolesAsync(
-        OperisDbContext dbContext,
         IUserReferenceDataQueries queries,
-        IAuditLogWriter auditLogWriter,
         CancellationToken cancellationToken)
     {
         var roles = await queries.ListRolesAsync(cancellationToken);
-        auditLogWriter.Append(new AuditLogEntry(
-            Module: "users",
-            Action: "list",
-            EntityType: "app_role",
-            StatusCode: StatusCodes.Status200OK,
-            Metadata: new { count = roles.Count }));
-        await dbContext.SaveChangesAsync(cancellationToken);
         return Results.Ok(roles);
     }
 
     private static async Task<IResult> ListDepartmentsAsync(
-        OperisDbContext dbContext,
         IUserReferenceDataQueries queries,
-        IAuditLogWriter auditLogWriter,
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
@@ -178,14 +168,6 @@ public sealed class UsersModule : IModule
         var result = await queries.ListDepartmentsAsync(
             new ReferenceDataQuery(search, sortBy, sortOrder, page, pageSize),
             cancellationToken);
-
-        auditLogWriter.Append(new AuditLogEntry(
-            Module: "users",
-            Action: "list",
-            EntityType: "department",
-            StatusCode: StatusCodes.Status200OK,
-            Metadata: new { count = result.Items.Count, total = result.Total, page = result.Page, pageSize = result.PageSize, search, sortBy, sortOrder }));
-        await dbContext.SaveChangesAsync(cancellationToken);
         return Results.Ok(result);
     }
 
@@ -235,9 +217,7 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> ListJobTitlesAsync(
-        OperisDbContext dbContext,
         IUserReferenceDataQueries queries,
-        IAuditLogWriter auditLogWriter,
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
@@ -248,14 +228,6 @@ public sealed class UsersModule : IModule
         var result = await queries.ListJobTitlesAsync(
             new ReferenceDataQuery(search, sortBy, sortOrder, page, pageSize),
             cancellationToken);
-
-        auditLogWriter.Append(new AuditLogEntry(
-            Module: "users",
-            Action: "list",
-            EntityType: "job_title",
-            StatusCode: StatusCodes.Status200OK,
-            Metadata: new { count = result.Items.Count, total = result.Total, page = result.Page, pageSize = result.PageSize, search, sortBy, sortOrder }));
-        await dbContext.SaveChangesAsync(cancellationToken);
         return Results.Ok(result);
     }
 
@@ -360,8 +332,7 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> UpdateCurrentUserPreferencesAsync(
         UpdateUserPreferencesRequest request,
         ClaimsPrincipal principal,
-        OperisDbContext dbContext,
-        IAuditLogWriter auditLogWriter,
+        IUserPreferenceCommands commands,
         CancellationToken cancellationToken)
     {
         var currentUserId = principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -370,42 +341,12 @@ public sealed class UsersModule : IModule
             return Results.Unauthorized();
         }
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == currentUserId, cancellationToken);
-        if (user is null)
+        var result = await commands.UpdateCurrentUserPreferencesAsync(currentUserId, request, cancellationToken);
+        return result.Status switch
         {
-            return Results.NotFound();
-        }
-
-        var before = new
-        {
-            user.Id,
-            user.PreferredLanguage,
-            user.PreferredTheme
+            UserPreferenceCommandStatus.NotFound => Results.NotFound(),
+            _ => Results.NoContent()
         };
-        user.PreferredLanguage = NormalizeLanguage(request.PreferredLanguage);
-        user.PreferredTheme = NormalizeTheme(request.PreferredTheme);
-
-        auditLogWriter.Append(new AuditLogEntry(
-            Module: "users",
-            Action: "update_preferences",
-            EntityType: "user",
-            EntityId: user.Id,
-            StatusCode: StatusCodes.Status204NoContent,
-            DepartmentId: user.DepartmentId,
-            Before: before,
-            After: new
-            {
-                user.Id,
-                user.PreferredLanguage,
-                user.PreferredTheme
-            },
-            Changes: new
-            {
-                user.PreferredLanguage,
-                user.PreferredTheme
-            }));
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return Results.NoContent();
     }
 
     private static async Task<IResult> ListRegistrationRequestsAsync(
