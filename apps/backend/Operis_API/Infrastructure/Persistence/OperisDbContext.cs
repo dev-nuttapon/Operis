@@ -8,6 +8,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
 {
     public DbSet<DocumentEntity> Documents => Set<DocumentEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
+    public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
+    public DbSet<JobTitleEntity> JobTitles => Set<JobTitleEntity>();
     public DbSet<UserRegistrationRequestEntity> UserRegistrationRequests => Set<UserRegistrationRequestEntity>();
     public DbSet<UserInvitationEntity> UserInvitations => Set<UserInvitationEntity>();
 
@@ -26,17 +28,40 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
         {
             entity.ToTable("users");
             entity.HasKey(x => x.Id);
-            entity.Property(x => x.Id).HasColumnName("id");
-            entity.Property(x => x.KeycloakUserId).HasColumnName("keycloak_user_id").HasMaxLength(64);
-            entity.Property(x => x.Email).HasColumnName("email").HasMaxLength(320);
-            entity.Property(x => x.FirstName).HasColumnName("first_name").HasMaxLength(120);
-            entity.Property(x => x.LastName).HasColumnName("last_name").HasMaxLength(120);
+            entity.Property(x => x.Id).HasColumnName("id").HasMaxLength(64);
             entity.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(20);
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(120);
-            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
-            entity.HasIndex(x => x.Email).IsUnique();
-            entity.HasIndex(x => x.KeycloakUserId).IsUnique();
+            entity.Property(x => x.DepartmentId).HasColumnName("department_id");
+            entity.Property(x => x.JobTitleId).HasColumnName("job_title_id");
+            entity.Property(x => x.PreferredLanguage).HasColumnName("preferred_language").HasMaxLength(16);
+            entity.Property(x => x.PreferredTheme).HasColumnName("preferred_theme").HasMaxLength(16);
+            entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasOne<DepartmentEntity>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<JobTitleEntity>().WithMany().HasForeignKey(x => x.JobTitleId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<DepartmentEntity>(entity =>
+        {
+            entity.ToTable("departments");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<JobTitleEntity>(entity =>
+        {
+            entity.ToTable("job_titles");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.Name).IsUnique();
         });
 
         modelBuilder.Entity<UserRegistrationRequestEntity>(entity =>

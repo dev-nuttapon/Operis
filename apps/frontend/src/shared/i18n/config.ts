@@ -23,6 +23,11 @@ i18n
     },
     fallbackLng: 'en',
     debug: false,
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage'],
+      lookupLocalStorage: 'operis-language',
+    },
 
     interpolation: {
       escapeValue: false, // not needed for react as it escapes by default

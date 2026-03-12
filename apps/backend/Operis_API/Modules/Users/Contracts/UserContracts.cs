@@ -6,24 +6,32 @@ public sealed record CreateRegistrationRequest(string Email, string FirstName, s
 public sealed record ReviewRegistrationRequest(string ReviewedBy);
 public sealed record RejectRegistrationRequest(string ReviewedBy, string Reason);
 public sealed record CreateInvitationRequest(string Email, string InvitedBy, int? ExpiresInDays);
-public sealed record CreateUserRequest(string Email, string FirstName, string LastName, string CreatedBy);
+public sealed record CreateUserRequest(string Email, string FirstName, string LastName, string CreatedBy, Guid? DepartmentId, Guid? JobTitleId);
+public sealed record UpdateUserPreferencesRequest(string? PreferredLanguage, string? PreferredTheme);
+public sealed record CreateMasterDataRequest(string Name);
+public sealed record UpdateMasterDataRequest(string Name);
 
 public sealed record UserResponse(
-    Guid Id,
-    string? KeycloakUserId,
-    string Email,
-    string FirstName,
-    string LastName,
+    string Id,
     UserStatus Status,
     DateTimeOffset CreatedAt,
     string CreatedBy,
-    DateTimeOffset? ApprovedAt,
+    Guid? DepartmentId,
+    string? DepartmentName,
+    Guid? JobTitleId,
+    string? JobTitleName,
+    string? PreferredLanguage,
+    string? PreferredTheme,
+    string? DeletedBy,
+    DateTimeOffset? DeletedAt,
     KeycloakUserSummary? Keycloak);
 
 public sealed record KeycloakUserSummary(
     string Id,
     string Email,
     string Username,
+    string? FirstName,
+    string? LastName,
     bool Enabled,
     bool EmailVerified);
 
@@ -47,3 +55,9 @@ public sealed record InvitationResponse(
     DateTimeOffset? ExpiresAt,
     DateTimeOffset? AcceptedAt,
     DateTimeOffset? RejectedAt);
+
+public sealed record MasterDataResponse(
+    Guid Id,
+    string Name,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);

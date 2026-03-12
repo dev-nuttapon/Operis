@@ -1,7 +1,7 @@
 import { appEnv } from "../config/env";
 import { getAccessToken, refreshToken } from "../../modules/auth/services/keycloakAuth";
 
-type HttpMethod = "GET" | "POST";
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 interface RequestOptions {
   method?: HttpMethod;

@@ -6,20 +6,25 @@ export interface KeycloakUserSummary {
   id: string;
   email: string;
   username: string;
+  firstName: string | null;
+  lastName: string | null;
   enabled: boolean;
   emailVerified: boolean;
 }
 
 export interface User {
   id: string;
-  keycloakUserId: string | null;
-  email: string;
-  firstName: string;
-  lastName: string;
   status: UserStatus;
   createdAt: string;
   createdBy: string;
-  approvedAt: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
+  jobTitleId: string | null;
+  jobTitleName: string | null;
+  preferredLanguage: string | null;
+  preferredTheme: string | null;
+  deletedBy: string | null;
+  deletedAt: string | null;
   keycloak: KeycloakUserSummary | null;
 }
 
@@ -57,6 +62,24 @@ export interface CreateUserInput {
   firstName: string;
   lastName: string;
   createdBy: string;
+  departmentId?: string;
+  jobTitleId?: string;
+}
+
+export interface MasterDataItem {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateMasterDataInput {
+  name: string;
+}
+
+export interface UpdateMasterDataInput {
+  id: string;
+  name: string;
 }
 
 export interface ApproveRegistrationInput {
@@ -66,4 +89,9 @@ export interface ApproveRegistrationInput {
 export interface RejectRegistrationInput {
   reviewedBy: string;
   reason: string;
+}
+
+export interface UpdateCurrentUserPreferencesInput {
+  preferredLanguage: string | null;
+  preferredTheme: "light" | "dark" | "system" | null;
 }

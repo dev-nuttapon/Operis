@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operis_API.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Operis_API.Infrastructure.Persistence;
 namespace Operis_API.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(OperisDbContext))]
-    partial class OperisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260312033423_UseKeycloakUserIdAsUsersPrimaryKey")]
+    partial class UseKeycloakUserIdAsUsersPrimaryKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,64 +47,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.ToTable("documents", (string)null);
                 });
 
-            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("name");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("departments", (string)null);
-                });
-
-            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.JobTitleEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("name");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("job_titles", (string)null);
-                });
-
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserEntity", b =>
                 {
                     b.Property<string>("Id")
@@ -119,33 +64,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("created_by");
 
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("deleted_by");
-
-                    b.Property<Guid?>("DepartmentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("department_id");
-
-                    b.Property<Guid?>("JobTitleId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("job_title_id");
-
-                    b.Property<string>("PreferredLanguage")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasColumnName("preferred_language");
-
-                    b.Property<string>("PreferredTheme")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasColumnName("preferred_theme");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -153,10 +71,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnName("status");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("DepartmentId");
-
-                    b.HasIndex("JobTitleId");
 
                     b.ToTable("users", (string)null);
                 });
@@ -263,19 +177,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("Email", "Status");
 
                     b.ToTable("user_registration_requests", (string)null);
-                });
-
-            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserEntity", b =>
-                {
-                    b.HasOne("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", null)
-                        .WithMany()
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Operis_API.Modules.Users.Infrastructure.JobTitleEntity", null)
-                        .WithMany()
-                        .HasForeignKey("JobTitleId")
-                        .OnDelete(DeleteBehavior.SetNull);
                 });
 #pragma warning restore 612, 618
         }
