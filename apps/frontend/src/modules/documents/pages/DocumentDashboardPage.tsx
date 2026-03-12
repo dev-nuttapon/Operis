@@ -1,18 +1,17 @@
-import { useState } from "react";
-import { Typography, Card, Button, Space, Divider } from "antd";
+import { Typography, Card, Button, Space, Divider, List, Tag } from "antd";
 import { LogoutOutlined } from "@ant-design/icons";
 import { useAuth } from "../../../modules/auth";
 import { DocumentTestForm } from "../components/DocumentTestForm";
-import type { DocumentFormValues } from "../types/documentForm";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
+import { useDocumentDashboard } from "../hooks/useDocumentDashboard";
 
 const { Title, Paragraph } = Typography;
 
 export function DocumentDashboardPage() {
   const { logout, isAuthenticated } = useAuth();
   const language = useI18nLanguage();
-  const [submittedData, setSubmittedData] = useState<DocumentFormValues | null>(null);
+  const { documentsQuery, latestDocuments, submittedData, setSubmittedData } = useDocumentDashboard();
   const tr = (key: string) => i18n.t(key, { lng: language });
 
   return (
@@ -30,6 +29,24 @@ export function DocumentDashboardPage() {
       </Paragraph>
 
       <Divider />
+
+      <Title level={4} style={{ marginTop: 0 }}>
+        Latest Documents
+      </Title>
+      <List
+        loading={documentsQuery.isLoading}
+        dataSource={latestDocuments}
+        locale={{ emptyText: documentsQuery.isError ? "Unable to load documents." : "No documents yet." }}
+        renderItem={(item) => (
+          <List.Item>
+            <Space style={{ width: "100%", justifyContent: "space-between" }}>
+              <span>{item.fileName}</span>
+              <Tag>{new Date(item.uploadedAt).toLocaleDateString(language.startsWith("th") ? "th-TH" : "en-US")}</Tag>
+            </Space>
+          </List.Item>
+        )}
+        style={{ marginBottom: 24 }}
+      />
 
       <Title level={4} style={{ marginTop: 0 }}>
         {tr("documents.test_form_title")}
