@@ -1,5 +1,4 @@
 import { Button, Card, Divider, Space, Tag, Typography, Select, Flex } from "antd";
-import { BulbOutlined, BulbFilled, GlobalOutlined, LoginOutlined, LogoutOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { appEnv } from "../../../shared/config/env";
 import { useAuth } from "../hooks/useAuth";
@@ -9,7 +8,7 @@ import { useEffect } from "react";
 const { Title, Paragraph, Text } = Typography;
 
 export function AuthLandingPage() {
-  const { isAuthenticated, login, logout } = useAuth();
+  const { isAuthenticated, isReady, login, logout } = useAuth();
   const { theme, setTheme } = useThemeStore();
   const { t, i18n } = useTranslation();
 
@@ -35,11 +34,13 @@ export function AuthLandingPage() {
       {/* Header controls */}
       <Flex justify="flex-end" align="center" style={{ padding: "24px 32px" }} gap="middle">
         <Space>
-          <GlobalOutlined style={{ fontSize: 18 }} />
+          <span style={{ color: "rgba(15, 23, 42, 0.72)", fontSize: 13, fontWeight: 600 }}>
+            {t("common.language")}
+          </span>
           <Select 
             value={currentLang} 
             onChange={handleLanguageChange}
-            bordered={false}
+            variant="borderless"
             options={[
               { value: 'en', label: t('common.language_en') },
               { value: 'th', label: t('common.language_th') }
@@ -50,11 +51,11 @@ export function AuthLandingPage() {
         <Select 
           value={theme}
           onChange={(v: ThemeMode) => setTheme(v)}
-          bordered={false}
+          variant="borderless"
           options={[
-            { value: 'light', label: <Space><BulbOutlined /> {t('common.theme.light')}</Space> },
-            { value: 'dark', label: <Space><BulbFilled /> {t('common.theme.dark')}</Space> },
-            { value: 'system', label: <Space>{t('common.theme.system')}</Space> }
+            { value: 'light', label: t('common.theme.light') },
+            { value: 'dark', label: t('common.theme.dark') },
+            { value: 'system', label: t('common.theme.system') }
           ]}
         />
       </Flex>
@@ -70,7 +71,7 @@ export function AuthLandingPage() {
             textAlign: "center",
             padding: "24px 0"
           }}
-          bordered={false}
+          variant="borderless"
         >
           <Title level={2} style={{ marginBottom: 8, fontWeight: 700 }}>
             {t("auth.welcome_title")}
@@ -79,11 +80,11 @@ export function AuthLandingPage() {
             {t("auth.welcome_subtitle")}
           </Paragraph>
 
-          <Space direction="vertical" size="large" style={{ width: '100%', padding: '0 32px' }}>
+          <Space orientation="vertical" size="large" style={{ width: '100%', padding: '0 32px' }}>
             
             {/* Status and Action block */}
             <div style={{ padding: "24px", background: "rgba(0,0,0,0.02)", borderRadius: 16 }}>
-              <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+              <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
                 <Tag 
                   color={isAuthenticated ? "success" : "default"}
                   style={{ padding: "4px 12px", borderRadius: 12, fontSize: 14 }}
@@ -95,9 +96,8 @@ export function AuthLandingPage() {
                   <Button 
                     type="primary" 
                     size="large" 
-                    icon={<LoginOutlined />}
                     onClick={() => void login()} 
-                    disabled={false}
+                    disabled={!isReady}
                     style={{ width: "100%", height: 48, borderRadius: 24, fontWeight: 600 }}
                   >
                     {t('auth.login_button')}
@@ -106,9 +106,8 @@ export function AuthLandingPage() {
                   <Button 
                     size="large"
                     danger
-                    icon={<LogoutOutlined />}
                     onClick={() => void logout()} 
-                    disabled={false}
+                    disabled={!isReady}
                     style={{ width: "100%", height: 48, borderRadius: 24, fontWeight: 600 }}
                   >
                     {t('auth.logout_button')}

@@ -1,5 +1,4 @@
 import { App, Button, Card, Flex, Form, Input, Select, Space, Typography, theme as antdTheme } from "antd";
-import { BulbFilled, BulbOutlined, GlobalOutlined } from "@ant-design/icons";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -158,7 +157,9 @@ export function PublicRegistrationPage() {
           }}
         >
           <Space size={8}>
-            <GlobalOutlined style={{ fontSize: 16, color: designToken.colorTextSecondary }} />
+            <span style={{ color: designToken.colorTextSecondary, fontSize: 13, fontWeight: 600 }}>
+              {t("common.language")}
+            </span>
             <Select
               value={currentLanguage}
               variant="filled"
@@ -180,9 +181,9 @@ export function PublicRegistrationPage() {
             style={{ width: 148 }}
             onChange={(value: ThemeMode) => setTheme(value)}
             options={[
-              { value: "light", label: <Space><BulbOutlined /> {t("common.theme.light")}</Space> },
-              { value: "dark", label: <Space><BulbFilled /> {t("common.theme.dark")}</Space> },
-              { value: "system", label: <Space><BulbOutlined /> {t("common.theme.system")}</Space> },
+              { value: "light", label: t("common.theme.light") },
+              { value: "dark", label: t("common.theme.dark") },
+              { value: "system", label: t("common.theme.system") },
             ]}
           />
         </Flex>

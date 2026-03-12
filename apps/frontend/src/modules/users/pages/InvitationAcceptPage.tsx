@@ -1,11 +1,12 @@
-import { App, Button, Card, Flex, Form, Input, Result, Select, Space, Spin, Typography, theme as antdTheme } from "antd";
-import { BulbFilled, BulbOutlined, GlobalOutlined } from "@ant-design/icons";
+import { App, Button, Card, Flex, Form, Input, Select, Space, Typography, theme as antdTheme } from "antd";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useInvitationAcceptance } from "../hooks/useInvitationAcceptance";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { useThemeStore, type ThemeMode } from "../../../shared/store/useThemeStore";
 import { useTranslation } from "react-i18next";
+import { CenteredLoader } from "../../../shared/components/feedback/CenteredLoader";
+import { StatusPanel } from "../../../shared/components/feedback/StatusPanel";
 
 const { Title } = Typography;
 const PublicActionSuccessModal = lazy(() =>
@@ -104,31 +105,27 @@ export function InvitationAcceptPage() {
   }, [acceptInvitationMutation.error, acceptInvitationMutation.isError, notification]);
 
   if (!token) {
-    return <Result status="404" title={t("invitation_page.not_found_title")} />;
+    return <StatusPanel title={t("invitation_page.not_found_title")} />;
   }
 
   if (invitationQuery.isLoading) {
-    return (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-        <Spin size="large" />
-      </div>
-    );
+    return <CenteredLoader />;
   }
 
   if (invitationQuery.isError || !invitationQuery.data) {
-    return <Result status="error" title={t("invitation_page.not_found_title")} subTitle={t("invitation_page.not_found_subtitle")} />;
+    return <StatusPanel status="error" title={t("invitation_page.not_found_title")} subtitle={t("invitation_page.not_found_subtitle")} />;
   }
 
   if (invitationQuery.data.status === "Accepted") {
-    return <Result status="success" title={t("invitation_page.accepted_title")} subTitle={t("invitation_page.accepted_subtitle")} />;
+    return <StatusPanel status="success" title={t("invitation_page.accepted_title")} subtitle={t("invitation_page.accepted_subtitle")} />;
   }
 
   if (invitationQuery.data.status === "Expired") {
-    return <Result status="warning" title={t("invitation_page.expired_title")} subTitle={t("invitation_page.expired_subtitle")} />;
+    return <StatusPanel status="warning" title={t("invitation_page.expired_title")} subtitle={t("invitation_page.expired_subtitle")} />;
   }
 
   if (invitationQuery.data.status === "Rejected") {
-    return <Result status="warning" title={t("invitation_page.unavailable_title")} subTitle={t("invitation_page.unavailable_subtitle")} />;
+    return <StatusPanel status="warning" title={t("invitation_page.unavailable_title")} subtitle={t("invitation_page.unavailable_subtitle")} />;
   }
 
   return (
@@ -157,7 +154,9 @@ export function InvitationAcceptPage() {
           }}
         >
           <Space size={8}>
-            <GlobalOutlined style={{ fontSize: 16, color: designToken.colorTextSecondary }} />
+            <span style={{ color: designToken.colorTextSecondary, fontSize: 13, fontWeight: 600 }}>
+              {t("common.language")}
+            </span>
             <Select
               value={currentLanguage}
               variant="filled"
@@ -179,9 +178,9 @@ export function InvitationAcceptPage() {
             style={{ width: 148 }}
             onChange={(value: ThemeMode) => setTheme(value)}
             options={[
-              { value: "light", label: <Space><BulbOutlined /> {t("common.theme.light")}</Space> },
-              { value: "dark", label: <Space><BulbFilled /> {t("common.theme.dark")}</Space> },
-              { value: "system", label: <Space><BulbOutlined /> {t("common.theme.system")}</Space> },
+              { value: "light", label: t("common.theme.light") },
+              { value: "dark", label: t("common.theme.dark") },
+              { value: "system", label: t("common.theme.system") },
             ]}
           />
         </Flex>

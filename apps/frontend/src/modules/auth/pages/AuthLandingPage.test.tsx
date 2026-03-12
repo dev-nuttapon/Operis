@@ -142,7 +142,7 @@ describe('AuthLandingPage', () => {
     fireEvent.mouseDown(langSelect);
     
     // Find the Thai option using the mocked translation key
-    const thOption = screen.getByTitle('common.language.th');
+    const thOption = screen.getByTitle('common.language_th');
     fireEvent.click(thOption);
     
     expect(mockChangeLanguage).toHaveBeenCalledWith('th');

@@ -1,11 +1,12 @@
-import { App, Button, Card, Flex, Form, Input, Result, Select, Space, Spin, Typography, theme as antdTheme } from "antd";
-import { BulbFilled, BulbOutlined, GlobalOutlined } from "@ant-design/icons";
+import { App, Button, Card, Flex, Form, Input, Select, Space, Typography, theme as antdTheme } from "antd";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRegistrationPasswordSetup } from "../hooks/useRegistrationPasswordSetup";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { useThemeStore, type ThemeMode } from "../../../shared/store/useThemeStore";
 import { useTranslation } from "react-i18next";
+import { CenteredLoader } from "../../../shared/components/feedback/CenteredLoader";
+import { StatusPanel } from "../../../shared/components/feedback/StatusPanel";
 
 const { Paragraph, Title } = Typography;
 const PublicActionSuccessModal = lazy(() =>
@@ -59,27 +60,23 @@ export function RegistrationPasswordSetupPage() {
   }, [completeMutation.error, completeMutation.isError, notification, t]);
 
   if (!token) {
-    return <Result status="404" title={t("registration_password_setup.not_found_title")} />;
+    return <StatusPanel title={t("registration_password_setup.not_found_title")} />;
   }
 
   if (setupQuery.isLoading) {
-    return (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-        <Spin size="large" />
-      </div>
-    );
+    return <CenteredLoader />;
   }
 
   if (setupQuery.isError || !setupQuery.data) {
-    return <Result status="error" title={t("registration_password_setup.not_found_title")} subTitle={t("registration_password_setup.not_found_subtitle")} />;
+    return <StatusPanel status="error" title={t("registration_password_setup.not_found_title")} subtitle={t("registration_password_setup.not_found_subtitle")} />;
   }
 
   if (setupQuery.data.isCompleted) {
-    return <Result status="success" title={t("registration_password_setup.completed_title")} subTitle={t("registration_password_setup.completed_subtitle")} />;
+    return <StatusPanel status="success" title={t("registration_password_setup.completed_title")} subtitle={t("registration_password_setup.completed_subtitle")} />;
   }
 
   if (setupQuery.data.isExpired) {
-    return <Result status="warning" title={t("registration_password_setup.expired_title")} subTitle={t("registration_password_setup.expired_subtitle")} />;
+    return <StatusPanel status="warning" title={t("registration_password_setup.expired_title")} subtitle={t("registration_password_setup.expired_subtitle")} />;
   }
 
   return (
@@ -111,7 +108,9 @@ export function RegistrationPasswordSetupPage() {
           }}
         >
           <Space size={8}>
-            <GlobalOutlined style={{ fontSize: 16, color: designToken.colorTextSecondary }} />
+            <span style={{ color: designToken.colorTextSecondary, fontSize: 13, fontWeight: 600 }}>
+              {t("common.language")}
+            </span>
             <Select
               value={currentLanguage}
               variant="filled"
@@ -133,9 +132,9 @@ export function RegistrationPasswordSetupPage() {
             style={{ width: 148 }}
             onChange={(value: ThemeMode) => setTheme(value)}
             options={[
-              { value: "light", label: <Space><BulbOutlined /> {t("common.theme.light")}</Space> },
-              { value: "dark", label: <Space><BulbFilled /> {t("common.theme.dark")}</Space> },
-              { value: "system", label: <Space><BulbOutlined /> {t("common.theme.system")}</Space> },
+              { value: "light", label: t("common.theme.light") },
+              { value: "dark", label: t("common.theme.dark") },
+              { value: "system", label: t("common.theme.system") },
             ]}
           />
         </Flex>

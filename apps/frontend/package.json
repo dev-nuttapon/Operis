@@ -14,6 +14,7 @@
     "preview:dev": "vite preview --mode dev",
     "preview:prod": "vite preview --mode prod",
     "check:architecture": "node scripts/check-module-boundaries.mjs",
+    "perf:bundle-report": "node scripts/report-bundle-sizes.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

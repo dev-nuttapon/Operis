@@ -23,9 +23,7 @@ describe('ProtectedRoute', () => {
       </MemoryRouter>
     );
 
-    // Antd Spin adds an ant-spin class
-    const spinner = document.querySelector('.ant-spin');
-    expect(spinner).toBeInTheDocument();
+    expect(screen.getByTestId('centered-loader')).toBeInTheDocument();
   });
 
   it('redirects to /login when unauthenticated', () => {
