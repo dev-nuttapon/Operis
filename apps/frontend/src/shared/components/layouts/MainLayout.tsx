@@ -44,7 +44,7 @@ export function MainLayout() {
       'operis_system_admin',
     ].includes(role)
   );
-  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
+  const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback', 'User');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
   const isDarkMode = token.colorBgBase.toLowerCase() === '#020617';
   const avatarBg = isDarkMode ? '#1e293b' : '#dbeafe';
@@ -140,8 +140,8 @@ export function MainLayout() {
       label: `${tr('common.language', 'Language')}: ${currentLanguageLabel}`,
       icon: <GlobalOutlined />,
       children: [
-        { key: 'th', label: 'Thai' },
-        { key: 'en', label: 'English' },
+        { key: 'th', label: tr('common.language_th', 'Thai') },
+        { key: 'en', label: tr('common.language_en', 'English') },
       ]
     },
     {
@@ -157,7 +157,7 @@ export function MainLayout() {
     { type: 'divider' },
     {
       key: 'logout',
-      label: 'Logout',
+      label: tr('auth.logout_button', 'Logout'),
       icon: <LogoutOutlined />,
       danger: true,
     }
@@ -172,9 +172,27 @@ export function MainLayout() {
   };
 
   const notifications = [
-    { id: 1, title: 'แบบร่างเอกสารใหม่ถูกสร้างขึ้น', description: 'เอกสาร "รายงานประจำเดือน" ถูกสร้างขึ้นเรียบร้อยแล้ว', time: '5 นาทีที่แล้ว', read: false },
-    { id: 2, title: 'คำขอกลับไปยังผู้สร้าง', description: 'คำขอเลขอ้างอิง REF-2024-001 ถูกตีกลับ', time: '1 ชั่วโมงที่แล้ว', read: false },
-    { id: 3, title: 'การลงทะเบียนสำเร็จ', description: 'ยืนยันตัวตนผู้ใช้งานใหม่เรียบร้อยแล้ว', time: '2 ชั่วโมงที่แล้ว', read: true },
+    {
+      id: 1,
+      title: tr('layout.notifications.items.draft_created.title', 'New document draft created'),
+      description: tr('layout.notifications.items.draft_created.description', 'Document "Monthly Report" was created successfully'),
+      time: tr('layout.notifications.items.draft_created.time', '5 minutes ago'),
+      read: false,
+    },
+    {
+      id: 2,
+      title: tr('layout.notifications.items.request_returned.title', 'Request returned to creator'),
+      description: tr('layout.notifications.items.request_returned.description', 'Request REF-2024-001 has been returned'),
+      time: tr('layout.notifications.items.request_returned.time', '1 hour ago'),
+      read: false,
+    },
+    {
+      id: 3,
+      title: tr('layout.notifications.items.registration_completed.title', 'Registration completed'),
+      description: tr('layout.notifications.items.registration_completed.description', 'New user identity has been verified'),
+      time: tr('layout.notifications.items.registration_completed.time', '2 hours ago'),
+      read: true,
+    },
   ];
 
   const getPageTitle = (path: string) => {
@@ -260,7 +278,7 @@ export function MainLayout() {
         >
           {!collapsed && (
             <Typography.Text style={{ fontWeight: 700, fontSize: 16 }}>
-              Office Inventory
+              {tr('common.application_name', 'Operis')}
             </Typography.Text>
           )}
           <Button

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { acceptInvitation, getInvitationByToken } from "../api/usersApi";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
-import i18n from "../../../shared/i18n/config";
 import { useThemeStore, type ThemeMode } from "../../../shared/store/useThemeStore";
 import { useTranslation } from "react-i18next";
 
@@ -48,7 +47,7 @@ export function InvitationAcceptPage() {
       setSuccessModalOpen(true);
     },
     onError: (error) => {
-      const presentation = getApiErrorPresentation(error, i18n.t("errors.accept_invitation_failed"));
+      const presentation = getApiErrorPresentation(error, t("errors.accept_invitation_failed"));
       notification.error({
         message: presentation.title,
         description: presentation.description,
@@ -167,7 +166,7 @@ export function InvitationAcceptPage() {
                 acceptInvitationMutation.mutate(values);
               }}
             >
-              <Form.Item label="Email">
+              <Form.Item label={t("admin_users.fields.email", { defaultValue: "Email" })}>
                 <Input value={invitationQuery.data.email} disabled />
               </Form.Item>
               <Form.Item label={t("invitation_page.department_label")}>
@@ -186,8 +185,8 @@ export function InvitationAcceptPage() {
                 label={t("invitation_page.password_label")}
                 name="password"
                 rules={[
-                  { required: true, message: "กรุณากรอกรหัสผ่าน" },
-                  { min: 8, message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร" },
+                  { required: true, message: t("errors.password_required") },
+                  { min: 8, message: t("errors.password_min_length") },
                 ]}
               >
                 <Input.Password placeholder={t("invitation_page.password_placeholder")} />
@@ -204,7 +203,7 @@ export function InvitationAcceptPage() {
                         return Promise.resolve();
                       }
 
-                      return Promise.reject(new Error("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน"));
+                      return Promise.reject(new Error(t("errors.password_mismatch")));
                     },
                   }),
                 ]}

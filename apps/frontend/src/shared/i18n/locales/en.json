@@ -1,10 +1,16 @@
 {
   "auth": {
     "login_button": "Login with Keycloak",
+    "login_short": "Login",
     "logout_button": "Logout",
     "status_authenticated": "Authenticated",
     "status_anonymous": "Anonymous",
     "status_loading": "Loading",
+    "checking_login": "Checking login...",
+    "login_to_continue": "Please login to continue",
+    "login_failed": "Login failed",
+    "sso_login_failed": "SSO login failed",
+    "retry_login": "Retry Login",
     "env_label": "Environment",
     "api_url_label": "API Base URL",
     "auth_url_label": "Auth Base URL",
@@ -12,6 +18,27 @@
     "client_label": "Keycloak Client",
     "welcome_title": "Welcome to Operis",
     "welcome_subtitle": "Enterprise Paperless & Workflow Platform"
+  },
+  "layout": {
+    "notifications": {
+      "items": {
+        "draft_created": {
+          "title": "New document draft created",
+          "description": "Document \"Monthly Report\" was created successfully",
+          "time": "5 minutes ago"
+        },
+        "request_returned": {
+          "title": "Request returned to creator",
+          "description": "Request REF-2024-001 has been returned",
+          "time": "1 hour ago"
+        },
+        "registration_completed": {
+          "title": "Registration completed",
+          "description": "New user identity has been verified",
+          "time": "2 hours ago"
+        }
+      }
+    }
   },
   "invitation_page": {
     "not_found_title": "Invitation not found",
@@ -42,6 +69,7 @@
     "go_login": "Go to Login"
   },
   "common": {
+    "application_name": "Operis",
     "dashboard": "Dashboard",
     "documents": "Documents",
     "admin": "Admin",
@@ -55,7 +83,23 @@
     "language": "Language",
     "language_en": "English",
     "language_th": "Thai",
+    "user_fallback": "User",
     "theme_label": "Theme",
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "create": "Create",
+      "close": "Close",
+      "confirm": "Confirm",
+      "confirm_delete": "Confirm Deletion",
+      "copy_link": "Copy link",
+      "send_invitation": "Send Invitation",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
     "theme": {
       "light": "Light",
       "dark": "Dark",
@@ -120,6 +164,135 @@
     "password_mismatch": "Password and confirmation do not match.",
     "invitation_not_found": "Invitation not found.",
     "keycloak_user_exists": "This user already exists in the identity provider."
+  },
+  "admin_users": {
+    "columns": {
+      "email": "Email",
+      "invited_by": "Invited By",
+      "department": "Department",
+      "job_title": "Job Title",
+      "status": "Status",
+      "expires_at": "Expires",
+      "actions": "Actions",
+      "name": "Name",
+      "roles": "Roles",
+      "created_at": "Created",
+      "applicant": "Applicant",
+      "requested_at": "Requested"
+    },
+    "fields": {
+      "email": "Email",
+      "first_name": "First name",
+      "last_name": "Last name",
+      "department": "Department",
+      "job_title": "Job title",
+      "expires_at": "Expiration date",
+      "roles": "Roles",
+      "roles_help": "Select roles from the application database. The system will map them to Keycloak automatically.",
+      "delete_reason": "Deletion reason",
+      "reason": "Reason"
+    },
+    "sections": {
+      "account_information": "Account Information",
+      "organization_structure": "Organization Structure",
+      "access_rights": "Access Rights"
+    },
+    "placeholders": {
+      "invitee_email": "invitee@company.com",
+      "user_email": "name@company.com",
+      "select_department": "Select department",
+      "select_job_title": "Select job title",
+      "select_expiration_date": "Select expiration date",
+      "select_roles": "Select user roles",
+      "user_delete_reason": "e.g. employee resigned / duplicate account / account deactivated",
+      "department_name": "Operations",
+      "department_delete_reason": "e.g. department merged / replaced with a new record",
+      "job_title_name": "Document Controller",
+      "job_title_delete_reason": "e.g. title structure updated / previous item removed",
+      "invitation_reject_reason": "Reason for rejection"
+    },
+    "validation": {
+      "delete_reason_required": "Please provide a deletion reason.",
+      "reason_required": "Please provide a reason."
+    },
+    "view": {
+      "department": "Department",
+      "job_title": "Job title"
+    },
+    "messages": {
+      "registration_approved": "Approved {{email}}",
+      "registration_rejected": "Rejected {{email}}",
+      "invitation_cancelled": "Cancelled invitation for {{email}}",
+      "invitation_link_copied": "Copied invitation link for {{email}}",
+      "invitation_sent": "Invitation sent to {{email}}",
+      "invitation_updated": "Updated invitation for {{email}}",
+      "user_created": "Created {{email}}",
+      "user_updated": "Updated {{email}}",
+      "user_deleted": "Deleted {{email}}",
+      "department_created": "Created department {{name}}",
+      "department_updated": "Updated department {{name}}",
+      "department_deleted": "Deleted department {{name}}",
+      "job_title_created": "Created job title {{name}}",
+      "job_title_updated": "Updated job title {{name}}",
+      "job_title_deleted": "Deleted job title {{name}}"
+    },
+    "directory": {
+      "page_title": "User Management",
+      "page_description": "Manage users from the administrator side.",
+      "card_title": "Administrator User Management",
+      "card_description": "Create, update, and delete users directly from the administrator side.",
+      "create_user": "Add User",
+      "list_title": "User List",
+      "create_modal_title": "Add User",
+      "edit_modal_title": "Edit User",
+      "delete_modal_title": "Delete User",
+      "delete_modal_title_with_email": "Delete user {{email}}",
+      "delete_description": "This action will soft delete the user in Operis and disable the account in Keycloak."
+    },
+    "invitations": {
+      "page_title": "Invite Users",
+      "page_description": "Create invitations for users to confirm their identity later.",
+      "card_description": "Create an invitation first, then send the link so the recipient can confirm and set up their account.",
+      "open_create": "Invite User",
+      "latest_title": "Latest Invitations",
+      "cancel_title": "Cancel invitation {{email}}",
+      "cancel_description": "After cancellation, this invitation link can no longer be used.",
+      "cancel_action": "Cancel Invitation",
+      "view_title": "Invitation Link",
+      "create_modal_title": "Invite User",
+      "edit_modal_title": "Edit Invitation"
+    },
+    "registration": {
+      "page_title": "Registration Approvals",
+      "page_description": "Review user registration requests and approve or reject them.",
+      "pending_title": "Pending Registration Requests",
+      "pending_description": "Review self-registration requests and approve or reject them.",
+      "default_rejection_reason": "Not approved",
+      "reject_reason_placeholder": "Reason for rejection"
+    },
+    "master": {
+      "page_title": "Master Data Management",
+      "departments_page_description": "Manage system master data for departments.",
+      "job_titles_page_description": "Manage system master data for job titles.",
+      "departments_title": "Master: Departments",
+      "departments_description": "Create, update, and remove department master data before assigning it to users.",
+      "job_titles_title": "Master: Job Titles",
+      "job_titles_description": "Create, update, and remove job title master data before assigning it to users.",
+      "create_department": "Add Department",
+      "create_job_title": "Add Job Title",
+      "create_department_modal_title": "Add Department",
+      "edit_department_modal_title": "Edit Department",
+      "delete_department_title": "Delete Department",
+      "delete_department_title_with_name": "Delete department {{name}}",
+      "create_job_title_modal_title": "Add Job Title",
+      "edit_job_title_modal_title": "Edit Job Title",
+      "delete_job_title_title": "Delete Job Title",
+      "delete_job_title_title_with_name": "Delete job title {{name}}",
+      "department_name": "Department name",
+      "job_title_name": "Job title name",
+      "display_order": "Display Order",
+      "delete_soft_delete_description": "Confirm soft delete and provide a reason."
+    }
   },
   "documents": {
     "page_title": "Document Dashboard",

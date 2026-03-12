@@ -1,10 +1,16 @@
 {
   "auth": {
     "login_button": "เข้าสู่ระบบด้วย Keycloak",
+    "login_short": "เข้าสู่ระบบ",
     "logout_button": "ออกจากระบบ",
     "status_authenticated": "เข้าสู่ระบบแล้ว",
     "status_anonymous": "ผู้เยี่ยมชม",
     "status_loading": "กำลังโหลด",
+    "checking_login": "กำลังตรวจสอบการเข้าสู่ระบบ...",
+    "login_to_continue": "กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ",
+    "login_failed": "เข้าสู่ระบบไม่สำเร็จ",
+    "sso_login_failed": "การเข้าสู่ระบบ SSO ล้มเหลว",
+    "retry_login": "ลองเข้าสู่ระบบอีกครั้ง",
     "env_label": "สภาพแวดล้อม",
     "api_url_label": "API Base URL",
     "auth_url_label": "Auth Base URL",
@@ -12,6 +18,27 @@
     "client_label": "Keycloak Client",
     "welcome_title": "ยินดีต้อนรับสู่ Operis",
     "welcome_subtitle": "แพลตฟอร์มจัดการเอกสารและระบบงานระดับองค์กร"
+  },
+  "layout": {
+    "notifications": {
+      "items": {
+        "draft_created": {
+          "title": "สร้างแบบร่างเอกสารใหม่แล้ว",
+          "description": "เอกสาร \"รายงานประจำเดือน\" ถูกสร้างเรียบร้อยแล้ว",
+          "time": "5 นาทีที่แล้ว"
+        },
+        "request_returned": {
+          "title": "คำขอถูกส่งกลับผู้สร้าง",
+          "description": "คำขอ REF-2024-001 ถูกส่งกลับแล้ว",
+          "time": "1 ชั่วโมงที่แล้ว"
+        },
+        "registration_completed": {
+          "title": "ลงทะเบียนเสร็จสมบูรณ์",
+          "description": "ยืนยันตัวตนผู้ใช้งานใหม่เรียบร้อยแล้ว",
+          "time": "2 ชั่วโมงที่แล้ว"
+        }
+      }
+    }
   },
   "invitation_page": {
     "not_found_title": "ไม่พบคำเชิญ",
@@ -42,6 +69,7 @@
     "go_login": "ไปหน้า Login"
   },
   "common": {
+    "application_name": "Operis",
     "dashboard": "แดชบอร์ด",
     "documents": "เอกสาร",
     "admin": "ผู้ดูแลระบบ",
@@ -55,7 +83,23 @@
     "language": "ภาษา",
     "language_en": "English",
     "language_th": "ไทย",
+    "user_fallback": "ผู้ใช้",
     "theme_label": "ธีม",
+    "actions": {
+      "view": "ดู",
+      "edit": "แก้ไข",
+      "delete": "ลบ",
+      "save": "บันทึก",
+      "cancel": "ยกเลิก",
+      "create": "สร้าง",
+      "close": "ปิด",
+      "confirm": "ยืนยัน",
+      "confirm_delete": "ยืนยันการลบ",
+      "copy_link": "คัดลอกลิงก์",
+      "send_invitation": "ส่งคำเชิญ",
+      "approve": "อนุมัติ",
+      "reject": "ปฏิเสธ"
+    },
     "theme": {
       "light": "สว่าง",
       "dark": "มืด",
@@ -120,6 +164,135 @@
     "password_mismatch": "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน",
     "invitation_not_found": "ไม่พบคำเชิญนี้",
     "keycloak_user_exists": "มีผู้ใช้งานนี้ในระบบยืนยันตัวตนแล้ว"
+  },
+  "admin_users": {
+    "columns": {
+      "email": "อีเมล",
+      "invited_by": "ผู้เชิญ",
+      "department": "แผนก",
+      "job_title": "ตำแหน่ง",
+      "status": "สถานะ",
+      "expires_at": "วันหมดอายุ",
+      "actions": "การจัดการ",
+      "name": "ชื่อ",
+      "roles": "บทบาท",
+      "created_at": "วันที่สร้าง",
+      "applicant": "ผู้สมัคร",
+      "requested_at": "วันที่ยื่นคำขอ"
+    },
+    "fields": {
+      "email": "อีเมล",
+      "first_name": "ชื่อ",
+      "last_name": "นามสกุล",
+      "department": "แผนก",
+      "job_title": "ตำแหน่ง",
+      "expires_at": "วันหมดอายุ",
+      "roles": "บทบาท",
+      "roles_help": "เลือกจากรายการบทบาทในฐานข้อมูลของระบบ แล้วระบบจะ map ไป Keycloak ให้อัตโนมัติ",
+      "delete_reason": "เหตุผลในการลบ",
+      "reason": "เหตุผล"
+    },
+    "sections": {
+      "account_information": "ข้อมูลบัญชีผู้ใช้งาน",
+      "organization_structure": "โครงสร้างองค์กร",
+      "access_rights": "สิทธิ์การใช้งาน"
+    },
+    "placeholders": {
+      "invitee_email": "invitee@company.com",
+      "user_email": "name@company.com",
+      "select_department": "เลือกแผนก",
+      "select_job_title": "เลือกตำแหน่ง",
+      "select_expiration_date": "เลือกวันหมดอายุ",
+      "select_roles": "เลือกบทบาทผู้ใช้งาน",
+      "user_delete_reason": "เช่น พนักงานลาออก / บัญชีสร้างผิด / ยกเลิกการใช้งาน",
+      "department_name": "Operations",
+      "department_delete_reason": "เช่น ยุบหน่วยงาน / สร้างรายการใหม่แทน",
+      "job_title_name": "Document Controller",
+      "job_title_delete_reason": "เช่น ปรับโครงสร้างตำแหน่ง / ยกเลิกรายการเดิม",
+      "invitation_reject_reason": "ระบุเหตุผลที่ปฏิเสธ"
+    },
+    "validation": {
+      "delete_reason_required": "กรุณาระบุเหตุผลในการลบ",
+      "reason_required": "กรุณาระบุเหตุผล"
+    },
+    "view": {
+      "department": "แผนก",
+      "job_title": "ตำแหน่ง"
+    },
+    "messages": {
+      "registration_approved": "อนุมัติ {{email}} แล้ว",
+      "registration_rejected": "ปฏิเสธ {{email}} แล้ว",
+      "invitation_cancelled": "ยกเลิกคำเชิญของ {{email}} แล้ว",
+      "invitation_link_copied": "คัดลอกลิงก์คำเชิญของ {{email}} แล้ว",
+      "invitation_sent": "ส่งคำเชิญไปยัง {{email}} แล้ว",
+      "invitation_updated": "แก้ไขคำเชิญของ {{email}} แล้ว",
+      "user_created": "สร้างผู้ใช้งาน {{email}} แล้ว",
+      "user_updated": "แก้ไขผู้ใช้งาน {{email}} แล้ว",
+      "user_deleted": "ลบผู้ใช้งาน {{email}} แล้ว",
+      "department_created": "สร้างแผนก {{name}} แล้ว",
+      "department_updated": "แก้ไขแผนก {{name}} แล้ว",
+      "department_deleted": "ลบแผนก {{name}} แล้ว",
+      "job_title_created": "สร้างตำแหน่ง {{name}} แล้ว",
+      "job_title_updated": "แก้ไขตำแหน่ง {{name}} แล้ว",
+      "job_title_deleted": "ลบตำแหน่ง {{name}} แล้ว"
+    },
+    "directory": {
+      "page_title": "จัดการผู้ใช้งาน",
+      "page_description": "จัดการผู้ใช้งานจากฝั่งผู้ดูแลระบบ",
+      "card_title": "จัดการผู้ใช้งานโดยผู้ดูแล",
+      "card_description": "ใช้สำหรับเพิ่ม แก้ไข และลบผู้ใช้งานจากฝั่งผู้ดูแลระบบ",
+      "create_user": "เพิ่มผู้ใช้งาน",
+      "list_title": "รายการผู้ใช้งาน",
+      "create_modal_title": "เพิ่มผู้ใช้งาน",
+      "edit_modal_title": "แก้ไขผู้ใช้งาน",
+      "delete_modal_title": "ลบผู้ใช้งาน",
+      "delete_modal_title_with_email": "ลบผู้ใช้งาน {{email}}",
+      "delete_description": "การดำเนินการนี้จะ soft delete ผู้ใช้งานในระบบ และปิดการใช้งานบัญชีที่ Keycloak"
+    },
+    "invitations": {
+      "page_title": "เชิญผู้ใช้งาน",
+      "page_description": "สร้างคำเชิญสำหรับส่งให้ปลายทางยืนยันตัวตนและเข้าระบบภายหลัง",
+      "card_description": "ใช้สำหรับสร้างคำเชิญก่อน แล้วส่งลิงก์ให้ปลายทางยืนยันและตั้งค่าบัญชีด้วยตนเอง",
+      "open_create": "เชิญผู้ใช้งาน",
+      "latest_title": "รายการเชิญล่าสุด",
+      "cancel_title": "ยกเลิกคำเชิญ {{email}}",
+      "cancel_description": "เมื่อยกเลิกแล้ว ลิงก์คำเชิญนี้จะใช้งานไม่ได้อีก",
+      "cancel_action": "ยกเลิกคำเชิญ",
+      "view_title": "ลิงก์คำเชิญ",
+      "create_modal_title": "เชิญผู้ใช้งาน",
+      "edit_modal_title": "แก้ไขคำเชิญ"
+    },
+    "registration": {
+      "page_title": "อนุมัติการลงทะเบียน",
+      "page_description": "ตรวจคำขอลงทะเบียนที่ผู้ใช้ส่งเข้ามา แล้วอนุมัติหรือปฏิเสธตามนโยบาย",
+      "pending_title": "คำขอลงทะเบียนที่รออนุมัติ",
+      "pending_description": "ใช้สำหรับคำขอที่ผู้ใช้ลงทะเบียนเข้ามาเอง แล้วให้ผู้ดูแลตรวจและอนุมัติหรือปฏิเสธ",
+      "default_rejection_reason": "ไม่อนุมัติ",
+      "reject_reason_placeholder": "เหตุผลในการปฏิเสธ"
+    },
+    "master": {
+      "page_title": "จัดการข้อมูล Master",
+      "departments_page_description": "จัดการข้อมูลหลักของระบบในหมวดแผนก",
+      "job_titles_page_description": "จัดการข้อมูลหลักของระบบในหมวดตำแหน่ง",
+      "departments_title": "Master: แผนก",
+      "departments_description": "ใช้เพิ่ม ลบ แก้ไข master data ของแผนกก่อนนำไปผูกกับผู้ใช้งาน",
+      "job_titles_title": "Master: ตำแหน่ง",
+      "job_titles_description": "ใช้เพิ่ม ลบ แก้ไข master data ของตำแหน่งก่อนนำไปผูกกับผู้ใช้งาน",
+      "create_department": "เพิ่มแผนก",
+      "create_job_title": "เพิ่มตำแหน่ง",
+      "create_department_modal_title": "เพิ่มแผนก",
+      "edit_department_modal_title": "แก้ไขแผนก",
+      "delete_department_title": "ลบแผนก",
+      "delete_department_title_with_name": "ลบแผนก {{name}}",
+      "create_job_title_modal_title": "เพิ่มตำแหน่ง",
+      "edit_job_title_modal_title": "แก้ไขตำแหน่ง",
+      "delete_job_title_title": "ลบตำแหน่ง",
+      "delete_job_title_title_with_name": "ลบตำแหน่ง {{name}}",
+      "department_name": "ชื่อแผนก",
+      "job_title_name": "ชื่อตำแหน่ง",
+      "display_order": "ลำดับ",
+      "delete_soft_delete_description": "ยืนยันการลบแบบ soft delete และระบุเหตุผล"
+    }
   },
   "documents": {
     "page_title": "แดชบอร์ดเอกสาร",

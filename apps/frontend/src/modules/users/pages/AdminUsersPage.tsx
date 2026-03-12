@@ -20,20 +20,20 @@ import type { ColumnsType } from "antd/es/table";
 import { CheckCircleOutlined, DeleteOutlined, EditOutlined, EyeOutlined, MailOutlined, TeamOutlined, UserAddOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useAdminUsers } from "../hooks/useAdminUsers";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
-import i18n from "../../../shared/i18n/config";
 import type { Invitation, MasterDataItem, RegistrationRequest, User } from "../types/users";
 
 const { Paragraph, Text } = Typography;
 
-function formatDate(value: string | null) {
+function formatDate(value: string | null, language: string) {
   if (!value) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("th-TH", {
+  return new Intl.DateTimeFormat(language.startsWith("th") ? "th-TH" : "en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -43,62 +43,12 @@ function getDisplayActor(user: { name?: string | null; email?: string | null } |
   return user?.email || user?.name || "admin@operis.local";
 }
 
-const invitationColumns: ColumnsType<Invitation> = [
-  {
-    title: "Email",
-    dataIndex: "email",
-  },
-  {
-    title: "Invited By",
-    dataIndex: "invitedBy",
-  },
-  {
-    title: "Department",
-    dataIndex: "departmentName",
-    render: (value: string | null) => value || "-",
-  },
-  {
-    title: "Title",
-    dataIndex: "jobTitleName",
-    render: (value: string | null) => value || "-",
-  },
-  {
-    title: "Status",
-    dataIndex: "status",
-    render: (status: Invitation["status"]) => (
-      <Tag
-        color={
-          status === "Pending"
-            ? "gold"
-            : status === "Accepted"
-              ? "green"
-              : status === "Cancelled"
-                ? "volcano"
-                : status === "Rejected"
-                  ? "red"
-                  : "default"
-        }
-      >
-        {status}
-      </Tag>
-    ),
-  },
-  {
-    title: "Expires",
-    dataIndex: "expiresAt",
-    render: (value: string | null) => formatDate(value),
-  },
-  {
-    title: "Actions",
-    key: "actions",
-    render: () => null,
-  },
-];
-
 export function AdminUsersPage() {
+  const { t, i18n: i18nInstance } = useTranslation();
   const { notification } = App.useApp();
   const location = useLocation();
   const { user } = useAuth();
+  const currentLanguage = i18nInstance.language;
   const actor = getDisplayActor(user);
   const {
     usersQuery,
@@ -180,6 +130,58 @@ export function AdminUsersPage() {
     value: item.id,
   }));
 
+  const invitationColumns: ColumnsType<Invitation> = [
+    {
+      title: t("admin_users.columns.email", { defaultValue: "Email" }),
+      dataIndex: "email",
+    },
+    {
+      title: t("admin_users.columns.invited_by", { defaultValue: "Invited By" }),
+      dataIndex: "invitedBy",
+    },
+    {
+      title: t("admin_users.columns.department", { defaultValue: "Department" }),
+      dataIndex: "departmentName",
+      render: (value: string | null) => value || "-",
+    },
+    {
+      title: t("admin_users.columns.job_title", { defaultValue: "Job Title" }),
+      dataIndex: "jobTitleName",
+      render: (value: string | null) => value || "-",
+    },
+    {
+      title: t("admin_users.columns.status", { defaultValue: "Status" }),
+      dataIndex: "status",
+      render: (status: Invitation["status"]) => (
+        <Tag
+          color={
+            status === "Pending"
+              ? "gold"
+              : status === "Accepted"
+                ? "green"
+                : status === "Cancelled"
+                  ? "volcano"
+                  : status === "Rejected"
+                    ? "red"
+                    : "default"
+          }
+        >
+          {status}
+        </Tag>
+      ),
+    },
+    {
+      title: t("admin_users.columns.expires_at", { defaultValue: "Expires" }),
+      dataIndex: "expiresAt",
+      render: (value: string | null) => formatDate(value, currentLanguage),
+    },
+    {
+      title: t("admin_users.columns.actions", { defaultValue: "Actions" }),
+      key: "actions",
+      render: () => null,
+    },
+  ];
+
   const masterColumns = (
     label: string,
     onEdit: (item: MasterDataItem) => void,
@@ -191,19 +193,19 @@ export function AdminUsersPage() {
       dataIndex: "name",
     },
     {
-      title: "ลำดับ",
+      title: t("admin_users.master.display_order", { defaultValue: "Display Order" }),
       dataIndex: "displayOrder",
     },
     {
-      title: "Actions",
+      title: t("admin_users.columns.actions", { defaultValue: "Actions" }),
       key: "actions",
       render: (_, record) => (
         <Space>
           <Button icon={<EditOutlined />} onClick={() => onEdit(record)}>
-            Edit
+            {t("common.actions.edit", { defaultValue: "Edit" })}
           </Button>
           <Button danger icon={<DeleteOutlined />} loading={deleting} onClick={() => onDelete(record)}>
-            Delete
+            {t("common.actions.delete", { defaultValue: "Delete" })}
           </Button>
         </Space>
       ),
@@ -212,7 +214,7 @@ export function AdminUsersPage() {
 
   const userColumns: ColumnsType<User> = [
     {
-      title: "Name",
+      title: t("admin_users.columns.name", { defaultValue: "Name" }),
       key: "name",
       render: (_, record) => (
         <Space direction="vertical" size={0}>
@@ -222,7 +224,7 @@ export function AdminUsersPage() {
       ),
     },
     {
-      title: "Status",
+      title: t("admin_users.columns.status", { defaultValue: "Status" }),
       dataIndex: "status",
       render: (status: User["status"]) => (
         <Tag color={status === "Active" ? "green" : status === "Deleted" ? "red" : "default"}>
@@ -231,17 +233,17 @@ export function AdminUsersPage() {
       ),
     },
     {
-      title: "Department",
+      title: t("admin_users.columns.department", { defaultValue: "Department" }),
       dataIndex: "departmentName",
       render: (value: string | null) => value || "-",
     },
     {
-      title: "Title",
+      title: t("admin_users.columns.job_title", { defaultValue: "Job Title" }),
       dataIndex: "jobTitleName",
       render: (value: string | null) => value || "-",
     },
     {
-      title: "Roles",
+      title: t("admin_users.columns.roles", { defaultValue: "Roles" }),
       dataIndex: "roles",
       render: (roles: string[]) => (
         <Space wrap>
@@ -250,12 +252,12 @@ export function AdminUsersPage() {
       ),
     },
     {
-      title: "Created",
+      title: t("admin_users.columns.created_at", { defaultValue: "Created" }),
       dataIndex: "createdAt",
-      render: (value: string) => formatDate(value),
+      render: (value: string) => formatDate(value, currentLanguage),
     },
     {
-      title: "Actions",
+      title: t("admin_users.columns.actions", { defaultValue: "Actions" }),
       key: "actions",
       render: (_, record) => (
         <Space>
@@ -277,7 +279,7 @@ export function AdminUsersPage() {
               });
             }}
           >
-            Edit
+            {t("common.actions.edit", { defaultValue: "Edit" })}
           </Button>
           <Button
             danger
@@ -288,7 +290,7 @@ export function AdminUsersPage() {
               deleteUserForm.resetFields();
             }}
           >
-            Delete
+            {t("common.actions.delete", { defaultValue: "Delete" })}
           </Button>
         </Space>
       ),
@@ -297,7 +299,7 @@ export function AdminUsersPage() {
 
   const reviewColumns: ColumnsType<RegistrationRequest> = [
     {
-      title: "Applicant",
+      title: t("admin_users.columns.applicant", { defaultValue: "Applicant" }),
       key: "applicant",
       render: (_, record) => (
         <Space direction="vertical" size={0}>
@@ -307,12 +309,12 @@ export function AdminUsersPage() {
       ),
     },
     {
-      title: "Requested",
+      title: t("admin_users.columns.requested_at", { defaultValue: "Requested" }),
       dataIndex: "requestedAt",
-      render: (value: string) => formatDate(value),
+      render: (value: string) => formatDate(value, currentLanguage),
     },
     {
-      title: "Status",
+      title: t("admin_users.columns.status", { defaultValue: "Status" }),
       dataIndex: "status",
       render: (status: RegistrationRequest["status"]) => (
         <Tag color={status === "Pending" ? "gold" : status === "Approved" ? "green" : "red"}>
@@ -321,7 +323,7 @@ export function AdminUsersPage() {
       ),
     },
     {
-      title: "Actions",
+      title: t("admin_users.columns.actions", { defaultValue: "Actions" }),
       key: "actions",
       render: (_, record) => (
         <Space direction="vertical" style={{ width: 280 }}>
@@ -334,33 +336,33 @@ export function AdminUsersPage() {
                 approveRegistrationMutation.mutate(
                   { requestId: record.id, input: { reviewedBy: actor } },
                   {
-                    onSuccess: () => handleSuccess(`Approved ${record.email}`),
-                    onError: (error) => handleError(i18n.t("errors.approve_registration_failed"), error),
+                    onSuccess: () => handleSuccess(t("admin_users.messages.registration_approved", { email: record.email, defaultValue: "Approved {{email}}" })),
+                    onError: (error) => handleError(t("errors.approve_registration_failed"), error),
                   }
                 );
               }}
             >
-              Approve
+              {t("common.actions.approve", { defaultValue: "Approve" })}
             </Button>
             <Button
               danger
               loading={rejectRegistrationMutation.isPending}
               onClick={() => {
-                const reason = rejectReason[record.id]?.trim() || "Not approved";
+                const reason = rejectReason[record.id]?.trim() || t("admin_users.registration.default_rejection_reason", { defaultValue: "Not approved" });
                 rejectRegistrationMutation.mutate(
                   { requestId: record.id, input: { reviewedBy: actor, reason } },
                   {
-                    onSuccess: () => handleSuccess(`Rejected ${record.email}`),
-                    onError: (error) => handleError(i18n.t("errors.reject_registration_failed"), error),
+                    onSuccess: () => handleSuccess(t("admin_users.messages.registration_rejected", { email: record.email, defaultValue: "Rejected {{email}}" })),
+                    onError: (error) => handleError(t("errors.reject_registration_failed"), error),
                   }
                 );
               }}
             >
-              Reject
+              {t("common.actions.reject", { defaultValue: "Reject" })}
             </Button>
           </Space>
           <Input
-            placeholder="Reason for rejection"
+            placeholder={t("admin_users.registration.reject_reason_placeholder", { defaultValue: "Reason for rejection" })}
             value={rejectReason[record.id] ?? ""}
             onChange={(event) => {
               setRejectReason((current) => ({
@@ -374,27 +376,27 @@ export function AdminUsersPage() {
     },
   ];
 
-  let pageTitle = "จัดการผู้ใช้งาน";
-  let pageDescription = "จัดการผู้ใช้งานจากฝั่งผู้ดูแลระบบ";
+  let pageTitle = t("admin_users.directory.page_title", { defaultValue: "User Management" });
+  let pageDescription = t("admin_users.directory.page_description", { defaultValue: "Manage users from the administrator side." });
   let pageContent: ReactNode;
 
   if (currentSection === "invitations") {
-    pageTitle = "เชิญผู้ใช้งาน";
-    pageDescription = "สร้างคำเชิญสำหรับส่งให้ปลายทางยืนยันตัวตนและเข้าระบบภายหลัง";
+    pageTitle = t("admin_users.invitations.page_title", { defaultValue: "Invite Users" });
+    pageDescription = t("admin_users.invitations.page_description", { defaultValue: "Create invitations for users to confirm their identity later." });
     pageContent = (
       <Space direction="vertical" size={20} style={{ width: "100%" }}>
         <Card variant="borderless">
-          <Typography.Title level={5}>เชิญผู้ใช้งาน</Typography.Title>
+          <Typography.Title level={5}>{t("admin_users.invitations.page_title", { defaultValue: "Invite Users" })}</Typography.Title>
           <Paragraph type="secondary">
-            ใช้สำหรับสร้างคำเชิญก่อน แล้วส่งลิงก์ให้ปลายทางยืนยันและตั้งค่าบัญชีด้วยตนเอง
+            {t("admin_users.invitations.card_description", { defaultValue: "Create an invitation first, then send the link so the recipient can confirm and set up their account." })}
           </Paragraph>
           <Button type="primary" icon={<MailOutlined />} onClick={() => setCreatingInvitation(true)}>
-            เชิญผู้ใช้งาน
+            {t("admin_users.invitations.open_create", { defaultValue: "Invite User" })}
           </Button>
         </Card>
 
         <Card variant="borderless">
-          <Typography.Title level={5}>รายการเชิญล่าสุด</Typography.Title>
+          <Typography.Title level={5}>{t("admin_users.invitations.latest_title", { defaultValue: "Latest Invitations" })}</Typography.Title>
           <Table
             rowKey="id"
             columns={invitationColumns.map((column) =>
@@ -411,7 +413,7 @@ export function AdminUsersPage() {
                             setViewingInvitation(record);
                           }}
                         >
-                          View
+                          {t("common.actions.view", { defaultValue: "View" })}
                         </Button>
                         <Button
                           icon={<EditOutlined />}
@@ -426,7 +428,7 @@ export function AdminUsersPage() {
                             });
                           }}
                         >
-                          Edit
+                          {t("common.actions.edit", { defaultValue: "Edit" })}
                         </Button>
                         <Button
                           danger
@@ -434,20 +436,20 @@ export function AdminUsersPage() {
                           loading={cancelInvitationMutation.isPending}
                           onClick={() => {
                             Modal.confirm({
-                              title: `ยกเลิกคำเชิญ ${record.email}`,
-                              content: "เมื่อยกเลิกแล้ว ลิงก์คำเชิญนี้จะใช้งานไม่ได้อีก",
-                              okText: "ยืนยัน",
-                              cancelText: "ยกเลิก",
+                              title: t("admin_users.invitations.cancel_title", { email: record.email, defaultValue: "Cancel invitation {{email}}" }),
+                              content: t("admin_users.invitations.cancel_description", { defaultValue: "After cancellation, this invitation link can no longer be used." }),
+                              okText: t("common.actions.confirm", { defaultValue: "Confirm" }),
+                              cancelText: t("common.actions.cancel", { defaultValue: "Cancel" }),
                               okButtonProps: { danger: true },
                               onOk: () =>
                                 new Promise<void>((resolve, reject) => {
                                   cancelInvitationMutation.mutate(record.id, {
                                     onSuccess: () => {
-                                      handleSuccess(`Cancelled invitation for ${record.email}`);
+                                      handleSuccess(t("admin_users.messages.invitation_cancelled", { email: record.email, defaultValue: "Cancelled invitation for {{email}}" }));
                                       resolve();
                                     },
                                     onError: (error) => {
-                                      handleError(i18n.t("errors.cancel_invitation_failed"), error);
+                                      handleError(t("errors.cancel_invitation_failed"), error);
                                       reject(error);
                                     },
                                   });
@@ -455,7 +457,7 @@ export function AdminUsersPage() {
                             });
                           }}
                         >
-                          ยกเลิกคำเชิญ
+                          {t("admin_users.invitations.cancel_action", { defaultValue: "Cancel Invitation" })}
                         </Button>
                       </Space>
                     ),
@@ -469,13 +471,13 @@ export function AdminUsersPage() {
       </Space>
     );
   } else if (currentSection === "approvals") {
-    pageTitle = "อนุมัติการลงทะเบียน";
-    pageDescription = "ตรวจคำขอลงทะเบียนที่ผู้ใช้ส่งเข้ามา แล้วอนุมัติหรือปฏิเสธตามนโยบาย";
+    pageTitle = t("admin_users.registration.page_title", { defaultValue: "Registration Approvals" });
+    pageDescription = t("admin_users.registration.page_description", { defaultValue: "Review user registration requests and approve or reject them." });
     pageContent = (
       <Card variant="borderless">
-        <Typography.Title level={5}>คำขอลงทะเบียนที่รออนุมัติ</Typography.Title>
+        <Typography.Title level={5}>{t("admin_users.registration.pending_title", { defaultValue: "Pending Registration Requests" })}</Typography.Title>
         <Paragraph type="secondary">
-          ใช้สำหรับคำขอที่ผู้ใช้ลงทะเบียนเข้ามาเอง แล้วให้ผู้ดูแลตรวจและอนุมัติหรือปฏิเสธ
+          {t("admin_users.registration.pending_description", { defaultValue: "Review self-registration requests and approve or reject them." })}
         </Paragraph>
         <Divider />
         <Table
@@ -490,19 +492,19 @@ export function AdminUsersPage() {
   } else {
     const departmentsContent = (
       <Card variant="borderless">
-        <Typography.Title level={5}>Master: แผนก</Typography.Title>
+        <Typography.Title level={5}>{t("admin_users.master.departments_title", { defaultValue: "Master: Departments" })}</Typography.Title>
         <Paragraph type="secondary">
-          ใช้เพิ่ม ลบ แก้ไข master data ของแผนกก่อนนำไปผูกกับผู้ใช้งาน
+          {t("admin_users.master.departments_description", { defaultValue: "Create, update, and remove department master data before assigning it to users." })}
         </Paragraph>
         <Space style={{ marginBottom: 16 }}>
           <Button type="primary" onClick={() => setCreatingDepartment(true)}>
-            เพิ่มแผนก
+            {t("admin_users.master.create_department", { defaultValue: "Add Department" })}
           </Button>
         </Space>
         <Table
           rowKey="id"
           columns={masterColumns(
-            "Department",
+            t("admin_users.columns.department", { defaultValue: "Department" }),
             (item) => {
               setEditingDepartment(item);
               editDepartmentForm.setFieldValue("editName", item.name);
@@ -523,19 +525,19 @@ export function AdminUsersPage() {
 
     const jobTitlesContent = (
       <Card variant="borderless">
-        <Typography.Title level={5}>Master: ตำแหน่ง</Typography.Title>
+        <Typography.Title level={5}>{t("admin_users.master.job_titles_title", { defaultValue: "Master: Job Titles" })}</Typography.Title>
         <Paragraph type="secondary">
-          ใช้เพิ่ม ลบ แก้ไข master data ของตำแหน่งก่อนนำไปผูกกับผู้ใช้งาน
+          {t("admin_users.master.job_titles_description", { defaultValue: "Create, update, and remove job title master data before assigning it to users." })}
         </Paragraph>
         <Space style={{ marginBottom: 16 }}>
           <Button type="primary" onClick={() => setCreatingJobTitle(true)}>
-            เพิ่มตำแหน่ง
+            {t("admin_users.master.create_job_title", { defaultValue: "Add Job Title" })}
           </Button>
         </Space>
         <Table
           rowKey="id"
           columns={masterColumns(
-            "Job title",
+            t("admin_users.columns.job_title", { defaultValue: "Job Title" }),
             (item) => {
               setEditingJobTitle(item);
               editJobTitleForm.setFieldValue("editName", item.name);
@@ -555,28 +557,28 @@ export function AdminUsersPage() {
     );
 
     if (currentSection === "master-departments") {
-      pageTitle = "จัดการข้อมูล Master";
-      pageDescription = "จัดการข้อมูลหลักของระบบในหมวดแผนก";
+      pageTitle = t("admin_users.master.page_title", { defaultValue: "Master Data Management" });
+      pageDescription = t("admin_users.master.departments_page_description", { defaultValue: "Manage system master data for departments." });
       pageContent = departmentsContent;
     } else if (currentSection === "master-job-titles") {
-      pageTitle = "จัดการข้อมูล Master";
-      pageDescription = "จัดการข้อมูลหลักของระบบในหมวดตำแหน่ง";
+      pageTitle = t("admin_users.master.page_title", { defaultValue: "Master Data Management" });
+      pageDescription = t("admin_users.master.job_titles_page_description", { defaultValue: "Manage system master data for job titles." });
       pageContent = jobTitlesContent;
     } else {
       pageContent = (
         <Space direction="vertical" size={20} style={{ width: "100%" }}>
           <Card variant="borderless">
-            <Typography.Title level={5}>จัดการผู้ใช้งานโดยผู้ดูแล</Typography.Title>
+            <Typography.Title level={5}>{t("admin_users.directory.card_title", { defaultValue: "Administrator User Management" })}</Typography.Title>
             <Paragraph type="secondary">
-              ใช้สำหรับเพิ่มผู้ใช้งานจากฝั่ง admin โดยตรง ตอนนี้รองรับการเพิ่มและดูรายการแล้ว ส่วนแก้ไขยังต้องเพิ่ม endpoint ฝั่ง API
+              {t("admin_users.directory.card_description", { defaultValue: "Create and manage users directly from the administrator side." })}
             </Paragraph>
             <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreatingUser(true)}>
-              เพิ่มผู้ใช้งาน
+              {t("admin_users.directory.create_user", { defaultValue: "Add User" })}
             </Button>
           </Card>
 
           <Card variant="borderless">
-            <Typography.Title level={5}>รายการผู้ใช้งาน</Typography.Title>
+            <Typography.Title level={5}>{t("admin_users.directory.list_title", { defaultValue: "User List" })}</Typography.Title>
             <Table
               rowKey="id"
               columns={userColumns}
@@ -622,11 +624,11 @@ export function AdminUsersPage() {
         <Alert
           type="error"
           showIcon
-          message={i18n.t("errors.load_admin_data")}
+          message={t("errors.load_admin_data")}
           description={
             (() => {
               const sourceError = usersQuery.error ?? registrationRequestsQuery.error ?? invitationsQuery.error;
-              const presentation = getApiErrorPresentation(sourceError, i18n.t("errors.load_admin_data"));
+              const presentation = getApiErrorPresentation(sourceError, t("errors.load_admin_data"));
               return presentation.description;
             })()
           }
@@ -636,7 +638,7 @@ export function AdminUsersPage() {
       {pageContent}
 
       <Modal
-        title="ลิงก์คำเชิญ"
+        title={t("admin_users.invitations.view_title", { defaultValue: "Invitation Link" })}
         open={viewingInvitation !== null}
         onCancel={() => {
           setViewingInvitation(null);
@@ -652,10 +654,10 @@ export function AdminUsersPage() {
 
               const invitationUrl = `${window.location.origin}${viewingInvitation.invitationLink}`;
               void navigator.clipboard.writeText(invitationUrl);
-              handleSuccess(`Copied invitation link for ${viewingInvitation.email}`);
+              handleSuccess(t("admin_users.messages.invitation_link_copied", { email: viewingInvitation.email, defaultValue: "Copied invitation link for {{email}}" }));
             }}
           >
-            Copy link
+            {t("common.actions.copy_link", { defaultValue: "Copy link" })}
           </Button>,
           <Button
             key="close"
@@ -663,14 +665,14 @@ export function AdminUsersPage() {
               setViewingInvitation(null);
             }}
           >
-            ปิด
+            {t("common.actions.close", { defaultValue: "Close" })}
           </Button>,
         ]}
       >
         <Space direction="vertical" size={12} style={{ width: "100%" }}>
           <Text strong>{viewingInvitation?.email}</Text>
-          <Text type="secondary">Department: {viewingInvitation?.departmentName || "-"}</Text>
-          <Text type="secondary">Job title: {viewingInvitation?.jobTitleName || "-"}</Text>
+          <Text type="secondary">{t("admin_users.view.department", { defaultValue: "Department" })}: {viewingInvitation?.departmentName || "-"}</Text>
+          <Text type="secondary">{t("admin_users.view.job_title", { defaultValue: "Job title" })}: {viewingInvitation?.jobTitleName || "-"}</Text>
           <Input.TextArea
             value={viewingInvitation ? `${window.location.origin}${viewingInvitation.invitationLink}` : ""}
             autoSize={{ minRows: 3, maxRows: 5 }}
@@ -680,10 +682,10 @@ export function AdminUsersPage() {
       </Modal>
 
       <Modal
-        title="เชิญผู้ใช้งาน"
+        title={t("admin_users.invitations.create_modal_title", { defaultValue: "Invite User" })}
         open={creatingInvitation}
-        okText="ส่งคำเชิญ"
-        cancelText="ยกเลิก"
+        okText={t("common.actions.send_invitation", { defaultValue: "Send Invitation" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         confirmLoading={createInvitationMutation.isPending}
         onCancel={() => {
           setCreatingInvitation(false);
@@ -705,9 +707,9 @@ export function AdminUsersPage() {
                   onSuccess: () => {
                     setCreatingInvitation(false);
                     inviteForm.resetFields();
-                    handleSuccess(`Invitation sent to ${values.email}`);
+                    handleSuccess(t("admin_users.messages.invitation_sent", { email: values.email, defaultValue: "Invitation sent to {{email}}" }));
                   },
-                  onError: (error) => handleError(i18n.t("errors.invite_user_failed"), error),
+                  onError: (error) => handleError(t("errors.invite_user_failed"), error),
                 }
               );
             })
@@ -715,34 +717,34 @@ export function AdminUsersPage() {
         }}
       >
         <Form layout="vertical" form={inviteForm}>
-          <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
-            <Input prefix={<MailOutlined />} placeholder="invitee@company.com" />
+          <Form.Item label={t("admin_users.fields.email", { defaultValue: "Email" })} name="email" rules={[{ required: true, type: "email" }]}>
+            <Input prefix={<MailOutlined />} placeholder={t("admin_users.placeholders.invitee_email", { defaultValue: "invitee@company.com" })} />
           </Form.Item>
-          <Form.Item label="แผนก" name="departmentId">
+          <Form.Item label={t("admin_users.fields.department", { defaultValue: "Department" })} name="departmentId">
             <Select
               allowClear
-              placeholder="เลือกแผนก"
+              placeholder={t("admin_users.placeholders.select_department", { defaultValue: "Select department" })}
               options={(departmentsQuery.data ?? []).map((item) => ({
                 label: item.name,
                 value: item.id,
               }))}
             />
           </Form.Item>
-          <Form.Item label="ตำแหน่ง" name="jobTitleId">
+          <Form.Item label={t("admin_users.fields.job_title", { defaultValue: "Job title" })} name="jobTitleId">
             <Select
               allowClear
-              placeholder="เลือกตำแหน่ง"
+              placeholder={t("admin_users.placeholders.select_job_title", { defaultValue: "Select job title" })}
               options={(jobTitlesQuery.data ?? []).map((item) => ({
                 label: item.name,
                 value: item.id,
               }))}
             />
           </Form.Item>
-          <Form.Item label="วันหมดอายุ" name="expiresAt">
+          <Form.Item label={t("admin_users.fields.expires_at", { defaultValue: "Expiration date" })} name="expiresAt">
             <DatePicker
               style={{ width: "100%" }}
               format="DD/MM/YYYY"
-              placeholder="เลือกวันหมดอายุ"
+              placeholder={t("admin_users.placeholders.select_expiration_date", { defaultValue: "Select expiration date" })}
               disabledDate={(current) => Boolean(current && current.endOf("day").valueOf() <= Date.now())}
             />
           </Form.Item>
@@ -750,10 +752,10 @@ export function AdminUsersPage() {
       </Modal>
 
       <Modal
-        title="แก้ไขคำเชิญ"
+        title={t("admin_users.invitations.edit_modal_title", { defaultValue: "Edit Invitation" })}
         open={editingInvitation !== null}
-        okText="บันทึก"
-        cancelText="ยกเลิก"
+        okText={t("common.actions.save", { defaultValue: "Save" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         confirmLoading={updateInvitationMutation.isPending}
         onCancel={() => {
           setEditingInvitation(null);
@@ -779,9 +781,9 @@ export function AdminUsersPage() {
                   onSuccess: () => {
                     setEditingInvitation(null);
                     editInvitationForm.resetFields();
-                    handleSuccess(`Updated invitation for ${values.email}`);
+                    handleSuccess(t("admin_users.messages.invitation_updated", { email: values.email, defaultValue: "Updated invitation for {{email}}" }));
                   },
-                  onError: (error) => handleError(i18n.t("errors.update_invitation_failed"), error),
+                  onError: (error) => handleError(t("errors.update_invitation_failed"), error),
                 }
               );
             })
@@ -789,34 +791,34 @@ export function AdminUsersPage() {
         }}
       >
         <Form layout="vertical" form={editInvitationForm}>
-          <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
-            <Input prefix={<MailOutlined />} placeholder="invitee@company.com" />
+          <Form.Item label={t("admin_users.fields.email", { defaultValue: "Email" })} name="email" rules={[{ required: true, type: "email" }]}>
+            <Input prefix={<MailOutlined />} placeholder={t("admin_users.placeholders.invitee_email", { defaultValue: "invitee@company.com" })} />
           </Form.Item>
-          <Form.Item label="แผนก" name="departmentId">
+          <Form.Item label={t("admin_users.fields.department", { defaultValue: "Department" })} name="departmentId">
             <Select
               allowClear
-              placeholder="เลือกแผนก"
+              placeholder={t("admin_users.placeholders.select_department", { defaultValue: "Select department" })}
               options={(departmentsQuery.data ?? []).map((item) => ({
                 label: item.name,
                 value: item.id,
               }))}
             />
           </Form.Item>
-          <Form.Item label="ตำแหน่ง" name="jobTitleId">
+          <Form.Item label={t("admin_users.fields.job_title", { defaultValue: "Job title" })} name="jobTitleId">
             <Select
               allowClear
-              placeholder="เลือกตำแหน่ง"
+              placeholder={t("admin_users.placeholders.select_job_title", { defaultValue: "Select job title" })}
               options={(jobTitlesQuery.data ?? []).map((item) => ({
                 label: item.name,
                 value: item.id,
               }))}
             />
           </Form.Item>
-          <Form.Item label="วันหมดอายุ" name="expiresAt">
+          <Form.Item label={t("admin_users.fields.expires_at", { defaultValue: "Expiration date" })} name="expiresAt">
             <DatePicker
               style={{ width: "100%" }}
               format="DD/MM/YYYY"
-              placeholder="เลือกวันหมดอายุ"
+              placeholder={t("admin_users.placeholders.select_expiration_date", { defaultValue: "Select expiration date" })}
               disabledDate={(current) => Boolean(current && current.endOf("day").valueOf() <= Date.now())}
             />
           </Form.Item>
@@ -824,12 +826,12 @@ export function AdminUsersPage() {
       </Modal>
 
       <Modal
-        title="เพิ่มผู้ใช้งาน"
+        title={t("admin_users.directory.create_modal_title", { defaultValue: "Add User" })}
         open={creatingUser}
         width={820}
         destroyOnHidden
-        okText="บันทึก"
-        cancelText="ยกเลิก"
+        okText={t("common.actions.save", { defaultValue: "Save" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         confirmLoading={createUserMutation.isPending}
         onCancel={() => {
           setCreatingUser(false);
@@ -864,9 +866,9 @@ export function AdminUsersPage() {
                   onSuccess: () => {
                     setCreatingUser(false);
                     createUserForm.resetFields();
-                    handleSuccess(`Created ${values.email}`);
+                    handleSuccess(t("admin_users.messages.user_created", { email: values.email, defaultValue: "Created {{email}}" }));
                   },
-                  onError: (error) => handleError(i18n.t("errors.create_user_failed"), error),
+                  onError: (error) => handleError(t("errors.create_user_failed"), error),
                 }
               );
             })
@@ -877,64 +879,64 @@ export function AdminUsersPage() {
           <Space direction="vertical" size={20} style={{ width: "100%" }}>
             <Card size="small" variant="borderless" style={{ background: "rgba(14, 165, 233, 0.06)" }}>
               <Typography.Title level={5} style={{ marginTop: 0 }}>
-                ข้อมูลบัญชีผู้ใช้งาน
+                {t("admin_users.sections.account_information", { defaultValue: "Account Information" })}
               </Typography.Title>
-              <Form.Item label="อีเมล" name="email" rules={[{ required: true, type: "email" }]}>
-                <Input placeholder="name@company.com" />
+              <Form.Item label={t("admin_users.fields.email", { defaultValue: "Email" })} name="email" rules={[{ required: true, type: "email" }]}>
+                <Input placeholder={t("admin_users.placeholders.user_email", { defaultValue: "name@company.com" })} />
               </Form.Item>
-              <Form.Item label="ชื่อ" name="firstName" rules={[{ required: true }]}>
-                <Input placeholder="ชื่อ" />
+              <Form.Item label={t("admin_users.fields.first_name", { defaultValue: "First name" })} name="firstName" rules={[{ required: true, message: t("invitation_page.first_name_required") }]}>
+                <Input placeholder={t("invitation_page.first_name_placeholder")} />
               </Form.Item>
-              <Form.Item label="นามสกุล" name="lastName" rules={[{ required: true }]}>
-                <Input placeholder="นามสกุล" />
+              <Form.Item label={t("admin_users.fields.last_name", { defaultValue: "Last name" })} name="lastName" rules={[{ required: true, message: t("invitation_page.last_name_required") }]}>
+                <Input placeholder={t("invitation_page.last_name_placeholder")} />
               </Form.Item>
               <Form.Item
-                label="รหัสผ่าน"
+                label={t("invitation_page.password_label")}
                 name="password"
                 rules={[
-                  { required: true, message: "กรุณากรอกรหัสผ่าน" },
-                  { min: 8, message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร" },
+                  { required: true, message: t("errors.password_required") },
+                  { min: 8, message: t("errors.password_min_length") },
                 ]}
               >
-                <Input.Password placeholder="อย่างน้อย 8 ตัวอักษร" />
+                <Input.Password placeholder={t("invitation_page.password_placeholder")} />
               </Form.Item>
               <Form.Item
-                label="ยืนยันรหัสผ่าน"
+                label={t("invitation_page.confirm_password_label")}
                 name="confirmPassword"
                 dependencies={["password"]}
                 rules={[
-                  { required: true, message: "กรุณายืนยันรหัสผ่าน" },
+                  { required: true, message: t("invitation_page.confirm_password_required") },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
                       if (!value || getFieldValue("password") === value) {
                         return Promise.resolve();
                       }
 
-                      return Promise.reject(new Error("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน"));
+                      return Promise.reject(new Error(t("errors.password_mismatch")));
                     },
                   }),
                 ]}
               >
-                <Input.Password placeholder="กรอกรหัสผ่านอีกครั้ง" />
+                <Input.Password placeholder={t("invitation_page.confirm_password_placeholder")} />
               </Form.Item>
             </Card>
 
             <Card size="small" variant="borderless" style={{ background: "rgba(15, 23, 42, 0.03)" }}>
               <Typography.Title level={5} style={{ marginTop: 0 }}>
-                โครงสร้างองค์กร
+                {t("admin_users.sections.organization_structure", { defaultValue: "Organization Structure" })}
               </Typography.Title>
-              <Form.Item label="แผนก" name="departmentId">
+              <Form.Item label={t("admin_users.fields.department", { defaultValue: "Department" })} name="departmentId">
                 <Select
                   allowClear
-                  placeholder="เลือกแผนก"
+                  placeholder={t("admin_users.placeholders.select_department", { defaultValue: "Select department" })}
                   loading={departmentsQuery.isLoading}
                   options={(departmentsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
                 />
               </Form.Item>
-              <Form.Item label="ตำแหน่ง" name="jobTitleId">
+              <Form.Item label={t("admin_users.fields.job_title", { defaultValue: "Job title" })} name="jobTitleId">
                 <Select
                   allowClear
-                  placeholder="เลือกตำแหน่ง"
+                  placeholder={t("admin_users.placeholders.select_job_title", { defaultValue: "Select job title" })}
                   loading={jobTitlesQuery.isLoading}
                   options={(jobTitlesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
                 />
@@ -943,17 +945,17 @@ export function AdminUsersPage() {
 
             <Card size="small" variant="borderless" style={{ background: "rgba(22, 163, 74, 0.05)" }}>
               <Typography.Title level={5} style={{ marginTop: 0 }}>
-                สิทธิ์การใช้งาน
+                {t("admin_users.sections.access_rights", { defaultValue: "Access Rights" })}
               </Typography.Title>
               <Form.Item
-                label="Roles"
+                label={t("admin_users.fields.roles", { defaultValue: "Roles" })}
                 name="roles"
-                extra="เลือกจากรายการ role ในฐานข้อมูลของระบบ แล้วระบบจะ map ไป Keycloak ให้อัตโนมัติ"
+                extra={t("admin_users.fields.roles_help", { defaultValue: "Select roles from the application database. The system will map them to Keycloak automatically." })}
               >
                 <Select
                   mode="multiple"
                   allowClear
-                  placeholder="เลือกบทบาทผู้ใช้งาน"
+                  placeholder={t("admin_users.placeholders.select_roles", { defaultValue: "Select user roles" })}
                   loading={rolesQuery.isLoading}
                   options={userRoleOptions}
                 />
@@ -964,12 +966,12 @@ export function AdminUsersPage() {
       </Modal>
 
       <Modal
-        title="แก้ไขผู้ใช้งาน"
+        title={t("admin_users.directory.edit_modal_title", { defaultValue: "Edit User" })}
         open={editingUser !== null}
         width={820}
         destroyOnHidden
-        okText="บันทึก"
-        cancelText="ยกเลิก"
+        okText={t("common.actions.save", { defaultValue: "Save" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         confirmLoading={updateUserMutation.isPending}
         onCancel={() => {
           setEditingUser(null);
@@ -1002,11 +1004,11 @@ export function AdminUsersPage() {
                 },
                 {
                   onSuccess: () => {
-                    handleSuccess(`Updated ${values.email}`);
+                    handleSuccess(t("admin_users.messages.user_updated", { email: values.email, defaultValue: "Updated {{email}}" }));
                     setEditingUser(null);
                     editUserForm.resetFields();
                   },
-                  onError: (error) => handleError(i18n.t("errors.update_user_failed"), error),
+                  onError: (error) => handleError(t("errors.update_user_failed"), error),
                 }
               );
             })
@@ -1017,35 +1019,35 @@ export function AdminUsersPage() {
           <Space direction="vertical" size={20} style={{ width: "100%" }}>
             <Card size="small" variant="borderless" style={{ background: "rgba(14, 165, 233, 0.06)" }}>
               <Typography.Title level={5} style={{ marginTop: 0 }}>
-                ข้อมูลบัญชีผู้ใช้งาน
+                {t("admin_users.sections.account_information", { defaultValue: "Account Information" })}
               </Typography.Title>
-              <Form.Item label="อีเมล" name="email" rules={[{ required: true, type: "email" }]}>
-                <Input placeholder="name@company.com" />
+              <Form.Item label={t("admin_users.fields.email", { defaultValue: "Email" })} name="email" rules={[{ required: true, type: "email" }]}>
+                <Input placeholder={t("admin_users.placeholders.user_email", { defaultValue: "name@company.com" })} />
               </Form.Item>
-              <Form.Item label="ชื่อ" name="firstName" rules={[{ required: true }]}>
-                <Input placeholder="ชื่อ" />
+              <Form.Item label={t("admin_users.fields.first_name", { defaultValue: "First name" })} name="firstName" rules={[{ required: true, message: t("invitation_page.first_name_required") }]}>
+                <Input placeholder={t("invitation_page.first_name_placeholder")} />
               </Form.Item>
-              <Form.Item label="นามสกุล" name="lastName" rules={[{ required: true }]}>
-                <Input placeholder="นามสกุล" />
+              <Form.Item label={t("admin_users.fields.last_name", { defaultValue: "Last name" })} name="lastName" rules={[{ required: true, message: t("invitation_page.last_name_required") }]}>
+                <Input placeholder={t("invitation_page.last_name_placeholder")} />
               </Form.Item>
             </Card>
 
             <Card size="small" variant="borderless" style={{ background: "rgba(15, 23, 42, 0.03)" }}>
               <Typography.Title level={5} style={{ marginTop: 0 }}>
-                โครงสร้างองค์กร
+                {t("admin_users.sections.organization_structure", { defaultValue: "Organization Structure" })}
               </Typography.Title>
-              <Form.Item label="แผนก" name="departmentId">
+              <Form.Item label={t("admin_users.fields.department", { defaultValue: "Department" })} name="departmentId">
                 <Select
                   allowClear
-                  placeholder="เลือกแผนก"
+                  placeholder={t("admin_users.placeholders.select_department", { defaultValue: "Select department" })}
                   loading={departmentsQuery.isLoading}
                   options={(departmentsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
                 />
               </Form.Item>
-              <Form.Item label="ตำแหน่ง" name="jobTitleId">
+              <Form.Item label={t("admin_users.fields.job_title", { defaultValue: "Job title" })} name="jobTitleId">
                 <Select
                   allowClear
-                  placeholder="เลือกตำแหน่ง"
+                  placeholder={t("admin_users.placeholders.select_job_title", { defaultValue: "Select job title" })}
                   loading={jobTitlesQuery.isLoading}
                   options={(jobTitlesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
                 />
@@ -1054,17 +1056,17 @@ export function AdminUsersPage() {
 
             <Card size="small" variant="borderless" style={{ background: "rgba(22, 163, 74, 0.05)" }}>
               <Typography.Title level={5} style={{ marginTop: 0 }}>
-                สิทธิ์การใช้งาน
+                {t("admin_users.sections.access_rights", { defaultValue: "Access Rights" })}
               </Typography.Title>
               <Form.Item
-                label="Roles"
+                label={t("admin_users.fields.roles", { defaultValue: "Roles" })}
                 name="roleIds"
-                extra="เลือกจากรายการ role ในฐานข้อมูลของระบบ แล้วระบบจะ map ไป Keycloak ให้อัตโนมัติ"
+                extra={t("admin_users.fields.roles_help", { defaultValue: "Select roles from the application database. The system will map them to Keycloak automatically." })}
               >
                 <Select
                   mode="multiple"
                   allowClear
-                  placeholder="เลือกบทบาทผู้ใช้งาน"
+                  placeholder={t("admin_users.placeholders.select_roles", { defaultValue: "Select user roles" })}
                   loading={rolesQuery.isLoading}
                   options={userRoleOptions}
                 />
@@ -1075,10 +1077,10 @@ export function AdminUsersPage() {
       </Modal>
 
       <Modal
-        title={deletingUser ? `ลบผู้ใช้งาน ${deletingUser.keycloak?.email || deletingUser.id}` : "ลบผู้ใช้งาน"}
+        title={deletingUser ? t("admin_users.directory.delete_modal_title_with_email", { email: deletingUser.keycloak?.email || deletingUser.id, defaultValue: "Delete user {{email}}" }) : t("admin_users.directory.delete_modal_title", { defaultValue: "Delete User" })}
         open={deletingUser !== null}
-        okText="ยืนยันการลบ"
-        cancelText="ยกเลิก"
+        okText={t("common.actions.confirm_delete", { defaultValue: "Confirm Deletion" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         okButtonProps={{ danger: true }}
         confirmLoading={deleteUserMutation.isPending}
         onCancel={() => {
@@ -1097,11 +1099,11 @@ export function AdminUsersPage() {
                 { id: deletingUser.id, reason: values.reason },
                 {
                   onSuccess: () => {
-                    handleSuccess(`Deleted ${deletingUser.keycloak?.email || deletingUser.id}`);
+                    handleSuccess(t("admin_users.messages.user_deleted", { email: deletingUser.keycloak?.email || deletingUser.id, defaultValue: "Deleted {{email}}" }));
                     setDeletingUser(null);
                     deleteUserForm.resetFields();
                   },
-                  onError: (error) => handleError(i18n.t("errors.delete_user_failed"), error),
+                  onError: (error) => handleError(t("errors.delete_user_failed"), error),
                 }
               );
             })
@@ -1110,18 +1112,19 @@ export function AdminUsersPage() {
       >
         <Form layout="vertical" form={deleteUserForm}>
           <Paragraph type="secondary">
-            การดำเนินการนี้จะ soft delete ผู้ใช้งานในระบบ และปิดการใช้งานบัญชีที่ Keycloak
+            {t("admin_users.directory.delete_description", { defaultValue: "This action will soft delete the user in Operis and disable the account in Keycloak." })}
           </Paragraph>
-          <Form.Item name="reason" label="เหตุผลในการลบ" rules={[{ required: true, message: "กรุณาระบุเหตุผลในการลบ" }]}>
-            <Input.TextArea rows={4} placeholder="เช่น พนักงานลาออก / บัญชีสร้างผิด / ยกเลิกการใช้งาน" />
+          <Form.Item name="reason" label={t("admin_users.fields.delete_reason", { defaultValue: "Deletion reason" })} rules={[{ required: true, message: t("admin_users.validation.delete_reason_required", { defaultValue: "Please provide a deletion reason." }) }]}>
+            <Input.TextArea rows={4} placeholder={t("admin_users.placeholders.user_delete_reason", { defaultValue: "e.g. employee resigned / duplicate account / account deactivated" })} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="เพิ่มแผนก"
+        title={t("admin_users.master.create_department_modal_title", { defaultValue: "Add Department" })}
         open={creatingDepartment}
-        okText="Create"
+        okText={t("common.actions.create", { defaultValue: "Create" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         confirmLoading={createDepartmentMutation.isPending}
         onCancel={() => {
           setCreatingDepartment(false);
@@ -1137,9 +1140,9 @@ export function AdminUsersPage() {
                   onSuccess: () => {
                     setCreatingDepartment(false);
                     createDepartmentForm.resetFields();
-                    handleSuccess(`Created department ${values.name}`);
+                    handleSuccess(t("admin_users.messages.department_created", { name: values.name, defaultValue: "Created department {{name}}" }));
                   },
-                  onError: (error) => handleError(i18n.t("errors.create_department_failed"), error),
+                  onError: (error) => handleError(t("errors.create_department_failed"), error),
                 }
               );
             })
@@ -1147,19 +1150,20 @@ export function AdminUsersPage() {
         }}
       >
         <Form form={createDepartmentForm} layout="vertical">
-          <Form.Item name="name" label="Department name" rules={[{ required: true }]}>
-            <Input placeholder="Operations" />
+          <Form.Item name="name" label={t("admin_users.master.department_name", { defaultValue: "Department name" })} rules={[{ required: true, message: t("errors.department_required") }]}>
+            <Input placeholder={t("admin_users.placeholders.department_name", { defaultValue: "Operations" })} />
           </Form.Item>
-          <Form.Item name="displayOrder" label="ลำดับ" rules={[{ required: true }]}>
+          <Form.Item name="displayOrder" label={t("admin_users.master.display_order", { defaultValue: "Display Order" })} rules={[{ required: true }]}>
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="Edit department"
+        title={t("admin_users.master.edit_department_modal_title", { defaultValue: "Edit Department" })}
         open={editingDepartment !== null}
-        okText="Save"
+        okText={t("common.actions.save", { defaultValue: "Save" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         confirmLoading={updateDepartmentMutation.isPending}
         onCancel={() => {
           setEditingDepartment(null);
@@ -1178,9 +1182,9 @@ export function AdminUsersPage() {
                 {
                   onSuccess: () => {
                     setEditingDepartment(null);
-                    handleSuccess(`Updated department ${values.editName}`);
+                    handleSuccess(t("admin_users.messages.department_updated", { name: values.editName, defaultValue: "Updated department {{name}}" }));
                   },
-                  onError: (error) => handleError(i18n.t("errors.update_department_failed"), error),
+                  onError: (error) => handleError(t("errors.update_department_failed"), error),
                 }
               );
             })
@@ -1188,19 +1192,20 @@ export function AdminUsersPage() {
         }}
       >
         <Form form={editDepartmentForm} layout="vertical">
-          <Form.Item name="editName" label="Department name" rules={[{ required: true }]}>
+          <Form.Item name="editName" label={t("admin_users.master.department_name", { defaultValue: "Department name" })} rules={[{ required: true, message: t("errors.department_required") }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="editDisplayOrder" label="ลำดับ" rules={[{ required: true }]}>
+          <Form.Item name="editDisplayOrder" label={t("admin_users.master.display_order", { defaultValue: "Display Order" })} rules={[{ required: true }]}>
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={deletingDepartment ? `ลบแผนก ${deletingDepartment.name}` : "ลบแผนก"}
+        title={deletingDepartment ? t("admin_users.master.delete_department_title_with_name", { name: deletingDepartment.name, defaultValue: "Delete department {{name}}" }) : t("admin_users.master.delete_department_title", { defaultValue: "Delete Department" })}
         open={deletingDepartment !== null}
-        okText="Delete"
+        okText={t("common.actions.delete", { defaultValue: "Delete" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         okButtonProps={{ danger: true }}
         confirmLoading={deleteDepartmentMutation.isPending}
         onCancel={() => {
@@ -1221,9 +1226,9 @@ export function AdminUsersPage() {
                   onSuccess: () => {
                     setDeletingDepartment(null);
                     deleteDepartmentForm.resetFields();
-                    handleSuccess(`Deleted department ${deletingDepartment.name}`);
+                    handleSuccess(t("admin_users.messages.department_deleted", { name: deletingDepartment.name, defaultValue: "Deleted department {{name}}" }));
                   },
-                  onError: (error) => handleError(i18n.t("errors.delete_department_failed"), error),
+                  onError: (error) => handleError(t("errors.delete_department_failed"), error),
                 }
               );
             })
@@ -1231,17 +1236,18 @@ export function AdminUsersPage() {
         }}
       >
         <Form form={deleteDepartmentForm} layout="vertical">
-          <Paragraph type="secondary">ยืนยันการลบแบบ soft delete และระบุเหตุผล</Paragraph>
-          <Form.Item name="reason" label="เหตุผล" rules={[{ required: true, message: "กรุณาระบุเหตุผล" }]}>
-            <Input.TextArea rows={4} placeholder="เช่น ยุบหน่วยงาน / สร้างรายการใหม่แทน" />
+          <Paragraph type="secondary">{t("admin_users.master.delete_soft_delete_description", { defaultValue: "Confirm soft delete and provide a reason." })}</Paragraph>
+          <Form.Item name="reason" label={t("admin_users.fields.reason", { defaultValue: "Reason" })} rules={[{ required: true, message: t("admin_users.validation.reason_required", { defaultValue: "Please provide a reason." }) }]}>
+            <Input.TextArea rows={4} placeholder={t("admin_users.placeholders.department_delete_reason", { defaultValue: "e.g. department merged / replaced with a new record" })} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="เพิ่มตำแหน่ง"
+        title={t("admin_users.master.create_job_title_modal_title", { defaultValue: "Add Job Title" })}
         open={creatingJobTitle}
-        okText="Create"
+        okText={t("common.actions.create", { defaultValue: "Create" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         confirmLoading={createJobTitleMutation.isPending}
         onCancel={() => {
           setCreatingJobTitle(false);
@@ -1257,9 +1263,9 @@ export function AdminUsersPage() {
                   onSuccess: () => {
                     setCreatingJobTitle(false);
                     createJobTitleForm.resetFields();
-                    handleSuccess(`Created job title ${values.name}`);
+                    handleSuccess(t("admin_users.messages.job_title_created", { name: values.name, defaultValue: "Created job title {{name}}" }));
                   },
-                  onError: (error) => handleError(i18n.t("errors.create_job_title_failed"), error),
+                  onError: (error) => handleError(t("errors.create_job_title_failed"), error),
                 }
               );
             })
@@ -1267,19 +1273,20 @@ export function AdminUsersPage() {
         }}
       >
         <Form form={createJobTitleForm} layout="vertical">
-          <Form.Item name="name" label="Job title name" rules={[{ required: true }]}>
-            <Input placeholder="Document Controller" />
+          <Form.Item name="name" label={t("admin_users.master.job_title_name", { defaultValue: "Job title name" })} rules={[{ required: true, message: t("errors.job_title_required") }]}>
+            <Input placeholder={t("admin_users.placeholders.job_title_name", { defaultValue: "Document Controller" })} />
           </Form.Item>
-          <Form.Item name="displayOrder" label="ลำดับ" rules={[{ required: true }]}>
+          <Form.Item name="displayOrder" label={t("admin_users.master.display_order", { defaultValue: "Display Order" })} rules={[{ required: true }]}>
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="Edit job title"
+        title={t("admin_users.master.edit_job_title_modal_title", { defaultValue: "Edit Job Title" })}
         open={editingJobTitle !== null}
-        okText="Save"
+        okText={t("common.actions.save", { defaultValue: "Save" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         confirmLoading={updateJobTitleMutation.isPending}
         onCancel={() => {
           setEditingJobTitle(null);
@@ -1298,9 +1305,9 @@ export function AdminUsersPage() {
                 {
                   onSuccess: () => {
                     setEditingJobTitle(null);
-                    handleSuccess(`Updated job title ${values.editName}`);
+                    handleSuccess(t("admin_users.messages.job_title_updated", { name: values.editName, defaultValue: "Updated job title {{name}}" }));
                   },
-                  onError: (error) => handleError(i18n.t("errors.update_job_title_failed"), error),
+                  onError: (error) => handleError(t("errors.update_job_title_failed"), error),
                 }
               );
             })
@@ -1308,19 +1315,20 @@ export function AdminUsersPage() {
         }}
       >
         <Form form={editJobTitleForm} layout="vertical">
-          <Form.Item name="editName" label="Job title name" rules={[{ required: true }]}>
+          <Form.Item name="editName" label={t("admin_users.master.job_title_name", { defaultValue: "Job title name" })} rules={[{ required: true, message: t("errors.job_title_required") }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="editDisplayOrder" label="ลำดับ" rules={[{ required: true }]}>
+          <Form.Item name="editDisplayOrder" label={t("admin_users.master.display_order", { defaultValue: "Display Order" })} rules={[{ required: true }]}>
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={deletingJobTitle ? `ลบตำแหน่ง ${deletingJobTitle.name}` : "ลบตำแหน่ง"}
+        title={deletingJobTitle ? t("admin_users.master.delete_job_title_title_with_name", { name: deletingJobTitle.name, defaultValue: "Delete job title {{name}}" }) : t("admin_users.master.delete_job_title_title", { defaultValue: "Delete Job Title" })}
         open={deletingJobTitle !== null}
-        okText="Delete"
+        okText={t("common.actions.delete", { defaultValue: "Delete" })}
+        cancelText={t("common.actions.cancel", { defaultValue: "Cancel" })}
         okButtonProps={{ danger: true }}
         confirmLoading={deleteJobTitleMutation.isPending}
         onCancel={() => {
@@ -1341,9 +1349,9 @@ export function AdminUsersPage() {
                   onSuccess: () => {
                     setDeletingJobTitle(null);
                     deleteJobTitleForm.resetFields();
-                    handleSuccess(`Deleted job title ${deletingJobTitle.name}`);
+                    handleSuccess(t("admin_users.messages.job_title_deleted", { name: deletingJobTitle.name, defaultValue: "Deleted job title {{name}}" }));
                   },
-                  onError: (error) => handleError(i18n.t("errors.delete_job_title_failed"), error),
+                  onError: (error) => handleError(t("errors.delete_job_title_failed"), error),
                 }
               );
             })
@@ -1351,9 +1359,9 @@ export function AdminUsersPage() {
         }}
       >
         <Form form={deleteJobTitleForm} layout="vertical">
-          <Paragraph type="secondary">ยืนยันการลบแบบ soft delete และระบุเหตุผล</Paragraph>
-          <Form.Item name="reason" label="เหตุผล" rules={[{ required: true, message: "กรุณาระบุเหตุผล" }]}>
-            <Input.TextArea rows={4} placeholder="เช่น ปรับโครงสร้างตำแหน่ง / ยกเลิกรายการเดิม" />
+          <Paragraph type="secondary">{t("admin_users.master.delete_soft_delete_description", { defaultValue: "Confirm soft delete and provide a reason." })}</Paragraph>
+          <Form.Item name="reason" label={t("admin_users.fields.reason", { defaultValue: "Reason" })} rules={[{ required: true, message: t("admin_users.validation.reason_required", { defaultValue: "Please provide a reason." }) }]}>
+            <Input.TextArea rows={4} placeholder={t("admin_users.placeholders.job_title_delete_reason", { defaultValue: "e.g. title structure updated / previous item removed" })} />
           </Form.Item>
         </Form>
       </Modal>

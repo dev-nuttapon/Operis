@@ -41,8 +41,8 @@ export function AuthLandingPage() {
             onChange={handleLanguageChange}
             bordered={false}
             options={[
-              { value: 'en', label: t('common.language.en') },
-              { value: 'th', label: t('common.language.th') }
+              { value: 'en', label: t('common.language_en') },
+              { value: 'th', label: t('common.language_th') }
             ]}
           />
         </Space>
