@@ -35,8 +35,20 @@ export function MainLayout() {
   const { theme: currentTheme, setTheme } = useThemeStore();
   const displayName = user?.name || user?.email?.split('@')[0] || 'User';
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
-  const avatarBg = currentTheme === 'dark' ? '#334155' : '#cbd5e1';
-  const avatarText = currentTheme === 'dark' ? '#e2e8f0' : '#334155';
+  const isDarkMode = token.colorBgBase.toLowerCase() === '#020617';
+  const avatarBg = isDarkMode ? '#1e293b' : '#dbeafe';
+  const avatarText = isDarkMode ? '#e2e8f0' : '#1e3a8a';
+  const bellBg = isDarkMode ? '#111827' : '#eff6ff';
+  const bellBorder = isDarkMode ? '#334155' : '#bfdbfe';
+  const bellText = isDarkMode ? '#e2e8f0' : '#1d4ed8';
+  const bellDot = token.colorPrimary;
+  const currentLanguageLabel = currentLanguage === 'th' ? 'TH' : 'EN';
+  const currentThemeLabel =
+    currentTheme === 'light'
+      ? tr('common.theme.light', 'Light')
+      : currentTheme === 'dark'
+        ? tr('common.theme.dark', 'Dark')
+        : tr('common.theme.system', 'System');
 
   useEffect(() => {
     const onLanguageChanged = (lng: string) => {
@@ -64,7 +76,7 @@ export function MainLayout() {
   const profileMenuItems: MenuProps['items'] = [
     {
       key: 'language',
-      label: `${currentLanguage.toUpperCase()} - ${tr('common.language', 'Language')}`,
+      label: `${tr('common.language', 'Language')}: ${currentLanguageLabel}`,
       icon: <GlobalOutlined />,
       children: [
         { key: 'th', label: 'Thai' },
@@ -73,8 +85,8 @@ export function MainLayout() {
     },
     {
       key: 'theme',
-      label: tr('common.theme_label', 'Theme'),
-      icon: currentTheme === 'dark' ? <BulbFilled /> : <BulbOutlined />,
+      label: `${tr('common.theme_label', 'Theme')}: ${currentThemeLabel}`,
+      icon: isDarkMode ? <BulbFilled /> : <BulbOutlined />,
       children: [
         { key: 'light', label: tr('common.theme.light', 'Light') },
         { key: 'dark', label: tr('common.theme.dark', 'Dark') },
@@ -157,7 +169,7 @@ export function MainLayout() {
         trigger={null} 
         collapsible 
         collapsed={collapsed}
-        theme={currentTheme === 'dark' ? 'dark' : 'light'}
+        theme={isDarkMode ? 'dark' : 'light'}
         width={240}
         style={{ 
           background: token.colorBgContainer,
@@ -198,7 +210,7 @@ export function MainLayout() {
         <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)' }}>
           <div style={{ flex: 1 }}>
             <Menu
-              theme={currentTheme === 'dark' ? 'dark' : 'light'}
+              theme={isDarkMode ? 'dark' : 'light'}
               mode="inline"
               selectedKeys={[location.pathname]}
               onClick={({ key }) => navigate(key)}
@@ -254,15 +266,15 @@ export function MainLayout() {
               <div style={{ position: 'relative', cursor: 'pointer' }}>
                 <Button 
                   shape="circle" 
-                  icon={<BellOutlined style={{ fontSize: 20, color: currentTheme === 'dark' ? '#cbd5e1' : '#334155' }} />} 
+                  icon={<BellOutlined style={{ fontSize: 20, color: bellText }} />} 
                   style={{ 
                     width: 44, 
                     height: 44, 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    background: currentTheme === 'dark' ? '#0f172a' : '#ffffff', 
-                    border: `1px solid ${currentTheme === 'dark' ? '#334155' : '#cbd5e1'}`,
+                    background: bellBg, 
+                    border: `1px solid ${bellBorder}`,
                     pointerEvents: 'none' // Let the parent div handle the click
                   }}
                 />
@@ -274,9 +286,9 @@ export function MainLayout() {
                     right: -2,
                     width: 12,
                     height: 12,
-                    backgroundColor: currentTheme === 'dark' ? '#38bdf8' : '#0ea5e9',
+                    backgroundColor: bellDot,
                     borderRadius: '50%',
-                    border: `2px solid ${currentTheme === 'dark' ? '#0f172a' : '#ffffff'}`,
+                    border: `2px solid ${bellBg}`,
                     zIndex: 1
                   }}
                 />

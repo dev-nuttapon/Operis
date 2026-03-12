@@ -10,13 +10,22 @@ public sealed record CreateUserRequest(string Email, string FirstName, string La
 
 public sealed record UserResponse(
     Guid Id,
+    string? KeycloakUserId,
     string Email,
     string FirstName,
     string LastName,
     UserStatus Status,
     DateTimeOffset CreatedAt,
     string CreatedBy,
-    DateTimeOffset? ApprovedAt);
+    DateTimeOffset? ApprovedAt,
+    KeycloakUserSummary? Keycloak);
+
+public sealed record KeycloakUserSummary(
+    string Id,
+    string Email,
+    string Username,
+    bool Enabled,
+    bool EmailVerified);
 
 public sealed record RegistrationRequestResponse(
     Guid Id,

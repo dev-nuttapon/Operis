@@ -27,6 +27,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.ToTable("users");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.KeycloakUserId).HasColumnName("keycloak_user_id").HasMaxLength(64);
             entity.Property(x => x.Email).HasColumnName("email").HasMaxLength(320);
             entity.Property(x => x.FirstName).HasColumnName("first_name").HasMaxLength(120);
             entity.Property(x => x.LastName).HasColumnName("last_name").HasMaxLength(120);
@@ -35,6 +36,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(120);
             entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
             entity.HasIndex(x => x.Email).IsUnique();
+            entity.HasIndex(x => x.KeycloakUserId).IsUnique();
         });
 
         modelBuilder.Entity<UserRegistrationRequestEntity>(entity =>

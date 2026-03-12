@@ -5,6 +5,11 @@ Accept: application/json
 
 ###
 
+GET {{Operis_API_HostAddress}}/api/v1/users?includeIdentity=true
+Accept: application/json
+
+###
+
 POST {{Operis_API_HostAddress}}/api/v1/users/register
 Content-Type: application/json
 

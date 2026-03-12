@@ -11,6 +11,12 @@ public sealed class UsersModule : IModule
 {
     public IServiceCollection RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<KeycloakOptions>(configuration.GetSection(KeycloakOptions.SectionName));
+        services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
         return services;
     }
 
@@ -18,6 +24,9 @@ public sealed class UsersModule : IModule
     {
         var group = endpoints.MapGroup("/api/v1/users")
             .WithTags("Users");
+
+        group.MapGet("/", ListUsersAsync)
+            .WithName("Users_List");
 
         group.MapPost("/register", CreateRegistrationRequestAsync)
             .WithName("Users_CreateRegistrationRequest");
@@ -38,6 +47,46 @@ public sealed class UsersModule : IModule
             .WithName("Users_CreateUser");
 
         return endpoints;
+    }
+
+    private static async Task<IResult> ListUsersAsync(
+        OperisDbContext dbContext,
+        IKeycloakAdminClient keycloakAdminClient,
+        bool includeIdentity = true,
+        CancellationToken cancellationToken = default)
+    {
+        var users = await dbContext.Users
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(100)
+            .ToListAsync(cancellationToken);
+
+        if (!includeIdentity)
+        {
+            var localOnly = users.Select(x => ToResponse(x, null)).ToList();
+            return Results.Ok(localOnly);
+        }
+
+        var responses = new List<UserResponse>(users.Count);
+        var updated = false;
+
+        foreach (var user in users)
+        {
+            var profile = await ResolveKeycloakProfileAsync(user, keycloakAdminClient, cancellationToken);
+            if (profile is not null && string.IsNullOrWhiteSpace(user.KeycloakUserId))
+            {
+                user.KeycloakUserId = profile.Id;
+                updated = true;
+            }
+
+            responses.Add(ToResponse(user, profile));
+        }
+
+        if (updated)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return Results.Ok(responses);
     }
 
     private static async Task<IResult> CreateRegistrationRequestAsync(
@@ -107,6 +156,7 @@ public sealed class UsersModule : IModule
         Guid requestId,
         ReviewRegistrationRequest request,
         OperisDbContext dbContext,
+        IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
         var registrationRequest = await dbContext.UserRegistrationRequests
@@ -128,6 +178,19 @@ public sealed class UsersModule : IModule
             return Results.Conflict("User already exists.");
         }
 
+        var keycloakResult = await keycloakAdminClient.CreateUserAsync(
+            registrationRequest.Email,
+            registrationRequest.FirstName,
+            registrationRequest.LastName,
+            cancellationToken);
+        if (!keycloakResult.Success)
+        {
+            return Results.Problem(
+                title: "Unable to provision user in Keycloak.",
+                detail: keycloakResult.ErrorMessage,
+                statusCode: StatusCodes.Status502BadGateway);
+        }
+
         var now = DateTimeOffset.UtcNow;
         registrationRequest.Status = RegistrationRequestStatus.Approved;
         registrationRequest.ReviewedAt = now;
@@ -136,6 +199,7 @@ public sealed class UsersModule : IModule
         var user = new UserEntity
         {
             Id = Guid.NewGuid(),
+            KeycloakUserId = keycloakResult.UserId,
             Email = registrationRequest.Email,
             FirstName = registrationRequest.FirstName,
             LastName = registrationRequest.LastName,
@@ -148,7 +212,7 @@ public sealed class UsersModule : IModule
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(ToResponse(user));
+        return Results.Ok(ToResponse(user, null));
     }
 
     private static async Task<IResult> RejectRegistrationRequestAsync(
@@ -218,6 +282,7 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> CreateUserAsync(
         CreateUserRequest request,
         OperisDbContext dbContext,
+        IKeycloakAdminClient keycloakAdminClient,
         CancellationToken cancellationToken)
     {
         var email = NormalizeEmail(request.Email);
@@ -232,10 +297,24 @@ public sealed class UsersModule : IModule
             return Results.Conflict("User already exists.");
         }
 
+        var keycloakResult = await keycloakAdminClient.CreateUserAsync(
+            email,
+            request.FirstName.Trim(),
+            request.LastName.Trim(),
+            cancellationToken);
+        if (!keycloakResult.Success)
+        {
+            return Results.Problem(
+                title: "Unable to provision user in Keycloak.",
+                detail: keycloakResult.ErrorMessage,
+                statusCode: StatusCodes.Status502BadGateway);
+        }
+
         var now = DateTimeOffset.UtcNow;
         var user = new UserEntity
         {
             Id = Guid.NewGuid(),
+            KeycloakUserId = keycloakResult.UserId,
             Email = email,
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
@@ -248,7 +327,24 @@ public sealed class UsersModule : IModule
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Created($"/api/v1/users/{user.Id}", ToResponse(user));
+        return Results.Created($"/api/v1/users/{user.Id}", ToResponse(user, null));
+    }
+
+    private static async Task<KeycloakUserProfile?> ResolveKeycloakProfileAsync(
+        UserEntity user,
+        IKeycloakAdminClient keycloakAdminClient,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(user.KeycloakUserId))
+        {
+            var byId = await keycloakAdminClient.GetUserByIdAsync(user.KeycloakUserId, cancellationToken);
+            if (byId is not null)
+            {
+                return byId;
+            }
+        }
+
+        return await keycloakAdminClient.FindUserByEmailAsync(user.Email, cancellationToken);
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
@@ -276,14 +372,23 @@ public sealed class UsersModule : IModule
             entity.AcceptedAt,
             entity.RejectedAt);
 
-    private static UserResponse ToResponse(UserEntity entity) =>
+    private static UserResponse ToResponse(UserEntity entity, KeycloakUserProfile? keycloakProfile) =>
         new(
             entity.Id,
+            entity.KeycloakUserId,
             entity.Email,
             entity.FirstName,
             entity.LastName,
             entity.Status,
             entity.CreatedAt,
             entity.CreatedBy,
-            entity.ApprovedAt);
+            entity.ApprovedAt,
+            keycloakProfile is null
+                ? null
+                : new KeycloakUserSummary(
+                    keycloakProfile.Id,
+                    keycloakProfile.Email,
+                    keycloakProfile.Username,
+                    keycloakProfile.Enabled,
+                    keycloakProfile.EmailVerified));
 }

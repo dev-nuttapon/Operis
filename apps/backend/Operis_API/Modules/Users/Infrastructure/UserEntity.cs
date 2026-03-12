@@ -5,6 +5,7 @@ namespace Operis_API.Modules.Users.Infrastructure;
 public sealed class UserEntity
 {
     public Guid Id { get; init; }
+    public string? KeycloakUserId { get; set; }
     public string Email { get; init; } = string.Empty;
     public string FirstName { get; init; } = string.Empty;
     public string LastName { get; init; } = string.Empty;
