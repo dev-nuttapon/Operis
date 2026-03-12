@@ -6,10 +6,12 @@ import type {
   CreateUserInput,
   Invitation,
   InvitationStatus,
+  AppRoleItem,
   MasterDataItem,
   RegistrationRequest,
   RegistrationRequestStatus,
   RejectRegistrationInput,
+  SoftDeleteInput,
   UpdateMasterDataInput,
   UpdateCurrentUserPreferencesInput,
   User,
@@ -43,8 +45,19 @@ export function createUser(input: CreateUserInput) {
   });
 }
 
+export function deleteUser(id: string, input: SoftDeleteInput) {
+  return apiRequest<void>(`/api/v1/users/${id}`, {
+    method: "DELETE",
+    body: input,
+  });
+}
+
 export function listDepartments(signal?: AbortSignal) {
   return apiRequest<MasterDataItem[]>("/api/v1/users/departments", { signal });
+}
+
+export function listRoles(signal?: AbortSignal) {
+  return apiRequest<AppRoleItem[]>("/api/v1/users/roles", { signal });
 }
 
 export function createDepartment(input: CreateMasterDataInput) {
@@ -57,13 +70,14 @@ export function createDepartment(input: CreateMasterDataInput) {
 export function updateDepartment(input: UpdateMasterDataInput) {
   return apiRequest<MasterDataItem>(`/api/v1/users/departments/${input.id}`, {
     method: "PUT",
-    body: { name: input.name },
+    body: { name: input.name, displayOrder: input.displayOrder },
   });
 }
 
-export function deleteDepartment(id: string) {
+export function deleteDepartment(id: string, input: SoftDeleteInput) {
   return apiRequest<void>(`/api/v1/users/departments/${id}`, {
     method: "DELETE",
+    body: input,
   });
 }
 
@@ -81,13 +95,14 @@ export function createJobTitle(input: CreateMasterDataInput) {
 export function updateJobTitle(input: UpdateMasterDataInput) {
   return apiRequest<MasterDataItem>(`/api/v1/users/job-titles/${input.id}`, {
     method: "PUT",
-    body: { name: input.name },
+    body: { name: input.name, displayOrder: input.displayOrder },
   });
 }
 
-export function deleteJobTitle(id: string) {
+export function deleteJobTitle(id: string, input: SoftDeleteInput) {
   return apiRequest<void>(`/api/v1/users/job-titles/${id}`, {
     method: "DELETE",
+    body: input,
   });
 }
 

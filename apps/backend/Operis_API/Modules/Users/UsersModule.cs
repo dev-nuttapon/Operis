@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
@@ -30,8 +31,14 @@ public sealed class UsersModule : IModule
         group.MapGet("/", ListUsersAsync)
             .WithName("Users_List");
 
+        group.MapDelete("/{userId}", DeleteUserAsync)
+            .WithName("Users_Delete");
+
         group.MapGet("/departments", ListDepartmentsAsync)
             .WithName("Users_ListDepartments");
+
+        group.MapGet("/roles", ListRolesAsync)
+            .WithName("Users_ListRoles");
 
         group.MapPost("/departments", CreateDepartmentAsync)
             .WithName("Users_CreateDepartment");
@@ -89,6 +96,7 @@ public sealed class UsersModule : IModule
         CancellationToken cancellationToken = default)
     {
         var users = await dbContext.Users
+            .Where(x => x.DeletedAt == null)
             .OrderByDescending(x => x.CreatedAt)
             .Take(100)
             .ToListAsync(cancellationToken);
@@ -101,9 +109,14 @@ public sealed class UsersModule : IModule
             .AsNoTracking()
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
+        var appRoles = await dbContext.AppRoles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToListAsync(cancellationToken);
+
         if (!includeIdentity)
         {
-            var localOnly = users.Select(x => ToResponse(x, null, departments, jobTitles)).ToList();
+            var localOnly = users.Select(x => ToResponse(x, null, [], departments, jobTitles)).ToList();
             return Results.Ok(localOnly);
         }
 
@@ -112,10 +125,31 @@ public sealed class UsersModule : IModule
         foreach (var user in users)
         {
             var profile = await ResolveKeycloakProfileAsync(user, keycloakAdminClient, cancellationToken);
-            responses.Add(ToResponse(user, profile, departments, jobTitles));
+            var keycloakRoles = await keycloakAdminClient.GetUserRealmRolesAsync(user.Id, cancellationToken);
+            var mappedRoles = appRoles
+                .Where(appRole => keycloakRoles.Any(keycloakRole => string.Equals(keycloakRole.Name, appRole.KeycloakRoleName, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .Select(x => x.Name)
+                .ToArray();
+            responses.Add(ToResponse(user, profile, mappedRoles, departments, jobTitles));
         }
 
         return Results.Ok(responses);
+    }
+
+    private static async Task<IResult> ListRolesAsync(
+        OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var roles = await dbContext.AppRoles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new AppRoleResponse(x.Id, x.Name, x.KeycloakRoleName, x.Description, x.DisplayOrder))
+            .ToListAsync(cancellationToken);
+        return Results.Ok(roles);
     }
 
     private static async Task<IResult> ListDepartmentsAsync(
@@ -124,8 +158,10 @@ public sealed class UsersModule : IModule
     {
         var items = await dbContext.Departments
             .AsNoTracking()
-            .OrderBy(x => x.Name)
-            .Select(x => new MasterDataResponse(x.Id, x.Name, x.CreatedAt, x.UpdatedAt))
+            .Where(x => x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
             .ToListAsync(cancellationToken);
 
         return Results.Ok(items);
@@ -142,7 +178,7 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Department name is required.");
         }
 
-        var exists = await dbContext.Departments.AnyAsync(x => x.Name == name, cancellationToken);
+        var exists = await dbContext.Departments.AnyAsync(x => x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
             return Results.Conflict("Department already exists.");
@@ -152,6 +188,7 @@ public sealed class UsersModule : IModule
         {
             Id = Guid.NewGuid(),
             Name = name,
+            DisplayOrder = request.DisplayOrder,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -167,7 +204,7 @@ public sealed class UsersModule : IModule
         OperisDbContext dbContext,
         CancellationToken cancellationToken)
     {
-        var entity = await dbContext.Departments.FirstOrDefaultAsync(x => x.Id == departmentId, cancellationToken);
+        var entity = await dbContext.Departments.FirstOrDefaultAsync(x => x.Id == departmentId && x.DeletedAt == null, cancellationToken);
         if (entity is null)
         {
             return Results.NotFound();
@@ -179,13 +216,14 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Department name is required.");
         }
 
-        var exists = await dbContext.Departments.AnyAsync(x => x.Id != departmentId && x.Name == name, cancellationToken);
+        var exists = await dbContext.Departments.AnyAsync(x => x.Id != departmentId && x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
             return Results.Conflict("Department already exists.");
         }
 
         entity.Name = name;
+        entity.DisplayOrder = request.DisplayOrder;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -194,22 +232,20 @@ public sealed class UsersModule : IModule
 
     private static async Task<IResult> DeleteDepartmentAsync(
         Guid departmentId,
-        OperisDbContext dbContext,
+        [FromBody] SoftDeleteRequest request,
+        ClaimsPrincipal principal,
+        [FromServices] OperisDbContext dbContext,
         CancellationToken cancellationToken)
     {
-        var inUse = await dbContext.Users.AnyAsync(x => x.DepartmentId == departmentId, cancellationToken);
-        if (inUse)
-        {
-            return Results.Conflict("Department is in use by users.");
-        }
-
-        var entity = await dbContext.Departments.FirstOrDefaultAsync(x => x.Id == departmentId, cancellationToken);
+        var entity = await dbContext.Departments.FirstOrDefaultAsync(x => x.Id == departmentId && x.DeletedAt == null, cancellationToken);
         if (entity is null)
         {
             return Results.NotFound();
         }
 
-        dbContext.Departments.Remove(entity);
+        entity.DeletedAt = DateTimeOffset.UtcNow;
+        entity.DeletedBy = ResolveActor(principal);
+        entity.DeletedReason = NormalizeDeleteReason(request.Reason);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
@@ -220,8 +256,10 @@ public sealed class UsersModule : IModule
     {
         var items = await dbContext.JobTitles
             .AsNoTracking()
-            .OrderBy(x => x.Name)
-            .Select(x => new MasterDataResponse(x.Id, x.Name, x.CreatedAt, x.UpdatedAt))
+            .Where(x => x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
             .ToListAsync(cancellationToken);
 
         return Results.Ok(items);
@@ -238,7 +276,7 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Job title name is required.");
         }
 
-        var exists = await dbContext.JobTitles.AnyAsync(x => x.Name == name, cancellationToken);
+        var exists = await dbContext.JobTitles.AnyAsync(x => x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
             return Results.Conflict("Job title already exists.");
@@ -248,6 +286,7 @@ public sealed class UsersModule : IModule
         {
             Id = Guid.NewGuid(),
             Name = name,
+            DisplayOrder = request.DisplayOrder,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -263,7 +302,7 @@ public sealed class UsersModule : IModule
         OperisDbContext dbContext,
         CancellationToken cancellationToken)
     {
-        var entity = await dbContext.JobTitles.FirstOrDefaultAsync(x => x.Id == jobTitleId, cancellationToken);
+        var entity = await dbContext.JobTitles.FirstOrDefaultAsync(x => x.Id == jobTitleId && x.DeletedAt == null, cancellationToken);
         if (entity is null)
         {
             return Results.NotFound();
@@ -275,13 +314,14 @@ public sealed class UsersModule : IModule
             return Results.BadRequest("Job title name is required.");
         }
 
-        var exists = await dbContext.JobTitles.AnyAsync(x => x.Id != jobTitleId && x.Name == name, cancellationToken);
+        var exists = await dbContext.JobTitles.AnyAsync(x => x.Id != jobTitleId && x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
             return Results.Conflict("Job title already exists.");
         }
 
         entity.Name = name;
+        entity.DisplayOrder = request.DisplayOrder;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -290,22 +330,41 @@ public sealed class UsersModule : IModule
 
     private static async Task<IResult> DeleteJobTitleAsync(
         Guid jobTitleId,
-        OperisDbContext dbContext,
+        [FromBody] SoftDeleteRequest request,
+        ClaimsPrincipal principal,
+        [FromServices] OperisDbContext dbContext,
         CancellationToken cancellationToken)
     {
-        var inUse = await dbContext.Users.AnyAsync(x => x.JobTitleId == jobTitleId, cancellationToken);
-        if (inUse)
-        {
-            return Results.Conflict("Job title is in use by users.");
-        }
-
-        var entity = await dbContext.JobTitles.FirstOrDefaultAsync(x => x.Id == jobTitleId, cancellationToken);
+        var entity = await dbContext.JobTitles.FirstOrDefaultAsync(x => x.Id == jobTitleId && x.DeletedAt == null, cancellationToken);
         if (entity is null)
         {
             return Results.NotFound();
         }
 
-        dbContext.JobTitles.Remove(entity);
+        entity.DeletedAt = DateTimeOffset.UtcNow;
+        entity.DeletedBy = ResolveActor(principal);
+        entity.DeletedReason = NormalizeDeleteReason(request.Reason);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> DeleteUserAsync(
+        string userId,
+        [FromBody] SoftDeleteRequest request,
+        ClaimsPrincipal principal,
+        [FromServices] OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == userId && x.DeletedAt == null, cancellationToken);
+        if (entity is null)
+        {
+            return Results.NotFound();
+        }
+
+        entity.DeletedAt = DateTimeOffset.UtcNow;
+        entity.DeletedBy = ResolveActor(principal);
+        entity.DeletedReason = NormalizeDeleteReason(request.Reason);
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
     }
@@ -456,7 +515,7 @@ public sealed class UsersModule : IModule
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Ok(ToResponse(user, null, null, null));
+        return Results.Ok(ToResponse(user, null, [], null, null));
     }
 
     private static async Task<IResult> RejectRegistrationRequestAsync(
@@ -610,7 +669,34 @@ public sealed class UsersModule : IModule
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return Results.Created($"/api/v1/users/{user.Id}", ToResponse(user, null, null, null));
+        var roleIds = request.RoleIds ?? [];
+        var selectedRoles = roleIds.Count == 0
+            ? []
+            : await dbContext.AppRoles
+                .Where(x => roleIds.Contains(x.Id) && x.DeletedAt == null)
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .ToListAsync(cancellationToken);
+
+        if (selectedRoles.Count != roleIds.Count)
+        {
+            return Results.BadRequest("One or more selected roles do not exist.");
+        }
+
+        var keycloakRoleNames = selectedRoles.Select(x => x.KeycloakRoleName).ToArray();
+        if (keycloakRoleNames.Length > 0)
+        {
+            var roleAssigned = await keycloakAdminClient.AssignRealmRolesAsync(user.Id, keycloakRoleNames, cancellationToken);
+            if (!roleAssigned)
+            {
+                return Results.Problem(
+                    title: "Unable to assign roles in Keycloak.",
+                    detail: "The selected roles could not be mapped in Keycloak.",
+                    statusCode: StatusCodes.Status502BadGateway);
+            }
+        }
+
+        return Results.Created($"/api/v1/users/{user.Id}", ToResponse(user, null, selectedRoles.Select(x => x.Name).ToArray(), null, null));
     }
 
     private static async Task<KeycloakUserProfile?> ResolveKeycloakProfileAsync(
@@ -624,6 +710,13 @@ public sealed class UsersModule : IModule
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private static string ResolveActor(ClaimsPrincipal principal) =>
+        principal.FindFirstValue(ClaimTypes.Email)
+        ?? principal.FindFirstValue("preferred_username")
+        ?? principal.FindFirstValue("name")
+        ?? principal.FindFirstValue("sub")
+        ?? "system";
 
     private static string? NormalizeLanguage(string? value)
     {
@@ -656,6 +749,17 @@ public sealed class UsersModule : IModule
 
         var normalized = value.Trim();
         return normalized.Length > 120 ? normalized[..120] : normalized;
+    }
+
+    private static string NormalizeDeleteReason(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "No reason provided";
+        }
+
+        var normalized = value.Trim();
+        return normalized.Length > 500 ? normalized[..500] : normalized;
     }
 
     private static async Task<bool> LocalUserExistsForEmailAsync(
@@ -697,14 +801,15 @@ public sealed class UsersModule : IModule
             entity.RejectedAt);
 
     private static MasterDataResponse ToResponse(DepartmentEntity entity) =>
-        new(entity.Id, entity.Name, entity.CreatedAt, entity.UpdatedAt);
+        new(entity.Id, entity.Name, entity.DisplayOrder, entity.CreatedAt, entity.UpdatedAt, entity.DeletedReason, entity.DeletedBy, entity.DeletedAt);
 
     private static MasterDataResponse ToResponse(JobTitleEntity entity) =>
-        new(entity.Id, entity.Name, entity.CreatedAt, entity.UpdatedAt);
+        new(entity.Id, entity.Name, entity.DisplayOrder, entity.CreatedAt, entity.UpdatedAt, entity.DeletedReason, entity.DeletedBy, entity.DeletedAt);
 
     private static UserResponse ToResponse(
         UserEntity entity,
         KeycloakUserProfile? keycloakProfile,
+        IReadOnlyList<string> roles,
         IReadOnlyDictionary<Guid, string>? departments,
         IReadOnlyDictionary<Guid, string>? jobTitles) =>
         new(
@@ -716,8 +821,10 @@ public sealed class UsersModule : IModule
             entity.DepartmentId.HasValue && departments is not null && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
             entity.JobTitleId,
             entity.JobTitleId.HasValue && jobTitles is not null && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
+            roles,
             entity.PreferredLanguage,
             entity.PreferredTheme,
+            entity.DeletedReason,
             entity.DeletedBy,
             entity.DeletedAt,
             keycloakProfile is null

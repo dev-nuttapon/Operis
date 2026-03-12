@@ -13,6 +13,7 @@ let initPromise: Promise<boolean> | null = null;
 interface AuthEventHandlers {
   onAuthenticatedChanged?: (authenticated: boolean) => void;
   onTokenExpired?: () => void;
+  onTokenRefreshed?: () => void;
 }
 
 export async function initKeycloak(): Promise<boolean> {
@@ -25,7 +26,9 @@ export async function initKeycloak(): Promise<boolean> {
 
   initPromise = keycloak
     .init({
+      flow: "standard",
       onLoad: "check-sso",
+      scope: "openid profile email",
       silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
       checkLoginIframe: false,
       pkceMethod: "S256",
@@ -55,6 +58,9 @@ export function bindAuthEvents(handlers: AuthEventHandlers): void {
   };
   keycloak.onAuthRefreshError = () => {
     handlers.onTokenExpired?.();
+  };
+  keycloak.onAuthRefreshSuccess = () => {
+    handlers.onTokenRefreshed?.();
   };
 }
 

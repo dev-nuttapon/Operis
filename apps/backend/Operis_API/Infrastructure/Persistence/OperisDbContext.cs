@@ -10,6 +10,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
     public DbSet<JobTitleEntity> JobTitles => Set<JobTitleEntity>();
+    public DbSet<AppRoleEntity> AppRoles => Set<AppRoleEntity>();
     public DbSet<UserRegistrationRequestEntity> UserRegistrationRequests => Set<UserRegistrationRequestEntity>();
     public DbSet<UserInvitationEntity> UserInvitations => Set<UserInvitationEntity>();
 
@@ -36,6 +37,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.JobTitleId).HasColumnName("job_title_id");
             entity.Property(x => x.PreferredLanguage).HasColumnName("preferred_language").HasMaxLength(16);
             entity.Property(x => x.PreferredTheme).HasColumnName("preferred_theme").HasMaxLength(16);
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
             entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
             entity.HasOne<DepartmentEntity>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
@@ -48,9 +50,13 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
-            entity.HasIndex(x => x.Name).IsUnique();
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
+            entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
         });
 
         modelBuilder.Entity<JobTitleEntity>(entity =>
@@ -59,9 +65,31 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
-            entity.HasIndex(x => x.Name).IsUnique();
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
+            entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
+        });
+
+        modelBuilder.Entity<AppRoleEntity>(entity =>
+        {
+            entity.ToTable("app_roles");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
+            entity.Property(x => x.KeycloakRoleName).HasColumnName("keycloak_role_name").HasMaxLength(120);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
+            entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
+            entity.HasIndex(x => x.KeycloakRoleName).IsUnique().HasFilter("\"deleted_at\" IS NULL");
         });
 
         modelBuilder.Entity<UserRegistrationRequestEntity>(entity =>

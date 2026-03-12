@@ -19,6 +19,9 @@ export function AppRouter() {
             <Route index element={<Navigate to="documents" replace />} />
             <Route path="documents" element={<DocumentDashboardPage />} />
             <Route path="admin/users" element={<AdminUsersPage />} />
+            <Route path="admin/master" element={<Navigate to="/app/admin/master/departments" replace />} />
+            <Route path="admin/master/departments" element={<AdminUsersPage />} />
+            <Route path="admin/master/job-titles" element={<AdminUsersPage />} />
             <Route path="admin/invitations" element={<AdminUsersPage />} />
             <Route path="admin/registrations" element={<AdminUsersPage />} />
           </Route>

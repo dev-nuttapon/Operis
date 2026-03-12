@@ -6,10 +6,11 @@ public sealed record CreateRegistrationRequest(string Email, string FirstName, s
 public sealed record ReviewRegistrationRequest(string ReviewedBy);
 public sealed record RejectRegistrationRequest(string ReviewedBy, string Reason);
 public sealed record CreateInvitationRequest(string Email, string InvitedBy, int? ExpiresInDays);
-public sealed record CreateUserRequest(string Email, string FirstName, string LastName, string CreatedBy, Guid? DepartmentId, Guid? JobTitleId);
+public sealed record CreateUserRequest(string Email, string FirstName, string LastName, string CreatedBy, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
 public sealed record UpdateUserPreferencesRequest(string? PreferredLanguage, string? PreferredTheme);
-public sealed record CreateMasterDataRequest(string Name);
-public sealed record UpdateMasterDataRequest(string Name);
+public sealed record CreateMasterDataRequest(string Name, int DisplayOrder);
+public sealed record UpdateMasterDataRequest(string Name, int DisplayOrder);
+public sealed record SoftDeleteRequest(string Reason);
 
 public sealed record UserResponse(
     string Id,
@@ -20,8 +21,10 @@ public sealed record UserResponse(
     string? DepartmentName,
     Guid? JobTitleId,
     string? JobTitleName,
+    IReadOnlyList<string> Roles,
     string? PreferredLanguage,
     string? PreferredTheme,
+    string? DeletedReason,
     string? DeletedBy,
     DateTimeOffset? DeletedAt,
     KeycloakUserSummary? Keycloak);
@@ -59,5 +62,11 @@ public sealed record InvitationResponse(
 public sealed record MasterDataResponse(
     Guid Id,
     string Name,
+    int DisplayOrder,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt);
+    DateTimeOffset? UpdatedAt,
+    string? DeletedReason,
+    string? DeletedBy,
+    DateTimeOffset? DeletedAt);
+
+public sealed record AppRoleResponse(Guid Id, string Name, string KeycloakRoleName, string? Description, int DisplayOrder);

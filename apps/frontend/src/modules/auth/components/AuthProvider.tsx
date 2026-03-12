@@ -40,7 +40,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let mounted = true;
-    let refreshIntervalId: ReturnType<typeof setInterval> | null = null;
+    let refreshTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const setAnonymous = () => {
       if (!mounted) return;
@@ -125,9 +125,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     };
 
+    const getTokenRefreshDelayMs = () => {
+      const tokenParsed = getTokenParsed() as { exp?: number } | undefined;
+      if (!tokenParsed?.exp) {
+        return 30000;
+      }
+
+      const expiresAtMs = tokenParsed.exp * 1000;
+      const refreshAtMs = expiresAtMs - 60000;
+      return Math.max(5000, refreshAtMs - Date.now());
+    };
+
+    const stopRefreshLoop = () => {
+      if (!refreshTimeoutId) return;
+      clearTimeout(refreshTimeoutId);
+      refreshTimeoutId = null;
+    };
+
     const ensureFreshSession = async (minValidity = 60) => {
       const refreshed = await refreshToken(minValidity);
       if (!refreshed && !isAuthenticated()) {
+        stopRefreshLoop();
         setAnonymous();
         return;
       }
@@ -138,21 +156,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
 
     const startRefreshLoop = () => {
-      if (refreshIntervalId) return;
-      refreshIntervalId = setInterval(() => {
-        void ensureFreshSession();
-      }, 30000);
-    };
-
-    const stopRefreshLoop = () => {
-      if (!refreshIntervalId) return;
-      clearInterval(refreshIntervalId);
-      refreshIntervalId = null;
+      stopRefreshLoop();
+      refreshTimeoutId = setTimeout(() => {
+        void ensureFreshSession(60);
+      }, getTokenRefreshDelayMs());
     };
 
     bindAuthEvents({
       onAuthenticatedChanged: (authenticated) => {
         void updateAuthState(authenticated);
+      },
+      onTokenRefreshed: () => {
+        startRefreshLoop();
+        void updateAuthState(true);
       },
       onTokenExpired: () => {
         void ensureFreshSession(0);

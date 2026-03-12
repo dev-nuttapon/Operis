@@ -10,7 +10,6 @@ import {
   Input,
   InputNumber,
   Modal,
-  Popconfirm,
   Row,
   Select,
   Space,
@@ -41,44 +40,6 @@ function formatDate(value: string | null) {
 function getDisplayActor(user: { name?: string | null; email?: string | null } | null | undefined) {
   return user?.email || user?.name || "admin@operis.local";
 }
-
-const userColumns: ColumnsType<User> = [
-  {
-    title: "Name",
-    key: "name",
-    render: (_, record) => (
-      <Space direction="vertical" size={0}>
-        <Text strong>{`${record.keycloak?.firstName || "-"} ${record.keycloak?.lastName || ""}`.trim()}</Text>
-        <Text type="secondary">{record.keycloak?.email || record.keycloak?.username || record.id || "-"}</Text>
-      </Space>
-    ),
-  },
-  {
-    title: "Status",
-    dataIndex: "status",
-    render: (status: User["status"]) => <Tag color={status === "Active" ? "green" : "default"}>{status}</Tag>,
-  },
-  {
-    title: "Department",
-    dataIndex: "departmentName",
-    render: (value: string | null) => value || "-",
-  },
-  {
-    title: "Title",
-    dataIndex: "jobTitleName",
-    render: (value: string | null) => value || "-",
-  },
-  {
-    title: "Created",
-    dataIndex: "createdAt",
-    render: (value: string) => formatDate(value),
-  },
-  {
-    title: "Identity",
-    key: "identity",
-    render: (_, record) => record.keycloak ? <Tag color="blue">{record.keycloak.id}</Tag> : <Text type="secondary">Pending sync</Text>,
-  },
-];
 
 const invitationColumns: ColumnsType<Invitation> = [
   {
@@ -112,8 +73,10 @@ export function AdminUsersPage() {
     invitationsQuery,
     departmentsQuery,
     jobTitlesQuery,
+    rolesQuery,
     createInvitationMutation,
     createUserMutation,
+    deleteUserMutation,
     approveRegistrationMutation,
     rejectRegistrationMutation,
     createDepartmentMutation,
@@ -126,14 +89,27 @@ export function AdminUsersPage() {
 
   const [inviteForm] = Form.useForm();
   const [createUserForm] = Form.useForm();
-  const [departmentForm] = Form.useForm();
-  const [jobTitleForm] = Form.useForm();
+  const [createDepartmentForm] = Form.useForm();
+  const [editDepartmentForm] = Form.useForm();
+  const [createJobTitleForm] = Form.useForm();
+  const [editJobTitleForm] = Form.useForm();
+  const [deleteDepartmentForm] = Form.useForm();
+  const [deleteJobTitleForm] = Form.useForm();
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
   const [editingDepartment, setEditingDepartment] = useState<MasterDataItem | null>(null);
   const [editingJobTitle, setEditingJobTitle] = useState<MasterDataItem | null>(null);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [creatingDepartment, setCreatingDepartment] = useState(false);
+  const [deletingDepartment, setDeletingDepartment] = useState<MasterDataItem | null>(null);
+  const [creatingJobTitle, setCreatingJobTitle] = useState(false);
+  const [deletingJobTitle, setDeletingJobTitle] = useState<MasterDataItem | null>(null);
 
   const currentSection = location.pathname.includes("/admin/invitations")
     ? "invitations"
+    : location.pathname.includes("/admin/master/departments")
+      ? "master-departments"
+    : location.pathname.includes("/admin/master/job-titles")
+      ? "master-job-titles"
     : location.pathname.includes("/admin/registrations")
       ? "approvals"
       : "directory";
@@ -160,9 +136,8 @@ export function AdminUsersPage() {
       dataIndex: "name",
     },
     {
-      title: "Updated",
-      dataIndex: "updatedAt",
-      render: (value: string | null) => formatDate(value),
+      title: "ลำดับ",
+      dataIndex: "displayOrder",
     },
     {
       title: "Actions",
@@ -172,18 +147,89 @@ export function AdminUsersPage() {
           <Button icon={<EditOutlined />} onClick={() => onEdit(record)}>
             Edit
           </Button>
-          <Popconfirm
-            title={`Delete ${record.name}?`}
-            description="Delete only if this item is no longer used by any user."
-            okText="Delete"
-            cancelText="Cancel"
-            onConfirm={() => onDelete(record)}
-          >
-            <Button danger icon={<DeleteOutlined />} loading={deleting}>
-              Delete
-            </Button>
-          </Popconfirm>
+          <Button danger icon={<DeleteOutlined />} loading={deleting} onClick={() => onDelete(record)}>
+            Delete
+          </Button>
         </Space>
+      ),
+    },
+  ];
+
+  const userColumns: ColumnsType<User> = [
+    {
+      title: "Name",
+      key: "name",
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{`${record.keycloak?.firstName || "-"} ${record.keycloak?.lastName || ""}`.trim()}</Text>
+          <Text type="secondary">{record.keycloak?.email || record.keycloak?.username || record.id || "-"}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      render: (status: User["status"]) => <Tag color={status === "Active" ? "green" : "default"}>{status}</Tag>,
+    },
+    {
+      title: "Department",
+      dataIndex: "departmentName",
+      render: (value: string | null) => value || "-",
+    },
+    {
+      title: "Title",
+      dataIndex: "jobTitleName",
+      render: (value: string | null) => value || "-",
+    },
+    {
+      title: "Roles",
+      dataIndex: "roles",
+      render: (roles: string[]) => (
+        <Space wrap>
+          {roles.length === 0 ? <Text type="secondary">-</Text> : roles.map((role) => <Tag key={role}>{role}</Tag>)}
+        </Space>
+      ),
+    },
+    {
+      title: "Created",
+      dataIndex: "createdAt",
+      render: (value: string) => formatDate(value),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Button
+          danger
+          icon={<DeleteOutlined />}
+          loading={deleteUserMutation.isPending}
+          onClick={() => {
+            Modal.confirm({
+              title: `Delete ${record.keycloak?.email || record.id}?`,
+              content: "This will soft delete the user.",
+              okText: "Delete",
+              cancelText: "Cancel",
+              onOk: () =>
+                new Promise<void>((resolve, reject) => {
+                  deleteUserMutation.mutate(
+                    { id: record.id, reason: "Deleted by administrator" },
+                    {
+                      onSuccess: () => {
+                        handleSuccess(`Deleted ${record.keycloak?.email || record.id}`);
+                        resolve();
+                      },
+                      onError: (error) => {
+                        handleError(`Failed to delete ${record.keycloak?.email || record.id}`, error);
+                        reject(error);
+                      },
+                    }
+                  );
+                }),
+            });
+          }}
+        >
+            Delete
+        </Button>
       ),
     },
   ];
@@ -353,200 +399,106 @@ export function AdminUsersPage() {
       </Card>
     );
   } else {
-    pageContent = (
-      <Space direction="vertical" size={20} style={{ width: "100%" }}>
-        <Card variant="borderless">
-          <Typography.Title level={5}>เพิ่มผู้ใช้งานโดยผู้ดูแล</Typography.Title>
-          <Paragraph type="secondary">
-            ใช้สำหรับเพิ่มผู้ใช้งานจากฝั่ง admin โดยตรง ตอนนี้รองรับการเพิ่มและดูรายการแล้ว ส่วนแก้ไขและลบยังต้องเพิ่ม endpoint ฝั่ง API
-          </Paragraph>
-          <Form
-            layout="vertical"
-            form={createUserForm}
-            onFinish={(values: { email: string; firstName: string; lastName: string; departmentId?: string; jobTitleId?: string }) => {
-              createUserMutation.mutate(
-                { ...values, createdBy: actor },
-                {
-                  onSuccess: () => {
-                    createUserForm.resetFields();
-                    handleSuccess(`Created ${values.email}`);
-                  },
-                  onError: (error) => handleError(`Failed to create ${values.email}`, error),
-                }
-              );
-            }}
-          >
-            <Row gutter={16}>
-              <Col xs={24} md={6}>
-                <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
-                  <Input placeholder="name@company.com" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={4}>
-                <Form.Item label="First name" name="firstName" rules={[{ required: true }]}>
-                  <Input placeholder="First name" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={4}>
-                <Form.Item label="Last name" name="lastName" rules={[{ required: true }]}>
-                  <Input placeholder="Last name" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={4}>
-                <Form.Item label="Department" name="departmentId">
-                  <Select
-                    allowClear
-                    placeholder="Select department"
-                    loading={departmentsQuery.isLoading}
-                    options={(departmentsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={4}>
-                <Form.Item label="Job title" name="jobTitleId">
-                  <Select
-                    allowClear
-                    placeholder="Select job title"
-                    loading={jobTitlesQuery.isLoading}
-                    options={(jobTitlesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={6}>
-                <Form.Item label=" " colon={false}>
-                  <Button
-                    htmlType="submit"
-                    type="primary"
-                    icon={<UserAddOutlined />}
-                    loading={createUserMutation.isPending}
-                    block
-                  >
-                    Create
-                  </Button>
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form>
-        </Card>
-
-        <Card variant="borderless">
-          <Typography.Title level={5}>รายการผู้ใช้งาน</Typography.Title>
-          <Table
-            rowKey="id"
-            columns={userColumns}
-            dataSource={usersQuery.data ?? []}
-            loading={usersQuery.isLoading}
-            pagination={{ pageSize: 8 }}
-          />
-        </Card>
-
-        <Row gutter={20}>
-          <Col xs={24} lg={12}>
-            <Card variant="borderless">
-              <Typography.Title level={5}>Master: แผนก</Typography.Title>
-              <Paragraph type="secondary">
-                ใช้เพิ่ม ลบ แก้ไข master data ของแผนกก่อนนำไปผูกกับผู้ใช้งาน
-              </Paragraph>
-              <Form
-                layout="inline"
-                form={departmentForm}
-                onFinish={(values: { name: string }) => {
-                  createDepartmentMutation.mutate(values, {
-                    onSuccess: () => {
-                      departmentForm.resetFields();
-                      handleSuccess(`Created department ${values.name}`);
-                    },
-                    onError: (error) => handleError(`Failed to create department ${values.name}`, error),
-                  });
-                }}
-                style={{ marginBottom: 16 }}
-              >
-                <Form.Item name="name" rules={[{ required: true, message: "Department is required" }]}>
-                  <Input placeholder="Operations" />
-                </Form.Item>
-                <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={createDepartmentMutation.isPending}>
-                    Add department
-                  </Button>
-                </Form.Item>
-              </Form>
-              <Table
-                rowKey="id"
-                columns={masterColumns(
-                  "Department",
-                  (item) => {
-                    setEditingDepartment(item);
-                    departmentForm.setFieldValue("editName", item.name);
-                  },
-                  (item) => {
-                    deleteDepartmentMutation.mutate(item.id, {
-                      onSuccess: () => handleSuccess(`Deleted department ${item.name}`),
-                      onError: (error) => handleError(`Failed to delete department ${item.name}`, error),
-                    });
-                  },
-                  deleteDepartmentMutation.isPending
-                )}
-                dataSource={departmentsQuery.data ?? []}
-                loading={departmentsQuery.isLoading}
-                pagination={{ pageSize: 5 }}
-              />
-            </Card>
-          </Col>
-
-          <Col xs={24} lg={12}>
-            <Card variant="borderless">
-              <Typography.Title level={5}>Master: ตำแหน่ง</Typography.Title>
-              <Paragraph type="secondary">
-                ใช้เพิ่ม ลบ แก้ไข master data ของตำแหน่งก่อนนำไปผูกกับผู้ใช้งาน
-              </Paragraph>
-              <Form
-                layout="inline"
-                form={jobTitleForm}
-                onFinish={(values: { name: string }) => {
-                  createJobTitleMutation.mutate(values, {
-                    onSuccess: () => {
-                      jobTitleForm.resetFields();
-                      handleSuccess(`Created job title ${values.name}`);
-                    },
-                    onError: (error) => handleError(`Failed to create job title ${values.name}`, error),
-                  });
-                }}
-                style={{ marginBottom: 16 }}
-              >
-                <Form.Item name="name" rules={[{ required: true, message: "Job title is required" }]}>
-                  <Input placeholder="Document Controller" />
-                </Form.Item>
-                <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={createJobTitleMutation.isPending}>
-                    Add job title
-                  </Button>
-                </Form.Item>
-              </Form>
-              <Table
-                rowKey="id"
-                columns={masterColumns(
-                  "Job title",
-                  (item) => {
-                    setEditingJobTitle(item);
-                    jobTitleForm.setFieldValue("editName", item.name);
-                  },
-                  (item) => {
-                    deleteJobTitleMutation.mutate(item.id, {
-                      onSuccess: () => handleSuccess(`Deleted job title ${item.name}`),
-                      onError: (error) => handleError(`Failed to delete job title ${item.name}`, error),
-                    });
-                  },
-                  deleteJobTitleMutation.isPending
-                )}
-                dataSource={jobTitlesQuery.data ?? []}
-                loading={jobTitlesQuery.isLoading}
-                pagination={{ pageSize: 5 }}
-              />
-            </Card>
-          </Col>
-        </Row>
-      </Space>
+    const departmentsContent = (
+      <Card variant="borderless">
+        <Typography.Title level={5}>Master: แผนก</Typography.Title>
+        <Paragraph type="secondary">
+          ใช้เพิ่ม ลบ แก้ไข master data ของแผนกก่อนนำไปผูกกับผู้ใช้งาน
+        </Paragraph>
+        <Space style={{ marginBottom: 16 }}>
+          <Button type="primary" onClick={() => setCreatingDepartment(true)}>
+            เพิ่มแผนก
+          </Button>
+        </Space>
+        <Table
+          rowKey="id"
+          columns={masterColumns(
+            "Department",
+            (item) => {
+              setEditingDepartment(item);
+              editDepartmentForm.setFieldValue("editName", item.name);
+              editDepartmentForm.setFieldValue("editDisplayOrder", item.displayOrder);
+            },
+            (item) => {
+              setDeletingDepartment(item);
+              deleteDepartmentForm.resetFields();
+            },
+            deleteDepartmentMutation.isPending
+          )}
+          dataSource={departmentsQuery.data ?? []}
+          loading={departmentsQuery.isLoading}
+          pagination={{ pageSize: 8 }}
+        />
+      </Card>
     );
+
+    const jobTitlesContent = (
+      <Card variant="borderless">
+        <Typography.Title level={5}>Master: ตำแหน่ง</Typography.Title>
+        <Paragraph type="secondary">
+          ใช้เพิ่ม ลบ แก้ไข master data ของตำแหน่งก่อนนำไปผูกกับผู้ใช้งาน
+        </Paragraph>
+        <Space style={{ marginBottom: 16 }}>
+          <Button type="primary" onClick={() => setCreatingJobTitle(true)}>
+            เพิ่มตำแหน่ง
+          </Button>
+        </Space>
+        <Table
+          rowKey="id"
+          columns={masterColumns(
+            "Job title",
+            (item) => {
+              setEditingJobTitle(item);
+              editJobTitleForm.setFieldValue("editName", item.name);
+              editJobTitleForm.setFieldValue("editDisplayOrder", item.displayOrder);
+            },
+            (item) => {
+              setDeletingJobTitle(item);
+              deleteJobTitleForm.resetFields();
+            },
+            deleteJobTitleMutation.isPending
+          )}
+          dataSource={jobTitlesQuery.data ?? []}
+          loading={jobTitlesQuery.isLoading}
+          pagination={{ pageSize: 8 }}
+        />
+      </Card>
+    );
+
+    if (currentSection === "master-departments") {
+      pageTitle = "จัดการข้อมูล Master";
+      pageDescription = "จัดการข้อมูลหลักของระบบในหมวดแผนก";
+      pageContent = departmentsContent;
+    } else if (currentSection === "master-job-titles") {
+      pageTitle = "จัดการข้อมูล Master";
+      pageDescription = "จัดการข้อมูลหลักของระบบในหมวดตำแหน่ง";
+      pageContent = jobTitlesContent;
+    } else {
+      pageContent = (
+        <Space direction="vertical" size={20} style={{ width: "100%" }}>
+          <Card variant="borderless">
+            <Typography.Title level={5}>จัดการผู้ใช้งานโดยผู้ดูแล</Typography.Title>
+            <Paragraph type="secondary">
+              ใช้สำหรับเพิ่มผู้ใช้งานจากฝั่ง admin โดยตรง ตอนนี้รองรับการเพิ่มและดูรายการแล้ว ส่วนแก้ไขและลบยังต้องเพิ่ม endpoint ฝั่ง API
+            </Paragraph>
+            <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreatingUser(true)}>
+              เพิ่มผู้ใช้งาน
+            </Button>
+          </Card>
+
+          <Card variant="borderless">
+            <Typography.Title level={5}>รายการผู้ใช้งาน</Typography.Title>
+            <Table
+              rowKey="id"
+              columns={userColumns}
+              dataSource={usersQuery.data ?? []}
+              loading={usersQuery.isLoading}
+              pagination={{ pageSize: 8 }}
+            />
+          </Card>
+        </Space>
+      );
+    }
   }
 
   return (
@@ -597,21 +549,150 @@ export function AdminUsersPage() {
       {pageContent}
 
       <Modal
+        title="เพิ่มผู้ใช้งาน"
+        open={creatingUser}
+        okText="Create"
+        confirmLoading={createUserMutation.isPending}
+        onCancel={() => {
+          setCreatingUser(false);
+          createUserForm.resetFields();
+        }}
+        onOk={() => {
+          createUserForm
+            .validateFields()
+            .then((values: { email: string; firstName: string; lastName: string; departmentId?: string; jobTitleId?: string; roles?: string[] }) => {
+              createUserMutation.mutate(
+                {
+                  email: values.email,
+                  firstName: values.firstName,
+                  lastName: values.lastName,
+                  createdBy: actor,
+                  departmentId: values.departmentId,
+                  jobTitleId: values.jobTitleId,
+                  roleIds: values.roles,
+                },
+                {
+                  onSuccess: () => {
+                    setCreatingUser(false);
+                    createUserForm.resetFields();
+                    handleSuccess(`Created ${values.email}`);
+                  },
+                  onError: (error) => handleError(`Failed to create ${values.email}`, error),
+                }
+              );
+            })
+            .catch(() => undefined);
+        }}
+      >
+        <Form layout="vertical" form={createUserForm}>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
+                <Input placeholder="name@company.com" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item label="First name" name="firstName" rules={[{ required: true }]}>
+                <Input placeholder="First name" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item label="Last name" name="lastName" rules={[{ required: true }]}>
+                <Input placeholder="Last name" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Department" name="departmentId">
+                <Select
+                  allowClear
+                  placeholder="Select department"
+                  loading={departmentsQuery.isLoading}
+                  options={(departmentsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Job title" name="jobTitleId">
+                <Select
+                  allowClear
+                  placeholder="Select job title"
+                  loading={jobTitlesQuery.isLoading}
+                  options={(jobTitlesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item label="Roles" name="roles">
+                <Select
+                  mode="multiple"
+                  allowClear
+                  placeholder="Select roles"
+                  loading={rolesQuery.isLoading}
+                  options={(rolesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="เพิ่มแผนก"
+        open={creatingDepartment}
+        okText="Create"
+        confirmLoading={createDepartmentMutation.isPending}
+        onCancel={() => {
+          setCreatingDepartment(false);
+          createDepartmentForm.resetFields();
+        }}
+        onOk={() => {
+          createDepartmentForm
+            .validateFields(["name", "displayOrder"])
+            .then((values) => {
+              createDepartmentMutation.mutate(
+                { name: values.name, displayOrder: values.displayOrder },
+                {
+                  onSuccess: () => {
+                    setCreatingDepartment(false);
+                    createDepartmentForm.resetFields();
+                    handleSuccess(`Created department ${values.name}`);
+                  },
+                  onError: (error) => handleError(`Failed to create department ${values.name}`, error),
+                }
+              );
+            })
+            .catch(() => undefined);
+        }}
+      >
+        <Form form={createDepartmentForm} layout="vertical">
+          <Form.Item name="name" label="Department name" rules={[{ required: true }]}>
+            <Input placeholder="Operations" />
+          </Form.Item>
+          <Form.Item name="displayOrder" label="ลำดับ" rules={[{ required: true }]}>
+            <InputNumber min={0} style={{ width: "100%" }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
         title="Edit department"
         open={editingDepartment !== null}
         okText="Save"
         confirmLoading={updateDepartmentMutation.isPending}
-        onCancel={() => setEditingDepartment(null)}
+        onCancel={() => {
+          setEditingDepartment(null);
+          editDepartmentForm.resetFields();
+        }}
         onOk={() => {
-          departmentForm
-            .validateFields(["editName"])
+          editDepartmentForm
+            .validateFields(["editName", "editDisplayOrder"])
             .then((values) => {
               if (!editingDepartment) {
                 return;
               }
 
               updateDepartmentMutation.mutate(
-                { id: editingDepartment.id, name: values.editName },
+                { id: editingDepartment.id, name: values.editName, displayOrder: values.editDisplayOrder },
                 {
                   onSuccess: () => {
                     setEditingDepartment(null);
@@ -624,9 +705,91 @@ export function AdminUsersPage() {
             .catch(() => undefined);
         }}
       >
-        <Form form={departmentForm} layout="vertical">
+        <Form form={editDepartmentForm} layout="vertical">
           <Form.Item name="editName" label="Department name" rules={[{ required: true }]}>
             <Input />
+          </Form.Item>
+          <Form.Item name="editDisplayOrder" label="ลำดับ" rules={[{ required: true }]}>
+            <InputNumber min={0} style={{ width: "100%" }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={deletingDepartment ? `ลบแผนก ${deletingDepartment.name}` : "ลบแผนก"}
+        open={deletingDepartment !== null}
+        okText="Delete"
+        okButtonProps={{ danger: true }}
+        confirmLoading={deleteDepartmentMutation.isPending}
+        onCancel={() => {
+          setDeletingDepartment(null);
+          deleteDepartmentForm.resetFields();
+        }}
+        onOk={() => {
+          deleteDepartmentForm
+            .validateFields(["reason"])
+            .then((values) => {
+              if (!deletingDepartment) {
+                return;
+              }
+
+              deleteDepartmentMutation.mutate(
+                { id: deletingDepartment.id, reason: values.reason },
+                {
+                  onSuccess: () => {
+                    setDeletingDepartment(null);
+                    deleteDepartmentForm.resetFields();
+                    handleSuccess(`Deleted department ${deletingDepartment.name}`);
+                  },
+                  onError: (error) => handleError(`Failed to delete department ${deletingDepartment.name}`, error),
+                }
+              );
+            })
+            .catch(() => undefined);
+        }}
+      >
+        <Form form={deleteDepartmentForm} layout="vertical">
+          <Paragraph type="secondary">ยืนยันการลบแบบ soft delete และระบุเหตุผล</Paragraph>
+          <Form.Item name="reason" label="เหตุผล" rules={[{ required: true, message: "กรุณาระบุเหตุผล" }]}>
+            <Input.TextArea rows={4} placeholder="เช่น ยุบหน่วยงาน / สร้างรายการใหม่แทน" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="เพิ่มตำแหน่ง"
+        open={creatingJobTitle}
+        okText="Create"
+        confirmLoading={createJobTitleMutation.isPending}
+        onCancel={() => {
+          setCreatingJobTitle(false);
+          createJobTitleForm.resetFields();
+        }}
+        onOk={() => {
+          createJobTitleForm
+            .validateFields(["name", "displayOrder"])
+            .then((values) => {
+              createJobTitleMutation.mutate(
+                { name: values.name, displayOrder: values.displayOrder },
+                {
+                  onSuccess: () => {
+                    setCreatingJobTitle(false);
+                    createJobTitleForm.resetFields();
+                    handleSuccess(`Created job title ${values.name}`);
+                  },
+                  onError: (error) => handleError(`Failed to create job title ${values.name}`, error),
+                }
+              );
+            })
+            .catch(() => undefined);
+        }}
+      >
+        <Form form={createJobTitleForm} layout="vertical">
+          <Form.Item name="name" label="Job title name" rules={[{ required: true }]}>
+            <Input placeholder="Document Controller" />
+          </Form.Item>
+          <Form.Item name="displayOrder" label="ลำดับ" rules={[{ required: true }]}>
+            <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
         </Form>
       </Modal>
@@ -636,17 +799,20 @@ export function AdminUsersPage() {
         open={editingJobTitle !== null}
         okText="Save"
         confirmLoading={updateJobTitleMutation.isPending}
-        onCancel={() => setEditingJobTitle(null)}
+        onCancel={() => {
+          setEditingJobTitle(null);
+          editJobTitleForm.resetFields();
+        }}
         onOk={() => {
-          jobTitleForm
-            .validateFields(["editName"])
+          editJobTitleForm
+            .validateFields(["editName", "editDisplayOrder"])
             .then((values) => {
               if (!editingJobTitle) {
                 return;
               }
 
               updateJobTitleMutation.mutate(
-                { id: editingJobTitle.id, name: values.editName },
+                { id: editingJobTitle.id, name: values.editName, displayOrder: values.editDisplayOrder },
                 {
                   onSuccess: () => {
                     setEditingJobTitle(null);
@@ -659,9 +825,53 @@ export function AdminUsersPage() {
             .catch(() => undefined);
         }}
       >
-        <Form form={jobTitleForm} layout="vertical">
+        <Form form={editJobTitleForm} layout="vertical">
           <Form.Item name="editName" label="Job title name" rules={[{ required: true }]}>
             <Input />
+          </Form.Item>
+          <Form.Item name="editDisplayOrder" label="ลำดับ" rules={[{ required: true }]}>
+            <InputNumber min={0} style={{ width: "100%" }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={deletingJobTitle ? `ลบตำแหน่ง ${deletingJobTitle.name}` : "ลบตำแหน่ง"}
+        open={deletingJobTitle !== null}
+        okText="Delete"
+        okButtonProps={{ danger: true }}
+        confirmLoading={deleteJobTitleMutation.isPending}
+        onCancel={() => {
+          setDeletingJobTitle(null);
+          deleteJobTitleForm.resetFields();
+        }}
+        onOk={() => {
+          deleteJobTitleForm
+            .validateFields(["reason"])
+            .then((values) => {
+              if (!deletingJobTitle) {
+                return;
+              }
+
+              deleteJobTitleMutation.mutate(
+                { id: deletingJobTitle.id, reason: values.reason },
+                {
+                  onSuccess: () => {
+                    setDeletingJobTitle(null);
+                    deleteJobTitleForm.resetFields();
+                    handleSuccess(`Deleted job title ${deletingJobTitle.name}`);
+                  },
+                  onError: (error) => handleError(`Failed to delete job title ${deletingJobTitle.name}`, error),
+                }
+              );
+            })
+            .catch(() => undefined);
+        }}
+      >
+        <Form form={deleteJobTitleForm} layout="vertical">
+          <Paragraph type="secondary">ยืนยันการลบแบบ soft delete และระบุเหตุผล</Paragraph>
+          <Form.Item name="reason" label="เหตุผล" rules={[{ required: true, message: "กรุณาระบุเหตุผล" }]}>
+            <Input.TextArea rows={4} placeholder="เช่น ปรับโครงสร้างตำแหน่ง / ยกเลิกรายการเดิม" />
           </Form.Item>
         </Form>
       </Modal>

@@ -43,7 +43,9 @@ describe('keycloakAuth service', () => {
       const authenticated = await initKeycloak();
       
       expect(mockKeycloakInit).toHaveBeenCalledWith({
+        flow: "standard",
         onLoad: "check-sso",
+        scope: "openid profile email",
         silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
         checkLoginIframe: false,
         pkceMethod: "S256",

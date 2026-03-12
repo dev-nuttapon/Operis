@@ -138,6 +138,122 @@ public sealed class KeycloakAdminClient(HttpClient httpClient, IOptions<Keycloak
         return new KeycloakCreateUserResult(true, false, userId, null);
     }
 
+    public async Task<IReadOnlyList<KeycloakRole>> ListRealmRolesAsync(CancellationToken cancellationToken)
+    {
+        if (!IsConfigured())
+        {
+            return [];
+        }
+
+        var token = await GetAccessTokenAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return [];
+        }
+
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{TrimTrailingSlash(_options.BaseUrl)}/admin/realms/{_options.Realm}/roles");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var roles = JsonSerializer.Deserialize<List<KeycloakRoleDto>>(json, JsonOptions) ?? [];
+        return roles
+            .Where(x => !string.IsNullOrWhiteSpace(x.Id) && !string.IsNullOrWhiteSpace(x.Name))
+            .Select(x => new KeycloakRole(x.Id!, x.Name!, x.Description))
+            .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<KeycloakRole>> GetUserRealmRolesAsync(string keycloakUserId, CancellationToken cancellationToken)
+    {
+        if (!IsConfigured() || string.IsNullOrWhiteSpace(keycloakUserId))
+        {
+            return [];
+        }
+
+        var token = await GetAccessTokenAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return [];
+        }
+
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{TrimTrailingSlash(_options.BaseUrl)}/admin/realms/{_options.Realm}/users/{Uri.EscapeDataString(keycloakUserId)}/role-mappings/realm");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var roles = JsonSerializer.Deserialize<List<KeycloakRoleDto>>(json, JsonOptions) ?? [];
+        return roles
+            .Where(x => !string.IsNullOrWhiteSpace(x.Id) && !string.IsNullOrWhiteSpace(x.Name))
+            .Select(x => new KeycloakRole(x.Id!, x.Name!, x.Description))
+            .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<bool> AssignRealmRolesAsync(string keycloakUserId, IEnumerable<string> roleNames, CancellationToken cancellationToken)
+    {
+        if (!IsConfigured() || string.IsNullOrWhiteSpace(keycloakUserId))
+        {
+            return false;
+        }
+
+        var requestedRoles = roleNames
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (requestedRoles.Length == 0)
+        {
+            return true;
+        }
+
+        var allRoles = await ListRealmRolesAsync(cancellationToken);
+        var payloadRoles = allRoles
+            .Where(role => requestedRoles.Contains(role.Name, StringComparer.OrdinalIgnoreCase))
+            .Select(role => new KeycloakRoleDto
+            {
+                Id = role.Id,
+                Name = role.Name,
+                Description = role.Description
+            })
+            .ToList();
+
+        if (payloadRoles.Count != requestedRoles.Length)
+        {
+            return false;
+        }
+
+        var token = await GetAccessTokenAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return false;
+        }
+
+        var payload = JsonSerializer.Serialize(payloadRoles, JsonOptions);
+        var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{TrimTrailingSlash(_options.BaseUrl)}/admin/realms/{_options.Realm}/users/{Uri.EscapeDataString(keycloakUserId)}/role-mappings/realm");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        return response.IsSuccessStatusCode;
+    }
+
     private bool IsConfigured() =>
         !string.IsNullOrWhiteSpace(_options.BaseUrl) &&
         !string.IsNullOrWhiteSpace(_options.Realm) &&
@@ -220,6 +336,13 @@ public sealed class KeycloakAdminClient(HttpClient httpClient, IOptions<Keycloak
         public string? LastName { get; init; }
         public bool? Enabled { get; init; }
         public bool? EmailVerified { get; init; }
+    }
+
+    private sealed class KeycloakRoleDto
+    {
+        public string? Id { get; init; }
+        public string? Name { get; init; }
+        public string? Description { get; init; }
     }
 
     private sealed class KeycloakCreateUserDto

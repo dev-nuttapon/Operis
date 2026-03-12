@@ -37,6 +37,20 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 builder.Services.AddHealthChecks();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("LocalFrontend", policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:4173",
+                "http://127.0.0.1:4173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 var keycloakOptions = builder.Configuration.GetSection(KeycloakOptions.SectionName).Get<KeycloakOptions>()
                       ?? throw new InvalidOperationException("Keycloak configuration is missing.");
@@ -110,6 +124,7 @@ if (hasHttpsEndpoint)
     app.UseHttpsRedirection();
 }
 
+app.UseCors("LocalFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 

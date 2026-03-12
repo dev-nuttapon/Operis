@@ -1,0 +1,30 @@
+- main [ref=e4]:
+  - heading "Sign in" [level=1] [ref=e6]
+  - generic [ref=e7]:
+    - generic:
+      - img
+    - generic [ref=e8]:
+      - group "Switch theme" [ref=e9]:
+        - button "💻 System" [ref=e10] [cursor=pointer]
+        - button "☀️ Light" [ref=e11] [cursor=pointer]
+        - button "🌙 Dark" [ref=e12] [cursor=pointer]
+      - group "Switch language" [ref=e13]:
+        - button "TH" [ref=e14] [cursor=pointer]
+        - button "EN" [ref=e15] [cursor=pointer]
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e21]: Email
+          - textbox "Email" [active] [ref=e23]
+        - generic [ref=e24]:
+          - generic [ref=e26]: Password
+          - generic [ref=e27]:
+            - textbox "Password" [ref=e30]
+            - button "Show password" [ref=e32] [cursor=pointer]:
+              - generic [ref=e33]: 
+        - button "Sign in" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - link "Sign up" [ref=e38] [cursor=pointer]:
+          - /url: http://localhost:3000/en/auth/register
+        - link "Forgot password" [ref=e39] [cursor=pointer]:
+          - /url: http://localhost:3000/en/auth/forgot-password

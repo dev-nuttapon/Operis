@@ -12,6 +12,7 @@ public sealed class UserEntity
     public Guid? JobTitleId { get; set; }
     public string? PreferredLanguage { get; set; }
     public string? PreferredTheme { get; set; }
+    public string? DeletedReason { get; set; }
     public string? DeletedBy { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
 }

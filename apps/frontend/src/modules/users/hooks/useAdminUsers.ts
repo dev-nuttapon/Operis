@@ -7,9 +7,11 @@ import {
   createUser,
   deleteDepartment,
   deleteJobTitle,
+  deleteUser,
   listDepartments,
   listInvitations,
   listJobTitles,
+  listRoles,
   listRegistrationRequests,
   listUsers,
   rejectRegistration,
@@ -30,6 +32,7 @@ const requestsQueryKey = ["admin", "registration-requests"];
 const invitationsQueryKey = ["admin", "invitations"];
 const departmentsQueryKey = ["admin", "departments"];
 const jobTitlesQueryKey = ["admin", "job-titles"];
+const rolesQueryKey = ["admin", "roles"];
 
 export function useAdminUsers() {
   const queryClient = useQueryClient();
@@ -59,6 +62,11 @@ export function useAdminUsers() {
     queryFn: ({ signal }) => listJobTitles(signal),
   });
 
+  const rolesQuery = useQuery({
+    queryKey: rolesQueryKey,
+    queryFn: ({ signal }) => listRoles(signal),
+  });
+
   const invalidateAll = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: usersQueryKey }),
@@ -66,6 +74,7 @@ export function useAdminUsers() {
       queryClient.invalidateQueries({ queryKey: invitationsQueryKey }),
       queryClient.invalidateQueries({ queryKey: departmentsQueryKey }),
       queryClient.invalidateQueries({ queryKey: jobTitlesQueryKey }),
+      queryClient.invalidateQueries({ queryKey: rolesQueryKey }),
     ]);
   };
 
@@ -76,6 +85,11 @@ export function useAdminUsers() {
 
   const createUserMutation = useMutation({
     mutationFn: (input: CreateUserInput) => createUser(input),
+    onSuccess: invalidateAll,
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => deleteUser(id, { reason }),
     onSuccess: invalidateAll,
   });
 
@@ -102,7 +116,7 @@ export function useAdminUsers() {
   });
 
   const deleteDepartmentMutation = useMutation({
-    mutationFn: (id: string) => deleteDepartment(id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => deleteDepartment(id, { reason }),
     onSuccess: invalidateAll,
   });
 
@@ -117,7 +131,7 @@ export function useAdminUsers() {
   });
 
   const deleteJobTitleMutation = useMutation({
-    mutationFn: (id: string) => deleteJobTitle(id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => deleteJobTitle(id, { reason }),
     onSuccess: invalidateAll,
   });
 
@@ -127,8 +141,10 @@ export function useAdminUsers() {
     invitationsQuery,
     departmentsQuery,
     jobTitlesQuery,
+    rolesQuery,
     createInvitationMutation,
     createUserMutation,
+    deleteUserMutation,
     approveRegistrationMutation,
     rejectRegistrationMutation,
     createDepartmentMutation,

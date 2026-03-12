@@ -1,0 +1,79 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: Office Inventory
+        - button "left" [ref=e9] [cursor=pointer]:
+          - img "left" [ref=e11]:
+            - img [ref=e12]
+      - generic [ref=e14]:
+        - menu [ref=e16]:
+          - menuitem "dashboard Dashboard" [ref=e17] [cursor=pointer]:
+            - img "dashboard" [ref=e18]:
+              - img [ref=e19]
+            - generic [ref=e21]: Dashboard
+          - menuitem "file-text Documents" [ref=e22] [cursor=pointer]:
+            - img "file-text" [ref=e23]:
+              - img [ref=e24]
+            - generic [ref=e26]: Documents
+          - menuitem "team Admin" [ref=e27] [cursor=pointer]:
+            - img "team" [ref=e28]:
+              - img [ref=e29]
+            - generic [ref=e31]: Admin
+        - generic [ref=e32]: v1.0.0
+  - generic [ref=e33]:
+    - banner [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Documents
+        - generic [ref=e37]: Documents
+      - generic [ref=e38]:
+        - generic [ref=e39] [cursor=pointer]:
+          - button "bell":
+            - generic:
+              - img "bell":
+                - img
+        - generic [ref=e41] [cursor=pointer]:
+          - generic [ref=e43]: T
+          - strong [ref=e46]: Test fff
+    - main [ref=e47]:
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - heading "Document Dashboard" [level=2] [ref=e52]
+          - button "logout Logout" [ref=e54] [cursor=pointer]:
+            - img "logout" [ref=e56]:
+              - img [ref=e57]
+            - generic [ref=e59]: Logout
+        - generic [ref=e60]: Welcome to the Paperless Document System.
+        - separator [ref=e61]
+        - heading "Documents Test Form" [level=4] [ref=e62]
+        - generic [ref=e63]:
+          - generic [ref=e65]:
+            - generic "Document Title" [ref=e67]: "* Document Title"
+            - textbox "* Document Title" [ref=e71]:
+              - /placeholder: e.g. Monthly Inventory Report
+          - generic [ref=e73]:
+            - generic "Document Code" [ref=e75]: "* Document Code"
+            - textbox "* Document Code" [ref=e79]:
+              - /placeholder: e.g. DOC-2026-001
+          - generic [ref=e81]:
+            - generic "Owner Email" [ref=e83]: "* Owner Email"
+            - textbox "* Owner Email" [ref=e87]:
+              - /placeholder: owner@example.com
+          - generic [ref=e89]:
+            - generic "Effective Date" [ref=e91]: "* Effective Date"
+            - generic [ref=e96]:
+              - textbox "* Effective Date" [ref=e97]:
+                - /placeholder: Select date
+              - generic:
+                - img "calendar":
+                  - img
+          - generic [ref=e99]:
+            - generic "Description" [ref=e101]
+            - textbox "Description" [ref=e105]:
+              - /placeholder: Short description for test form
+          - generic [ref=e106]:
+            - button "Submit Test Form" [ref=e108] [cursor=pointer]:
+              - generic [ref=e109]: Submit Test Form
+            - button "Reset" [ref=e111] [cursor=pointer]:
+              - generic [ref=e112]: Reset
+          - generic [ref=e113]: This is a local test form in documents module (no API call yet).

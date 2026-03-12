@@ -85,19 +85,39 @@ export function MainLayout() {
       ? [{
           key: '/app/admin',
           icon: <TeamOutlined />,
-          label: tr('common.admin', 'Admin'),
+          label: tr('common.admin', 'ผู้ดูแลระบบ'),
           children: [
             {
-              key: '/app/admin/users',
-              label: tr('common.admin_created_users', 'Admin Created Users'),
+              key: '/app/admin/users-group',
+              label: tr('common.user_admin_group', 'จัดการผู้ใช้งาน'),
+              children: [
+                {
+                  key: '/app/admin/users',
+                  label: tr('common.user_management', 'รายการผู้ใช้งาน'),
+                },
+                {
+                  key: '/app/admin/invitations',
+                  label: tr('common.user_invitations', 'เชิญผู้ใช้งาน'),
+                },
+                {
+                  key: '/app/admin/registrations',
+                  label: tr('common.registration_approvals', 'อนุมัติการลงทะเบียน'),
+                },
+              ],
             },
             {
-              key: '/app/admin/invitations',
-              label: tr('common.user_invitations', 'Invitations'),
-            },
-            {
-              key: '/app/admin/registrations',
-              label: tr('common.registration_approvals', 'Registration Approvals'),
+              key: '/app/admin/master',
+              label: tr('common.master_data_management', 'จัดการข้อมูล Master'),
+              children: [
+                {
+                  key: '/app/admin/master/departments',
+                  label: tr('common.master_departments', 'แผนก'),
+                },
+                {
+                  key: '/app/admin/master/job-titles',
+                  label: tr('common.master_job_titles', 'ตำแหน่ง'),
+                },
+              ],
             },
           ],
         }]
@@ -150,9 +170,12 @@ export function MainLayout() {
   const getPageTitle = (path: string) => {
     if (path.includes('dashboard')) return tr('common.dashboard', 'Dashboard');
     if (path.includes('documents')) return tr('common.documents', 'Documents');
-    if (path.includes('admin/users')) return tr('common.admin_created_users', 'Admin Created Users');
-    if (path.includes('admin/invitations')) return tr('common.user_invitations', 'Invitations');
-    if (path.includes('admin/registrations')) return tr('common.registration_approvals', 'Registration Approvals');
+    if (path.includes('admin/users')) return tr('common.user_management', 'จัดการผู้ใช้งาน');
+    if (path.includes('admin/master/departments')) return tr('common.master_departments', 'แผนก');
+    if (path.includes('admin/master/job-titles')) return tr('common.master_job_titles', 'ตำแหน่ง');
+    if (path.includes('admin/master')) return tr('common.master_data_management', 'จัดการข้อมูล Master');
+    if (path.includes('admin/invitations')) return tr('common.user_invitations', 'เชิญผู้ใช้งาน');
+    if (path.includes('admin/registrations')) return tr('common.registration_approvals', 'ลงทะเบียนและอนุมัติการลงทะเบียน');
     return tr('common.dashboard', 'Dashboard');
   };
 

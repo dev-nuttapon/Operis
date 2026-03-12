@@ -21,8 +21,10 @@ export interface User {
   departmentName: string | null;
   jobTitleId: string | null;
   jobTitleName: string | null;
+  roles: string[];
   preferredLanguage: string | null;
   preferredTheme: string | null;
+  deletedReason: string | null;
   deletedBy: string | null;
   deletedAt: string | null;
   keycloak: KeycloakUserSummary | null;
@@ -64,22 +66,41 @@ export interface CreateUserInput {
   createdBy: string;
   departmentId?: string;
   jobTitleId?: string;
+  roleIds?: string[];
 }
 
 export interface MasterDataItem {
   id: string;
   name: string;
+  displayOrder: number;
   createdAt: string;
   updatedAt: string | null;
+  deletedReason: string | null;
+  deletedBy: string | null;
+  deletedAt: string | null;
 }
 
 export interface CreateMasterDataInput {
   name: string;
+  displayOrder: number;
 }
 
 export interface UpdateMasterDataInput {
   id: string;
   name: string;
+  displayOrder: number;
+}
+
+export interface SoftDeleteInput {
+  reason: string;
+}
+
+export interface AppRoleItem {
+  id: string;
+  name: string;
+  keycloakRoleName: string;
+  description: string | null;
+  displayOrder: number;
 }
 
 export interface ApproveRegistrationInput {
