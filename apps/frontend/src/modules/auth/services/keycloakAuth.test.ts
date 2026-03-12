@@ -44,6 +44,7 @@ describe('keycloakAuth service', () => {
       
       expect(mockKeycloakInit).toHaveBeenCalledWith({
         onLoad: "check-sso",
+        silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
         checkLoginIframe: false,
         pkceMethod: "S256",
       });
@@ -56,7 +57,7 @@ describe('keycloakAuth service', () => {
     it('should call keycloak.login with redirectUri', async () => {
       await login();
       expect(mockKeycloakLogin).toHaveBeenCalledWith({
-        redirectUri: window.location.origin,
+        redirectUri: `${window.location.origin}/app`,
       });
     });
   });
@@ -65,7 +66,7 @@ describe('keycloakAuth service', () => {
     it('should call keycloak.logout with redirectUri', async () => {
       await logout();
       expect(mockKeycloakLogout).toHaveBeenCalledWith({
-        redirectUri: window.location.origin,
+        redirectUri: `${window.location.origin}/login`,
       });
     });
   });

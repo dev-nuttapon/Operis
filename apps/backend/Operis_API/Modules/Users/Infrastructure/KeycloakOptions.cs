@@ -8,4 +8,5 @@ public sealed class KeycloakOptions
     public string Realm { get; init; } = string.Empty;
     public string ClientId { get; init; } = string.Empty;
     public string ClientSecret { get; init; } = string.Empty;
+    public string ApiAudience { get; init; } = string.Empty;
 }

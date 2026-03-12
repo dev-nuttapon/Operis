@@ -13,9 +13,14 @@ function render(ui: React.ReactElement) {
 // Mock Keycloak Service
 vi.mock('../../modules/auth/services/keycloakAuth', () => ({
   initKeycloak: vi.fn(),
-  login: vi.fn(),
-  logout: vi.fn(),
-  getToken: vi.fn(),
+  bindAuthEvents: vi.fn(),
+  isAuthenticated: vi.fn(() => false),
+  refreshToken: vi.fn(async () => true),
+  getUserProfile: vi.fn(async () => null),
+  getTokenParsed: vi.fn(() => null),
+  login: vi.fn(async () => undefined),
+  logout: vi.fn(async () => undefined),
+  getAccessToken: vi.fn(),
 }));
 
 // Mock Zustand
@@ -74,7 +79,7 @@ describe('AppRouter Integration Tests', () => {
     });
   });
 
-  it('redirects to the landing page when attempting to access /app/documents without auth', async () => {
+  it('redirects to /login when attempting to access /app/documents without auth', async () => {
     // Navigate to protected route
     window.history.pushState({}, '', '/app/documents');
 
@@ -84,10 +89,9 @@ describe('AppRouter Integration Tests', () => {
       renderWithProviders(<AppRouter />);
     });
 
-    // We should be bounced back to the root '/' and see the Login button
-    const loginBtn = await screen.findByText('auth.login_button');
-    expect(loginBtn).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/');
+    // We should be bounced to /login and render LoginPage pending state
+    expect(await screen.findByText('Checking login...')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/login');
   });
 
   it('renders the MainLayout and DocumentDashboardPage when authenticated and visiting /app/documents', async () => {
@@ -99,14 +103,14 @@ describe('AppRouter Integration Tests', () => {
       renderWithProviders(<AppRouter />);
     });
 
-    // The Sider logo 'OPERIS' from MainLayout should exist
-    expect(screen.getByText('OPERIS')).toBeInTheDocument();
+    // The app title from MainLayout should exist
+    expect(screen.getByText('Office Inventory')).toBeInTheDocument();
 
     // The DocumentDashboard Page title should exist
     expect(screen.getByText('Document Dashboard')).toBeInTheDocument();
   });
 
-  it('handles unknown routes by redirecting to root fallback (`*`)', async () => {
+  it('handles unknown routes by redirecting to /login fallback (`*`)', async () => {
     window.history.pushState({}, '', '/unknown-random-route');
 
     vi.spyOn(keycloakAuthService, 'initKeycloak').mockResolvedValue(false);
@@ -115,9 +119,8 @@ describe('AppRouter Integration Tests', () => {
       renderWithProviders(<AppRouter />);
     });
 
-    // Should render the Landing page
-    const loginBtn = await screen.findByText('auth.login_button');
-    expect(loginBtn).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/');
+    // Should render LoginPage pending state
+    expect(await screen.findByText('Checking login...')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/login');
   });
 });

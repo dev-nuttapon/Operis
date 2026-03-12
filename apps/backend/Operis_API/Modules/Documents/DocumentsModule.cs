@@ -15,7 +15,8 @@ public sealed class DocumentsModule : IModule
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/documents")
-            .WithTags("Documents");
+            .WithTags("Documents")
+            .RequireAuthorization();
 
         group.MapGet("/", async (OperisDbContext dbContext, CancellationToken cancellationToken) =>
             {

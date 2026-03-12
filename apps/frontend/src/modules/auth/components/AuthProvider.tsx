@@ -1,5 +1,14 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
-import { bindAuthEvents, initKeycloak, login, logout } from "../services/keycloakAuth";
+import {
+  bindAuthEvents,
+  getTokenParsed,
+  getUserProfile,
+  initKeycloak,
+  isAuthenticated,
+  login,
+  logout,
+  refreshToken,
+} from "../services/keycloakAuth";
 
 interface AuthContextValue {
   isReady: boolean;
@@ -22,6 +31,32 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let mounted = true;
+    let refreshIntervalId: ReturnType<typeof setInterval> | null = null;
+
+    const setAnonymous = () => {
+      if (!mounted) return;
+      setState({ isReady: true, isAuthenticated: false, user: null, login, logout });
+    };
+
+    const ensureFreshSession = async (minValidity = 60) => {
+      const refreshed = await refreshToken(minValidity);
+      if (!refreshed && !isAuthenticated()) {
+        setAnonymous();
+      }
+    };
+
+    const startRefreshLoop = () => {
+      if (refreshIntervalId) return;
+      refreshIntervalId = setInterval(() => {
+        void ensureFreshSession();
+      }, 30000);
+    };
+
+    const stopRefreshLoop = () => {
+      if (!refreshIntervalId) return;
+      clearInterval(refreshIntervalId);
+      refreshIntervalId = null;
+    };
 
     const updateAuthState = async (authenticated: boolean) => {
       if (!mounted) return;
@@ -29,7 +64,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
       let user = null;
       if (authenticated) {
         try {
-          const { getUserProfile, getTokenParsed } = await import("../services/keycloakAuth");
           const profile = await getUserProfile();
           const tokenParsed = getTokenParsed();
           user = {
@@ -49,32 +83,41 @@ export function AuthProvider({ children }: PropsWithChildren) {
         login, 
         logout 
       });
+
+      if (authenticated) {
+        startRefreshLoop();
+      } else {
+        stopRefreshLoop();
+      }
     };
 
     bindAuthEvents({
       onAuthenticatedChanged: (authenticated) => {
-        updateAuthState(authenticated);
+        void updateAuthState(authenticated);
       },
       onTokenExpired: () => {
-        if (mounted) {
-          setState({ isReady: true, isAuthenticated: false, user: null, login, logout });
-        }
+        void ensureFreshSession(0);
       },
     });
 
+    const onWindowFocus = () => {
+      void ensureFreshSession();
+    };
+    window.addEventListener("focus", onWindowFocus);
+
     initKeycloak()
       .then((authenticated) => {
-        updateAuthState(authenticated);
+        void updateAuthState(authenticated);
       })
       .catch((err) => {
         console.error("Keycloak init failed:", err);
-        if (mounted) {
-          setState({ isReady: true, isAuthenticated: false, user: null, login, logout });
-        }
+        setAnonymous();
       });
 
     return () => {
       mounted = false;
+      stopRefreshLoop();
+      window.removeEventListener("focus", onWindowFocus);
     };
   }, []);
 

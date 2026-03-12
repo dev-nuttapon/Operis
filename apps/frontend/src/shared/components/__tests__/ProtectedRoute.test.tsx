@@ -28,7 +28,7 @@ describe('ProtectedRoute', () => {
     expect(spinner).toBeInTheDocument();
   });
 
-  it('redirects to the root domain when unauthenticated', () => {
+  it('redirects to /login when unauthenticated', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: false,
@@ -42,7 +42,7 @@ describe('ProtectedRoute', () => {
           <Route path="/protected" element={<ProtectedRoute />}>
              <Route path="" element={<div data-testid="protected-content" />} />
           </Route>
-          <Route path="/" element={<div data-testid="login-page">Login Page</div>} />
+          <Route path="/login" element={<div data-testid="login-page">Login Page</div>} />
         </Routes>
       </MemoryRouter>
     );

@@ -51,17 +51,18 @@ export function bindAuthEvents(handlers: AuthEventHandlers): void {
     handlers.onTokenExpired?.();
   };
   keycloak.onTokenExpired = () => {
-    handlers.onAuthenticatedChanged?.(false);
     handlers.onTokenExpired?.();
   };
   keycloak.onAuthRefreshError = () => {
-    handlers.onAuthenticatedChanged?.(false);
     handlers.onTokenExpired?.();
   };
 }
 
 export async function refreshToken(minValidity = 30): Promise<boolean> {
   try {
+    if (!keycloak.authenticated) {
+      return false;
+    }
     return await keycloak.updateToken(minValidity);
   } catch {
     return false;
@@ -91,4 +92,8 @@ export function getTokenParsed() {
 
 export function getAccessToken(): string | undefined {
   return keycloak.token;
+}
+
+export function isAuthenticated(): boolean {
+  return Boolean(keycloak.authenticated);
 }

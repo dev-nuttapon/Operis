@@ -23,12 +23,14 @@ public sealed class UsersModule : IModule
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/users")
-            .WithTags("Users");
+            .WithTags("Users")
+            .RequireAuthorization();
 
         group.MapGet("/", ListUsersAsync)
             .WithName("Users_List");
 
         group.MapPost("/register", CreateRegistrationRequestAsync)
+            .AllowAnonymous()
             .WithName("Users_CreateRegistrationRequest");
 
         group.MapGet("/registration-requests", ListRegistrationRequestsAsync)
