@@ -327,7 +327,7 @@ export function AdminUsersPage() {
   ];
 
   let pageTitle = "จัดการผู้ใช้งาน";
-  let pageDescription = "แยก 3 กระบวนการชัดเจน: เพิ่มจากผู้ดูแล, เชิญผู้ใช้งาน, และลงทะเบียนพร้อมอนุมัติ";
+  let pageDescription = "จัดการผู้ใช้งานจากฝั่งผู้ดูแลระบบ";
   let pageContent: ReactNode;
 
   if (currentSection === "invitations") {
@@ -397,7 +397,7 @@ export function AdminUsersPage() {
       </Space>
     );
   } else if (currentSection === "approvals") {
-    pageTitle = "ลงทะเบียนและอนุมัติการลงทะเบียน";
+    pageTitle = "อนุมัติการลงทะเบียน";
     pageDescription = "ตรวจคำขอลงทะเบียนที่ผู้ใช้ส่งเข้ามา แล้วอนุมัติหรือปฏิเสธตามนโยบาย";
     pageContent = (
       <Card variant="borderless">

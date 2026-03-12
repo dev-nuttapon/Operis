@@ -175,7 +175,7 @@ export function MainLayout() {
     if (path.includes('admin/master/job-titles')) return tr('common.master_job_titles', 'ตำแหน่ง');
     if (path.includes('admin/master')) return tr('common.master_data_management', 'จัดการข้อมูล Master');
     if (path.includes('admin/invitations')) return tr('common.user_invitations', 'เชิญผู้ใช้งาน');
-    if (path.includes('admin/registrations')) return tr('common.registration_approvals', 'ลงทะเบียนและอนุมัติการลงทะเบียน');
+    if (path.includes('admin/registrations')) return tr('common.registration_approvals', 'อนุมัติการลงทะเบียน');
     return tr('common.dashboard', 'Dashboard');
   };
 
