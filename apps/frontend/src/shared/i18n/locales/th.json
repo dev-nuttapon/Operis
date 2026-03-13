@@ -130,6 +130,7 @@
     "application_name": "Operis",
     "dashboard": "แดชบอร์ด",
     "documents": "เอกสาร",
+    "workflows": "เวิร์กโฟลว์",
     "admin": "ผู้ดูแลระบบ",
     "user_admin_group": "จัดการผู้ใช้งาน",
     "audit_group": "บันทึกการใช้งาน",

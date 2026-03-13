@@ -21,6 +21,7 @@ vi.mock('../../../i18n/config', () => ({
     t: (key: string, options?: { lng?: string }) => {
       if (key === 'common.application_name') return 'OPERIS';
       if (key === 'common.documents') return 'Documents';
+      if (key === 'common.workflows') return 'Workflows';
       if (key === 'auth.logout_button') return 'Logout';
       if (key === 'common.user_fallback') return 'User';
       if (key === 'common.version') return 'Version';
@@ -90,6 +91,7 @@ describe('MainLayout', () => {
     
     // Verify menu items
     expect(screen.getByText('Documents')).toBeInTheDocument();
+    expect(screen.getByText('Workflows')).toBeInTheDocument();
     
     expect(screen.getByText('Test User')).toBeInTheDocument();
   });

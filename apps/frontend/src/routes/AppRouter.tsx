@@ -25,6 +25,9 @@ const RegistrationPasswordSetupPage = lazy(() =>
 const AuditLogsPage = lazy(() =>
   import("../modules/audits/pages/AuditLogsPage").then((module) => ({ default: module.AuditLogsPage }))
 );
+const WorkflowDefinitionsPage = lazy(() =>
+  import("../modules/workflows/pages/WorkflowDefinitionsPage").then((module) => ({ default: module.WorkflowDefinitionsPage }))
+);
 
 function RouteFallback() {
   return (
@@ -49,6 +52,7 @@ export function AppRouter() {
             <Route element={<MainLayout />}>
               <Route index element={<Navigate to="documents" replace />} />
               <Route path="documents" element={<DocumentDashboardPage />} />
+              <Route path="workflows" element={<WorkflowDefinitionsPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/departments" replace />} />
               <Route path="admin/master/departments" element={<AdminUsersPage />} />

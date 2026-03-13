@@ -89,8 +89,7 @@ describe('AppRouter Integration Tests', () => {
       renderWithProviders(<AppRouter />);
     });
 
-    // We should be bounced to /login and render LoginPage pending state
-    expect(await screen.findByText('Checking login...')).toBeInTheDocument();
+    expect(await screen.findByText('auth.checking_login')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/login');
   });
 
@@ -103,11 +102,21 @@ describe('AppRouter Integration Tests', () => {
       renderWithProviders(<AppRouter />);
     });
 
-    // The app title from MainLayout should exist
-    expect(screen.getByText('Office Inventory')).toBeInTheDocument();
+    expect(await screen.findByText('Document Dashboard')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/app/documents');
+  });
 
-    // The DocumentDashboard Page title should exist
-    expect(screen.getByText('Document Dashboard')).toBeInTheDocument();
+  it('renders the WorkflowDefinitionsPage when authenticated and visiting /app/workflows', async () => {
+    window.history.pushState({}, '', '/app/workflows');
+
+    vi.spyOn(keycloakAuthService, 'initKeycloak').mockResolvedValue(true);
+
+    await act(async () => {
+      renderWithProviders(<AppRouter />);
+    });
+
+    expect(await screen.findByText('Workflow Definitions')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/app/workflows');
   });
 
   it('handles unknown routes by redirecting to /login fallback (`*`)', async () => {
@@ -119,8 +128,7 @@ describe('AppRouter Integration Tests', () => {
       renderWithProviders(<AppRouter />);
     });
 
-    // Should render LoginPage pending state
-    expect(await screen.findByText('Checking login...')).toBeInTheDocument();
+    expect(await screen.findByText('auth.checking_login')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/login');
   });
 });

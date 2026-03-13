@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Modules.Documents.Infrastructure;
 using Operis_API.Modules.Users.Infrastructure;
+using Operis_API.Modules.Workflows.Infrastructure;
 using Operis_API.Shared.Auditing;
 
 namespace Operis_API.Infrastructure.Persistence;
@@ -15,6 +16,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<UserRegistrationRequestEntity> UserRegistrationRequests => Set<UserRegistrationRequestEntity>();
     public DbSet<UserInvitationEntity> UserInvitations => Set<UserInvitationEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
+    public DbSet<WorkflowDefinitionEntity> WorkflowDefinitions => Set<WorkflowDefinitionEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -199,6 +201,20 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.RequestId);
             entity.HasIndex(x => new { x.Status, x.OccurredAt });
             entity.HasIndex(x => new { x.DepartmentId, x.OccurredAt });
+        });
+
+        modelBuilder.Entity<WorkflowDefinitionEntity>(entity =>
+        {
+            entity.ToTable("workflow_definitions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(120);
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(200);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.CreatedAt });
         });
     }
 }

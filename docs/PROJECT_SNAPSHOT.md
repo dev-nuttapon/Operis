@@ -33,6 +33,7 @@ Meaning:
 | `auth` | `7/10` | `n/a` | `7/10` | Public surface is clearer, but it remains a cross-cutting module. |
 | `audits` | `6.5/10` | `7.5/10` | `7/10` | Bounded module with query and handler-level coverage in backend. |
 | `documents` | `6/10` | `7/10` | `6.5/10` | Small module that now follows the standard backend/frontend pattern more closely. |
+| `workflows` | `5.5/10` | `6/10` | `5.5/10` | Skeleton module created on the current baseline, ready for real workflow features to be added. |
 
 ---
 

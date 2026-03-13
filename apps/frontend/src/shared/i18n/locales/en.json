@@ -130,6 +130,7 @@
     "application_name": "Operis",
     "dashboard": "Dashboard",
     "documents": "Documents",
+    "workflows": "Workflows",
     "admin": "Admin",
     "user_admin_group": "User Management",
     "audit_group": "Audit Logs",

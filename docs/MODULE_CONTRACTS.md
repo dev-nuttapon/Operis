@@ -47,6 +47,13 @@ Public entry:
 * [apps/frontend/src/modules/audits/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/audits/index.ts)
 * [apps/frontend/src/modules/audits/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/audits/README.md)
 
+## workflows
+
+Public entry:
+
+* [apps/frontend/src/modules/workflows/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/workflows/index.ts)
+* [apps/frontend/src/modules/workflows/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/workflows/README.md)
+
 ---
 
 # Backend Public Surfaces
@@ -90,6 +97,17 @@ Module entry:
 Application surfaces:
 
 * document queries
+
+## workflows
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Workflows/WorkflowsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Workflows/WorkflowsModule.cs)
+* [apps/backend/Operis_API/Modules/Workflows/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Workflows/README.md)
+
+Application surfaces:
+
+* workflow definition queries
 
 ---
 

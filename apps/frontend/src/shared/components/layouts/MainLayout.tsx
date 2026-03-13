@@ -12,6 +12,7 @@ import {
   DashboardOutlined,
   GlobalOutlined,
   TeamOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../modules/auth';
@@ -109,6 +110,11 @@ export function MainLayout() {
       key: '/app/documents',
       icon: <FileTextOutlined />,
       label: tr('common.documents'),
+    },
+    {
+      key: '/app/workflows',
+      icon: <ApartmentOutlined />,
+      label: tr('common.workflows'),
     },
     ...(hasAdminAccess
       ? [{
@@ -221,6 +227,7 @@ export function MainLayout() {
   const getPageTitle = (path: string) => {
     if (path.includes('dashboard')) return tr('common.dashboard');
     if (path.includes('documents')) return tr('common.documents');
+    if (path.includes('workflows')) return tr('common.workflows');
     if (path.includes('admin/users')) return tr('common.user_management');
     if (path.includes('admin/master/departments')) return tr('common.master_departments');
     if (path.includes('admin/master/job-titles')) return tr('common.master_job_titles');
