@@ -173,6 +173,9 @@ export function RegistrationPasswordSetupPage() {
               <Form.Item label={t("admin_users.fields.email")}>
                 <Input value={setupQuery.data.email} disabled />
               </Form.Item>
+              <Form.Item label={t("admin_users.fields.division")}>
+                <Input value={setupQuery.data.divisionName || "-"} disabled />
+              </Form.Item>
               <Form.Item label={t("admin_users.fields.department")}>
                 <Input value={setupQuery.data.departmentName || "-"} disabled />
               </Form.Item>

@@ -24,6 +24,7 @@ public sealed class UsersModule : IModule
         services.AddScoped<IUserInvitationQueries, UserInvitationQueries>();
         services.AddScoped<IUserRegistrationCommands, UserRegistrationCommands>();
         services.AddScoped<IUserRegistrationQueries, UserRegistrationQueries>();
+        services.AddScoped<IUserOrgAssignmentCommands, UserOrgAssignmentCommands>();
         services.AddScoped<IUserReferenceDataCommands, UserReferenceDataCommands>();
         services.AddScoped<IUserReferenceDataQueries, UserReferenceDataQueries>();
         services.AddSingleton<IReferenceDataCache, ReferenceDataCache>();
@@ -50,12 +51,28 @@ public sealed class UsersModule : IModule
         group.MapPut("/{userId}", UpdateUserAsync)
             .WithName("Users_Update");
 
+        group.MapPut("/{userId}/org-assignment", UpsertUserOrgAssignmentAsync)
+            .WithName("Users_UpsertOrgAssignment");
+
         group.MapGet("/departments", ListDepartmentsAsync)
             .AllowAnonymous()
             .WithName("Users_ListDepartments");
 
+        group.MapGet("/divisions", ListDivisionsAsync)
+            .AllowAnonymous()
+            .WithName("Users_ListDivisions");
+
         group.MapGet("/roles", ListRolesAsync)
             .WithName("Users_ListRoles");
+
+        group.MapPost("/divisions", CreateDivisionAsync)
+            .WithName("Users_CreateDivision");
+
+        group.MapPut("/divisions/{divisionId:guid}", UpdateDivisionAsync)
+            .WithName("Users_UpdateDivision");
+
+        group.MapDelete("/divisions/{divisionId:guid}", DeleteDivisionAsync)
+            .WithName("Users_DeleteDivision");
 
         group.MapPost("/departments", CreateDepartmentAsync)
             .WithName("Users_CreateDepartment");
@@ -78,6 +95,19 @@ public sealed class UsersModule : IModule
 
         group.MapDelete("/job-titles/{jobTitleId:guid}", DeleteJobTitleAsync)
             .WithName("Users_DeleteJobTitle");
+
+        group.MapGet("/project-roles", ListProjectRolesAsync)
+            .AllowAnonymous()
+            .WithName("Users_ListProjectRoles");
+
+        group.MapPost("/project-roles", CreateProjectRoleAsync)
+            .WithName("Users_CreateProjectRole");
+
+        group.MapPut("/project-roles/{projectRoleId:guid}", UpdateProjectRoleAsync)
+            .WithName("Users_UpdateProjectRole");
+
+        group.MapDelete("/project-roles/{projectRoleId:guid}", DeleteProjectRoleAsync)
+            .WithName("Users_DeleteProjectRole");
 
         group.MapPut("/me/preferences", UpdateCurrentUserPreferencesAsync)
             .WithName("Users_UpdateCurrentUserPreferences");
@@ -156,6 +186,66 @@ public sealed class UsersModule : IModule
         return Results.Ok(roles);
     }
 
+    private static async Task<IResult> ListDivisionsAsync(
+        IUserReferenceDataQueries queries,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await queries.ListDivisionsAsync(
+            new ReferenceDataQuery(search, sortBy, sortOrder, page, pageSize),
+            cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> CreateDivisionAsync(
+        CreateMasterDataRequest request,
+        IUserReferenceDataCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.CreateDivisionAsync(request, cancellationToken);
+        return result.Status switch
+        {
+            MasterDataCommandStatus.ValidationError => Results.BadRequest(result.ErrorMessage),
+            MasterDataCommandStatus.Conflict => Results.Conflict(result.ErrorMessage),
+            _ => Results.Created($"/api/v1/users/divisions/{result.Response!.Id}", result.Response)
+        };
+    }
+
+    private static async Task<IResult> UpdateDivisionAsync(
+        Guid divisionId,
+        UpdateMasterDataRequest request,
+        IUserReferenceDataCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.UpdateDivisionAsync(divisionId, request, cancellationToken);
+        return result.Status switch
+        {
+            MasterDataCommandStatus.NotFound => Results.NotFound(),
+            MasterDataCommandStatus.ValidationError => Results.BadRequest(result.ErrorMessage),
+            MasterDataCommandStatus.Conflict => Results.Conflict(result.ErrorMessage),
+            _ => Results.Ok(result.Response)
+        };
+    }
+
+    private static async Task<IResult> DeleteDivisionAsync(
+        Guid divisionId,
+        [FromBody] SoftDeleteRequest request,
+        ClaimsPrincipal principal,
+        [FromServices] IUserReferenceDataCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.DeleteDivisionAsync(divisionId, request, ResolveActor(principal), cancellationToken);
+        return result.Status switch
+        {
+            MasterDataCommandStatus.NotFound => Results.NotFound(),
+            _ => Results.NoContent()
+        };
+    }
+
     private static async Task<IResult> ListDepartmentsAsync(
         IUserReferenceDataQueries queries,
         string? search = null,
@@ -172,7 +262,7 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> CreateDepartmentAsync(
-        CreateMasterDataRequest request,
+        CreateDepartmentRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
@@ -187,7 +277,7 @@ public sealed class UsersModule : IModule
 
     private static async Task<IResult> UpdateDepartmentAsync(
         Guid departmentId,
-        UpdateMasterDataRequest request,
+        UpdateDepartmentRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
@@ -232,7 +322,7 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> CreateJobTitleAsync(
-        CreateMasterDataRequest request,
+        CreateJobTitleRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
@@ -247,7 +337,7 @@ public sealed class UsersModule : IModule
 
     private static async Task<IResult> UpdateJobTitleAsync(
         Guid jobTitleId,
-        UpdateMasterDataRequest request,
+        UpdateJobTitleRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
@@ -269,6 +359,66 @@ public sealed class UsersModule : IModule
         CancellationToken cancellationToken)
     {
         var result = await commands.DeleteJobTitleAsync(jobTitleId, request, ResolveActor(principal), cancellationToken);
+        return result.Status switch
+        {
+            MasterDataCommandStatus.NotFound => Results.NotFound(),
+            _ => Results.NoContent()
+        };
+    }
+
+    private static async Task<IResult> ListProjectRolesAsync(
+        IUserReferenceDataQueries queries,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await queries.ListProjectRolesAsync(
+            new ReferenceDataQuery(search, sortBy, sortOrder, page, pageSize),
+            cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> CreateProjectRoleAsync(
+        CreateMasterDataRequest request,
+        IUserReferenceDataCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.CreateProjectRoleAsync(request, cancellationToken);
+        return result.Status switch
+        {
+            MasterDataCommandStatus.ValidationError => Results.BadRequest(result.ErrorMessage),
+            MasterDataCommandStatus.Conflict => Results.Conflict(result.ErrorMessage),
+            _ => Results.Created($"/api/v1/users/project-roles/{result.Response!.Id}", result.Response)
+        };
+    }
+
+    private static async Task<IResult> UpdateProjectRoleAsync(
+        Guid projectRoleId,
+        UpdateMasterDataRequest request,
+        IUserReferenceDataCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.UpdateProjectRoleAsync(projectRoleId, request, cancellationToken);
+        return result.Status switch
+        {
+            MasterDataCommandStatus.NotFound => Results.NotFound(),
+            MasterDataCommandStatus.ValidationError => Results.BadRequest(result.ErrorMessage),
+            MasterDataCommandStatus.Conflict => Results.Conflict(result.ErrorMessage),
+            _ => Results.Ok(result.Response)
+        };
+    }
+
+    private static async Task<IResult> DeleteProjectRoleAsync(
+        Guid projectRoleId,
+        [FromBody] SoftDeleteRequest request,
+        ClaimsPrincipal principal,
+        [FromServices] IUserReferenceDataCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.DeleteProjectRoleAsync(projectRoleId, request, ResolveActor(principal), cancellationToken);
         return result.Status switch
         {
             MasterDataCommandStatus.NotFound => Results.NotFound(),
@@ -312,6 +462,21 @@ public sealed class UsersModule : IModule
                 detail: result.ErrorMessage,
                 statusCode: result.ProblemStatusCode),
             _ => Results.Ok(result.Response)
+        };
+    }
+
+    private static async Task<IResult> UpsertUserOrgAssignmentAsync(
+        string userId,
+        UpsertUserOrgAssignmentRequest request,
+        IUserOrgAssignmentCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.UpsertPrimaryAssignmentAsync(userId, request, cancellationToken);
+        return result.Status switch
+        {
+            UserCommandStatus.NotFound => Results.NotFound(),
+            UserCommandStatus.ValidationError => Results.BadRequest(result.ErrorMessage),
+            _ => Results.NoContent()
         };
     }
 
@@ -683,8 +848,8 @@ public sealed class UsersModule : IModule
     };
 
     private static MasterDataResponse ToResponse(DepartmentEntity entity) =>
-        new(entity.Id, entity.Name, entity.DisplayOrder, entity.CreatedAt, entity.UpdatedAt, entity.DeletedReason, entity.DeletedBy, entity.DeletedAt);
+        new(entity.Id, entity.Name, entity.DisplayOrder, entity.DivisionId, null, null, null, entity.CreatedAt, entity.UpdatedAt, entity.DeletedReason, entity.DeletedBy, entity.DeletedAt);
 
     private static MasterDataResponse ToResponse(JobTitleEntity entity) =>
-        new(entity.Id, entity.Name, entity.DisplayOrder, entity.CreatedAt, entity.UpdatedAt, entity.DeletedReason, entity.DeletedBy, entity.DeletedAt);
+        new(entity.Id, entity.Name, entity.DisplayOrder, null, null, entity.DepartmentId, null, entity.CreatedAt, entity.UpdatedAt, entity.DeletedReason, entity.DeletedBy, entity.DeletedAt);
 }

@@ -140,6 +140,10 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("display_order");
 
+                    b.Property<Guid?>("DivisionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("division_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -152,6 +156,8 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DivisionId");
+
                     b.HasIndex("Name")
                         .IsUnique()
                         .HasFilter("\"deleted_at\" IS NULL");
@@ -161,7 +167,7 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.ToTable("departments", (string)null);
                 });
 
-            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.JobTitleEntity", b =>
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.DivisionEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -208,7 +214,233 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("DeletedAt", "DisplayOrder", "Name");
 
+                    b.ToTable("divisions", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.JobTitleEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<string>("DeletedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("deleted_reason");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("department_id");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("\"deleted_at\" IS NULL");
+
+                    b.HasIndex("DeletedAt", "DisplayOrder", "Name");
+
                     b.ToTable("job_titles", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ProjectEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<string>("DeletedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("deleted_reason");
+
+                    b.Property<DateTimeOffset?>("EndAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("StartAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("\"deleted_at\" IS NULL");
+
+                    b.HasIndex("DeletedAt", "Status", "CreatedAt");
+
+                    b.ToTable("projects", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ProjectRoleEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<string>("DeletedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("deleted_reason");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("\"deleted_at\" IS NULL");
+
+                    b.HasIndex("DeletedAt", "DisplayOrder", "Name");
+
+                    b.ToTable("project_roles", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ReportingLineEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("department_id");
+
+                    b.Property<DateTimeOffset>("EffectiveFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_from");
+
+                    b.Property<DateTimeOffset?>("EffectiveTo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_to");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_primary");
+
+                    b.Property<string>("ReportsToUserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("reports_to_user_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("ReportsToUserId");
+
+                    b.HasIndex("UserId", "IsPrimary");
+
+                    b.ToTable("reporting_lines", (string)null);
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserEntity", b =>
@@ -346,6 +578,128 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("Status", "InvitedAt");
 
                     b.ToTable("user_invitations", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserOrgAssignmentEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("department_id");
+
+                    b.Property<Guid?>("DivisionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("division_id");
+
+                    b.Property<DateTimeOffset?>("EndAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_at");
+
+                    b.Property<bool>("IsDepartmentHead")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_department_head");
+
+                    b.Property<bool>("IsDivisionHead")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_division_head");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_primary");
+
+                    b.Property<Guid?>("PositionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("position_id");
+
+                    b.Property<DateTimeOffset>("StartAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_at");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("DivisionId");
+
+                    b.HasIndex("PositionId");
+
+                    b.HasIndex("DepartmentId", "IsDepartmentHead");
+
+                    b.HasIndex("DivisionId", "IsDivisionHead");
+
+                    b.HasIndex("UserId", "IsPrimary");
+
+                    b.ToTable("user_org_assignments", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserProjectAssignmentEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("EndAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_at");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_primary");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<Guid>("ProjectRoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_role_id");
+
+                    b.Property<DateTimeOffset>("StartAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_at");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectRoleId");
+
+                    b.HasIndex("ProjectId", "IsPrimary");
+
+                    b.HasIndex("UserId", "ProjectId", "ProjectRoleId");
+
+                    b.ToTable("user_project_assignments", (string)null);
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserRegistrationRequestEntity", b =>
@@ -662,6 +1016,42 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_logs", (string)null);
                 });
 
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.DivisionEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.JobTitleEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ReportingLineEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ReportsToUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserEntity", b =>
                 {
                     b.HasOne("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", null)
@@ -686,6 +1076,51 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("JobTitleId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserOrgAssignmentEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.DivisionEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.JobTitleEntity", null)
+                        .WithMany()
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserProjectAssignmentEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectRoleEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectRoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.UserRegistrationRequestEntity", b =>

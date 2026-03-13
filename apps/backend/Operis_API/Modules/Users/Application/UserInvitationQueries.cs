@@ -48,7 +48,7 @@ public sealed class UserInvitationQueries(
             .Take(normalizedPageSize)
             .ToListAsync(cancellationToken);
 
-        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        var (divisions, departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "users",
@@ -71,7 +71,7 @@ public sealed class UserInvitationQueries(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new PagedResult<InvitationResponse>(
-            items.Select(x => ToResponse(x, departments, jobTitles)).ToList(),
+            items.Select(x => ToResponse(x, divisions, departments, jobTitles)).ToList(),
             total,
             normalizedPage,
             normalizedPageSize);
@@ -87,7 +87,7 @@ public sealed class UserInvitationQueries(
             return new InvitationDetailQueryResult(InvitationDetailQueryStatus.NotFound);
         }
 
-        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        var (divisions, departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
         var status = GetInvitationStatus(invitation);
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -102,13 +102,29 @@ public sealed class UserInvitationQueries(
             Metadata: new { status }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        Guid? divisionId = null;
+        string? divisionName = null;
+        string? departmentName = null;
+        if (invitation.DepartmentId.HasValue && departments.TryGetValue(invitation.DepartmentId.Value, out var department))
+        {
+            divisionId = department.DivisionId;
+            departmentName = department.Name;
+
+            if (divisionId.HasValue && divisions.TryGetValue(divisionId.Value, out var resolvedDivisionName))
+            {
+                divisionName = resolvedDivisionName;
+            }
+        }
+
         return new InvitationDetailQueryResult(
             InvitationDetailQueryStatus.Success,
             new InvitationDetailResponse(
                 invitation.Id,
                 invitation.Email,
+                divisionId,
+                divisionName,
                 invitation.DepartmentId,
-                invitation.DepartmentId.HasValue && departments.TryGetValue(invitation.DepartmentId.Value, out var departmentName) ? departmentName : null,
+                departmentName,
                 invitation.JobTitleId,
                 invitation.JobTitleId.HasValue && jobTitles.TryGetValue(invitation.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
                 status,
@@ -116,17 +132,26 @@ public sealed class UserInvitationQueries(
                 invitation.ExpiresAt));
     }
 
-    private async Task<(IReadOnlyDictionary<Guid, string> Departments, IReadOnlyDictionary<Guid, string> JobTitles)> LoadReferenceMapsAsync(CancellationToken cancellationToken)
+    private async Task<(IReadOnlyDictionary<Guid, string> Divisions, IReadOnlyDictionary<Guid, CachedDepartmentItem> Departments, IReadOnlyDictionary<Guid, string> JobTitles)> LoadReferenceMapsAsync(CancellationToken cancellationToken)
     {
+        var divisions = await dbContext.Divisions
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
         var departments = await dbContext.Departments
             .AsNoTracking()
-            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new CachedDepartmentItem(x.Id, x.Name, x.DisplayOrder, x.DivisionId, null, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt),
+                cancellationToken);
 
         var jobTitles = await dbContext.JobTitles
             .AsNoTracking()
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
-        return (departments, jobTitles);
+        return (divisions, departments, jobTitles);
     }
 
     private static IQueryable<UserInvitationEntity> ApplyInvitationSorting(IQueryable<UserInvitationEntity> query, string? sortBy, string? sortOrder)
@@ -153,15 +178,34 @@ public sealed class UserInvitationQueries(
 
     private static InvitationResponse ToResponse(
         UserInvitationEntity entity,
-        IReadOnlyDictionary<Guid, string> departments,
-        IReadOnlyDictionary<Guid, string> jobTitles) =>
-        new(
+        IReadOnlyDictionary<Guid, string> divisions,
+        IReadOnlyDictionary<Guid, CachedDepartmentItem> departments,
+        IReadOnlyDictionary<Guid, string> jobTitles)
+    {
+        Guid? divisionId = null;
+        string? divisionName = null;
+        string? departmentName = null;
+
+        if (entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var department))
+        {
+            divisionId = department.DivisionId;
+            departmentName = department.Name;
+
+            if (divisionId.HasValue && divisions.TryGetValue(divisionId.Value, out var resolvedDivisionName))
+            {
+                divisionName = resolvedDivisionName;
+            }
+        }
+
+        return new InvitationResponse(
             entity.Id,
             entity.Email,
             entity.InvitationToken,
             entity.InvitedBy,
+            divisionId,
+            divisionName,
             entity.DepartmentId,
-            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            departmentName,
             entity.JobTitleId,
             entity.JobTitleId.HasValue && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             GetInvitationStatus(entity),
@@ -170,6 +214,7 @@ public sealed class UserInvitationQueries(
             entity.AcceptedAt,
             entity.RejectedAt,
             $"/invite/{entity.InvitationToken}");
+    }
 
     private static (int Page, int PageSize, int Skip) NormalizePaging(int page, int pageSize)
     {

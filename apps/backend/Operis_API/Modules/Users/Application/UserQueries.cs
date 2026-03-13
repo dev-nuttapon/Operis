@@ -52,8 +52,10 @@ public sealed class UserQueries(
             .Take(normalizedPageSize)
             .ToListAsync(cancellationToken);
 
-        var departments = (await referenceDataCache.GetDepartmentsAsync(dbContext, cancellationToken))
+        var divisions = (await referenceDataCache.GetDivisionsAsync(dbContext, cancellationToken))
             .ToDictionary(x => x.Id, x => x.Name);
+        var departments = (await referenceDataCache.GetDepartmentsAsync(dbContext, cancellationToken))
+            .ToDictionary(x => x.Id, x => x);
         var jobTitles = (await referenceDataCache.GetJobTitlesAsync(dbContext, cancellationToken))
             .ToDictionary(x => x.Id, x => x.Name);
         var appRoles = await referenceDataCache.GetAppRolesAsync(dbContext, cancellationToken);
@@ -61,11 +63,11 @@ public sealed class UserQueries(
         IReadOnlyList<UserResponse> responses;
         if (!query.IncludeIdentity)
         {
-            responses = users.Select(x => ToResponse(x, null, [], departments, jobTitles)).ToList();
+            responses = users.Select(x => ToResponse(x, null, [], divisions, departments, jobTitles)).ToList();
         }
         else
         {
-            responses = await BuildIdentityResponsesAsync(users, appRoles, departments, jobTitles, cancellationToken);
+            responses = await BuildIdentityResponsesAsync(users, appRoles, divisions, departments, jobTitles, cancellationToken);
         }
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -95,7 +97,8 @@ public sealed class UserQueries(
     private async Task<IReadOnlyList<UserResponse>> BuildIdentityResponsesAsync(
         IReadOnlyList<UserEntity> users,
         IReadOnlyList<CachedAppRoleItem> appRoles,
-        IReadOnlyDictionary<Guid, string> departments,
+        IReadOnlyDictionary<Guid, string> divisions,
+        IReadOnlyDictionary<Guid, CachedDepartmentItem> departments,
         IReadOnlyDictionary<Guid, string> jobTitles,
         CancellationToken cancellationToken)
     {
@@ -123,7 +126,7 @@ public sealed class UserQueries(
                         .Distinct(StringComparer.Ordinal)
                         .ToArray();
 
-                    return ToResponse(user, profileTask.Result, mappedRoles, departments, jobTitles);
+                    return ToResponse(user, profileTask.Result, mappedRoles, divisions, departments, jobTitles);
                 }
                 finally
                 {
@@ -161,15 +164,34 @@ public sealed class UserQueries(
         UserEntity entity,
         KeycloakUserProfile? keycloakProfile,
         IReadOnlyList<string> roles,
-        IReadOnlyDictionary<Guid, string>? departments,
-        IReadOnlyDictionary<Guid, string>? jobTitles) =>
-        new(
+        IReadOnlyDictionary<Guid, string>? divisions,
+        IReadOnlyDictionary<Guid, CachedDepartmentItem>? departments,
+        IReadOnlyDictionary<Guid, string>? jobTitles)
+    {
+        Guid? divisionId = null;
+        string? divisionName = null;
+        string? departmentName = null;
+
+        if (entity.DepartmentId.HasValue && departments is not null && departments.TryGetValue(entity.DepartmentId.Value, out var department))
+        {
+            departmentName = department.Name;
+            divisionId = department.DivisionId;
+
+            if (divisionId.HasValue && divisions is not null && divisions.TryGetValue(divisionId.Value, out var resolvedDivisionName))
+            {
+                divisionName = resolvedDivisionName;
+            }
+        }
+
+        return new UserResponse(
             entity.Id,
             entity.Status,
             entity.CreatedAt,
             entity.CreatedBy,
+            divisionId,
+            divisionName,
             entity.DepartmentId,
-            entity.DepartmentId.HasValue && departments is not null && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            departmentName,
             entity.JobTitleId,
             entity.JobTitleId.HasValue && jobTitles is not null && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             roles,
@@ -188,6 +210,7 @@ public sealed class UserQueries(
                     keycloakProfile.LastName,
                     keycloakProfile.Enabled,
                     keycloakProfile.EmailVerified));
+    }
 
     private static (int Page, int PageSize, int Skip) NormalizePaging(int page, int pageSize)
     {

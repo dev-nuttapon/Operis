@@ -17,6 +17,12 @@ Owned data:
 * user invitations
 * departments
 * job titles
+* divisions
+* project roles
+* user org assignments
+* reporting lines
+* projects
+* user project assignments
 * application roles
 
 Notes:

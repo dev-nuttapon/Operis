@@ -38,22 +38,16 @@ public sealed class UserInvitationCommands(
             return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Expiration date must be in the future.");
         }
 
-        if (request.DepartmentId.HasValue)
+        var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
+        if (!departmentValidation.Success)
         {
-            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
-            if (!departmentExists)
-            {
-                return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Department does not exist.");
-            }
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, departmentValidation.ErrorMessage);
         }
 
-        if (request.JobTitleId.HasValue)
+        var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
+        if (!jobTitleValidation.Success)
         {
-            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
-            if (!jobTitleExists)
-            {
-                return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Job title does not exist.");
-            }
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
         }
 
         var invitation = new UserInvitationEntity
@@ -85,10 +79,10 @@ public sealed class UserInvitationCommands(
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        var (divisions, departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
         return new InvitationCommandResult(
             InvitationCommandStatus.Success,
-            Response: ToResponse(invitation, departments, jobTitles));
+            Response: ToResponse(invitation, divisions, departments, jobTitles));
     }
 
     public async Task<InvitationCommandResult> UpdateInvitationAsync(Guid invitationId, UpdateInvitationRequest request, CancellationToken cancellationToken)
@@ -126,22 +120,16 @@ public sealed class UserInvitationCommands(
             return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Expiration date must be in the future.");
         }
 
-        if (request.DepartmentId.HasValue)
+        var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
+        if (!departmentValidation.Success)
         {
-            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
-            if (!departmentExists)
-            {
-                return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Department does not exist.");
-            }
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, departmentValidation.ErrorMessage);
         }
 
-        if (request.JobTitleId.HasValue)
+        var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
+        if (!jobTitleValidation.Success)
         {
-            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
-            if (!jobTitleExists)
-            {
-                return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Job title does not exist.");
-            }
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
         }
 
         var before = ToInvitationAuditState(invitation);
@@ -179,10 +167,10 @@ public sealed class UserInvitationCommands(
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        var (divisions, departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
         return new InvitationCommandResult(
             InvitationCommandStatus.Success,
-            Response: ToResponse(invitation, departments, jobTitles));
+            Response: ToResponse(invitation, divisions, departments, jobTitles));
     }
 
     public async Task<InvitationCommandResult> CancelInvitationAsync(Guid invitationId, CancellationToken cancellationToken)
@@ -217,10 +205,10 @@ public sealed class UserInvitationCommands(
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        var (divisions, departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
         return new InvitationCommandResult(
             InvitationCommandStatus.Success,
-            Response: ToResponse(invitation, departments, jobTitles));
+            Response: ToResponse(invitation, divisions, departments, jobTitles));
     }
 
     public async Task<InvitationCommandResult> AcceptInvitationAsync(string token, AcceptInvitationRequest request, CancellationToken cancellationToken)
@@ -332,23 +320,85 @@ public sealed class UserInvitationCommands(
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        var (divisions, departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
         return new InvitationCommandResult(
             InvitationCommandStatus.Success,
-            Response: ToResponse(invitation, departments, jobTitles));
+            Response: ToResponse(invitation, divisions, departments, jobTitles));
     }
 
-    private async Task<(IReadOnlyDictionary<Guid, string> Departments, IReadOnlyDictionary<Guid, string> JobTitles)> LoadReferenceMapsAsync(CancellationToken cancellationToken)
+    private async Task<(IReadOnlyDictionary<Guid, string> Divisions, IReadOnlyDictionary<Guid, CachedDepartmentItem> Departments, IReadOnlyDictionary<Guid, string> JobTitles)> LoadReferenceMapsAsync(CancellationToken cancellationToken)
     {
+        var divisions = await dbContext.Divisions
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
         var departments = await dbContext.Departments
             .AsNoTracking()
-            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new CachedDepartmentItem(x.Id, x.Name, x.DisplayOrder, x.DivisionId, null, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt),
+                cancellationToken);
 
         var jobTitles = await dbContext.JobTitles
             .AsNoTracking()
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
-        return (departments, jobTitles);
+        return (divisions, departments, jobTitles);
+    }
+
+    private async Task<DepartmentValidationResult> ValidateDepartmentSelectionAsync(Guid? divisionId, Guid? departmentId, CancellationToken cancellationToken)
+    {
+        if (!departmentId.HasValue)
+        {
+            return !divisionId.HasValue
+                ? DepartmentValidationResult.Valid()
+                : DepartmentValidationResult.Invalid("Department is required when division is selected.");
+        }
+
+        var department = await dbContext.Departments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == departmentId.Value && x.DeletedAt == null, cancellationToken);
+        if (department is null)
+        {
+            return DepartmentValidationResult.Invalid("Department does not exist.");
+        }
+
+        if (divisionId.HasValue && department.DivisionId != divisionId)
+        {
+            return DepartmentValidationResult.Invalid("Department does not belong to the selected division.");
+        }
+
+        return DepartmentValidationResult.Valid();
+    }
+
+    private async Task<JobTitleValidationResult> ValidateJobTitleSelectionAsync(Guid? departmentId, Guid? jobTitleId, CancellationToken cancellationToken)
+    {
+        if (!jobTitleId.HasValue)
+        {
+            return JobTitleValidationResult.Valid();
+        }
+
+        if (!departmentId.HasValue)
+        {
+            return JobTitleValidationResult.Invalid("Department is required when job title is selected.");
+        }
+
+        var jobTitle = await dbContext.JobTitles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == jobTitleId.Value && x.DeletedAt == null, cancellationToken);
+        if (jobTitle is null)
+        {
+            return JobTitleValidationResult.Invalid("Job title does not exist.");
+        }
+
+        if (jobTitle.DepartmentId != departmentId)
+        {
+            return JobTitleValidationResult.Invalid("Job title does not belong to the selected department.");
+        }
+
+        return JobTitleValidationResult.Valid();
     }
 
     private async Task<string?> ValidateEmailAvailabilityAsync(string email, CancellationToken cancellationToken, Guid? ignoredInvitationId = null)
@@ -423,15 +473,34 @@ public sealed class UserInvitationCommands(
 
     private static InvitationResponse ToResponse(
         UserInvitationEntity entity,
-        IReadOnlyDictionary<Guid, string> departments,
-        IReadOnlyDictionary<Guid, string> jobTitles) =>
-        new(
+        IReadOnlyDictionary<Guid, string> divisions,
+        IReadOnlyDictionary<Guid, CachedDepartmentItem> departments,
+        IReadOnlyDictionary<Guid, string> jobTitles)
+    {
+        Guid? divisionId = null;
+        string? divisionName = null;
+        string? departmentName = null;
+
+        if (entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var department))
+        {
+            divisionId = department.DivisionId;
+            departmentName = department.Name;
+
+            if (divisionId.HasValue && divisions.TryGetValue(divisionId.Value, out var resolvedDivisionName))
+            {
+                divisionName = resolvedDivisionName;
+            }
+        }
+
+        return new InvitationResponse(
             entity.Id,
             entity.Email,
             entity.InvitationToken,
             entity.InvitedBy,
+            divisionId,
+            divisionName,
             entity.DepartmentId,
-            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            departmentName,
             entity.JobTitleId,
             entity.JobTitleId.HasValue && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             GetInvitationStatus(entity),
@@ -440,4 +509,17 @@ public sealed class UserInvitationCommands(
             entity.AcceptedAt,
             entity.RejectedAt,
             $"/invite/{entity.InvitationToken}");
+    }
+
+    private sealed record DepartmentValidationResult(bool Success, string? ErrorMessage)
+    {
+        public static DepartmentValidationResult Valid() => new(true, null);
+        public static DepartmentValidationResult Invalid(string errorMessage) => new(false, errorMessage);
+    }
+
+    private sealed record JobTitleValidationResult(bool Success, string? ErrorMessage)
+    {
+        public static JobTitleValidationResult Valid() => new(true, null);
+        public static JobTitleValidationResult Invalid(string errorMessage) => new(false, errorMessage);
+    }
 }

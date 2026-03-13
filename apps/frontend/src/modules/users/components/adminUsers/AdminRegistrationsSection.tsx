@@ -72,6 +72,11 @@ export function AdminRegistrationsSection({
       render: (value: string) => formatDate(value, currentLanguage),
     },
     {
+      title: t("admin_users.columns.division"),
+      dataIndex: "divisionName",
+      render: (value: string | null) => value || "-",
+    },
+    {
       title: t("admin_users.columns.department"),
       dataIndex: "departmentName",
       render: (value: string | null) => value || "-",

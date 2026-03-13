@@ -54,12 +54,24 @@ export function getCurrentAdminUsersSection(pathname: string) {
     return "invitations" as const;
   }
 
+  if (pathname.includes("/admin/user-affiliations")) {
+    return "org-assignments" as const;
+  }
+
   if (pathname.includes("/admin/master/departments")) {
     return "master-departments" as const;
   }
 
-  if (pathname.includes("/admin/master/job-titles")) {
-    return "master-job-titles" as const;
+  if (pathname.includes("/admin/master/divisions")) {
+    return "master-divisions" as const;
+  }
+
+  if (pathname.includes("/admin/master/positions")) {
+    return "master-positions" as const;
+  }
+
+  if (pathname.includes("/admin/master/project-roles")) {
+    return "master-project-roles" as const;
   }
 
   if (pathname.includes("/admin/registrations")) {

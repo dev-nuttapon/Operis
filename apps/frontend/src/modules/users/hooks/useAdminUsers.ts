@@ -2,28 +2,39 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   approveRegistration,
   cancelInvitation,
+  createDivision,
   createDepartment,
   createInvitation,
   createJobTitle,
+  createProjectRole,
   createUser,
+  deleteDivision,
   deleteDepartment,
   deleteJobTitle,
+  deleteProjectRole,
   deleteUser,
+  listDivisions,
   listDepartments,
   listInvitations,
   listJobTitles,
+  listProjectRoles,
   listRoles,
   listRegistrationRequests,
   listUsers,
   rejectRegistration,
+  upsertUserOrgAssignment,
+  updateDivision,
   updateInvitation,
-  updateUser,
   updateDepartment,
   updateJobTitle,
+  updateProjectRole,
+  updateUser,
 } from "../api/usersApi";
 import type { PaginationInput } from "../../../shared/types/pagination";
 import type {
   ApproveRegistrationInput,
+  CreateDepartmentInput,
+  CreateJobTitleInput,
   CreateMasterDataInput,
   CreateInvitationInput,
   CreateUserInput,
@@ -31,16 +42,22 @@ import type {
   ListRegistrationRequestsInput,
   ListUsersInput,
   RejectRegistrationInput,
+  UpdateDepartmentInput,
+  UpdateJobTitleInput,
   UpdateInvitationInput,
   UpdateUserInput,
   UpdateMasterDataInput,
+  UpsertUserOrgAssignmentInput,
 } from "../types/users";
 
 const usersQueryKey = ["admin", "users"];
 const requestsQueryKey = ["admin", "registration-requests"];
 const invitationsQueryKey = ["admin", "invitations"];
+const divisionsQueryKey = ["admin", "divisions"];
+const divisionOptionsQueryKey = ["admin", "division-options"];
 const departmentsQueryKey = ["admin", "departments"];
 const jobTitlesQueryKey = ["admin", "job-titles"];
+const projectRolesQueryKey = ["admin", "project-roles"];
 const departmentOptionsQueryKey = ["admin", "department-options"];
 const jobTitleOptionsQueryKey = ["admin", "job-title-options"];
 const rolesQueryKey = ["admin", "roles"];
@@ -49,8 +66,10 @@ export function useAdminUsers(paging: {
   users: ListUsersInput;
   registrationRequests: ListRegistrationRequestsInput;
   invitations: ListInvitationsInput;
+  divisions: PaginationInput;
   departments: PaginationInput;
   jobTitles: PaginationInput;
+  projectRoles: PaginationInput;
 }) {
   const queryClient = useQueryClient();
 
@@ -72,6 +91,12 @@ export function useAdminUsers(paging: {
     staleTime: 15_000,
   });
 
+  const divisionsQuery = useQuery({
+    queryKey: [...divisionsQueryKey, paging.divisions],
+    queryFn: ({ signal }) => listDivisions(paging.divisions, signal),
+    staleTime: 60_000,
+  });
+
   const departmentsQuery = useQuery({
     queryKey: [...departmentsQueryKey, paging.departments],
     queryFn: ({ signal }) => listDepartments(paging.departments, signal),
@@ -84,9 +109,21 @@ export function useAdminUsers(paging: {
     staleTime: 60_000,
   });
 
+  const projectRolesQuery = useQuery({
+    queryKey: [...projectRolesQueryKey, paging.projectRoles],
+    queryFn: ({ signal }) => listProjectRoles(paging.projectRoles, signal),
+    staleTime: 60_000,
+  });
+
   const departmentOptionsQuery = useQuery({
     queryKey: departmentOptionsQueryKey,
     queryFn: ({ signal }) => listDepartments({ page: 1, pageSize: 100 }, signal),
+    staleTime: 5 * 60_000,
+  });
+
+  const divisionOptionsQuery = useQuery({
+    queryKey: divisionOptionsQueryKey,
+    queryFn: ({ signal }) => listDivisions({ page: 1, pageSize: 100 }, signal),
     staleTime: 5 * 60_000,
   });
 
@@ -107,8 +144,11 @@ export function useAdminUsers(paging: {
       queryClient.invalidateQueries({ queryKey: usersQueryKey }),
       queryClient.invalidateQueries({ queryKey: requestsQueryKey }),
       queryClient.invalidateQueries({ queryKey: invitationsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: divisionsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: divisionOptionsQueryKey }),
       queryClient.invalidateQueries({ queryKey: departmentsQueryKey }),
       queryClient.invalidateQueries({ queryKey: jobTitlesQueryKey }),
+      queryClient.invalidateQueries({ queryKey: projectRolesQueryKey }),
       queryClient.invalidateQueries({ queryKey: departmentOptionsQueryKey }),
       queryClient.invalidateQueries({ queryKey: jobTitleOptionsQueryKey }),
       queryClient.invalidateQueries({ queryKey: rolesQueryKey }),
@@ -140,6 +180,11 @@ export function useAdminUsers(paging: {
     onSuccess: invalidateAll,
   });
 
+  const upsertUserOrgAssignmentMutation = useMutation({
+    mutationFn: (input: UpsertUserOrgAssignmentInput) => upsertUserOrgAssignment(input),
+    onSuccess: invalidateAll,
+  });
+
   const deleteUserMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => deleteUser(id, { reason }),
     onSuccess: invalidateAll,
@@ -157,13 +202,28 @@ export function useAdminUsers(paging: {
     onSuccess: invalidateAll,
   });
 
+  const createDivisionMutation = useMutation({
+    mutationFn: (input: CreateMasterDataInput) => createDivision(input),
+    onSuccess: invalidateAll,
+  });
+
+  const updateDivisionMutation = useMutation({
+    mutationFn: (input: UpdateMasterDataInput) => updateDivision(input),
+    onSuccess: invalidateAll,
+  });
+
+  const deleteDivisionMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => deleteDivision(id, { reason }),
+    onSuccess: invalidateAll,
+  });
+
   const createDepartmentMutation = useMutation({
-    mutationFn: (input: CreateMasterDataInput) => createDepartment(input),
+    mutationFn: (input: CreateDepartmentInput) => createDepartment(input),
     onSuccess: invalidateAll,
   });
 
   const updateDepartmentMutation = useMutation({
-    mutationFn: (input: UpdateMasterDataInput) => updateDepartment(input),
+    mutationFn: (input: UpdateDepartmentInput) => updateDepartment(input),
     onSuccess: invalidateAll,
   });
 
@@ -173,12 +233,12 @@ export function useAdminUsers(paging: {
   });
 
   const createJobTitleMutation = useMutation({
-    mutationFn: (input: CreateMasterDataInput) => createJobTitle(input),
+    mutationFn: (input: CreateJobTitleInput) => createJobTitle(input),
     onSuccess: invalidateAll,
   });
 
   const updateJobTitleMutation = useMutation({
-    mutationFn: (input: UpdateMasterDataInput) => updateJobTitle(input),
+    mutationFn: (input: UpdateJobTitleInput) => updateJobTitle(input),
     onSuccess: invalidateAll,
   });
 
@@ -187,12 +247,30 @@ export function useAdminUsers(paging: {
     onSuccess: invalidateAll,
   });
 
+  const createProjectRoleMutation = useMutation({
+    mutationFn: (input: CreateMasterDataInput) => createProjectRole(input),
+    onSuccess: invalidateAll,
+  });
+
+  const updateProjectRoleMutation = useMutation({
+    mutationFn: (input: UpdateMasterDataInput) => updateProjectRole(input),
+    onSuccess: invalidateAll,
+  });
+
+  const deleteProjectRoleMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => deleteProjectRole(id, { reason }),
+    onSuccess: invalidateAll,
+  });
+
   return {
     usersQuery,
     registrationRequestsQuery,
     invitationsQuery,
+    divisionsQuery,
+    divisionOptionsQuery,
     departmentsQuery,
     jobTitlesQuery,
+    projectRolesQuery,
     departmentOptionsQuery,
     jobTitleOptionsQuery,
     rolesQuery,
@@ -201,14 +279,21 @@ export function useAdminUsers(paging: {
     cancelInvitationMutation,
     createUserMutation,
     updateUserMutation,
+    upsertUserOrgAssignmentMutation,
     deleteUserMutation,
     approveRegistrationMutation,
     rejectRegistrationMutation,
+    createDivisionMutation,
+    updateDivisionMutation,
+    deleteDivisionMutation,
     createDepartmentMutation,
     updateDepartmentMutation,
     deleteDepartmentMutation,
     createJobTitleMutation,
     updateJobTitleMutation,
     deleteJobTitleMutation,
+    createProjectRoleMutation,
+    updateProjectRoleMutation,
+    deleteProjectRoleMutation,
   };
 }

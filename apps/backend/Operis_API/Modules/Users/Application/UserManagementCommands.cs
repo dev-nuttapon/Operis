@@ -36,22 +36,16 @@ public sealed class UserManagementCommands(
             return new UserCommandResult(UserCommandStatus.ValidationError, "Password and confirmation do not match.");
         }
 
-        if (request.DepartmentId.HasValue)
+        var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
+        if (!departmentValidation.Success)
         {
-            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value, cancellationToken);
-            if (!departmentExists)
-            {
-                return new UserCommandResult(UserCommandStatus.ValidationError, "Department does not exist.");
-            }
+            return new UserCommandResult(UserCommandStatus.ValidationError, departmentValidation.ErrorMessage);
         }
 
-        if (request.JobTitleId.HasValue)
+        var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
+        if (!jobTitleValidation.Success)
         {
-            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value, cancellationToken);
-            if (!jobTitleExists)
-            {
-                return new UserCommandResult(UserCommandStatus.ValidationError, "Job title does not exist.");
-            }
+            return new UserCommandResult(UserCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
         }
 
         var roleIds = request.RoleIds ?? [];
@@ -137,7 +131,7 @@ public sealed class UserManagementCommands(
 
         return new UserCommandResult(
             UserCommandStatus.Success,
-            Response: ToResponse(user, selectedRoleNames));
+            Response: ToResponse(user, selectedRoleNames, departmentValidation.Department));
     }
 
     public async Task<UserCommandResult> UpdateUserAsync(string userId, UpdateUserRequest request, CancellationToken cancellationToken)
@@ -154,22 +148,16 @@ public sealed class UserManagementCommands(
             return new UserCommandResult(UserCommandStatus.ValidationError, "Email is required.");
         }
 
-        if (request.DepartmentId.HasValue)
+        var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
+        if (!departmentValidation.Success)
         {
-            var departmentExists = await dbContext.Departments.AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
-            if (!departmentExists)
-            {
-                return new UserCommandResult(UserCommandStatus.ValidationError, "Department does not exist.");
-            }
+            return new UserCommandResult(UserCommandStatus.ValidationError, departmentValidation.ErrorMessage);
         }
 
-        if (request.JobTitleId.HasValue)
+        var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
+        if (!jobTitleValidation.Success)
         {
-            var jobTitleExists = await dbContext.JobTitles.AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
-            if (!jobTitleExists)
-            {
-                return new UserCommandResult(UserCommandStatus.ValidationError, "Job title does not exist.");
-            }
+            return new UserCommandResult(UserCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
         }
 
         var roleIds = request.RoleIds ?? [];
@@ -253,7 +241,7 @@ public sealed class UserManagementCommands(
 
         return new UserCommandResult(
             UserCommandStatus.Success,
-            Response: ToResponse(user, selectedRoleNames));
+            Response: ToResponse(user, selectedRoleNames, departmentValidation.Department));
     }
 
     public async Task<UserCommandResult> DeleteUserAsync(string userId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken)
@@ -308,14 +296,71 @@ public sealed class UserManagementCommands(
             : await keycloakAdminClient.GetUserByIdAsync(user.Id, cancellationToken);
     }
 
-    private static UserResponse ToResponse(UserEntity entity, IReadOnlyList<string> roles) =>
+    private async Task<DepartmentValidationResult> ValidateDepartmentSelectionAsync(Guid? divisionId, Guid? departmentId, CancellationToken cancellationToken)
+    {
+        if (!departmentId.HasValue)
+        {
+            if (!divisionId.HasValue)
+            {
+                return DepartmentValidationResult.Valid(null);
+            }
+            return DepartmentValidationResult.Invalid("Department is required when division is selected.");
+        }
+
+        var department = await dbContext.Departments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == departmentId.Value && x.DeletedAt == null, cancellationToken);
+        if (department is null)
+        {
+            return DepartmentValidationResult.Invalid("Department does not exist.");
+        }
+
+        if (divisionId.HasValue && department.DivisionId != divisionId)
+        {
+            return DepartmentValidationResult.Invalid("Department does not belong to the selected division.");
+        }
+
+        return DepartmentValidationResult.Valid(department);
+    }
+
+    private async Task<JobTitleValidationResult> ValidateJobTitleSelectionAsync(Guid? departmentId, Guid? jobTitleId, CancellationToken cancellationToken)
+    {
+        if (!jobTitleId.HasValue)
+        {
+            return JobTitleValidationResult.Valid();
+        }
+
+        if (!departmentId.HasValue)
+        {
+            return JobTitleValidationResult.Invalid("Department is required when job title is selected.");
+        }
+
+        var jobTitle = await dbContext.JobTitles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == jobTitleId.Value && x.DeletedAt == null, cancellationToken);
+        if (jobTitle is null)
+        {
+            return JobTitleValidationResult.Invalid("Job title does not exist.");
+        }
+
+        if (jobTitle.DepartmentId != departmentId)
+        {
+            return JobTitleValidationResult.Invalid("Job title does not belong to the selected department.");
+        }
+
+        return JobTitleValidationResult.Valid();
+    }
+
+    private static UserResponse ToResponse(UserEntity entity, IReadOnlyList<string> roles, DepartmentEntity? department) =>
         new(
             entity.Id,
             entity.Status,
             entity.CreatedAt,
             entity.CreatedBy,
-            entity.DepartmentId,
+            department?.DivisionId,
             null,
+            entity.DepartmentId,
+            department?.Name,
             entity.JobTitleId,
             null,
             roles,
@@ -367,5 +412,17 @@ public sealed class UserManagementCommands(
 
         var normalized = value.Trim();
         return normalized.Length > 500 ? normalized[..500] : normalized;
+    }
+
+    private sealed record DepartmentValidationResult(bool Success, string? ErrorMessage, DepartmentEntity? Department)
+    {
+        public static DepartmentValidationResult Valid(DepartmentEntity? department) => new(true, null, department);
+        public static DepartmentValidationResult Invalid(string errorMessage) => new(false, errorMessage, null);
+    }
+
+    private sealed record JobTitleValidationResult(bool Success, string? ErrorMessage)
+    {
+        public static JobTitleValidationResult Valid() => new(true, null);
+        public static JobTitleValidationResult Invalid(string errorMessage) => new(false, errorMessage);
     }
 }

@@ -1,5 +1,5 @@
 import { App, Button, Card, Flex, Form, Input, Select, Space, Typography, theme as antdTheme } from "antd";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePublicRegistration } from "../hooks/usePublicRegistration";
@@ -19,8 +19,10 @@ export function PublicRegistrationPage() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const { registerMutation, departmentsQuery, jobTitlesQuery } = usePublicRegistration();
+  const { registerMutation, divisionsQuery, departmentsQuery, jobTitlesQuery } = usePublicRegistration();
   const currentLanguage = i18n.language.startsWith("th") ? "th" : "en";
+  const selectedDivisionId = Form.useWatch("divisionId", form) as string | undefined;
+  const selectedDepartmentId = Form.useWatch("departmentId", form) as string | undefined;
   const isDarkMode = designToken.colorBgBase.toLowerCase() === "#020617";
   const pageBackground = isDarkMode
     ? "radial-gradient(circle at top, rgba(14, 165, 233, 0.16) 0%, rgba(15, 23, 42, 0.98) 42%, rgba(2, 6, 23, 1) 100%)"
@@ -127,6 +129,18 @@ export function PublicRegistrationPage() {
       description: presentation.description,
     });
   }, [notification, registerMutation.error, registerMutation.isError]);
+
+  const divisionOptions = useMemo(() => (divisionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })), [divisionsQuery.data?.items]);
+  const departmentOptions = useMemo(
+    () => (departmentsQuery.data?.items ?? []).filter((item) => !selectedDivisionId || item.divisionId === selectedDivisionId).map((item) => ({ label: item.name, value: item.id })),
+    [departmentsQuery.data?.items, selectedDivisionId]
+  );
+  const jobTitleOptions = useMemo(
+    () => (jobTitlesQuery.data?.items ?? [])
+      .filter((item) => !selectedDepartmentId || item.departmentId === selectedDepartmentId)
+      .map((item) => ({ label: item.name, value: item.id })),
+    [jobTitlesQuery.data?.items, selectedDepartmentId]
+  );
 
   return (
     <div
@@ -243,15 +257,27 @@ export function PublicRegistrationPage() {
               >
                 <Input placeholder={t("invitation_page.last_name_placeholder")} />
               </Form.Item>
+              <Form.Item label={t("admin_users.fields.division")} name="divisionId">
+                <Select
+                  allowClear
+                  placeholder={t("admin_users.placeholders.select_division")}
+                  loading={divisionsQuery.isLoading}
+                  options={divisionOptions}
+                  onChange={() => {
+                    form.setFieldValue("departmentId", undefined);
+                    form.setFieldValue("jobTitleId", undefined);
+                  }}
+                />
+              </Form.Item>
               <Form.Item label={t("admin_users.fields.department")} name="departmentId">
                 <Select
                   allowClear
                   placeholder={t("admin_users.placeholders.select_department")}
                   loading={departmentsQuery.isLoading}
-                  options={(departmentsQuery.data?.items ?? []).map((item) => ({
-                    label: item.name,
-                    value: item.id,
-                  }))}
+                  options={departmentOptions}
+                  onChange={() => {
+                    form.setFieldValue("jobTitleId", undefined);
+                  }}
                 />
               </Form.Item>
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
@@ -259,10 +285,7 @@ export function PublicRegistrationPage() {
                   allowClear
                   placeholder={t("admin_users.placeholders.select_job_title")}
                   loading={jobTitlesQuery.isLoading}
-                  options={(jobTitlesQuery.data?.items ?? []).map((item) => ({
-                    label: item.name,
-                    value: item.id,
-                  }))}
+                  options={jobTitleOptions}
                 />
               </Form.Item>
               <Button type="primary" htmlType="submit" block loading={registerMutation.isPending}>

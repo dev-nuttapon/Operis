@@ -2,18 +2,23 @@ using Operis_API.Modules.Users.Domain;
 
 namespace Operis_API.Modules.Users.Contracts;
 
-public sealed record CreateRegistrationRequest(string Email, string FirstName, string LastName, Guid? DepartmentId, Guid? JobTitleId);
+public sealed record CreateRegistrationRequest(string Email, string FirstName, string LastName, Guid? DivisionId, Guid? DepartmentId, Guid? JobTitleId);
 public sealed record ReviewRegistrationRequest(string ReviewedBy);
 public sealed record RejectRegistrationRequest(string ReviewedBy, string Reason);
 public sealed record CompleteRegistrationPasswordSetupRequest(string Password, string ConfirmPassword);
-public sealed record CreateInvitationRequest(string Email, string InvitedBy, DateTimeOffset? ExpiresAt, Guid? DepartmentId, Guid? JobTitleId);
-public sealed record UpdateInvitationRequest(string Email, DateTimeOffset? ExpiresAt, Guid? DepartmentId, Guid? JobTitleId);
+public sealed record CreateInvitationRequest(string Email, string InvitedBy, DateTimeOffset? ExpiresAt, Guid? DivisionId, Guid? DepartmentId, Guid? JobTitleId);
+public sealed record UpdateInvitationRequest(string Email, DateTimeOffset? ExpiresAt, Guid? DivisionId, Guid? DepartmentId, Guid? JobTitleId);
 public sealed record AcceptInvitationRequest(string FirstName, string LastName, string Password, string ConfirmPassword);
-public sealed record CreateUserRequest(string Email, string FirstName, string LastName, string Password, string ConfirmPassword, string CreatedBy, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
-public sealed record UpdateUserRequest(string Email, string FirstName, string LastName, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
+public sealed record CreateUserRequest(string Email, string FirstName, string LastName, string Password, string ConfirmPassword, string CreatedBy, Guid? DivisionId, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
+public sealed record UpdateUserRequest(string Email, string FirstName, string LastName, Guid? DivisionId, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
+public sealed record UpsertUserOrgAssignmentRequest(Guid? DivisionId, Guid? DepartmentId, Guid? PositionId);
 public sealed record UpdateUserPreferencesRequest(string? PreferredLanguage, string? PreferredTheme);
 public sealed record CreateMasterDataRequest(string Name, int DisplayOrder);
 public sealed record UpdateMasterDataRequest(string Name, int DisplayOrder);
+public sealed record CreateDepartmentRequest(string Name, int DisplayOrder, Guid? DivisionId);
+public sealed record UpdateDepartmentRequest(string Name, int DisplayOrder, Guid? DivisionId);
+public sealed record CreateJobTitleRequest(string Name, int DisplayOrder, Guid? DepartmentId);
+public sealed record UpdateJobTitleRequest(string Name, int DisplayOrder, Guid? DepartmentId);
 public sealed record SoftDeleteRequest(string Reason);
 
 public sealed record UserResponse(
@@ -21,6 +26,8 @@ public sealed record UserResponse(
     UserStatus Status,
     DateTimeOffset CreatedAt,
     string CreatedBy,
+    Guid? DivisionId,
+    string? DivisionName,
     Guid? DepartmentId,
     string? DepartmentName,
     Guid? JobTitleId,
@@ -47,6 +54,8 @@ public sealed record RegistrationRequestResponse(
     string Email,
     string FirstName,
     string LastName,
+    Guid? DivisionId,
+    string? DivisionName,
     Guid? DepartmentId,
     string? DepartmentName,
     Guid? JobTitleId,
@@ -64,6 +73,7 @@ public sealed record RegistrationPasswordSetupDetailResponse(
     string Email,
     string FirstName,
     string LastName,
+    string? DivisionName,
     string? DepartmentName,
     string? JobTitleName,
     bool IsExpired,
@@ -75,6 +85,8 @@ public sealed record InvitationResponse(
     string Email,
     string InvitationToken,
     string InvitedBy,
+    Guid? DivisionId,
+    string? DivisionName,
     Guid? DepartmentId,
     string? DepartmentName,
     Guid? JobTitleId,
@@ -89,6 +101,8 @@ public sealed record InvitationResponse(
 public sealed record InvitationDetailResponse(
     Guid Id,
     string Email,
+    Guid? DivisionId,
+    string? DivisionName,
     Guid? DepartmentId,
     string? DepartmentName,
     Guid? JobTitleId,
@@ -101,6 +115,10 @@ public sealed record MasterDataResponse(
     Guid Id,
     string Name,
     int DisplayOrder,
+    Guid? DivisionId,
+    string? DivisionName,
+    Guid? DepartmentId,
+    string? DepartmentName,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     string? DeletedReason,

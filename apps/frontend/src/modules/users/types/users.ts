@@ -50,6 +50,8 @@ export interface User {
   status: UserStatus;
   createdAt: string;
   createdBy: string;
+  divisionId: string | null;
+  divisionName: string | null;
   departmentId: string | null;
   departmentName: string | null;
   jobTitleId: string | null;
@@ -68,6 +70,8 @@ export interface RegistrationRequest {
   email: string;
   firstName: string;
   lastName: string;
+  divisionId: string | null;
+  divisionName: string | null;
   departmentId: string | null;
   departmentName: string | null;
   jobTitleId: string | null;
@@ -86,6 +90,7 @@ export interface RegistrationPasswordSetupDetail {
   email: string;
   firstName: string;
   lastName: string;
+  divisionName: string | null;
   departmentName: string | null;
   jobTitleName: string | null;
   isExpired: boolean;
@@ -98,6 +103,8 @@ export interface Invitation {
   email: string;
   invitationToken: string;
   invitedBy: string;
+  divisionId: string | null;
+  divisionName: string | null;
   departmentId: string | null;
   departmentName: string | null;
   jobTitleId: string | null;
@@ -114,6 +121,7 @@ export interface CreateInvitationInput {
   email: string;
   invitedBy: string;
   expiresAt?: string;
+  divisionId?: string;
   departmentId?: string;
   jobTitleId?: string;
 }
@@ -122,6 +130,7 @@ export interface UpdateInvitationInput {
   id: string;
   email: string;
   expiresAt?: string;
+  divisionId?: string;
   departmentId?: string;
   jobTitleId?: string;
 }
@@ -129,6 +138,8 @@ export interface UpdateInvitationInput {
 export interface InvitationDetail {
   id: string;
   email: string;
+  divisionId: string | null;
+  divisionName: string | null;
   departmentId: string | null;
   departmentName: string | null;
   jobTitleId: string | null;
@@ -152,6 +163,7 @@ export interface CreateUserInput {
   password: string;
   confirmPassword: string;
   createdBy: string;
+  divisionId?: string;
   departmentId?: string;
   jobTitleId?: string;
   roleIds?: string[];
@@ -162,15 +174,27 @@ export interface UpdateUserInput {
   email: string;
   firstName: string;
   lastName: string;
+  divisionId?: string;
   departmentId?: string;
   jobTitleId?: string;
   roleIds?: string[];
+}
+
+export interface UpsertUserOrgAssignmentInput {
+  userId: string;
+  divisionId?: string;
+  departmentId?: string;
+  positionId?: string;
 }
 
 export interface MasterDataItem {
   id: string;
   name: string;
   displayOrder: number;
+  divisionId: string | null;
+  divisionName: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
   createdAt: string;
   updatedAt: string | null;
   deletedReason: string | null;
@@ -183,10 +207,26 @@ export interface CreateMasterDataInput {
   displayOrder: number;
 }
 
+export interface CreateDepartmentInput extends CreateMasterDataInput {
+  divisionId?: string;
+}
+
 export interface UpdateMasterDataInput {
   id: string;
   name: string;
   displayOrder: number;
+}
+
+export interface UpdateDepartmentInput extends UpdateMasterDataInput {
+  divisionId?: string;
+}
+
+export interface CreateJobTitleInput extends CreateMasterDataInput {
+  departmentId?: string;
+}
+
+export interface UpdateJobTitleInput extends UpdateMasterDataInput {
+  departmentId?: string;
 }
 
 export interface SoftDeleteInput {
@@ -214,6 +254,7 @@ export interface CreateRegistrationRequestInput {
   email: string;
   firstName: string;
   lastName: string;
+  divisionId?: string;
   departmentId?: string;
   jobTitleId?: string;
 }

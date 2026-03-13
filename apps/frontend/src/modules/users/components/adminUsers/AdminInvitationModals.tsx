@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Button, DatePicker, Form, Input, Modal, Select, Space, Typography } from "antd";
 import { MailOutlined } from "@ant-design/icons";
 import type { Invitation } from "../../types/users";
@@ -6,11 +6,14 @@ import type { Invitation } from "../../types/users";
 interface OptionItem {
   label: ReactNode;
   value: string;
+  divisionId?: string | null;
+  departmentId?: string | null;
 }
 
 interface AdminInvitationModalsProps {
   createLoading: boolean;
   creatingInvitation: boolean;
+  divisionOptions: OptionItem[];
   departmentOptions: OptionItem[];
   editForm: any;
   editingInvitation: Invitation | null;
@@ -30,6 +33,7 @@ interface AdminInvitationModalsProps {
 export function AdminInvitationModals({
   createLoading,
   creatingInvitation,
+  divisionOptions,
   departmentOptions,
   editForm,
   editingInvitation,
@@ -45,6 +49,26 @@ export function AdminInvitationModals({
   updateLoading,
   viewingInvitation,
 }: AdminInvitationModalsProps) {
+  const createDivisionId = Form.useWatch("divisionId", invitationForm) as string | undefined;
+  const createDepartmentId = Form.useWatch("departmentId", invitationForm) as string | undefined;
+  const editDivisionId = Form.useWatch("divisionId", editForm) as string | undefined;
+  const editDepartmentId = Form.useWatch("departmentId", editForm) as string | undefined;
+  const createDepartmentOptions = useMemo(
+    () => departmentOptions.filter((item) => !createDivisionId || item.divisionId === createDivisionId),
+    [createDivisionId, departmentOptions]
+  );
+  const editDepartmentOptions = useMemo(
+    () => departmentOptions.filter((item) => !editDivisionId || item.divisionId === editDivisionId),
+    [departmentOptions, editDivisionId]
+  );
+  const createJobTitleOptions = useMemo(
+    () => jobTitleOptions.filter((item) => !createDepartmentId || item.departmentId === createDepartmentId),
+    [createDepartmentId, jobTitleOptions]
+  );
+  const editJobTitleOptions = useMemo(
+    () => jobTitleOptions.filter((item) => !editDepartmentId || item.departmentId === editDepartmentId),
+    [editDepartmentId, jobTitleOptions]
+  );
   return (
     <>
       <Modal
@@ -63,6 +87,7 @@ export function AdminInvitationModals({
       >
         <Space direction="vertical" size={12} style={{ width: "100%" }}>
           <Typography.Text strong>{viewingInvitation?.email}</Typography.Text>
+          <Typography.Text type="secondary">{t("admin_users.view.division")}: {viewingInvitation?.divisionName || "-"}</Typography.Text>
           <Typography.Text type="secondary">{t("admin_users.view.department")}: {viewingInvitation?.departmentName || "-"}</Typography.Text>
           <Typography.Text type="secondary">{t("admin_users.view.job_title")}: {viewingInvitation?.jobTitleName || "-"}</Typography.Text>
           <Input.TextArea
@@ -90,11 +115,29 @@ export function AdminInvitationModals({
           <Form.Item label={t("admin_users.fields.email")} name="email" rules={[{ required: true, type: "email" }]}>
             <Input prefix={<MailOutlined />} placeholder={t("admin_users.placeholders.invitee_email")} />
           </Form.Item>
+          <Form.Item label={t("admin_users.fields.division")} name="divisionId">
+            <Select
+              allowClear
+              placeholder={t("admin_users.placeholders.select_division")}
+              options={divisionOptions}
+              onChange={() => {
+                invitationForm.setFieldValue("departmentId", undefined);
+                invitationForm.setFieldValue("jobTitleId", undefined);
+              }}
+            />
+          </Form.Item>
           <Form.Item label={t("admin_users.fields.department")} name="departmentId">
-            <Select allowClear placeholder={t("admin_users.placeholders.select_department")} options={departmentOptions} />
+            <Select
+              allowClear
+              placeholder={t("admin_users.placeholders.select_department")}
+              options={createDepartmentOptions}
+              onChange={() => {
+                invitationForm.setFieldValue("jobTitleId", undefined);
+              }}
+            />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
-            <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} options={jobTitleOptions} />
+            <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} options={createJobTitleOptions} />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.expires_at")} name="expiresAt">
             <DatePicker
@@ -121,11 +164,29 @@ export function AdminInvitationModals({
           <Form.Item label={t("admin_users.fields.email")} name="email" rules={[{ required: true, type: "email" }]}>
             <Input prefix={<MailOutlined />} placeholder={t("admin_users.placeholders.invitee_email")} />
           </Form.Item>
+          <Form.Item label={t("admin_users.fields.division")} name="divisionId">
+            <Select
+              allowClear
+              placeholder={t("admin_users.placeholders.select_division")}
+              options={divisionOptions}
+              onChange={() => {
+                editForm.setFieldValue("departmentId", undefined);
+                editForm.setFieldValue("jobTitleId", undefined);
+              }}
+            />
+          </Form.Item>
           <Form.Item label={t("admin_users.fields.department")} name="departmentId">
-            <Select allowClear placeholder={t("admin_users.placeholders.select_department")} options={departmentOptions} />
+            <Select
+              allowClear
+              placeholder={t("admin_users.placeholders.select_department")}
+              options={editDepartmentOptions}
+              onChange={() => {
+                editForm.setFieldValue("jobTitleId", undefined);
+              }}
+            />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
-            <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} options={jobTitleOptions} />
+            <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} options={editJobTitleOptions} />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.expires_at")} name="expiresAt">
             <DatePicker

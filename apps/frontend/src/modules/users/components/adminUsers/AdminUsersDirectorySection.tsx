@@ -86,6 +86,11 @@ export function AdminUsersDirectorySection({
       ),
     },
     {
+      title: t("admin_users.columns.division"),
+      dataIndex: "divisionName",
+      render: (value: string | null) => value || "-",
+    },
+    {
       title: t("admin_users.columns.department"),
       dataIndex: "departmentName",
       render: (value: string | null) => value || "-",
@@ -127,6 +132,7 @@ export function AdminUsersDirectorySection({
                 email: record.keycloak?.email ?? "",
                 firstName: record.keycloak?.firstName ?? "",
                 lastName: record.keycloak?.lastName ?? "",
+                divisionId: record.divisionId ?? undefined,
                 departmentId: record.departmentId ?? undefined,
                 jobTitleId: record.jobTitleId ?? undefined,
                 roleIds: matchedRoleIds,

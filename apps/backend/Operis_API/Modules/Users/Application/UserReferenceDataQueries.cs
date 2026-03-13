@@ -28,6 +28,36 @@ public sealed class UserReferenceDataQueries(
         return roles;
     }
 
+    public async Task<PagedResult<MasterDataResponse>> ListDivisionsAsync(ReferenceDataQuery query, CancellationToken cancellationToken)
+    {
+        var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var items = (await referenceDataCache.GetDivisionsAsync(dbContext, cancellationToken)).AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var normalizedSearch = query.Search.Trim().ToLowerInvariant();
+            items = items.Where(x => x.Name.ToLowerInvariant().Contains(normalizedSearch));
+        }
+
+        items = ApplyMasterDataSorting(items, query.SortBy, query.SortOrder);
+        var total = items.Count();
+        var pagedItems = items
+            .Skip(skip)
+            .Take(normalizedPageSize)
+            .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, null, null, null, null, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
+            .ToList();
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "division",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = pagedItems.Count, total, page = normalizedPage, pageSize = normalizedPageSize, query.Search, query.SortBy, query.SortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new PagedResult<MasterDataResponse>(pagedItems, total, normalizedPage, normalizedPageSize);
+    }
+
     public async Task<PagedResult<MasterDataResponse>> ListDepartmentsAsync(ReferenceDataQuery query, CancellationToken cancellationToken)
     {
         var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(query.Page, query.PageSize);
@@ -45,13 +75,43 @@ public sealed class UserReferenceDataQueries(
         var pagedItems = items
             .Skip(skip)
             .Take(normalizedPageSize)
-            .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
+            .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.DivisionId, x.DivisionName, null, null, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
             .ToList();
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "users",
             Action: "list",
             EntityType: "department",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = pagedItems.Count, total, page = normalizedPage, pageSize = normalizedPageSize, query.Search, query.SortBy, query.SortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new PagedResult<MasterDataResponse>(pagedItems, total, normalizedPage, normalizedPageSize);
+    }
+
+    public async Task<PagedResult<MasterDataResponse>> ListProjectRolesAsync(ReferenceDataQuery query, CancellationToken cancellationToken)
+    {
+        var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var items = (await referenceDataCache.GetProjectRolesAsync(dbContext, cancellationToken)).AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var normalizedSearch = query.Search.Trim().ToLowerInvariant();
+            items = items.Where(x => x.Name.ToLowerInvariant().Contains(normalizedSearch));
+        }
+
+        items = ApplyMasterDataSorting(items, query.SortBy, query.SortOrder);
+        var total = items.Count();
+        var pagedItems = items
+            .Skip(skip)
+            .Take(normalizedPageSize)
+            .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, null, null, null, null, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
+            .ToList();
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "project_role",
             StatusCode: StatusCodes.Status200OK,
             Metadata: new { count = pagedItems.Count, total, page = normalizedPage, pageSize = normalizedPageSize, query.Search, query.SortBy, query.SortOrder }));
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -76,7 +136,7 @@ public sealed class UserReferenceDataQueries(
         var pagedItems = items
             .Skip(skip)
             .Take(normalizedPageSize)
-            .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
+            .Select(x => new MasterDataResponse(x.Id, x.Name, x.DisplayOrder, x.DivisionId, x.DivisionName, x.DepartmentId, x.DepartmentName, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
             .ToList();
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -111,16 +171,20 @@ public sealed class UserReferenceDataQueries(
         static string GetName(TItem item) =>
             item switch
             {
+                CachedDivisionItem division => division.Name,
                 CachedDepartmentItem department => department.Name,
                 CachedJobTitleItem jobTitle => jobTitle.Name,
+                CachedProjectRoleItem projectRole => projectRole.Name,
                 _ => string.Empty
             };
 
         static int GetDisplayOrder(TItem item) =>
             item switch
             {
+                CachedDivisionItem division => division.DisplayOrder,
                 CachedDepartmentItem department => department.DisplayOrder,
                 CachedJobTitleItem jobTitle => jobTitle.DisplayOrder,
+                CachedProjectRoleItem projectRole => projectRole.DisplayOrder,
                 _ => 0
             };
     }

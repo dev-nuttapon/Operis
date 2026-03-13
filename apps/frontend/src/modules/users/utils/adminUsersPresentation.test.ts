@@ -10,8 +10,10 @@ import {
 describe("adminUsersPresentation", () => {
   it("derives the current admin section from the pathname", () => {
     expect(getCurrentAdminUsersSection("/app/admin/invitations")).toBe("invitations");
+    expect(getCurrentAdminUsersSection("/app/admin/master/divisions")).toBe("master-divisions");
     expect(getCurrentAdminUsersSection("/app/admin/master/departments")).toBe("master-departments");
-    expect(getCurrentAdminUsersSection("/app/admin/master/job-titles")).toBe("master-job-titles");
+    expect(getCurrentAdminUsersSection("/app/admin/master/positions")).toBe("master-positions");
+    expect(getCurrentAdminUsersSection("/app/admin/master/project-roles")).toBe("master-project-roles");
     expect(getCurrentAdminUsersSection("/app/admin/registrations")).toBe("approvals");
     expect(getCurrentAdminUsersSection("/app/admin/users")).toBe("directory");
   });

@@ -10,8 +10,14 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
 {
     public DbSet<DocumentEntity> Documents => Set<DocumentEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
+    public DbSet<DivisionEntity> Divisions => Set<DivisionEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
     public DbSet<JobTitleEntity> JobTitles => Set<JobTitleEntity>();
+    public DbSet<ProjectRoleEntity> ProjectRoles => Set<ProjectRoleEntity>();
+    public DbSet<UserOrgAssignmentEntity> UserOrgAssignments => Set<UserOrgAssignmentEntity>();
+    public DbSet<ReportingLineEntity> ReportingLines => Set<ReportingLineEntity>();
+    public DbSet<ProjectEntity> Projects => Set<ProjectEntity>();
+    public DbSet<UserProjectAssignmentEntity> UserProjectAssignments => Set<UserProjectAssignmentEntity>();
     public DbSet<AppRoleEntity> AppRoles => Set<AppRoleEntity>();
     public DbSet<UserRegistrationRequestEntity> UserRegistrationRequests => Set<UserRegistrationRequestEntity>();
     public DbSet<UserInvitationEntity> UserInvitations => Set<UserInvitationEntity>();
@@ -52,9 +58,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.JobTitleId);
         });
 
-        modelBuilder.Entity<DepartmentEntity>(entity =>
+        modelBuilder.Entity<DivisionEntity>(entity =>
         {
-            entity.ToTable("departments");
+            entity.ToTable("divisions");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
@@ -68,9 +74,47 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
         });
 
+        modelBuilder.Entity<DepartmentEntity>(entity =>
+        {
+            entity.ToTable("departments");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.DivisionId).HasColumnName("division_id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
+            entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasOne<DivisionEntity>().WithMany().HasForeignKey(x => x.DivisionId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
+            entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
+            entity.HasIndex(x => x.DivisionId);
+        });
+
         modelBuilder.Entity<JobTitleEntity>(entity =>
         {
             entity.ToTable("job_titles");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.DepartmentId).HasColumnName("department_id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
+            entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasOne<DepartmentEntity>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
+            entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
+            entity.HasIndex(x => x.DepartmentId);
+        });
+
+        modelBuilder.Entity<ProjectRoleEntity>(entity =>
+        {
+            entity.ToTable("project_roles");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
@@ -82,6 +126,95 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
             entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
+        });
+
+        modelBuilder.Entity<UserOrgAssignmentEntity>(entity =>
+        {
+            entity.ToTable("user_org_assignments");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.UserId).HasColumnName("user_id").HasMaxLength(64);
+            entity.Property(x => x.DivisionId).HasColumnName("division_id");
+            entity.Property(x => x.DepartmentId).HasColumnName("department_id");
+            entity.Property(x => x.PositionId).HasColumnName("position_id");
+            entity.Property(x => x.IsPrimary).HasColumnName("is_primary");
+            entity.Property(x => x.IsDivisionHead).HasColumnName("is_division_head");
+            entity.Property(x => x.IsDepartmentHead).HasColumnName("is_department_head");
+            entity.Property(x => x.StartAt).HasColumnName("start_at");
+            entity.Property(x => x.EndAt).HasColumnName("end_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<DivisionEntity>().WithMany().HasForeignKey(x => x.DivisionId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<DepartmentEntity>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<JobTitleEntity>().WithMany().HasForeignKey(x => x.PositionId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => new { x.UserId, x.IsPrimary });
+            entity.HasIndex(x => x.DivisionId);
+            entity.HasIndex(x => x.DepartmentId);
+            entity.HasIndex(x => x.PositionId);
+            entity.HasIndex(x => new { x.DepartmentId, x.IsDepartmentHead });
+            entity.HasIndex(x => new { x.DivisionId, x.IsDivisionHead });
+        });
+
+        modelBuilder.Entity<ReportingLineEntity>(entity =>
+        {
+            entity.ToTable("reporting_lines");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.UserId).HasColumnName("user_id").HasMaxLength(64);
+            entity.Property(x => x.ReportsToUserId).HasColumnName("reports_to_user_id").HasMaxLength(64);
+            entity.Property(x => x.DepartmentId).HasColumnName("department_id");
+            entity.Property(x => x.IsPrimary).HasColumnName("is_primary");
+            entity.Property(x => x.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(x => x.EffectiveTo).HasColumnName("effective_to");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.ReportsToUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<DepartmentEntity>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => new { x.UserId, x.IsPrimary });
+            entity.HasIndex(x => x.ReportsToUserId);
+            entity.HasIndex(x => x.DepartmentId);
+        });
+
+        modelBuilder.Entity<ProjectEntity>(entity =>
+        {
+            entity.ToTable("projects");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(120);
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(200);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.StartAt).HasColumnName("start_at");
+            entity.Property(x => x.EndAt).HasColumnName("end_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
+            entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasIndex(x => x.Code).IsUnique().HasFilter("\"deleted_at\" IS NULL");
+            entity.HasIndex(x => new { x.DeletedAt, x.Status, x.CreatedAt });
+        });
+
+        modelBuilder.Entity<UserProjectAssignmentEntity>(entity =>
+        {
+            entity.ToTable("user_project_assignments");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.UserId).HasColumnName("user_id").HasMaxLength(64);
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.ProjectRoleId).HasColumnName("project_role_id");
+            entity.Property(x => x.IsPrimary).HasColumnName("is_primary");
+            entity.Property(x => x.StartAt).HasColumnName("start_at");
+            entity.Property(x => x.EndAt).HasColumnName("end_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<ProjectRoleEntity>().WithMany().HasForeignKey(x => x.ProjectRoleId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.UserId, x.ProjectId, x.ProjectRoleId });
+            entity.HasIndex(x => new { x.ProjectId, x.IsPrimary });
+            entity.HasIndex(x => x.ProjectRoleId);
         });
 
         modelBuilder.Entity<AppRoleEntity>(entity =>

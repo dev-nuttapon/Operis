@@ -27,24 +27,16 @@ public sealed class UserRegistrationCommands(
             return new RegistrationCommandResult(RegistrationCommandStatus.Conflict, emailConflict);
         }
 
-        if (request.DepartmentId.HasValue)
+        var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
+        if (!departmentValidation.Success)
         {
-            var departmentExists = await dbContext.Departments
-                .AnyAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
-            if (!departmentExists)
-            {
-                return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Department does not exist.");
-            }
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, departmentValidation.ErrorMessage);
         }
 
-        if (request.JobTitleId.HasValue)
+        var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
+        if (!jobTitleValidation.Success)
         {
-            var jobTitleExists = await dbContext.JobTitles
-                .AnyAsync(x => x.Id == request.JobTitleId.Value && x.DeletedAt == null, cancellationToken);
-            if (!jobTitleExists)
-            {
-                return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Job title does not exist.");
-            }
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
         }
 
         var registrationRequest = new UserRegistrationRequestEntity
@@ -72,10 +64,10 @@ public sealed class UserRegistrationCommands(
             After: ToRegistrationRequestAuditState(registrationRequest)));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        var (divisions, departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
         return new RegistrationCommandResult(
             RegistrationCommandStatus.Success,
-            Response: ToResponse(registrationRequest, departments, jobTitles));
+            Response: ToResponse(registrationRequest, divisions, departments, jobTitles));
     }
 
     public async Task<RegistrationCommandResult> ApproveRegistrationRequestAsync(Guid requestId, ReviewRegistrationRequest request, CancellationToken cancellationToken)
@@ -165,10 +157,10 @@ public sealed class UserRegistrationCommands(
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        var (divisions, departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
         return new RegistrationCommandResult(
             RegistrationCommandStatus.Success,
-            Response: ToResponse(registrationRequest, departments, jobTitles));
+            Response: ToResponse(registrationRequest, divisions, departments, jobTitles));
     }
 
     public async Task<RegistrationCommandResult> RejectRegistrationRequestAsync(Guid requestId, RejectRegistrationRequest request, CancellationToken cancellationToken)
@@ -212,10 +204,10 @@ public sealed class UserRegistrationCommands(
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var (departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
+        var (divisions, departments, jobTitles) = await LoadReferenceMapsAsync(cancellationToken);
         return new RegistrationCommandResult(
             RegistrationCommandStatus.Success,
-            Response: ToResponse(registrationRequest, departments, jobTitles));
+            Response: ToResponse(registrationRequest, divisions, departments, jobTitles));
     }
 
     public async Task<RegistrationCommandResult> CompleteRegistrationPasswordSetupAsync(string token, CompleteRegistrationPasswordSetupRequest request, CancellationToken cancellationToken)
@@ -309,32 +301,43 @@ public sealed class UserRegistrationCommands(
         return new RegistrationCommandResult(RegistrationCommandStatus.Success);
     }
 
-    private async Task<(IReadOnlyDictionary<Guid, string> Departments, IReadOnlyDictionary<Guid, string> JobTitles)> LoadReferenceMapsAsync(CancellationToken cancellationToken)
+    private async Task<(IReadOnlyDictionary<Guid, string> Divisions, IReadOnlyDictionary<Guid, CachedDepartmentItem> Departments, IReadOnlyDictionary<Guid, string> JobTitles)> LoadReferenceMapsAsync(CancellationToken cancellationToken)
     {
-        var departments = await dbContext.Departments
+        var divisions = await dbContext.Divisions
             .AsNoTracking()
             .Where(x => x.DeletedAt == null)
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new CachedDepartmentItem(x.Id, x.Name, x.DisplayOrder, x.DivisionId, null, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt),
+                cancellationToken);
 
         var jobTitles = await dbContext.JobTitles
             .AsNoTracking()
             .Where(x => x.DeletedAt == null)
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
-        return (departments, jobTitles);
+        return (divisions, departments, jobTitles);
     }
 
     private static RegistrationRequestResponse ToResponse(
         UserRegistrationRequestEntity entity,
-        IReadOnlyDictionary<Guid, string> departments,
+        IReadOnlyDictionary<Guid, string> divisions,
+        IReadOnlyDictionary<Guid, CachedDepartmentItem> departments,
         IReadOnlyDictionary<Guid, string> jobTitles) =>
         new(
             entity.Id,
             entity.Email,
             entity.FirstName,
             entity.LastName,
+            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var department) ? department.DivisionId : null,
+            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out department) && department.DivisionId.HasValue && divisions.TryGetValue(department.DivisionId.Value, out var divisionName) ? divisionName : null,
             entity.DepartmentId,
-            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out department) ? department.Name : null,
             entity.JobTitleId,
             entity.JobTitleId.HasValue && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             entity.Status,
@@ -372,6 +375,59 @@ public sealed class UserRegistrationCommands(
         Span<byte> bytes = stackalloc byte[24];
         RandomNumberGenerator.Fill(bytes);
         return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    private async Task<DepartmentValidationResult> ValidateDepartmentSelectionAsync(Guid? divisionId, Guid? departmentId, CancellationToken cancellationToken)
+    {
+        if (!departmentId.HasValue)
+        {
+            return !divisionId.HasValue
+                ? DepartmentValidationResult.Valid()
+                : DepartmentValidationResult.Invalid("Department is required when division is selected.");
+        }
+
+        var department = await dbContext.Departments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == departmentId.Value && x.DeletedAt == null, cancellationToken);
+        if (department is null)
+        {
+            return DepartmentValidationResult.Invalid("Department does not exist.");
+        }
+
+        if (divisionId.HasValue && department.DivisionId != divisionId)
+        {
+            return DepartmentValidationResult.Invalid("Department does not belong to the selected division.");
+        }
+
+        return DepartmentValidationResult.Valid();
+    }
+
+    private async Task<JobTitleValidationResult> ValidateJobTitleSelectionAsync(Guid? departmentId, Guid? jobTitleId, CancellationToken cancellationToken)
+    {
+        if (!jobTitleId.HasValue)
+        {
+            return JobTitleValidationResult.Valid();
+        }
+
+        if (!departmentId.HasValue)
+        {
+            return JobTitleValidationResult.Invalid("Department is required when job title is selected.");
+        }
+
+        var jobTitle = await dbContext.JobTitles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == jobTitleId.Value && x.DeletedAt == null, cancellationToken);
+        if (jobTitle is null)
+        {
+            return JobTitleValidationResult.Invalid("Job title does not exist.");
+        }
+
+        if (jobTitle.DepartmentId != departmentId)
+        {
+            return JobTitleValidationResult.Invalid("Job title does not belong to the selected department.");
+        }
+
+        return JobTitleValidationResult.Valid();
     }
 
     private async Task<string?> ValidateEmailAvailabilityAsync(
@@ -412,5 +468,17 @@ public sealed class UserRegistrationCommands(
         }
 
         return false;
+    }
+
+    private sealed record DepartmentValidationResult(bool Success, string? ErrorMessage)
+    {
+        public static DepartmentValidationResult Valid() => new(true, null);
+        public static DepartmentValidationResult Invalid(string errorMessage) => new(false, errorMessage);
+    }
+
+    private sealed record JobTitleValidationResult(bool Success, string? ErrorMessage)
+    {
+        public static JobTitleValidationResult Valid() => new(true, null);
+        public static JobTitleValidationResult Invalid(string errorMessage) => new(false, errorMessage);
     }
 }

@@ -131,6 +131,10 @@ export function MainLayout() {
                   label: tr('common.user_management'),
                 },
                 {
+                  key: '/app/admin/user-affiliations',
+                  label: tr('common.user_affiliations'),
+                },
+                {
                   key: '/app/admin/invitations',
                   label: tr('common.user_invitations'),
                 },
@@ -145,12 +149,32 @@ export function MainLayout() {
               label: tr('common.master_data_management'),
               children: [
                 {
-                  key: '/app/admin/master/departments',
-                  label: tr('common.master_departments'),
+                  key: '/app/admin/master/permanent',
+                  label: tr('common.master_permanent_structure'),
+                  children: [
+                    {
+                      key: '/app/admin/master/divisions',
+                      label: tr('common.master_divisions'),
+                    },
+                    {
+                      key: '/app/admin/master/departments',
+                      label: tr('common.master_departments'),
+                    },
+                    {
+                      key: '/app/admin/master/positions',
+                      label: tr('common.master_positions'),
+                    },
+                  ],
                 },
                 {
-                  key: '/app/admin/master/job-titles',
-                  label: tr('common.master_job_titles'),
+                  key: '/app/admin/master/project',
+                  label: tr('common.master_project_structure'),
+                  children: [
+                    {
+                      key: '/app/admin/master/project-roles',
+                      label: tr('common.master_project_roles'),
+                    },
+                  ],
                 },
               ],
             },
@@ -229,8 +253,10 @@ export function MainLayout() {
     if (path.includes('documents')) return tr('common.documents');
     if (path.includes('workflows')) return tr('common.workflows');
     if (path.includes('admin/users')) return tr('common.user_management');
+    if (path.includes('admin/master/divisions')) return tr('common.master_divisions');
     if (path.includes('admin/master/departments')) return tr('common.master_departments');
-    if (path.includes('admin/master/job-titles')) return tr('common.master_job_titles');
+    if (path.includes('admin/master/positions')) return tr('common.master_positions');
+    if (path.includes('admin/master/project-roles')) return tr('common.master_project_roles');
     if (path.includes('admin/master')) return tr('common.master_data_management');
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
     if (path.includes('admin/registrations')) return tr('common.registration_approvals');
@@ -458,6 +484,18 @@ export function MainLayout() {
 }
 
 function getOpenKeys(path: string) {
+  if (
+    path.startsWith('/app/admin/master/divisions') ||
+    path.startsWith('/app/admin/master/departments') ||
+    path.startsWith('/app/admin/master/positions')
+  ) {
+    return ['/app/admin', '/app/admin/master', '/app/admin/master/permanent'];
+  }
+
+  if (path.startsWith('/app/admin/master/project-roles')) {
+    return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
+  }
+
   if (path.startsWith('/app/admin/master/')) {
     return ['/app/admin', '/app/admin/master'];
   }

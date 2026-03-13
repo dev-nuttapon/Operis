@@ -1,10 +1,12 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Card, Form, Input, Modal, Select, Space, Typography } from "antd";
 import type { User } from "../../types/users";
 
 interface OptionItem {
   label: ReactNode;
   value: string;
+  divisionId?: string | null;
+  departmentId?: string | null;
 }
 
 interface AdminUserModalsProps {
@@ -14,6 +16,7 @@ interface AdminUserModalsProps {
   deleteForm: any;
   deleteLoading: boolean;
   deletingUser: User | null;
+  divisionOptions: OptionItem[];
   departmentOptions: OptionItem[];
   departmentsLoading: boolean;
   editForm: any;
@@ -39,6 +42,7 @@ export function AdminUserModals({
   deleteForm,
   deleteLoading,
   deletingUser,
+  divisionOptions,
   departmentOptions,
   departmentsLoading,
   editForm,
@@ -56,6 +60,27 @@ export function AdminUserModals({
   rolesLoading,
   t,
 }: AdminUserModalsProps) {
+  const createDivisionId = Form.useWatch("divisionId", createForm) as string | undefined;
+  const createDepartmentId = Form.useWatch("departmentId", createForm) as string | undefined;
+  const editDivisionId = Form.useWatch("divisionId", editForm) as string | undefined;
+  const editDepartmentId = Form.useWatch("departmentId", editForm) as string | undefined;
+  const createDepartmentOptions = useMemo(
+    () => departmentOptions.filter((item) => !createDivisionId || item.divisionId === createDivisionId),
+    [createDivisionId, departmentOptions]
+  );
+  const editDepartmentOptions = useMemo(
+    () => departmentOptions.filter((item) => !editDivisionId || item.divisionId === editDivisionId),
+    [departmentOptions, editDivisionId]
+  );
+  const createJobTitleOptions = useMemo(
+    () => jobTitleOptions.filter((item) => !createDepartmentId || item.departmentId === createDepartmentId),
+    [createDepartmentId, jobTitleOptions]
+  );
+  const editJobTitleOptions = useMemo(
+    () => jobTitleOptions.filter((item) => !editDepartmentId || item.departmentId === editDepartmentId),
+    [editDepartmentId, jobTitleOptions]
+  );
+
   return (
     <>
       <Modal
@@ -119,11 +144,30 @@ export function AdminUserModals({
               <Typography.Title level={5} style={{ marginTop: 0 }}>
                 {t("admin_users.sections.organization_structure")}
               </Typography.Title>
+              <Form.Item label={t("admin_users.fields.division")} name="divisionId">
+                <Select
+                  allowClear
+                  placeholder={t("admin_users.placeholders.select_division")}
+                  options={divisionOptions}
+                  onChange={() => {
+                    createForm.setFieldValue("departmentId", undefined);
+                    createForm.setFieldValue("jobTitleId", undefined);
+                  }}
+                />
+              </Form.Item>
               <Form.Item label={t("admin_users.fields.department")} name="departmentId">
-                <Select allowClear placeholder={t("admin_users.placeholders.select_department")} loading={departmentsLoading} options={departmentOptions} />
+                <Select
+                  allowClear
+                  placeholder={t("admin_users.placeholders.select_department")}
+                  loading={departmentsLoading}
+                  options={createDepartmentOptions}
+                  onChange={() => {
+                    createForm.setFieldValue("jobTitleId", undefined);
+                  }}
+                />
               </Form.Item>
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
-                <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} loading={jobTitlesLoading} options={jobTitleOptions} />
+                <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} loading={jobTitlesLoading} options={createJobTitleOptions} />
               </Form.Item>
             </Card>
 
@@ -171,11 +215,30 @@ export function AdminUserModals({
               <Typography.Title level={5} style={{ marginTop: 0 }}>
                 {t("admin_users.sections.organization_structure")}
               </Typography.Title>
+              <Form.Item label={t("admin_users.fields.division")} name="divisionId">
+                <Select
+                  allowClear
+                  placeholder={t("admin_users.placeholders.select_division")}
+                  options={divisionOptions}
+                  onChange={() => {
+                    editForm.setFieldValue("departmentId", undefined);
+                    editForm.setFieldValue("jobTitleId", undefined);
+                  }}
+                />
+              </Form.Item>
               <Form.Item label={t("admin_users.fields.department")} name="departmentId">
-                <Select allowClear placeholder={t("admin_users.placeholders.select_department")} loading={departmentsLoading} options={departmentOptions} />
+                <Select
+                  allowClear
+                  placeholder={t("admin_users.placeholders.select_department")}
+                  loading={departmentsLoading}
+                  options={editDepartmentOptions}
+                  onChange={() => {
+                    editForm.setFieldValue("jobTitleId", undefined);
+                  }}
+                />
               </Form.Item>
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
-                <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} loading={jobTitlesLoading} options={jobTitleOptions} />
+                <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} loading={jobTitlesLoading} options={editJobTitleOptions} />
               </Form.Item>
             </Card>
 

@@ -1,6 +1,7 @@
 import { Button, Form, Input, Modal, Select, Space, Typography } from "antd";
 
 interface RegistrationLinkItem {
+  divisionName?: string | null;
   departmentName?: string | null;
   email: string;
   jobTitleName?: string | null;
@@ -105,6 +106,7 @@ export function AdminRegistrationModals({
       >
         <Space direction="vertical" size={12} style={{ width: "100%" }}>
           <Text strong>{linkItem?.email}</Text>
+          <Text type="secondary">{t("admin_users.view.division")}: {linkItem?.divisionName || "-"}</Text>
           <Text type="secondary">{t("admin_users.view.department")}: {linkItem?.departmentName || "-"}</Text>
           <Text type="secondary">{t("admin_users.view.job_title")}: {linkItem?.jobTitleName || "-"}</Text>
           <Text type="secondary">

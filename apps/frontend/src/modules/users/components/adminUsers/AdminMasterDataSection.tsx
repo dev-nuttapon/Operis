@@ -18,6 +18,7 @@ interface AdminMasterDataSectionProps {
   data: MasterDataItem[];
   deleting: boolean;
   description: string;
+  extraColumns?: ColumnsType<MasterDataItem>;
   itemLabel: string;
   loading: boolean;
   paging: PagingState;
@@ -42,6 +43,7 @@ export function AdminMasterDataSection({
   data,
   deleting,
   description,
+  extraColumns = [],
   itemLabel,
   loading,
   paging,
@@ -62,6 +64,7 @@ export function AdminMasterDataSection({
       dataIndex: "name",
       sorter: true,
     },
+    ...extraColumns,
     {
       title: t("admin_users.master.display_order"),
       dataIndex: "displayOrder",

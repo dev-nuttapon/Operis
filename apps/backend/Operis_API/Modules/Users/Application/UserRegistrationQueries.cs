@@ -49,10 +49,18 @@ public sealed class UserRegistrationQueries(
             .Take(normalizedPageSize)
             .ToListAsync(cancellationToken);
 
-        var departments = await dbContext.Departments
+        var divisions = await dbContext.Divisions
             .AsNoTracking()
             .Where(x => x.DeletedAt == null)
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new CachedDepartmentItem(x.Id, x.Name, x.DisplayOrder, x.DivisionId, null, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt),
+                cancellationToken);
 
         var jobTitles = await dbContext.JobTitles
             .AsNoTracking()
@@ -80,7 +88,7 @@ public sealed class UserRegistrationQueries(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new PagedResult<RegistrationRequestResponse>(
-            items.Select(x => ToResponse(x, departments, jobTitles)).ToList(),
+            items.Select(x => ToResponse(x, divisions, departments, jobTitles)).ToList(),
             total,
             normalizedPage,
             normalizedPageSize);
@@ -97,10 +105,18 @@ public sealed class UserRegistrationQueries(
             return new RegistrationPasswordSetupQueryResult(RegistrationPasswordSetupQueryStatus.NotFound);
         }
 
-        var departments = await dbContext.Departments
+        var divisions = await dbContext.Divisions
             .AsNoTracking()
             .Where(x => x.DeletedAt == null)
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        var departments = await dbContext.Departments
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new CachedDepartmentItem(x.Id, x.Name, x.DisplayOrder, x.DivisionId, null, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt),
+                cancellationToken);
 
         var jobTitles = await dbContext.JobTitles
             .AsNoTracking()
@@ -126,7 +142,7 @@ public sealed class UserRegistrationQueries(
 
         return new RegistrationPasswordSetupQueryResult(
             RegistrationPasswordSetupQueryStatus.Success,
-            ToPasswordSetupResponse(registrationRequest, departments, jobTitles));
+            ToPasswordSetupResponse(registrationRequest, divisions, departments, jobTitles));
     }
 
     private static IQueryable<UserRegistrationRequestEntity> ApplyRegistrationSorting(IQueryable<UserRegistrationRequestEntity> query, string? sortBy, string? sortOrder)
@@ -142,15 +158,34 @@ public sealed class UserRegistrationQueries(
 
     private static RegistrationRequestResponse ToResponse(
         UserRegistrationRequestEntity entity,
-        IReadOnlyDictionary<Guid, string> departments,
-        IReadOnlyDictionary<Guid, string> jobTitles) =>
-        new(
+        IReadOnlyDictionary<Guid, string> divisions,
+        IReadOnlyDictionary<Guid, CachedDepartmentItem> departments,
+        IReadOnlyDictionary<Guid, string> jobTitles)
+    {
+        Guid? divisionId = null;
+        string? divisionName = null;
+        string? departmentName = null;
+
+        if (entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var department))
+        {
+            divisionId = department.DivisionId;
+            departmentName = department.Name;
+
+            if (divisionId.HasValue && divisions.TryGetValue(divisionId.Value, out var resolvedDivisionName))
+            {
+                divisionName = resolvedDivisionName;
+            }
+        }
+
+        return new RegistrationRequestResponse(
             entity.Id,
             entity.Email,
             entity.FirstName,
             entity.LastName,
+            divisionId,
+            divisionName,
             entity.DepartmentId,
-            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            departmentName,
             entity.JobTitleId,
             entity.JobTitleId.HasValue && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             entity.Status,
@@ -161,20 +196,38 @@ public sealed class UserRegistrationQueries(
             !string.IsNullOrWhiteSpace(entity.PasswordSetupToken) ? $"/register/setup-password/{entity.PasswordSetupToken}" : null,
             entity.PasswordSetupExpiresAt,
             entity.PasswordSetupCompletedAt);
+    }
 
     private static RegistrationPasswordSetupDetailResponse ToPasswordSetupResponse(
         UserRegistrationRequestEntity entity,
-        IReadOnlyDictionary<Guid, string> departments,
-        IReadOnlyDictionary<Guid, string> jobTitles) =>
-        new(
+        IReadOnlyDictionary<Guid, string> divisions,
+        IReadOnlyDictionary<Guid, CachedDepartmentItem> departments,
+        IReadOnlyDictionary<Guid, string> jobTitles)
+    {
+        string? divisionName = null;
+        string? departmentName = null;
+
+        if (entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var department))
+        {
+            departmentName = department.Name;
+
+            if (department.DivisionId.HasValue && divisions.TryGetValue(department.DivisionId.Value, out var resolvedDivisionName))
+            {
+                divisionName = resolvedDivisionName;
+            }
+        }
+
+        return new RegistrationPasswordSetupDetailResponse(
             entity.Email,
             entity.FirstName,
             entity.LastName,
-            entity.DepartmentId.HasValue && departments.TryGetValue(entity.DepartmentId.Value, out var departmentName) ? departmentName : null,
+            divisionName,
+            departmentName,
             entity.JobTitleId.HasValue && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             entity.PasswordSetupExpiresAt.HasValue && entity.PasswordSetupExpiresAt.Value <= DateTimeOffset.UtcNow,
             entity.PasswordSetupCompletedAt.HasValue,
             entity.PasswordSetupExpiresAt);
+    }
 
     private static (int Page, int PageSize, int Skip) NormalizePaging(int page, int pageSize)
     {

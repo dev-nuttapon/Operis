@@ -64,7 +64,21 @@ export function useAdminUsersScreen(input: {
     sortBy: "displayOrder",
     sortOrder: "asc" as "asc" | "desc",
   });
+  const [divisionPaging, setDivisionPaging] = useState({
+    page: 1,
+    pageSize: 10,
+    search: "",
+    sortBy: "displayOrder",
+    sortOrder: "asc" as "asc" | "desc",
+  });
   const [jobTitlePaging, setJobTitlePaging] = useState({
+    page: 1,
+    pageSize: 10,
+    search: "",
+    sortBy: "displayOrder",
+    sortOrder: "asc" as "asc" | "desc",
+  });
+  const [projectRolePaging, setProjectRolePaging] = useState({
     page: 1,
     pageSize: 10,
     search: "",
@@ -76,36 +90,52 @@ export function useAdminUsersScreen(input: {
     users: usersPaging,
     registrationRequests: registrationPaging,
     invitations: invitationPaging,
+    divisions: divisionPaging,
     departments: departmentPaging,
     jobTitles: jobTitlePaging,
+    projectRoles: projectRolePaging,
   });
 
   const [inviteForm] = Form.useForm();
   const [editInvitationForm] = Form.useForm();
   const [createUserForm] = Form.useForm();
   const [editUserForm] = Form.useForm();
+  const [orgAssignmentForm] = Form.useForm();
   const [deleteUserForm] = Form.useForm();
   const [reviewRegistrationForm] = Form.useForm();
+  const [createDivisionForm] = Form.useForm();
   const [createDepartmentForm] = Form.useForm();
+  const [editDivisionForm] = Form.useForm();
   const [editDepartmentForm] = Form.useForm();
   const [createJobTitleForm] = Form.useForm();
   const [editJobTitleForm] = Form.useForm();
+  const [createProjectRoleForm] = Form.useForm();
+  const [editProjectRoleForm] = Form.useForm();
+  const [deleteDivisionForm] = Form.useForm();
   const [deleteDepartmentForm] = Form.useForm();
   const [deleteJobTitleForm] = Form.useForm();
+  const [deleteProjectRoleForm] = Form.useForm();
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUserAffiliation, setEditingUserAffiliation] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [creatingInvitation, setCreatingInvitation] = useState(false);
   const [editingInvitation, setEditingInvitation] = useState<Invitation | null>(null);
   const [viewingInvitation, setViewingInvitation] = useState<Invitation | null>(null);
   const [viewingRegistrationLink, setViewingRegistrationLink] = useState<RegistrationRequest | null>(null);
+  const [editingDivision, setEditingDivision] = useState<MasterDataItem | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<MasterDataItem | null>(null);
   const [editingJobTitle, setEditingJobTitle] = useState<MasterDataItem | null>(null);
+  const [editingProjectRole, setEditingProjectRole] = useState<MasterDataItem | null>(null);
   const [creatingUser, setCreatingUser] = useState(false);
+  const [creatingDivision, setCreatingDivision] = useState(false);
   const [creatingDepartment, setCreatingDepartment] = useState(false);
+  const [deletingDivision, setDeletingDivision] = useState<MasterDataItem | null>(null);
   const [deletingDepartment, setDeletingDepartment] = useState<MasterDataItem | null>(null);
   const [creatingJobTitle, setCreatingJobTitle] = useState(false);
   const [deletingJobTitle, setDeletingJobTitle] = useState<MasterDataItem | null>(null);
+  const [creatingProjectRole, setCreatingProjectRole] = useState(false);
+  const [deletingProjectRole, setDeletingProjectRole] = useState<MasterDataItem | null>(null);
   const [managingRegistration, setManagingRegistration] = useState<RegistrationRequest | null>(null);
 
   const handleSuccess = (message: string) => {
@@ -180,51 +210,76 @@ export function useAdminUsersScreen(input: {
   return {
     actor,
     copyToClipboard,
+    createDivisionForm,
     createDepartmentForm,
     createJobTitleForm,
+    createProjectRoleForm,
     createUserForm,
+    creatingDivision,
     creatingDepartment,
     creatingInvitation,
     creatingJobTitle,
+    creatingProjectRole,
     creatingUser,
     currentSection,
+    deleteDivisionForm,
     deleteDepartmentForm,
     deleteJobTitleForm,
+    deleteProjectRoleForm,
     deleteUserForm,
+    deletingDivision,
     deletingDepartment,
     deletingJobTitle,
+    deletingProjectRole,
     deletingUser,
+    divisionPaging,
+    editDivisionForm,
     departmentPaging,
     editDepartmentForm,
     editInvitationForm,
     editJobTitleForm,
+    editProjectRoleForm,
     editUserForm,
+    orgAssignmentForm,
+    editingDivision,
     editingDepartment,
     editingInvitation,
     editingJobTitle,
+    editingProjectRole,
     editingUser,
+    editingUserAffiliation,
     handleError,
     handleSuccess,
     invitationPaging,
     inviteForm,
     jobTitlePaging,
+    projectRolePaging,
     managingRegistration,
     registrationPaging,
     reviewRegistrationForm,
+    setCreatingDivision,
     setCreatingDepartment,
     setCreatingInvitation,
     setCreatingJobTitle,
+    setCreatingProjectRole,
     setCreatingUser,
+    setDeletingDivision,
     setDeletingDepartment,
     setDeletingJobTitle,
+    setDeletingProjectRole,
     setDeletingUser,
+    setDivisionPaging,
     setDepartmentPaging,
+    setEditingDivision,
     setEditingDepartment,
     setEditingInvitation,
     setEditingJobTitle,
+    setEditingProjectRole,
     setEditingUser,
+    setEditingUserAffiliation,
     setInvitationPaging,
     setJobTitlePaging,
+    setProjectRolePaging,
     setManagingRegistration,
     setRegistrationPaging,
     setUsersPaging,

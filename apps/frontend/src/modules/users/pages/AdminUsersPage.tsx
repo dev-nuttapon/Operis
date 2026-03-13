@@ -38,6 +38,12 @@ const AdminUserModals = lazy(() =>
 const AdminUsersDirectorySection = lazy(() =>
   import("../components/adminUsers/AdminUsersDirectorySection").then((module) => ({ default: module.AdminUsersDirectorySection }))
 );
+const AdminUserAffiliationsSection = lazy(() =>
+  import("../components/adminUsers/AdminUserAffiliationsSection").then((module) => ({ default: module.AdminUserAffiliationsSection }))
+);
+const AdminUserAffiliationModal = lazy(() =>
+  import("../components/adminUsers/AdminUserAffiliationModal").then((module) => ({ default: module.AdminUserAffiliationModal }))
+);
 const AdminRegistrationModals = lazy(() =>
   import("../components/adminUsers/AdminRegistrationModals").then((module) => ({ default: module.AdminRegistrationModals }))
 );
@@ -55,38 +61,59 @@ export function AdminUsersPage() {
     approveRegistrationMutation,
     cancelInvitationMutation,
     copyToClipboard,
+    createDivisionForm,
+    createDivisionMutation,
     createDepartmentForm,
     createDepartmentMutation,
     createInvitationMutation,
     createJobTitleForm,
     createJobTitleMutation,
+    createProjectRoleForm,
+    createProjectRoleMutation,
     createUserForm,
     createUserMutation,
+    creatingDivision,
     creatingDepartment,
     creatingInvitation,
     creatingJobTitle,
+    creatingProjectRole,
     creatingUser,
     currentSection,
+    deleteDivisionForm,
+    deleteDivisionMutation,
     deleteDepartmentForm,
     deleteDepartmentMutation,
     deleteJobTitleForm,
     deleteJobTitleMutation,
+    deleteProjectRoleForm,
+    deleteProjectRoleMutation,
     deleteUserForm,
     deleteUserMutation,
+    deletingDivision,
     deletingDepartment,
     deletingJobTitle,
+    deletingProjectRole,
     deletingUser,
+    divisionPaging,
+    divisionOptionsQuery,
+    divisionsQuery,
     departmentOptionsQuery,
     departmentPaging,
     departmentsQuery,
+    editDivisionForm,
     editDepartmentForm,
     editInvitationForm,
     editJobTitleForm,
+    editProjectRoleForm,
     editUserForm,
+    orgAssignmentForm,
+    editingDivision,
     editingDepartment,
     editingInvitation,
     editingJobTitle,
+    editingProjectRole,
     editingUser,
+    editingUserAffiliation,
     handleError,
     handleSuccess,
     invitationPaging,
@@ -95,34 +122,48 @@ export function AdminUsersPage() {
     jobTitleOptionsQuery,
     jobTitlePaging,
     jobTitlesQuery,
+    projectRolePaging,
+    projectRolesQuery,
     managingRegistration,
     registrationPaging,
     registrationRequestsQuery,
     rejectRegistrationMutation,
     reviewRegistrationForm,
     rolesQuery,
+    setCreatingDivision,
     setCreatingDepartment,
     setCreatingInvitation,
     setCreatingJobTitle,
+    setCreatingProjectRole,
     setCreatingUser,
+    setDeletingDivision,
     setDeletingDepartment,
     setDeletingJobTitle,
+    setDeletingProjectRole,
     setDeletingUser,
+    setDivisionPaging,
     setDepartmentPaging,
+    setEditingDivision,
     setEditingDepartment,
     setEditingInvitation,
     setEditingJobTitle,
+    setEditingProjectRole,
     setEditingUser,
+    setEditingUserAffiliation,
     setInvitationPaging,
     setJobTitlePaging,
+    setProjectRolePaging,
     setManagingRegistration,
     setRegistrationPaging,
     setUsersPaging,
     setViewingInvitation,
     setViewingRegistrationLink,
+    updateDivisionMutation,
     updateDepartmentMutation,
     updateInvitationMutation,
     updateJobTitleMutation,
+    updateProjectRoleMutation,
+    upsertUserOrgAssignmentMutation,
     updateUserMutation,
     usersPaging,
     usersQuery,
@@ -143,8 +184,14 @@ export function AdminUsersPage() {
     ),
     value: item.id,
   }));
-  const departmentOptions = (departmentOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const jobTitleOptions = (jobTitleOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const divisionOptions = (divisionOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const departmentOptions = (departmentOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id, divisionId: item.divisionId }));
+  const jobTitleOptions = (jobTitleOptionsQuery.data?.items ?? []).map((item) => ({
+    label: item.name,
+    value: item.id,
+    divisionId: item.divisionId,
+    departmentId: item.departmentId,
+  }));
 
   const invitationColumns: ColumnsType<Invitation> = [
     {
@@ -155,6 +202,11 @@ export function AdminUsersPage() {
     {
       title: t("admin_users.columns.invited_by"),
       dataIndex: "invitedBy",
+    },
+    {
+      title: t("admin_users.columns.division"),
+      dataIndex: "divisionName",
+      render: (value: string | null) => value || "-",
     },
     {
       title: t("admin_users.columns.department"),
@@ -225,6 +277,7 @@ export function AdminUsersPage() {
           onPrefillInvitationEdit={(record) => {
             editInvitationForm.setFieldsValue({
               email: record.email,
+              divisionId: record.divisionId ?? undefined,
               departmentId: record.departmentId ?? undefined,
               jobTitleId: record.jobTitleId ?? undefined,
               expiresAt: record.expiresAt ? dayjs(record.expiresAt) : undefined,
@@ -274,9 +327,68 @@ export function AdminUsersPage() {
         />
       </Suspense>
     );
+  } else if (currentSection === "org-assignments") {
+    pageTitle = t("admin_users.affiliations.page_title");
+    pageDescription = t("admin_users.affiliations.page_description");
+    pageContent = (
+      <Suspense fallback={null}>
+        <AdminUserAffiliationsSection
+          currentLanguage={currentLanguage}
+          data={usersQuery.data?.items ?? []}
+          loading={usersQuery.isLoading}
+          paging={usersPaging}
+          pagination={usersQuery.data}
+          setEditingUser={(record) => {
+            setEditingUserAffiliation(record);
+            if (!record) {
+              orgAssignmentForm.resetFields();
+              return;
+            }
+            orgAssignmentForm.setFieldsValue({
+              divisionId: record.divisionId ?? undefined,
+              departmentId: record.departmentId ?? undefined,
+              positionId: record.jobTitleId ?? undefined,
+            });
+          }}
+          setPaging={setUsersPaging}
+          t={t}
+        />
+      </Suspense>
+    );
   } else {
-    if (currentSection === "master-departments") {
-      pageTitle = t("admin_users.master.page_title");
+    if (currentSection === "master-divisions") {
+      pageTitle = t("admin_users.master.divisions_title");
+      pageDescription = t("admin_users.master.divisions_page_description");
+      pageContent = (
+        <Suspense fallback={null}>
+          <AdminMasterDataSection
+            createLabel={t("admin_users.master.create_division")}
+            data={divisionsQuery.data?.items ?? []}
+            deleting={deleteDivisionMutation.isPending}
+            description={t("admin_users.master.divisions_description")}
+            itemLabel={t("admin_users.columns.division")}
+            loading={divisionsQuery.isLoading}
+            paging={divisionPaging}
+            pagination={divisionsQuery.data}
+            searchPlaceholder={t("admin_users.placeholders.search_divisions")}
+            setCreating={setCreatingDivision}
+            setDeleting={setDeletingDivision}
+            setEditing={setEditingDivision}
+            setPaging={setDivisionPaging}
+            t={t}
+            title={t("admin_users.master.divisions_title")}
+            onDeletePrepare={() => {
+              deleteDivisionForm.resetFields();
+            }}
+            onEdit={(item) => {
+              editDivisionForm.setFieldValue("editName", item.name);
+              editDivisionForm.setFieldValue("editDisplayOrder", item.displayOrder);
+            }}
+          />
+        </Suspense>
+      );
+    } else if (currentSection === "master-departments") {
+      pageTitle = t("admin_users.master.departments_title");
       pageDescription = t("admin_users.master.departments_page_description");
       pageContent = (
         <Suspense fallback={null}>
@@ -285,6 +397,13 @@ export function AdminUsersPage() {
             data={departmentsQuery.data?.items ?? []}
             deleting={deleteDepartmentMutation.isPending}
             description={t("admin_users.master.departments_description")}
+            extraColumns={[
+              {
+                title: t("admin_users.columns.division"),
+                dataIndex: "divisionName",
+                render: (value: string | null) => value || "-",
+              },
+            ]}
             itemLabel={t("admin_users.columns.department")}
             loading={departmentsQuery.isLoading}
             paging={departmentPaging}
@@ -300,39 +419,85 @@ export function AdminUsersPage() {
               deleteDepartmentForm.resetFields();
             }}
             onEdit={(item) => {
+              editDepartmentForm.setFieldValue("editDivisionId", item.divisionId ?? undefined);
               editDepartmentForm.setFieldValue("editName", item.name);
               editDepartmentForm.setFieldValue("editDisplayOrder", item.displayOrder);
             }}
           />
         </Suspense>
       );
-    } else if (currentSection === "master-job-titles") {
-      pageTitle = t("admin_users.master.page_title");
-      pageDescription = t("admin_users.master.job_titles_page_description");
+    } else if (currentSection === "master-positions") {
+      pageTitle = t("admin_users.master.positions_title");
+      pageDescription = t("admin_users.master.positions_page_description");
       pageContent = (
         <Suspense fallback={null}>
           <AdminMasterDataSection
-            createLabel={t("admin_users.master.create_job_title")}
+            createLabel={t("admin_users.master.create_position")}
             data={jobTitlesQuery.data?.items ?? []}
             deleting={deleteJobTitleMutation.isPending}
-            description={t("admin_users.master.job_titles_description")}
-            itemLabel={t("admin_users.columns.job_title")}
+            description={t("admin_users.master.positions_description")}
+            extraColumns={[
+              {
+                title: t("admin_users.columns.division"),
+                dataIndex: "divisionName",
+                render: (value: string | null) => value || "-",
+              },
+              {
+                title: t("admin_users.columns.department"),
+                dataIndex: "departmentName",
+                render: (value: string | null) => value || "-",
+              },
+            ]}
+            itemLabel={t("admin_users.columns.position")}
             loading={jobTitlesQuery.isLoading}
             paging={jobTitlePaging}
             pagination={jobTitlesQuery.data}
-            searchPlaceholder={t("admin_users.placeholders.search_job_titles")}
+            searchPlaceholder={t("admin_users.placeholders.search_positions")}
             setCreating={setCreatingJobTitle}
             setDeleting={setDeletingJobTitle}
             setEditing={setEditingJobTitle}
             setPaging={setJobTitlePaging}
             t={t}
-            title={t("admin_users.master.job_titles_title")}
+            title={t("admin_users.master.positions_title")}
             onDeletePrepare={() => {
               deleteJobTitleForm.resetFields();
             }}
             onEdit={(item) => {
+              editJobTitleForm.setFieldValue("editDivisionId", item.divisionId ?? undefined);
+              editJobTitleForm.setFieldValue("editDepartmentId", item.departmentId ?? undefined);
               editJobTitleForm.setFieldValue("editName", item.name);
               editJobTitleForm.setFieldValue("editDisplayOrder", item.displayOrder);
+            }}
+          />
+        </Suspense>
+      );
+    } else if (currentSection === "master-project-roles") {
+      pageTitle = t("admin_users.master.project_roles_title");
+      pageDescription = t("admin_users.master.project_roles_page_description");
+      pageContent = (
+        <Suspense fallback={null}>
+          <AdminMasterDataSection
+            createLabel={t("admin_users.master.create_project_role")}
+            data={projectRolesQuery.data?.items ?? []}
+            deleting={deleteProjectRoleMutation.isPending}
+            description={t("admin_users.master.project_roles_description")}
+            itemLabel={t("admin_users.columns.project_role")}
+            loading={projectRolesQuery.isLoading}
+            paging={projectRolePaging}
+            pagination={projectRolesQuery.data}
+            searchPlaceholder={t("admin_users.placeholders.search_project_roles")}
+            setCreating={setCreatingProjectRole}
+            setDeleting={setDeletingProjectRole}
+            setEditing={setEditingProjectRole}
+            setPaging={setProjectRolePaging}
+            t={t}
+            title={t("admin_users.master.project_roles_title")}
+            onDeletePrepare={() => {
+              deleteProjectRoleForm.resetFields();
+            }}
+            onEdit={(item) => {
+              editProjectRoleForm.setFieldValue("editName", item.name);
+              editProjectRoleForm.setFieldValue("editDisplayOrder", item.displayOrder);
             }}
           />
         </Suspense>
@@ -389,13 +554,19 @@ export function AdminUsersPage() {
         </Space>
       </Card>
 
-      {(usersQuery.error || registrationRequestsQuery.error || invitationsQuery.error) ? (
+      {(usersQuery.error || registrationRequestsQuery.error || invitationsQuery.error || divisionsQuery.error || departmentsQuery.error || jobTitlesQuery.error || projectRolesQuery.error) ? (
         <Alert
           type="error"
           showIcon
           message={t("errors.load_admin_data")}
           description={(() => {
-            const sourceError = usersQuery.error ?? registrationRequestsQuery.error ?? invitationsQuery.error;
+            const sourceError = usersQuery.error
+              ?? registrationRequestsQuery.error
+              ?? invitationsQuery.error
+              ?? divisionsQuery.error
+              ?? departmentsQuery.error
+              ?? jobTitlesQuery.error
+              ?? projectRolesQuery.error;
             const presentation = getApiErrorPresentation(sourceError, t("errors.load_admin_data"));
             return presentation.description;
           })()}
@@ -488,6 +659,7 @@ export function AdminUsersPage() {
           <AdminInvitationModals
             createLoading={createInvitationMutation.isPending}
             creatingInvitation={creatingInvitation}
+            divisionOptions={divisionOptions}
             departmentOptions={departmentOptions}
             editForm={editInvitationForm}
             editingInvitation={editingInvitation}
@@ -514,11 +686,12 @@ export function AdminUsersPage() {
             onCreate={() => {
               inviteForm
                 .validateFields()
-                .then((values: { email: string; departmentId?: string; jobTitleId?: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
+                .then((values: { email: string; divisionId?: string; departmentId?: string; jobTitleId?: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
                   createInvitationMutation.mutate(
                     {
                       email: values.email,
                       invitedBy: actor,
+                      divisionId: values.divisionId,
                       departmentId: values.departmentId,
                       jobTitleId: values.jobTitleId,
                       expiresAt: values.expiresAt ? values.expiresAt.endOf("day").toISOString() : undefined,
@@ -542,11 +715,12 @@ export function AdminUsersPage() {
 
               editInvitationForm
                 .validateFields()
-                .then((values: { email: string; departmentId?: string; jobTitleId?: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
+                .then((values: { email: string; divisionId?: string; departmentId?: string; jobTitleId?: string; expiresAt?: { endOf: (unit: string) => { toISOString: () => string } } }) => {
                   updateInvitationMutation.mutate(
                     {
                       id: editingInvitation.id,
                       email: values.email,
+                      divisionId: values.divisionId,
                       departmentId: values.departmentId,
                       jobTitleId: values.jobTitleId,
                       expiresAt: values.expiresAt ? values.expiresAt.endOf("day").toISOString() : undefined,
@@ -580,6 +754,7 @@ export function AdminUsersPage() {
             deleteForm={deleteUserForm}
             deleteLoading={deleteUserMutation.isPending}
             deletingUser={deletingUser}
+            divisionOptions={divisionOptions}
             departmentOptions={departmentOptions}
             departmentsLoading={departmentsQuery.isLoading}
             editForm={editUserForm}
@@ -608,6 +783,7 @@ export function AdminUsersPage() {
                   lastName: string;
                   password: string;
                   confirmPassword: string;
+                  divisionId?: string;
                   departmentId?: string;
                   jobTitleId?: string;
                   roles?: string[];
@@ -620,6 +796,7 @@ export function AdminUsersPage() {
                       password: values.password,
                       confirmPassword: values.confirmPassword,
                       createdBy: actor,
+                      divisionId: values.divisionId,
                       departmentId: values.departmentId,
                       jobTitleId: values.jobTitleId,
                       roleIds: values.roles,
@@ -665,6 +842,7 @@ export function AdminUsersPage() {
                   email: string;
                   firstName: string;
                   lastName: string;
+                  divisionId?: string;
                   departmentId?: string;
                   jobTitleId?: string;
                   roleIds?: string[];
@@ -679,6 +857,7 @@ export function AdminUsersPage() {
                       email: values.email,
                       firstName: values.firstName,
                       lastName: values.lastName,
+                      divisionId: values.divisionId,
                       departmentId: values.departmentId,
                       jobTitleId: values.jobTitleId,
                       roleIds: values.roleIds,
@@ -702,27 +881,96 @@ export function AdminUsersPage() {
         </Suspense>
       ) : null}
 
-      {(creatingDepartment || editingDepartment !== null || deletingDepartment !== null || creatingJobTitle || editingJobTitle !== null || deletingJobTitle !== null) ? (
+      {editingUserAffiliation !== null ? (
+        <Suspense fallback={null}>
+          <AdminUserAffiliationModal
+            departmentOptions={departmentOptions}
+            divisionOptions={divisionOptions}
+            form={orgAssignmentForm}
+            jobTitleOptions={jobTitleOptions}
+            loading={upsertUserOrgAssignmentMutation.isPending}
+            onClose={() => {
+              setEditingUserAffiliation(null);
+              orgAssignmentForm.resetFields();
+            }}
+            onSubmit={() => {
+              if (!editingUserAffiliation) {
+                return;
+              }
+
+              orgAssignmentForm
+                .validateFields()
+                .then((values: { divisionId?: string; departmentId?: string; positionId?: string }) => {
+                  upsertUserOrgAssignmentMutation.mutate(
+                    {
+                      userId: editingUserAffiliation.id,
+                      divisionId: values.divisionId,
+                      departmentId: values.departmentId,
+                      positionId: values.positionId,
+                    },
+                    {
+                      onSuccess: () => {
+                        handleSuccess(t("admin_users.messages.user_affiliation_saved", { email: editingUserAffiliation.keycloak?.email || editingUserAffiliation.id }));
+                        setEditingUserAffiliation(null);
+                        orgAssignmentForm.resetFields();
+                      },
+                      onError: (error) => handleError(t("errors.update_user_affiliation_failed"), error),
+                    }
+                  );
+                })
+                .catch(() => undefined);
+            }}
+            openUser={editingUserAffiliation}
+            t={t}
+          />
+        </Suspense>
+      ) : null}
+
+      {(creatingDivision || editingDivision !== null || deletingDivision !== null || creatingDepartment || editingDepartment !== null || deletingDepartment !== null || creatingJobTitle || editingJobTitle !== null || deletingJobTitle !== null || creatingProjectRole || editingProjectRole !== null || deletingProjectRole !== null) ? (
         <Suspense fallback={null}>
           <AdminMasterDataModals
+            createDivisionForm={createDivisionForm}
+            createDivisionLoading={createDivisionMutation.isPending}
             createDepartmentForm={createDepartmentForm}
             createDepartmentLoading={createDepartmentMutation.isPending}
             createJobTitleForm={createJobTitleForm}
             createJobTitleLoading={createJobTitleMutation.isPending}
+            createProjectRoleForm={createProjectRoleForm}
+            createProjectRoleLoading={createProjectRoleMutation.isPending}
+            creatingDivision={creatingDivision}
             creatingDepartment={creatingDepartment}
             creatingJobTitle={creatingJobTitle}
+            creatingProjectRole={creatingProjectRole}
+            deleteDivisionForm={deleteDivisionForm}
+            deleteDivisionLoading={deleteDivisionMutation.isPending}
             deleteDepartmentForm={deleteDepartmentForm}
             deleteDepartmentLoading={deleteDepartmentMutation.isPending}
             deleteJobTitleForm={deleteJobTitleForm}
             deleteJobTitleLoading={deleteJobTitleMutation.isPending}
+            deleteProjectRoleForm={deleteProjectRoleForm}
+            deleteProjectRoleLoading={deleteProjectRoleMutation.isPending}
+            deletingDivision={deletingDivision}
             deletingDepartment={deletingDepartment}
             deletingJobTitle={deletingJobTitle}
+            deletingProjectRole={deletingProjectRole}
+            divisionOptions={divisionOptions}
+            departmentOptions={departmentOptions}
+            editDivisionForm={editDivisionForm}
+            editDivisionLoading={updateDivisionMutation.isPending}
             editDepartmentForm={editDepartmentForm}
             editDepartmentLoading={updateDepartmentMutation.isPending}
             editJobTitleForm={editJobTitleForm}
             editJobTitleLoading={updateJobTitleMutation.isPending}
+            editProjectRoleForm={editProjectRoleForm}
+            editProjectRoleLoading={updateProjectRoleMutation.isPending}
+            editingDivision={editingDivision}
             editingDepartment={editingDepartment}
             editingJobTitle={editingJobTitle}
+            editingProjectRole={editingProjectRole}
+            onCloseCreateDivision={() => {
+              setCreatingDivision(false);
+              createDivisionForm.resetFields();
+            }}
             onCloseCreateDepartment={() => {
               setCreatingDepartment(false);
               createDepartmentForm.resetFields();
@@ -730,6 +978,14 @@ export function AdminUsersPage() {
             onCloseCreateJobTitle={() => {
               setCreatingJobTitle(false);
               createJobTitleForm.resetFields();
+            }}
+            onCloseCreateProjectRole={() => {
+              setCreatingProjectRole(false);
+              createProjectRoleForm.resetFields();
+            }}
+            onCloseDeleteDivision={() => {
+              setDeletingDivision(null);
+              deleteDivisionForm.resetFields();
             }}
             onCloseDeleteDepartment={() => {
               setDeletingDepartment(null);
@@ -739,6 +995,14 @@ export function AdminUsersPage() {
               setDeletingJobTitle(null);
               deleteJobTitleForm.resetFields();
             }}
+            onCloseDeleteProjectRole={() => {
+              setDeletingProjectRole(null);
+              deleteProjectRoleForm.resetFields();
+            }}
+            onCloseEditDivision={() => {
+              setEditingDivision(null);
+              editDivisionForm.resetFields();
+            }}
             onCloseEditDepartment={() => {
               setEditingDepartment(null);
               editDepartmentForm.resetFields();
@@ -747,12 +1011,34 @@ export function AdminUsersPage() {
               setEditingJobTitle(null);
               editJobTitleForm.resetFields();
             }}
+            onCloseEditProjectRole={() => {
+              setEditingProjectRole(null);
+              editProjectRoleForm.resetFields();
+            }}
+            onCreateDivision={() => {
+              createDivisionForm
+                .validateFields(["name", "displayOrder"])
+                .then((values: { displayOrder: number; name: string }) => {
+                  createDivisionMutation.mutate(
+                    { name: values.name, displayOrder: values.displayOrder },
+                    {
+                      onSuccess: () => {
+                        setCreatingDivision(false);
+                        createDivisionForm.resetFields();
+                        handleSuccess(t("admin_users.messages.division_created", { name: values.name }));
+                      },
+                      onError: (error: unknown) => handleError(t("errors.create_division_failed"), error),
+                    }
+                  );
+                })
+                .catch(() => undefined);
+            }}
             onCreateDepartment={() => {
               createDepartmentForm
                 .validateFields(["name", "displayOrder"])
-                .then((values: { displayOrder: number; name: string }) => {
+                .then((values: { displayOrder: number; name: string; divisionId?: string }) => {
                   createDepartmentMutation.mutate(
-                    { name: values.name, displayOrder: values.displayOrder },
+                    { name: values.name, displayOrder: values.displayOrder, divisionId: values.divisionId },
                     {
                       onSuccess: () => {
                         setCreatingDepartment(false);
@@ -767,10 +1053,10 @@ export function AdminUsersPage() {
             }}
             onCreateJobTitle={() => {
               createJobTitleForm
-                .validateFields(["name", "displayOrder"])
-                .then((values: { displayOrder: number; name: string }) => {
+                .validateFields(["name", "displayOrder", "departmentId"])
+                .then((values: { displayOrder: number; name: string; departmentId?: string }) => {
                   createJobTitleMutation.mutate(
-                    { name: values.name, displayOrder: values.displayOrder },
+                    { name: values.name, displayOrder: values.displayOrder, departmentId: values.departmentId },
                     {
                       onSuccess: () => {
                         setCreatingJobTitle(false);
@@ -778,6 +1064,46 @@ export function AdminUsersPage() {
                         handleSuccess(t("admin_users.messages.job_title_created", { name: values.name }));
                       },
                       onError: (error) => handleError(t("errors.create_job_title_failed"), error),
+                    }
+                  );
+                })
+                .catch(() => undefined);
+            }}
+            onCreateProjectRole={() => {
+              createProjectRoleForm
+                .validateFields(["name", "displayOrder"])
+                .then((values: { displayOrder: number; name: string }) => {
+                  createProjectRoleMutation.mutate(
+                    { name: values.name, displayOrder: values.displayOrder },
+                    {
+                      onSuccess: () => {
+                        setCreatingProjectRole(false);
+                        createProjectRoleForm.resetFields();
+                        handleSuccess(t("admin_users.messages.project_role_created", { name: values.name }));
+                      },
+                      onError: (error) => handleError(t("errors.create_project_role_failed"), error),
+                    }
+                  );
+                })
+                .catch(() => undefined);
+            }}
+            onDeleteDivision={() => {
+              if (!deletingDivision) {
+                return;
+              }
+
+              deleteDivisionForm
+                .validateFields(["reason"])
+                .then((values: { reason: string }) => {
+                  deleteDivisionMutation.mutate(
+                    { id: deletingDivision.id, reason: values.reason },
+                    {
+                      onSuccess: () => {
+                        setDeletingDivision(null);
+                        deleteDivisionForm.resetFields();
+                        handleSuccess(t("admin_users.messages.division_deleted", { name: deletingDivision.name }));
+                      },
+                      onError: (error) => handleError(t("errors.delete_division_failed"), error),
                     }
                   );
                 })
@@ -827,16 +1153,59 @@ export function AdminUsersPage() {
                 })
                 .catch(() => undefined);
             }}
+            onDeleteProjectRole={() => {
+              if (!deletingProjectRole) {
+                return;
+              }
+
+              deleteProjectRoleForm
+                .validateFields(["reason"])
+                .then((values: { reason: string }) => {
+                  deleteProjectRoleMutation.mutate(
+                    { id: deletingProjectRole.id, reason: values.reason },
+                    {
+                      onSuccess: () => {
+                        setDeletingProjectRole(null);
+                        deleteProjectRoleForm.resetFields();
+                        handleSuccess(t("admin_users.messages.project_role_deleted", { name: deletingProjectRole.name }));
+                      },
+                      onError: (error) => handleError(t("errors.delete_project_role_failed"), error),
+                    }
+                  );
+                })
+                .catch(() => undefined);
+            }}
+            onEditDivision={() => {
+              editDivisionForm
+                .validateFields(["editName", "editDisplayOrder"])
+                .then((values: { editDisplayOrder: number; editName: string }) => {
+                  if (!editingDivision) {
+                    return;
+                  }
+
+                  updateDivisionMutation.mutate(
+                    { id: editingDivision.id, name: values.editName, displayOrder: values.editDisplayOrder },
+                    {
+                      onSuccess: () => {
+                        setEditingDivision(null);
+                        handleSuccess(t("admin_users.messages.division_updated", { name: values.editName }));
+                      },
+                      onError: (error) => handleError(t("errors.update_division_failed"), error),
+                    }
+                  );
+                })
+                .catch(() => undefined);
+            }}
             onEditDepartment={() => {
               editDepartmentForm
                 .validateFields(["editName", "editDisplayOrder"])
-                .then((values: { editDisplayOrder: number; editName: string }) => {
+                .then((values: { editDisplayOrder: number; editName: string; editDivisionId?: string }) => {
                   if (!editingDepartment) {
                     return;
                   }
 
                   updateDepartmentMutation.mutate(
-                    { id: editingDepartment.id, name: values.editName, displayOrder: values.editDisplayOrder },
+                    { id: editingDepartment.id, name: values.editName, displayOrder: values.editDisplayOrder, divisionId: values.editDivisionId },
                     {
                       onSuccess: () => {
                         setEditingDepartment(null);
@@ -850,20 +1219,41 @@ export function AdminUsersPage() {
             }}
             onEditJobTitle={() => {
               editJobTitleForm
-                .validateFields(["editName", "editDisplayOrder"])
-                .then((values: { editDisplayOrder: number; editName: string }) => {
+                .validateFields(["editName", "editDisplayOrder", "editDepartmentId"])
+                .then((values: { editDisplayOrder: number; editName: string; editDepartmentId?: string }) => {
                   if (!editingJobTitle) {
                     return;
                   }
 
                   updateJobTitleMutation.mutate(
-                    { id: editingJobTitle.id, name: values.editName, displayOrder: values.editDisplayOrder },
+                    { id: editingJobTitle.id, name: values.editName, displayOrder: values.editDisplayOrder, departmentId: values.editDepartmentId },
                     {
                       onSuccess: () => {
                         setEditingJobTitle(null);
                         handleSuccess(t("admin_users.messages.job_title_updated", { name: values.editName }));
                       },
                       onError: (error) => handleError(t("errors.update_job_title_failed"), error),
+                    }
+                  );
+                })
+                .catch(() => undefined);
+            }}
+            onEditProjectRole={() => {
+              editProjectRoleForm
+                .validateFields(["editName", "editDisplayOrder"])
+                .then((values: { editDisplayOrder: number; editName: string }) => {
+                  if (!editingProjectRole) {
+                    return;
+                  }
+
+                  updateProjectRoleMutation.mutate(
+                    { id: editingProjectRole.id, name: values.editName, displayOrder: values.editDisplayOrder },
+                    {
+                      onSuccess: () => {
+                        setEditingProjectRole(null);
+                        handleSuccess(t("admin_users.messages.project_role_updated", { name: values.editName }));
+                      },
+                      onError: (error) => handleError(t("errors.update_project_role_failed"), error),
                     }
                   );
                 })
