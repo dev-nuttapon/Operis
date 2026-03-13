@@ -184,7 +184,7 @@
     "master_project_roles": "ตำแหน่งโครงการ",
     "project_members": "สมาชิกโครงการ",
     "project_org_chart": "ผังงานในโครงการ",
-    "project_workspace_prototype": "ต้นแบบพื้นที่ทำงานโครงการ",
+    "project_workspace_prototype": "พื้นที่ทำงานโครงการ",
     "project_evidence": "หลักฐานโครงการ",
     "project_compliance": "ความพร้อมตามเกณฑ์โครงการ",
     "project_type_templates": "แม่แบบประเภทโครงการ",
@@ -735,8 +735,8 @@
     "summary": "จำนวนโหนดเริ่มต้น {{count}} รายการ"
   },
   "project_workspace_prototype": {
-    "page_title": "ต้นแบบพื้นที่ทำงานโครงการ",
-    "page_description": "หน้า prototype สำหรับทดลองคลิกและตรวจรูปแบบการนำทางของ governance, evidence และ audit ก่อนเชื่อมกับข้อมูลจริง",
+    "page_title": "พื้นที่ทำงานโครงการ",
+    "page_description": "พื้นที่ทำงานศูนย์กลางของโครงการสำหรับ governance, โครงสร้างทีม, หลักฐาน และการตรวจสอบย้อนหลัง",
     "select_project_placeholder": "เลือกพื้นที่ทำงานของโครงการ",
     "back_to_projects": "กลับไปหน้าโครงการ",
     "sections": {
@@ -749,21 +749,21 @@
       "audit_trail": "ประวัติการตรวจสอบ"
     },
     "summary": {
-      "readiness": {
-        "title": "ระดับความพร้อม",
-        "helper": "ภาพรวมความพร้อมด้าน governance"
+      "project_type": {
+        "title": "ประเภทโครงการ",
+        "helper": "การจัดประเภทที่กำลังใช้อยู่กับโครงการนี้"
       },
-      "members": {
-        "title": "สมาชิกทีม",
-        "helper": "จำนวนคนที่ active ในโครงการ"
+      "active_members": {
+        "title": "สมาชิกที่ใช้งานอยู่",
+        "helper": "จำนวนคนที่ถูกมอบหมายอยู่ในโครงการตอนนี้"
       },
-      "gaps": {
-        "title": "ช่องว่างที่ต้องแก้",
-        "helper": "รายการที่ยังต้องดำเนินการ"
+      "active_roles": {
+        "title": "ตำแหน่งในโครงการ",
+        "helper": "จำนวนตำแหน่งที่กำหนดไว้สำหรับโครงการนี้"
       },
-      "evidence": {
-        "title": "ชุดหลักฐาน",
-        "helper": "ชุดหลักฐานที่รอตรวจทาน"
+      "reporting_roots": {
+        "title": "จุดเริ่มต้นของสายรายงาน",
+        "helper": "จำนวนสมาชิกระดับบนสุดในผังงานโครงการ"
       }
     },
     "quick_actions": {
@@ -780,8 +780,8 @@
       "methodology": "วิธีดำเนินโครงการ",
       "phase": "ระยะโครงการ",
       "quick_actions_title": "ทางลัดสำคัญ",
-      "callout_title": "วัตถุประสงค์ของต้นแบบ",
-      "callout_description": "ใช้หน้านี้เพื่อตรวจว่ารูปแบบการนำทาง การ drill-down และการจัดกลุ่มหน้าจอเหมาะสมก่อนเชื่อม workflow โครงการจริง"
+      "callout_title": "ขอบเขตปัจจุบัน",
+      "callout_description": "ตอนนี้ส่วน Overview และ Team ใช้ข้อมูลจริงแล้ว ส่วนที่เหลือยังเป็น prototype เพื่อทดสอบการคลิกและการจัดวางก่อนเชื่อมข้อมูลจริงทีละส่วน"
     },
     "team": {
       "title": "ทะเบียนทีมโครงการ",
@@ -858,9 +858,10 @@
       "audit": "ประวัติการตรวจสอบ",
       "prototype_notes_title": "หมายเหตุของต้นแบบ",
       "selected_project_meta": "เจ้าของโครงการ: {{owner}} · ระยะ: {{phase}}",
-      "prototype_notes_1": "หน้านี้ใช้ข้อมูล mock เพื่อให้ทดลองคลิกและทดสอบการนำทางได้เร็ว",
-      "prototype_notes_2": "ปุ่มภายในหน้าจะพาไปยัง section อื่นเพื่อจำลองพฤติกรรม drill-down ของ flow จริง",
-      "prototype_notes_3": "layout นี้ถูกวางไว้เพื่อทดสอบ workspace สำหรับ ISO/CMMI ก่อนเชื่อมกับข้อมูลโครงการจริง"
+      "prototype_notes_1": "workspace นี้ผูกกับโครงการจริงแล้วและใช้ข้อมูลโครงการจริงในส่วนหลัก",
+      "prototype_notes_2": "ตอนนี้ Overview และ Team ดึงข้อมูลจริงจาก Projects และ Project Members",
+      "prototype_notes_3": "ส่วน Org Chart, Roles, Compliance, Evidence และ Audit Trail ยังทำหน้าที่เป็น prototype สำหรับทดสอบ interaction",
+      "prototype_notes_4": "layout ถูกคงไว้ให้เสถียรเพื่อให้เปลี่ยนแต่ละ section จาก prototype ไปเป็นข้อมูลจริงได้ทีละส่วน"
     }
   },
   "project_evidence": {

@@ -184,7 +184,7 @@
     "master_project_roles": "Project Roles",
     "project_members": "Project Members",
     "project_org_chart": "Project Org Chart",
-    "project_workspace_prototype": "Project Workspace Prototype",
+    "project_workspace_prototype": "Project Workspace",
     "project_evidence": "Project Evidence",
     "project_compliance": "Project Compliance",
     "project_type_templates": "Project Type Templates",
@@ -735,8 +735,8 @@
     "summary": "{{count}} root node(s)"
   },
   "project_workspace_prototype": {
-    "page_title": "Project Workspace Prototype",
-    "page_description": "Clickable prototype for project governance, evidence, and audit navigation before wiring the full data flow.",
+    "page_title": "Project Workspace",
+    "page_description": "Project-centered workspace for governance, team structure, evidence, and audit navigation.",
     "select_project_placeholder": "Select a project workspace",
     "back_to_projects": "Back to Projects",
     "sections": {
@@ -749,21 +749,21 @@
       "audit_trail": "Audit Trail"
     },
     "summary": {
-      "readiness": {
-        "title": "Readiness",
-        "helper": "Estimated governance coverage"
+      "project_type": {
+        "title": "Project Type",
+        "helper": "Classification currently applied to this project"
       },
-      "members": {
-        "title": "Team Members",
-        "helper": "Active people in the project"
+      "active_members": {
+        "title": "Active Members",
+        "helper": "People currently assigned to the project"
       },
-      "gaps": {
-        "title": "Open Gaps",
-        "helper": "Items needing action"
+      "active_roles": {
+        "title": "Project Roles",
+        "helper": "Roles currently defined for this project"
       },
-      "evidence": {
-        "title": "Evidence Packs",
-        "helper": "Packages pending review"
+      "reporting_roots": {
+        "title": "Reporting Roots",
+        "helper": "Top-level members in the project org chart"
       }
     },
     "quick_actions": {
@@ -780,8 +780,8 @@
       "methodology": "Methodology",
       "phase": "Phase",
       "quick_actions_title": "Quick actions",
-      "callout_title": "Prototype intent",
-      "callout_description": "Use this screen to validate the navigation model, drill-down behavior, and screen grouping before connecting the full project workflow."
+      "callout_title": "Current scope",
+      "callout_description": "Overview and Team now use live project data. The remaining sections still use prototype content until their live data flow is connected."
     },
     "team": {
       "title": "Project Team Register",
@@ -858,9 +858,10 @@
       "audit": "Audit trail",
       "prototype_notes_title": "Prototype Notes",
       "selected_project_meta": "Owner: {{owner}} · Phase: {{phase}}",
-      "prototype_notes_1": "This page uses mock data so the navigation and grouping can be tested quickly.",
-      "prototype_notes_2": "Buttons inside the screen intentionally drill into other sections to simulate real project workflow.",
-      "prototype_notes_3": "The layout is designed to validate an ISO/CMMI-friendly workspace before wiring the live project data."
+      "prototype_notes_1": "This workspace is now anchored to a real project and reuses live project metadata.",
+      "prototype_notes_2": "Overview and Team already use live data from Projects and Project Members.",
+      "prototype_notes_3": "Org Chart, Roles, Compliance, Evidence, and Audit Trail still act as prototype sections for interaction testing.",
+      "prototype_notes_4": "The layout is intentionally kept stable so the remaining sections can be switched from prototype to live data one by one."
     }
   },
   "project_evidence": {

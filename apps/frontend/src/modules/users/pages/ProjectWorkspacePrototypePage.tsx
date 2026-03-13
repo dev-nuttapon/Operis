@@ -34,17 +34,17 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectWorkspacePrototype } from "../hooks/useProjectWorkspacePrototype";
+import { formatDate } from "../utils/adminUsersPresentation";
+import type { ProjectAssignment } from "../types/users";
 import type {
   ProjectWorkspacePrototypeAuditEvent,
   ProjectWorkspacePrototypeComplianceCheck,
-  ProjectWorkspacePrototypeMember,
   ProjectWorkspacePrototypeOrgNode,
   ProjectWorkspacePrototypeRole,
   ProjectWorkspacePrototypeSection,
-  ProjectWorkspacePrototypeSummaryCard,
 } from "../types/projectWorkspacePrototype";
 
-function toneToStyle(tone: ProjectWorkspacePrototypeSummaryCard["tone"]) {
+function toneToStyle(tone: "blue" | "green" | "gold" | "red") {
   switch (tone) {
     case "green":
       return { background: "linear-gradient(135deg, #16a34a, #15803d)" };
@@ -82,27 +82,18 @@ function buildOrgChartTree(nodes: ProjectWorkspacePrototypeOrgNode[]): DataNode[
 }
 
 export function ProjectWorkspacePrototypePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
-  const {
-    section,
-    setSection,
-    summaryCards,
-    quickActions,
-    teamMembers,
-    roles,
-    complianceChecks,
-    evidenceItems,
-    auditTrail,
-    orgChart,
-  } = useProjectWorkspacePrototype();
-  const { projectsQuery } = useProjectAdmin({
+  const { section, setSection, quickActions, roles, complianceChecks, evidenceItems, auditTrail, orgChart } =
+    useProjectWorkspacePrototype();
+
+  const { projectsQuery, projectRolesQuery, projectAssignmentsQuery } = useProjectAdmin({
     projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
-    projectRoles: { page: 1, pageSize: 10 },
-    projectAssignments: null,
+    projectRoles: { projectId, page: 1, pageSize: 100, sortBy: "displayOrder", sortOrder: "asc" },
+    projectAssignments: projectId ? { projectId, page: 1, pageSize: 100, sortBy: "createdAt", sortOrder: "desc" } : null,
   });
 
   const projectOptions = useMemo(
@@ -138,36 +129,81 @@ export function ProjectWorkspacePrototypePage() {
     [t],
   );
 
-  const teamColumns: ColumnsType<ProjectWorkspacePrototypeMember> = [
+  const activeAssignments = useMemo(
+    () => (projectAssignmentsQuery.data?.items ?? []).filter((item) => item.status === "Active"),
+    [projectAssignmentsQuery.data?.items],
+  );
+  const reportingRoots = useMemo(
+    () => activeAssignments.filter((item) => !item.reportsToUserId),
+    [activeAssignments],
+  );
+
+  const summaryCards = useMemo(
+    () => [
+      {
+        id: "project-type",
+        tone: "blue" as const,
+        title: t("project_workspace_prototype.summary.project_type.title"),
+        value: selectedProject?.projectType ?? "-",
+        helper: t("project_workspace_prototype.summary.project_type.helper"),
+      },
+      {
+        id: "active-members",
+        tone: "green" as const,
+        title: t("project_workspace_prototype.summary.active_members.title"),
+        value: String(activeAssignments.length),
+        helper: t("project_workspace_prototype.summary.active_members.helper"),
+      },
+      {
+        id: "active-roles",
+        tone: "gold" as const,
+        title: t("project_workspace_prototype.summary.active_roles.title"),
+        value: String(projectRolesQuery.data?.items?.length ?? 0),
+        helper: t("project_workspace_prototype.summary.active_roles.helper"),
+      },
+      {
+        id: "reporting-roots",
+        tone: "red" as const,
+        title: t("project_workspace_prototype.summary.reporting_roots.title"),
+        value: String(reportingRoots.length),
+        helper: t("project_workspace_prototype.summary.reporting_roots.helper"),
+      },
+    ],
+    [activeAssignments.length, projectRolesQuery.data?.items?.length, reportingRoots.length, selectedProject?.projectType, t],
+  );
+
+  const teamColumns: ColumnsType<ProjectAssignment> = [
     {
       title: t("project_workspace_prototype.team.columns.member"),
-      dataIndex: "name",
+      dataIndex: "userDisplayName",
       render: (_, record) => (
         <Space direction="vertical" size={2}>
-          <Typography.Text strong>{record.name}</Typography.Text>
-          <Typography.Text type="secondary">{record.email}</Typography.Text>
+          <Typography.Text strong>{record.userDisplayName ?? record.userEmail ?? record.userId}</Typography.Text>
+          <Typography.Text type="secondary">{record.userEmail ?? record.userId}</Typography.Text>
         </Space>
       ),
     },
-    { title: t("project_workspace_prototype.team.columns.role"), dataIndex: "role" },
+    { title: t("project_workspace_prototype.team.columns.role"), dataIndex: "projectRoleName" },
     {
       title: t("project_workspace_prototype.team.columns.reports_to"),
-      dataIndex: "reportsTo",
-      render: (value?: string) => value ?? "-",
+      dataIndex: "reportsToDisplayName",
+      render: (value: string | null) => value ?? "-",
     },
     {
       title: t("project_workspace_prototype.team.columns.primary"),
-      dataIndex: "primary",
+      dataIndex: "isPrimary",
       render: (value: boolean) => <Tag color={value ? "blue" : "default"}>{value ? t("common.actions.yes") : t("common.actions.no")}</Tag>,
     },
     {
       title: t("project_workspace_prototype.team.columns.status"),
       dataIndex: "status",
-      render: (value: ProjectWorkspacePrototypeMember["status"]) => (
-        <Tag color={value === "Active" ? "green" : "gold"}>{value}</Tag>
-      ),
+      render: (value: string) => <Tag color={value === "Active" ? "green" : value === "Removed" ? "red" : "gold"}>{value}</Tag>,
     },
-    { title: t("project_workspace_prototype.team.columns.period"), dataIndex: "period" },
+    {
+      title: t("project_workspace_prototype.team.columns.period"),
+      key: "period",
+      render: (_, record) => `${formatDate(record.startAt, i18n.language)} - ${formatDate(record.endAt, i18n.language)}`,
+    },
   ];
 
   const roleColumns: ColumnsType<ProjectWorkspacePrototypeRole> = [
@@ -202,7 +238,13 @@ export function ProjectWorkspacePrototypePage() {
       case "team":
         return (
           <Card size="small" title={t("project_workspace_prototype.team.title")}>
-            <Table rowKey="id" columns={teamColumns} dataSource={teamMembers} pagination={false} />
+            <Table
+              rowKey="id"
+              columns={teamColumns}
+              dataSource={projectAssignmentsQuery.data?.items ?? []}
+              loading={projectAssignmentsQuery.isLoading}
+              pagination={false}
+            />
           </Card>
         );
       case "orgChart":
@@ -328,32 +370,32 @@ export function ProjectWorkspacePrototypePage() {
                 {
                   key: "code",
                   label: t("project_workspace_prototype.overview.project_code"),
-                  children: "PRJ-ISO-001",
+                  children: selectedProject?.code ?? "-",
                 },
                 {
                   key: "type",
                   label: t("project_workspace_prototype.overview.project_type"),
-                  children: "Compliance",
+                  children: selectedProject?.projectType ?? "-",
                 },
                 {
                   key: "owner",
                   label: t("project_workspace_prototype.overview.owner"),
-                  children: "Nuttapon Suksa-ard",
+                  children: selectedProject?.ownerDisplayName ?? "-",
                 },
                 {
                   key: "sponsor",
                   label: t("project_workspace_prototype.overview.sponsor"),
-                  children: "Operations Director",
+                  children: selectedProject?.sponsorDisplayName ?? "-",
                 },
                 {
                   key: "methodology",
                   label: t("project_workspace_prototype.overview.methodology"),
-                  children: "Stage-based governance",
+                  children: selectedProject?.methodology ?? "-",
                 },
                 {
                   key: "phase",
                   label: t("project_workspace_prototype.overview.phase"),
-                  children: "Execution",
+                  children: selectedProject?.phase ?? "-",
                 },
               ]}
             />
@@ -441,15 +483,11 @@ export function ProjectWorkspacePrototypePage() {
                   styles={{ body: { padding: 18 } }}
                 >
                   <Space direction="vertical" size={2}>
-                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>
-                      {t(card.titleKey)}
-                    </Typography.Text>
+                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>{card.title}</Typography.Text>
                     <Typography.Title level={2} style={{ margin: 0, color: "#fff" }}>
                       {card.value}
                     </Typography.Title>
-                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>
-                      {t(card.helperKey)}
-                    </Typography.Text>
+                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>{card.helper}</Typography.Text>
                   </Space>
                 </Card>
               ))}
@@ -458,9 +496,9 @@ export function ProjectWorkspacePrototypePage() {
             <Card size="small">
               <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
                 <Space size={10}>
-                  <Tag color="processing">{selectedProject?.code ?? "PRJ-ISO-001"}</Tag>
-                  <Tag color="green">{selectedProject?.status ?? "active"}</Tag>
-                  <Typography.Text strong>{selectedProject?.name ?? "ISO Process Rollout"}</Typography.Text>
+                  <Tag color="processing">{selectedProject?.code ?? "-"}</Tag>
+                  <Tag color="green">{selectedProject?.status ?? "-"}</Tag>
+                  <Typography.Text strong>{selectedProject?.name ?? "-"}</Typography.Text>
                 </Space>
                 <Segmented
                   options={sectionOptions}
@@ -499,18 +537,17 @@ export function ProjectWorkspacePrototypePage() {
 
                   <Card size="small" title={t("project_workspace_prototype.side_panels.prototype_notes_title")}>
                     <Space direction="vertical" size={8}>
-                      <Typography.Text strong>
-                        {selectedProject?.projectType ?? "Compliance"}
-                      </Typography.Text>
+                      <Typography.Text strong>{selectedProject?.projectType ?? "-"}</Typography.Text>
                       <Typography.Text type="secondary">
                         {t("project_workspace_prototype.side_panels.selected_project_meta", {
-                          owner: selectedProject?.ownerDisplayName ?? "Nuttapon Suksa-ard",
-                          phase: selectedProject?.phase ?? "Execution",
+                          owner: selectedProject?.ownerDisplayName ?? "-",
+                          phase: selectedProject?.phase ?? "-",
                         })}
                       </Typography.Text>
                       <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_1")}</Typography.Text>
                       <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_2")}</Typography.Text>
                       <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_3")}</Typography.Text>
+                      <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_4")}</Typography.Text>
                     </Space>
                   </Card>
                 </Space>
