@@ -828,6 +828,8 @@
       "scenario": "Prototype Scenario",
       "methodology": "Methodology",
       "phase": "Phase",
+      "process_stages_title": "Prototype Process Stages",
+      "workspace_prompts_title": "Questions to Validate in This Scenario",
       "quick_actions_title": "Quick actions",
       "callout_title": "Prototype focus",
       "callout_description": "This workspace is intentionally driven by template and scenario presets so the team can validate navigation, terminology, and governance flow before committing to live section behavior."
@@ -852,14 +854,21 @@
         "role": "Role",
         "code": "Code",
         "permissions": "Permissions",
-        "members": "Members"
+        "members": "Members",
+        "actions": "Actions"
       },
+      "inspect_role": "Inspect role",
       "permissions": {
         "review": "Review",
         "approval": "Approval",
         "release": "Release"
       },
-      "authority": "Authority Scope"
+      "authority": "Authority Scope",
+      "modal": {
+        "responsibility": "Responsibility",
+        "authority": "Authority Scope",
+        "members": "Assigned Members"
+      }
     },
     "compliance": {
       "title": "Compliance Readiness Checklist",
@@ -883,8 +892,15 @@
     },
     "evidence": {
       "title": "Evidence Packages",
+      "preview": "Preview",
       "view_history": "Open audit view",
-      "meta": "Updated {{updated}} · {{format}}"
+      "meta": "Updated {{updated}} · {{format}}",
+      "modal": {
+        "updated": "Last Updated",
+        "format": "Format",
+        "usage": "Prototype Usage",
+        "usage_text": "Use this preview to validate what an evidence package should show before wiring live export and snapshot behavior."
+      }
     },
     "audit": {
       "timeline_title": "Recent Timeline",
@@ -910,6 +926,48 @@
       "prototype_notes_1": "The selected project only provides business context at the top of the workspace.",
       "prototype_notes_2": "The main sections are driven by template and scenario presets so role patterns can be evaluated quickly.",
       "prototype_notes_3": "Use these presets to validate terms such as SWT, SWA, CM, QA, and approval roles before wiring live project behavior."
+    },
+    "process_stages": {
+      "software_delivery": {
+        "plan": "Plan",
+        "build": "Build",
+        "verify": "Verify",
+        "release": "Release"
+      },
+      "compliance_audit": {
+        "prepare": "Prepare",
+        "collect": "Collect Evidence",
+        "review": "Review",
+        "close": "Close Findings"
+      },
+      "process_improvement": {
+        "assess": "Assess",
+        "design": "Design",
+        "pilot": "Pilot",
+        "rollout": "Rollout"
+      }
+    },
+    "workspace_prompts": {
+      "default": {
+        "1": "Can users immediately understand who owns this project and which roles are still missing?",
+        "2": "Does the workspace make it obvious where to click next when a role or evidence gap exists?",
+        "3": "Would an auditor or QA reviewer understand the project structure without extra explanation?"
+      },
+      "release_readiness": {
+        "1": "Can the team quickly see whether release roles such as CM, RVW, and APR are covered?",
+        "2": "Is it clear which evidence pack should be reviewed before the release gate?",
+        "3": "Does the org chart make approval and reporting lines obvious before release?"
+      },
+      "audit_preparation": {
+        "1": "Is the evidence pack easy to inspect before an ISO or CMMI review?",
+        "2": "Can the team identify who is responsible for sign-off and who is preparing controlled records?",
+        "3": "Does the compliance section show gaps clearly enough for audit preparation?"
+      },
+      "corrective_action": {
+        "1": "Can users see who owns each remediation responsibility and who verifies closure?",
+        "2": "Is the path from evidence to audit trail clear enough for corrective-action follow-up?",
+        "3": "Does the role model reflect how process changes move from action to controlled release?"
+      }
     }
   },
   "project_evidence": {
