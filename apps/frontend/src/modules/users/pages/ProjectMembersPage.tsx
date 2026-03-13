@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Alert, App, Button, Card, Checkbox, DatePicker, Form, Input, Modal, Select, Space, Table, Typography } from "antd";
+import { Alert, App, Button, Card, Checkbox, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
+import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined, ShareAltOutlined } from "@ant-design/icons";
@@ -8,7 +9,61 @@ import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
-import type { ProjectAssignment } from "../types/users";
+import type { ProjectAssignment, UpdateProjectAssignmentInput, User } from "../types/users";
+
+type ProjectMemberFormValues = {
+  userId: string;
+  projectRoleId: string;
+  reportsToUserId?: string;
+  isPrimary: boolean;
+  period?: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  reason?: string;
+};
+
+function toUserLabel(user: User) {
+  return user.keycloak?.email ?? user.keycloak?.username ?? user.id;
+}
+
+function ProjectMemberForm({
+  form,
+  t,
+  userOptions,
+  projectRoleOptions,
+  reportingOptions,
+  includeReason,
+}: {
+  form: FormInstance<ProjectMemberFormValues>;
+  t: ReturnType<typeof useTranslation>["t"];
+  userOptions: { label: string; value: string }[];
+  projectRoleOptions: { label: string; value: string }[];
+  reportingOptions: { label: string; value: string }[];
+  includeReason: boolean;
+}) {
+  return (
+    <Form form={form} layout="vertical" initialValues={{ isPrimary: false }}>
+      <Form.Item name="userId" label={t("project_members.fields.user")} rules={[{ required: true }]}> 
+        <Select showSearch options={userOptions} placeholder={t("project_members.placeholders.user")} />
+      </Form.Item>
+      <Form.Item name="projectRoleId" label={t("project_members.fields.project_role")} rules={[{ required: true }]}> 
+        <Select options={projectRoleOptions} placeholder={t("project_members.placeholders.project_role")} />
+      </Form.Item>
+      <Form.Item name="reportsToUserId" label={t("project_members.fields.reports_to")}> 
+        <Select allowClear showSearch options={reportingOptions} placeholder={t("project_members.placeholders.reports_to")} />
+      </Form.Item>
+      <Form.Item name="period" label={t("project_members.fields.period")}> 
+        <DatePicker.RangePicker style={{ width: "100%" }} />
+      </Form.Item>
+      {includeReason ? (
+        <Form.Item name="reason" label={t("project_members.fields.change_reason")} rules={[{ required: true, message: t("project_members.validation.change_reason_required") }]}> 
+          <Input.TextArea rows={4} placeholder={t("project_members.placeholders.change_reason")} />
+        </Form.Item>
+      ) : null}
+      <Form.Item name="isPrimary" valuePropName="checked"> 
+        <Checkbox>{t("project_members.fields.is_primary")}</Checkbox>
+      </Form.Item>
+    </Form>
+  );
+}
 
 export function ProjectMembersPage() {
   const { t, i18n } = useTranslation();
@@ -24,8 +79,9 @@ export function ProjectMembersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProjectAssignment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectAssignment | null>(null);
-  const [createForm] = Form.useForm();
-  const [editForm] = Form.useForm();
+  const [createForm] = Form.useForm<ProjectMemberFormValues>();
+  const [editForm] = Form.useForm<ProjectMemberFormValues>();
+  const [deleteForm] = Form.useForm<{ reason: string }>();
 
   const {
     projectsQuery,
@@ -48,16 +104,8 @@ export function ProjectMembersPage() {
 
   const projectOptions = (projectsQuery.data?.items ?? []).map((item) => ({ label: `${item.code} - ${item.name}`, value: item.id }));
   const projectRoleOptions = (projectRolesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const userMap = new Map(
-    (projectMemberUsersQuery.data?.items ?? []).map((item) => [
-      item.id,
-      item.keycloak?.email ?? item.keycloak?.username ?? item.id,
-    ]),
-  );
-  const userOptions = (projectMemberUsersQuery.data?.items ?? []).map((item) => ({
-    label: userMap.get(item.id) ?? item.id,
-    value: item.id,
-  }));
+  const userMap = new Map((projectMemberUsersQuery.data?.items ?? []).map((item) => [item.id, toUserLabel(item)]));
+  const userOptions = (projectMemberUsersQuery.data?.items ?? []).map((item) => ({ label: userMap.get(item.id) ?? item.id, value: item.id }));
   const reportingOptions = (projectAssignmentsQuery.data?.items ?? [])
     .filter((item) => item.id !== editTarget?.id)
     .map((item) => ({
@@ -87,6 +135,11 @@ export function ProjectMembersPage() {
         render: (value: boolean) => (value ? t("common.actions.yes") : t("common.actions.no")),
       },
       {
+        title: t("project_members.columns.status"),
+        dataIndex: "status",
+        render: (value: string) => <Tag color={value === "Active" ? "green" : value === "Removed" ? "red" : "gold"}>{value}</Tag>,
+      },
+      {
         title: t("project_members.columns.start_at"),
         dataIndex: "startAt",
         sorter: true,
@@ -111,21 +164,78 @@ export function ProjectMembersPage() {
                   projectRoleId: record.projectRoleId,
                   reportsToUserId: record.reportsToUserId ?? undefined,
                   isPrimary: record.isPrimary,
+                  reason: undefined,
                   period: [record.startAt ? dayjs(record.startAt) : null, record.endAt ? dayjs(record.endAt) : null],
                 });
               }}
             >
               {t("common.actions.edit")}
             </Button>
-            <Button danger icon={<DeleteOutlined />} onClick={() => setDeleteTarget(record)}>
+            <Button danger icon={<DeleteOutlined />} onClick={() => {
+              setDeleteTarget(record);
+              deleteForm.resetFields();
+            }}>
               {t("common.actions.delete")}
             </Button>
           </Space>
         ),
       },
     ],
-    [editForm, i18n.language, t, userMap],
+    [editForm, i18n.language, t, userMap, deleteForm],
   );
+
+  const createAssignment = (values: ProjectMemberFormValues) => {
+    if (!selectedProjectId) {
+      return;
+    }
+
+    createProjectAssignmentMutation.mutate(
+      {
+        userId: values.userId,
+        projectId: selectedProjectId,
+        projectRoleId: values.projectRoleId,
+        reportsToUserId: values.reportsToUserId,
+        isPrimary: Boolean(values.isPrimary),
+        startAt: values.period?.[0]?.startOf("day").toISOString(),
+        endAt: values.period?.[1]?.endOf("day").toISOString(),
+      },
+      {
+        onSuccess: () => {
+          setCreateOpen(false);
+          createForm.resetFields();
+          notification.success({ message: t("project_members.messages.created") });
+        },
+        onError: (error) => handleError(t("project_members.messages.create_failed"), error),
+      },
+    );
+  };
+
+  const updateAssignment = (values: ProjectMemberFormValues) => {
+    if (!editTarget || !selectedProjectId) {
+      return;
+    }
+
+    const payload: UpdateProjectAssignmentInput = {
+      id: editTarget.id,
+      userId: values.userId,
+      projectId: selectedProjectId,
+      projectRoleId: values.projectRoleId,
+      reportsToUserId: values.reportsToUserId,
+      isPrimary: Boolean(values.isPrimary),
+      startAt: values.period?.[0]?.startOf("day").toISOString(),
+      endAt: values.period?.[1]?.endOf("day").toISOString(),
+      reason: values.reason ?? "",
+    };
+
+    updateProjectAssignmentMutation.mutate(payload, {
+      onSuccess: () => {
+        setEditTarget(null);
+        editForm.resetFields();
+        notification.success({ message: t("project_members.messages.updated") });
+      },
+      onError: (error) => handleError(t("project_members.messages.update_failed"), error),
+    });
+  };
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -211,50 +321,12 @@ export function ProjectMembersPage() {
           createForm.resetFields();
         }}
         onOk={() => {
-          createForm.validateFields().then((values) => {
-            if (!selectedProjectId) {
-              return;
-            }
-            createProjectAssignmentMutation.mutate(
-              {
-                userId: values.userId,
-                projectId: selectedProjectId,
-                projectRoleId: values.projectRoleId,
-                reportsToUserId: values.reportsToUserId,
-                isPrimary: Boolean(values.isPrimary),
-                startAt: values.period?.[0]?.startOf("day").toISOString(),
-                endAt: values.period?.[1]?.endOf("day").toISOString(),
-              },
-              {
-                onSuccess: () => {
-                  setCreateOpen(false);
-                  createForm.resetFields();
-                  notification.success({ message: t("project_members.messages.created") });
-                },
-                onError: (error) => handleError(t("project_members.messages.create_failed"), error),
-              },
-            );
-          }).catch(() => undefined);
+          createForm.validateFields().then(createAssignment).catch(() => undefined);
         }}
         confirmLoading={createProjectAssignmentMutation.isPending}
+        width={720}
       >
-        <Form form={createForm} layout="vertical" initialValues={{ isPrimary: false }}>
-          <Form.Item name="userId" label={t("project_members.fields.user")} rules={[{ required: true }]}>
-            <Select showSearch options={userOptions} placeholder={t("project_members.placeholders.user")} />
-          </Form.Item>
-          <Form.Item name="projectRoleId" label={t("project_members.fields.project_role")} rules={[{ required: true }]}>
-            <Select options={projectRoleOptions} placeholder={t("project_members.placeholders.project_role")} />
-          </Form.Item>
-          <Form.Item name="reportsToUserId" label={t("project_members.fields.reports_to")}>
-            <Select allowClear showSearch options={reportingOptions} placeholder={t("project_members.placeholders.reports_to")} />
-          </Form.Item>
-          <Form.Item name="period" label={t("project_members.fields.period")}>
-            <DatePicker.RangePicker style={{ width: "100%" }} />
-          </Form.Item>
-          <Form.Item name="isPrimary" valuePropName="checked">
-            <Checkbox>{t("project_members.fields.is_primary")}</Checkbox>
-          </Form.Item>
-        </Form>
+        <ProjectMemberForm form={createForm} t={t} userOptions={userOptions} projectRoleOptions={projectRoleOptions} reportingOptions={reportingOptions} includeReason={false} />
       </Modal>
 
       <Modal
@@ -265,75 +337,48 @@ export function ProjectMembersPage() {
           editForm.resetFields();
         }}
         onOk={() => {
-          editForm.validateFields().then((values) => {
-            if (!editTarget || !selectedProjectId) {
-              return;
-            }
-            updateProjectAssignmentMutation.mutate(
-              {
-                id: editTarget.id,
-                userId: values.userId,
-                projectId: selectedProjectId,
-                projectRoleId: values.projectRoleId,
-                reportsToUserId: values.reportsToUserId,
-                isPrimary: Boolean(values.isPrimary),
-                startAt: values.period?.[0]?.startOf("day").toISOString(),
-                endAt: values.period?.[1]?.endOf("day").toISOString(),
-              },
-              {
-                onSuccess: () => {
-                  setEditTarget(null);
-                  editForm.resetFields();
-                  notification.success({ message: t("project_members.messages.updated") });
-                },
-                onError: (error) => handleError(t("project_members.messages.update_failed"), error),
-              },
-            );
-          }).catch(() => undefined);
+          editForm.validateFields().then(updateAssignment).catch(() => undefined);
         }}
         confirmLoading={updateProjectAssignmentMutation.isPending}
+        width={720}
       >
-        <Form form={editForm} layout="vertical">
-          <Form.Item name="userId" label={t("project_members.fields.user")} rules={[{ required: true }]}>
-            <Select showSearch options={userOptions} />
-          </Form.Item>
-          <Form.Item name="projectRoleId" label={t("project_members.fields.project_role")} rules={[{ required: true }]}>
-            <Select options={projectRoleOptions} />
-          </Form.Item>
-          <Form.Item name="reportsToUserId" label={t("project_members.fields.reports_to")}>
-            <Select allowClear showSearch options={reportingOptions} />
-          </Form.Item>
-          <Form.Item name="period" label={t("project_members.fields.period")}>
-            <DatePicker.RangePicker style={{ width: "100%" }} />
-          </Form.Item>
-          <Form.Item name="isPrimary" valuePropName="checked">
-            <Checkbox>{t("project_members.fields.is_primary")}</Checkbox>
-          </Form.Item>
-        </Form>
+        <ProjectMemberForm form={editForm} t={t} userOptions={userOptions} projectRoleOptions={projectRoleOptions} reportingOptions={reportingOptions} includeReason />
       </Modal>
 
       <Modal
         title={deleteTarget ? t("project_members.delete_modal_title_with_name", { name: userMap.get(deleteTarget.userId) ?? deleteTarget.userDisplayName ?? deleteTarget.userEmail ?? deleteTarget.userId }) : t("project_members.delete_modal_title")}
         open={deleteTarget !== null}
-        onCancel={() => setDeleteTarget(null)}
+        onCancel={() => {
+          setDeleteTarget(null);
+          deleteForm.resetFields();
+        }}
         onOk={() => {
-          if (!deleteTarget) {
-            return;
-          }
-          deleteProjectAssignmentMutation.mutate(deleteTarget.id, {
-            onSuccess: () => {
-              setDeleteTarget(null);
-              notification.success({ message: t("project_members.messages.deleted") });
-            },
-            onError: (error) => handleError(t("project_members.messages.delete_failed"), error),
-          });
+          deleteForm.validateFields().then((values) => {
+            if (!deleteTarget) {
+              return;
+            }
+            deleteProjectAssignmentMutation.mutate(
+              { id: deleteTarget.id, input: { reason: values.reason } },
+              {
+                onSuccess: () => {
+                  setDeleteTarget(null);
+                  deleteForm.resetFields();
+                  notification.success({ message: t("project_members.messages.deleted") });
+                },
+                onError: (error) => handleError(t("project_members.messages.delete_failed"), error),
+              },
+            );
+          }).catch(() => undefined);
         }}
         okButtonProps={{ danger: true }}
         confirmLoading={deleteProjectAssignmentMutation.isPending}
       >
-        <Typography.Paragraph type="secondary">
-          {t("project_members.delete_description")}
-        </Typography.Paragraph>
+        <Form form={deleteForm} layout="vertical">
+          <Typography.Paragraph type="secondary">{t("project_members.delete_description")}</Typography.Paragraph>
+          <Form.Item name="reason" label={t("project_members.fields.change_reason")} rules={[{ required: true, message: t("project_members.validation.change_reason_required") }]}> 
+            <Input.TextArea rows={4} placeholder={t("project_members.placeholders.change_reason")} />
+          </Form.Item>
+        </Form>
       </Modal>
     </Space>
   );

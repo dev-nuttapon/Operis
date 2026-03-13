@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Alert, App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Table, Typography } from "antd";
+import { Alert, App, Button, Card, Checkbox, Form, Input, InputNumber, Modal, Select, Space, Table, Typography } from "antd";
+import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SolutionOutlined } from "@ant-design/icons";
@@ -7,7 +8,75 @@ import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
-import type { ProjectRole } from "../types/users";
+import type { CreateProjectRoleInput, ProjectRole, UpdateProjectRoleInput } from "../types/users";
+
+type ProjectRoleFormValues = {
+  projectId: string;
+  name: string;
+  code?: string;
+  description?: string;
+  responsibilities?: string;
+  authorityScope?: string;
+  isReviewRole: boolean;
+  isApprovalRole: boolean;
+  displayOrder: number;
+};
+
+function toProjectRoleInitialValues(record: ProjectRole, projectId?: string): ProjectRoleFormValues {
+  return {
+    projectId: record.projectId ?? projectId ?? "",
+    name: record.name,
+    code: record.code ?? undefined,
+    description: record.description ?? undefined,
+    responsibilities: record.responsibilities ?? undefined,
+    authorityScope: record.authorityScope ?? undefined,
+    isReviewRole: record.isReviewRole,
+    isApprovalRole: record.isApprovalRole,
+    displayOrder: record.displayOrder,
+  };
+}
+
+function ProjectRoleForm({
+  form,
+  t,
+  projectOptions,
+}: {
+  form: FormInstance<ProjectRoleFormValues>;
+  t: ReturnType<typeof useTranslation>["t"];
+  projectOptions: { label: string; value: string }[];
+}) {
+  return (
+    <Form form={form} layout="vertical" initialValues={{ isReviewRole: false, isApprovalRole: false }}>
+      <Form.Item name="projectId" label={t("project_roles.fields.project")} rules={[{ required: true }]}> 
+        <Select options={projectOptions} />
+      </Form.Item>
+      <Form.Item name="name" label={t("project_roles.fields.name")} rules={[{ required: true }]}> 
+        <Input placeholder={t("project_roles.placeholders.name")} />
+      </Form.Item>
+      <Form.Item name="code" label={t("project_roles.fields.code")}> 
+        <Input placeholder={t("project_roles.placeholders.code")} />
+      </Form.Item>
+      <Form.Item name="description" label={t("project_roles.fields.description")}> 
+        <Input.TextArea rows={3} placeholder={t("project_roles.placeholders.description")} />
+      </Form.Item>
+      <Form.Item name="responsibilities" label={t("project_roles.fields.responsibilities")}> 
+        <Input.TextArea rows={4} placeholder={t("project_roles.placeholders.responsibilities")} />
+      </Form.Item>
+      <Form.Item name="authorityScope" label={t("project_roles.fields.authority_scope")}> 
+        <Input.TextArea rows={3} placeholder={t("project_roles.placeholders.authority_scope")} />
+      </Form.Item>
+      <Form.Item name="displayOrder" label={t("project_roles.fields.display_order")} rules={[{ required: true }]}> 
+        <InputNumber min={0} style={{ width: "100%" }} />
+      </Form.Item>
+      <Form.Item name="isReviewRole" valuePropName="checked"> 
+        <Checkbox>{t("project_roles.fields.is_review_role")}</Checkbox>
+      </Form.Item>
+      <Form.Item name="isApprovalRole" valuePropName="checked"> 
+        <Checkbox>{t("project_roles.fields.is_approval_role")}</Checkbox>
+      </Form.Item>
+    </Form>
+  );
+}
 
 export function ProjectRolesPage() {
   const { t } = useTranslation();
@@ -23,8 +92,8 @@ export function ProjectRolesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProjectRole | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectRole | null>(null);
-  const [createForm] = Form.useForm();
-  const [editForm] = Form.useForm();
+  const [createForm] = Form.useForm<ProjectRoleFormValues>();
+  const [editForm] = Form.useForm<ProjectRoleFormValues>();
   const [deleteForm] = Form.useForm();
 
   const {
@@ -55,6 +124,21 @@ export function ProjectRolesPage() {
         sorter: true,
       },
       {
+        title: t("project_roles.columns.code"),
+        dataIndex: "code",
+        render: (value: string | null) => value ?? "-",
+      },
+      {
+        title: t("project_roles.columns.review_role"),
+        dataIndex: "isReviewRole",
+        render: (value: boolean) => (value ? t("common.actions.yes") : t("common.actions.no")),
+      },
+      {
+        title: t("project_roles.columns.approval_role"),
+        dataIndex: "isApprovalRole",
+        render: (value: boolean) => (value ? t("common.actions.yes") : t("common.actions.no")),
+      },
+      {
         title: t("project_roles.columns.display_order"),
         dataIndex: "displayOrder",
         sorter: true,
@@ -68,11 +152,7 @@ export function ProjectRolesPage() {
               icon={<EditOutlined />}
               onClick={() => {
                 setEditTarget(record);
-                editForm.setFieldsValue({
-                  projectId: record.projectId ?? selectedProjectId,
-                  name: record.name,
-                  displayOrder: record.displayOrder,
-                });
+                editForm.setFieldsValue(toProjectRoleInitialValues(record, selectedProjectId));
               }}
             >
               {t("common.actions.edit")}
@@ -93,6 +173,57 @@ export function ProjectRolesPage() {
     ],
     [deleteForm, editForm, selectedProjectId, t],
   );
+
+  const createRole = (values: ProjectRoleFormValues) => {
+    const payload: CreateProjectRoleInput = {
+      projectId: values.projectId,
+      name: values.name,
+      code: values.code,
+      description: values.description,
+      responsibilities: values.responsibilities,
+      authorityScope: values.authorityScope,
+      isReviewRole: values.isReviewRole,
+      isApprovalRole: values.isApprovalRole,
+      displayOrder: values.displayOrder,
+    };
+
+    createProjectRoleMutation.mutate(payload, {
+      onSuccess: () => {
+        setCreateOpen(false);
+        createForm.resetFields();
+        notification.success({ message: t("project_roles.messages.created", { name: values.name }) });
+      },
+      onError: (error) => handleError(t("project_roles.messages.create_failed"), error),
+    });
+  };
+
+  const updateRole = (values: ProjectRoleFormValues) => {
+    if (!editTarget) {
+      return;
+    }
+
+    const payload: UpdateProjectRoleInput = {
+      id: editTarget.id,
+      projectId: values.projectId,
+      name: values.name,
+      code: values.code,
+      description: values.description,
+      responsibilities: values.responsibilities,
+      authorityScope: values.authorityScope,
+      isReviewRole: values.isReviewRole,
+      isApprovalRole: values.isApprovalRole,
+      displayOrder: values.displayOrder,
+    };
+
+    updateProjectRoleMutation.mutate(payload, {
+      onSuccess: () => {
+        setEditTarget(null);
+        editForm.resetFields();
+        notification.success({ message: t("project_roles.messages.updated", { name: values.name }) });
+      },
+      onError: (error) => handleError(t("project_roles.messages.update_failed"), error),
+    });
+  };
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -137,10 +268,15 @@ export function ProjectRolesPage() {
                   style={{ width: 360, maxWidth: "100%" }}
                   onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
                 />
-                <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => {
-                  createForm.setFieldValue("projectId", selectedProjectId);
-                  setCreateOpen(true);
-                }}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  size="large"
+                  onClick={() => {
+                    createForm.setFieldsValue({ projectId: selectedProjectId, isReviewRole: false, isApprovalRole: false });
+                    setCreateOpen(true);
+                  }}
+                >
                   {t("project_roles.create_action")}
                 </Button>
               </Space>
@@ -181,37 +317,12 @@ export function ProjectRolesPage() {
           createForm.resetFields();
         }}
         onOk={() => {
-          createForm.validateFields().then((values) => {
-            createProjectRoleMutation.mutate(
-              {
-                projectId: values.projectId,
-                name: values.name,
-                displayOrder: values.displayOrder,
-              },
-              {
-                onSuccess: () => {
-                  setCreateOpen(false);
-                  createForm.resetFields();
-                  notification.success({ message: t("project_roles.messages.created", { name: values.name }) });
-                },
-                onError: (error) => handleError(t("project_roles.messages.create_failed"), error),
-              },
-            );
-          }).catch(() => undefined);
+          createForm.validateFields().then(createRole).catch(() => undefined);
         }}
         confirmLoading={createProjectRoleMutation.isPending}
+        width={720}
       >
-        <Form form={createForm} layout="vertical" initialValues={{ projectId: selectedProjectId }}>
-          <Form.Item name="projectId" label={t("project_roles.fields.project")} rules={[{ required: true }]}>
-            <Select options={projectOptions} />
-          </Form.Item>
-          <Form.Item name="name" label={t("project_roles.fields.name")} rules={[{ required: true }]}>
-            <Input placeholder={t("project_roles.placeholders.name")} />
-          </Form.Item>
-          <Form.Item name="displayOrder" label={t("project_roles.fields.display_order")} rules={[{ required: true }]}>
-            <InputNumber min={0} style={{ width: "100%" }} />
-          </Form.Item>
-        </Form>
+        <ProjectRoleForm form={createForm} t={t} projectOptions={projectOptions} />
       </Modal>
 
       <Modal
@@ -222,41 +333,12 @@ export function ProjectRolesPage() {
           editForm.resetFields();
         }}
         onOk={() => {
-          editForm.validateFields().then((values) => {
-            if (!editTarget) {
-              return;
-            }
-            updateProjectRoleMutation.mutate(
-              {
-                id: editTarget.id,
-                projectId: values.projectId,
-                name: values.name,
-                displayOrder: values.displayOrder,
-              },
-              {
-                onSuccess: () => {
-                  setEditTarget(null);
-                  editForm.resetFields();
-                  notification.success({ message: t("project_roles.messages.updated", { name: values.name }) });
-                },
-                onError: (error) => handleError(t("project_roles.messages.update_failed"), error),
-              },
-            );
-          }).catch(() => undefined);
+          editForm.validateFields().then(updateRole).catch(() => undefined);
         }}
         confirmLoading={updateProjectRoleMutation.isPending}
+        width={720}
       >
-        <Form form={editForm} layout="vertical">
-          <Form.Item name="projectId" label={t("project_roles.fields.project")} rules={[{ required: true }]}>
-            <Select options={projectOptions} />
-          </Form.Item>
-          <Form.Item name="name" label={t("project_roles.fields.name")} rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="displayOrder" label={t("project_roles.fields.display_order")} rules={[{ required: true }]}>
-            <InputNumber min={0} style={{ width: "100%" }} />
-          </Form.Item>
-        </Form>
+        <ProjectRoleForm form={editForm} t={t} projectOptions={projectOptions} />
       </Modal>
 
       <Modal
@@ -288,10 +370,8 @@ export function ProjectRolesPage() {
         confirmLoading={deleteProjectRoleMutation.isPending}
       >
         <Form form={deleteForm} layout="vertical">
-          <Typography.Paragraph type="secondary">
-            {t("project_roles.delete_description", { project: selectedProjectName ?? "-" })}
-          </Typography.Paragraph>
-          <Form.Item name="reason" label={t("admin_users.fields.reason")} rules={[{ required: true, message: t("admin_users.validation.reason_required") }]}>
+          <Typography.Paragraph type="secondary">{t("project_roles.delete_description", { project: selectedProjectName ?? "-" })}</Typography.Paragraph>
+          <Form.Item name="reason" label={t("admin_users.fields.reason")} rules={[{ required: true, message: t("admin_users.validation.reason_required") }]}> 
             <Input.TextArea rows={4} placeholder={t("project_roles.placeholders.delete_reason")} />
           </Form.Item>
         </Form>

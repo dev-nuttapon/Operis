@@ -126,6 +126,9 @@ public sealed class UsersModule : IModule
         group.MapGet("/project-assignments", ListProjectAssignmentsAsync)
             .WithName("Users_ListProjectAssignments");
 
+        group.MapGet("/projects/{projectId:guid}/org-chart", GetProjectOrgChartAsync)
+            .WithName("Users_GetProjectOrgChart");
+
         group.MapPost("/project-assignments", CreateProjectAssignmentAsync)
             .WithName("Users_CreateProjectAssignment");
 
@@ -530,6 +533,15 @@ public sealed class UsersModule : IModule
             : Results.Created($"/api/v1/users/project-assignments/{result.Response!.Id}", result.Response);
     }
 
+    private static async Task<IResult> GetProjectOrgChartAsync(
+        Guid projectId,
+        IProjectQueries queries,
+        CancellationToken cancellationToken)
+    {
+        var result = await queries.GetProjectOrgChartAsync(projectId, cancellationToken);
+        return Results.Ok(result);
+    }
+
     private static async Task<IResult> UpdateProjectAssignmentAsync(
         Guid assignmentId,
         UpdateProjectAssignmentRequest request,
@@ -547,10 +559,11 @@ public sealed class UsersModule : IModule
 
     private static async Task<IResult> DeleteProjectAssignmentAsync(
         Guid assignmentId,
+        [FromBody] SoftDeleteRequest request,
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
-        var result = await commands.DeleteProjectAssignmentAsync(assignmentId, cancellationToken);
+        var result = await commands.DeleteProjectAssignmentAsync(assignmentId, request, cancellationToken);
         return result.NotFound ? Results.NotFound() : Results.NoContent();
     }
 

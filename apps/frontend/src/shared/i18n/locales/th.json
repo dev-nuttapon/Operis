@@ -484,20 +484,63 @@
     "fields": {
       "code": "รหัสโครงการ",
       "name": "ชื่อโครงการ",
+      "project_type": "ประเภทโครงการ",
+      "owner": "เจ้าของโครงการ",
+      "sponsor": "ผู้สนับสนุนโครงการ",
+      "methodology": "วิธีดำเนินโครงการ",
+      "phase": "ระยะโครงการ",
       "status": "สถานะ",
-      "period": "ช่วงเวลาโครงการ"
+      "status_reason": "เหตุผลของสถานะ",
+      "planned_period": "ช่วงเวลาแผน",
+      "actual_period": "ช่วงเวลาดำเนินจริง"
     },
     "placeholders": {
       "code": "เช่น PRJ-2026-001",
       "name": "เช่น ERP Rollout",
+      "owner": "เลือกเจ้าของโครงการ",
+      "sponsor": "เลือกผู้สนับสนุนโครงการ",
+      "methodology": "เลือกวิธีดำเนินโครงการ",
+      "phase": "เลือกระยะโครงการ",
+      "status_reason": "เช่น หยุดรอการตัดสินใจ / ปิดโครงการแล้ว",
       "delete_reason": "เช่น ยกเลิกโครงการ / สร้างรายการใหม่แทน"
     },
     "columns": {
       "code": "รหัสโครงการ",
       "name": "ชื่อโครงการ",
+      "project_type": "ประเภท",
+      "phase": "ระยะ",
+      "owner": "เจ้าของโครงการ",
       "status": "สถานะ",
+      "planned_start_at": "เริ่มตามแผน",
       "start_at": "เริ่มต้น",
       "end_at": "สิ้นสุด"
+    },
+    "options": {
+      "status": {
+        "planned": "Planned",
+        "active": "Active",
+        "on_hold": "On Hold",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "project_type": {
+        "internal": "Internal",
+        "customer": "Customer",
+        "compliance": "Compliance",
+        "improvement": "Improvement"
+      },
+      "methodology": {
+        "agile": "Agile",
+        "waterfall": "Waterfall",
+        "hybrid": "Hybrid"
+      },
+      "phase": {
+        "initiation": "Initiation",
+        "planning": "Planning",
+        "execution": "Execution",
+        "monitoring": "Monitoring",
+        "closure": "Closure"
+      }
     },
     "messages": {
       "created": "สร้างโครงการ {{name}} แล้ว",
@@ -524,14 +567,27 @@
     "fields": {
       "project": "โครงการ",
       "name": "ชื่อตำแหน่ง",
+      "code": "รหัสตำแหน่ง",
+      "description": "คำอธิบายบทบาท",
+      "responsibilities": "ความรับผิดชอบ",
+      "authority_scope": "ขอบเขตอำนาจ",
+      "is_review_role": "ใช้เป็นบทบาททบทวน",
+      "is_approval_role": "ใช้เป็นบทบาทอนุมัติ",
       "display_order": "ลำดับ"
     },
     "placeholders": {
       "name": "เช่น Project Manager",
+      "code": "เช่น PM",
+      "description": "สรุปหน้าที่ของบทบาทนี้",
+      "responsibilities": "ระบุความรับผิดชอบหลักของบทบาทนี้",
+      "authority_scope": "เช่น อนุมัติเอกสารระดับโครงการ / ทบทวนแผนงาน",
       "delete_reason": "เช่น ปรับโครงสร้างบทบาท / ยกเลิกรายการเดิม"
     },
     "columns": {
       "name": "ชื่อตำแหน่ง",
+      "code": "รหัส",
+      "review_role": "ทบทวน",
+      "approval_role": "อนุมัติ",
       "display_order": "ลำดับ"
     },
     "messages": {

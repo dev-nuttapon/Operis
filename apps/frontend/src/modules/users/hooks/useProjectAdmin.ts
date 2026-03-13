@@ -6,6 +6,7 @@ import {
   deleteProject,
   deleteProjectAssignment,
   deleteProjectRole,
+  getProjectOrgChart,
   listProjectAssignments,
   listProjectRoles,
   listProjects,
@@ -35,6 +36,7 @@ export function useProjectAdmin(input: {
   projects: ListProjectsInput;
   projectRoles: { projectId?: string; search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number };
   projectAssignments: ListProjectAssignmentsInput | null;
+  projectOrgChartProjectId?: string;
 }) {
   const queryClient = useQueryClient();
 
@@ -66,6 +68,13 @@ export function useProjectAdmin(input: {
     queryKey: [...projectAssignmentsQueryKey, input.projectAssignments],
     enabled: Boolean(input.projectAssignments?.projectId),
     queryFn: ({ signal }) => listProjectAssignments(input.projectAssignments!, signal),
+    staleTime: 15_000,
+  });
+
+  const projectOrgChartQuery = useQuery({
+    queryKey: [...projectAssignmentsQueryKey, "org-chart", input.projectOrgChartProjectId],
+    enabled: Boolean(input.projectOrgChartProjectId),
+    queryFn: ({ signal }) => getProjectOrgChart(input.projectOrgChartProjectId!, signal),
     staleTime: 15_000,
   });
 
@@ -125,7 +134,7 @@ export function useProjectAdmin(input: {
   });
 
   const deleteProjectAssignmentMutation = useMutation({
-    mutationFn: (id: string) => deleteProjectAssignment(id),
+    mutationFn: ({ id, input }: { id: string; input: SoftDeleteInput }) => deleteProjectAssignment(id, input),
     onSuccess: invalidateProjects,
   });
 
@@ -133,6 +142,7 @@ export function useProjectAdmin(input: {
     projectsQuery,
     projectRolesQuery,
     projectAssignmentsQuery,
+    projectOrgChartQuery,
     projectMemberUsersQuery,
     createProjectMutation,
     updateProjectMutation,

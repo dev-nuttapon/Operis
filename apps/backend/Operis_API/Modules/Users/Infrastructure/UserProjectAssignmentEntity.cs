@@ -8,6 +8,9 @@ public sealed class UserProjectAssignmentEntity
     public Guid ProjectRoleId { get; set; }
     public string? ReportsToUserId { get; set; }
     public bool IsPrimary { get; set; }
+    public string Status { get; set; } = "Active";
+    public string? ChangeReason { get; set; }
+    public Guid? ReplacedByAssignmentId { get; set; }
     public DateTimeOffset StartAt { get; set; }
     public DateTimeOffset? EndAt { get; set; }
     public DateTimeOffset CreatedAt { get; init; }

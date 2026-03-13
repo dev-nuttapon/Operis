@@ -484,20 +484,63 @@
     "fields": {
       "code": "Project code",
       "name": "Project name",
+      "project_type": "Project type",
+      "owner": "Project owner",
+      "sponsor": "Project sponsor",
+      "methodology": "Methodology",
+      "phase": "Project phase",
       "status": "Status",
-      "period": "Project period"
+      "status_reason": "Status reason",
+      "planned_period": "Planned period",
+      "actual_period": "Actual period"
     },
     "placeholders": {
       "code": "e.g. PRJ-2026-001",
       "name": "e.g. ERP Rollout",
+      "owner": "Select project owner",
+      "sponsor": "Select project sponsor",
+      "methodology": "Select methodology",
+      "phase": "Select project phase",
+      "status_reason": "e.g. waiting for steering decision / project closed",
       "delete_reason": "e.g. project cancelled / replaced with a new record"
     },
     "columns": {
       "code": "Project Code",
       "name": "Project Name",
+      "project_type": "Type",
+      "phase": "Phase",
+      "owner": "Owner",
       "status": "Status",
+      "planned_start_at": "Planned Start",
       "start_at": "Start",
       "end_at": "End"
+    },
+    "options": {
+      "status": {
+        "planned": "Planned",
+        "active": "Active",
+        "on_hold": "On Hold",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "project_type": {
+        "internal": "Internal",
+        "customer": "Customer",
+        "compliance": "Compliance",
+        "improvement": "Improvement"
+      },
+      "methodology": {
+        "agile": "Agile",
+        "waterfall": "Waterfall",
+        "hybrid": "Hybrid"
+      },
+      "phase": {
+        "initiation": "Initiation",
+        "planning": "Planning",
+        "execution": "Execution",
+        "monitoring": "Monitoring",
+        "closure": "Closure"
+      }
     },
     "messages": {
       "created": "Created project {{name}}",
@@ -524,14 +567,27 @@
     "fields": {
       "project": "Project",
       "name": "Role name",
+      "code": "Role code",
+      "description": "Role description",
+      "responsibilities": "Responsibilities",
+      "authority_scope": "Authority scope",
+      "is_review_role": "Use as review role",
+      "is_approval_role": "Use as approval role",
       "display_order": "Display order"
     },
     "placeholders": {
       "name": "e.g. Project Manager",
+      "code": "e.g. PM",
+      "description": "Short summary of this role",
+      "responsibilities": "Describe the main responsibilities of this role",
+      "authority_scope": "e.g. approve project documents / review work plans",
       "delete_reason": "e.g. role structure updated / previous item removed"
     },
     "columns": {
       "name": "Role Name",
+      "code": "Code",
+      "review_role": "Review",
+      "approval_role": "Approval",
       "display_order": "Display Order"
     },
     "messages": {

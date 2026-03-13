@@ -26,6 +26,7 @@ import type {
   MasterDataItem,
   Project,
   ProjectAssignment,
+  ProjectOrgChartNode,
   ProjectRole,
   RegistrationRequest,
   RejectRegistrationInput,
@@ -310,7 +311,15 @@ export function updateProject(input: UpdateProjectInput) {
     body: {
       code: input.code,
       name: input.name,
+      projectType: input.projectType,
+      ownerUserId: input.ownerUserId,
+      sponsorUserId: input.sponsorUserId,
+      methodology: input.methodology,
+      phase: input.phase,
       status: input.status,
+      statusReason: input.statusReason,
+      plannedStartAt: input.plannedStartAt,
+      plannedEndAt: input.plannedEndAt,
       startAt: input.startAt,
       endAt: input.endAt,
     },
@@ -341,7 +350,17 @@ export function updateJobTitle(input: UpdateJobTitleInput) {
 export function updateProjectRole(input: UpdateProjectRoleInput) {
   return apiRequest<ProjectRole>(`/api/v1/users/project-roles/${input.id}`, {
     method: "PUT",
-    body: { projectId: input.projectId, name: input.name, displayOrder: input.displayOrder },
+    body: {
+      projectId: input.projectId,
+      name: input.name,
+      code: input.code,
+      description: input.description,
+      responsibilities: input.responsibilities,
+      authorityScope: input.authorityScope,
+      isReviewRole: input.isReviewRole,
+      isApprovalRole: input.isApprovalRole,
+      displayOrder: input.displayOrder,
+    },
   });
 }
 
@@ -370,6 +389,10 @@ export function listProjectAssignments(input: ListProjectAssignmentsInput, signa
   return apiRequest<PaginatedResult<ProjectAssignment>>(`/api/v1/users/project-assignments?${params.toString()}`, { signal });
 }
 
+export function getProjectOrgChart(projectId: string, signal?: AbortSignal) {
+  return apiRequest<ProjectOrgChartNode[]>(`/api/v1/users/projects/${encodeURIComponent(projectId)}/org-chart`, { signal });
+}
+
 export function createProjectAssignment(input: CreateProjectAssignmentInput) {
   return apiRequest<ProjectAssignment>("/api/v1/users/project-assignments", {
     method: "POST",
@@ -388,13 +411,15 @@ export function updateProjectAssignment(input: UpdateProjectAssignmentInput) {
       isPrimary: input.isPrimary,
       startAt: input.startAt,
       endAt: input.endAt,
+      reason: input.reason,
     },
   });
 }
 
-export function deleteProjectAssignment(id: string) {
+export function deleteProjectAssignment(id: string, input: SoftDeleteInput) {
   return apiRequest<void>(`/api/v1/users/project-assignments/${id}`, {
     method: "DELETE",
+    body: input,
   });
 }
 

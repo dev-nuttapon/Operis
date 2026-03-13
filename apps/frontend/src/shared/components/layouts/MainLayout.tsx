@@ -178,6 +178,10 @@ export function MainLayout() {
                       key: '/app/admin/project-members',
                       label: tr('common.project_members'),
                     },
+                    {
+                      key: '/app/admin/project-org-chart',
+                      label: tr('common.project_org_chart'),
+                    },
                   ],
                 },
               ],
@@ -263,6 +267,7 @@ export function MainLayout() {
     if (path.includes('admin/projects')) return tr('common.projects');
     if (path.includes('admin/project-roles')) return tr('common.master_project_roles');
     if (path.includes('admin/project-members')) return tr('common.project_members');
+    if (path.includes('admin/project-org-chart')) return tr('common.project_org_chart');
     if (path.includes('admin/master')) return tr('common.master_data_management');
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
     if (path.includes('admin/registrations')) return tr('common.registration_approvals');

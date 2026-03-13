@@ -19,12 +19,56 @@ public sealed record CreateDepartmentRequest(string Name, int DisplayOrder, Guid
 public sealed record UpdateDepartmentRequest(string Name, int DisplayOrder, Guid? DivisionId);
 public sealed record CreateJobTitleRequest(string Name, int DisplayOrder, Guid? DepartmentId);
 public sealed record UpdateJobTitleRequest(string Name, int DisplayOrder, Guid? DepartmentId);
-public sealed record CreateProjectRequest(string Code, string Name, string Status, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
-public sealed record UpdateProjectRequest(string Code, string Name, string Status, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
-public sealed record CreateProjectRoleRequest(Guid ProjectId, string Name, int DisplayOrder);
-public sealed record UpdateProjectRoleRequest(Guid ProjectId, string Name, int DisplayOrder);
+public sealed record CreateProjectRequest(
+    string Code,
+    string Name,
+    string ProjectType,
+    string? OwnerUserId,
+    string? SponsorUserId,
+    string? Methodology,
+    string? Phase,
+    string Status,
+    string? StatusReason,
+    DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? PlannedEndAt,
+    DateTimeOffset? StartAt,
+    DateTimeOffset? EndAt);
+public sealed record UpdateProjectRequest(
+    string Code,
+    string Name,
+    string ProjectType,
+    string? OwnerUserId,
+    string? SponsorUserId,
+    string? Methodology,
+    string? Phase,
+    string Status,
+    string? StatusReason,
+    DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? PlannedEndAt,
+    DateTimeOffset? StartAt,
+    DateTimeOffset? EndAt);
+public sealed record CreateProjectRoleRequest(
+    Guid ProjectId,
+    string Name,
+    string? Code,
+    string? Description,
+    string? Responsibilities,
+    string? AuthorityScope,
+    bool IsReviewRole,
+    bool IsApprovalRole,
+    int DisplayOrder);
+public sealed record UpdateProjectRoleRequest(
+    Guid ProjectId,
+    string Name,
+    string? Code,
+    string? Description,
+    string? Responsibilities,
+    string? AuthorityScope,
+    bool IsReviewRole,
+    bool IsApprovalRole,
+    int DisplayOrder);
 public sealed record CreateProjectAssignmentRequest(string UserId, Guid ProjectId, Guid ProjectRoleId, string? ReportsToUserId, bool IsPrimary, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
-public sealed record UpdateProjectAssignmentRequest(string UserId, Guid ProjectId, Guid ProjectRoleId, string? ReportsToUserId, bool IsPrimary, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
+public sealed record UpdateProjectAssignmentRequest(string UserId, Guid ProjectId, Guid ProjectRoleId, string? ReportsToUserId, bool IsPrimary, DateTimeOffset? StartAt, DateTimeOffset? EndAt, string Reason);
 public sealed record SoftDeleteRequest(string Reason);
 
 public sealed record UserResponse(
@@ -136,7 +180,17 @@ public sealed record ProjectResponse(
     Guid Id,
     string Code,
     string Name,
+    string ProjectType,
+    string? OwnerUserId,
+    string? OwnerDisplayName,
+    string? SponsorUserId,
+    string? SponsorDisplayName,
+    string? Methodology,
+    string? Phase,
     string Status,
+    string? StatusReason,
+    DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? PlannedEndAt,
     DateTimeOffset? StartAt,
     DateTimeOffset? EndAt,
     DateTimeOffset CreatedAt,
@@ -149,6 +203,12 @@ public sealed record ProjectRoleResponse(
     Guid? ProjectId,
     string? ProjectName,
     string Name,
+    string? Code,
+    string? Description,
+    string? Responsibilities,
+    string? AuthorityScope,
+    bool IsReviewRole,
+    bool IsApprovalRole,
     int DisplayOrder,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
@@ -167,7 +227,24 @@ public sealed record ProjectAssignmentResponse(
     string? ReportsToUserId,
     string? ReportsToDisplayName,
     bool IsPrimary,
+    string Status,
+    string? ChangeReason,
+    Guid? ReplacedByAssignmentId,
     DateTimeOffset StartAt,
     DateTimeOffset? EndAt,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt);
+
+public sealed record ProjectOrgChartNodeResponse(
+    Guid AssignmentId,
+    string UserId,
+    string? UserEmail,
+    string? UserDisplayName,
+    Guid ProjectRoleId,
+    string ProjectRoleName,
+    bool IsPrimary,
+    string Status,
+    string? ReportsToUserId,
+    DateTimeOffset StartAt,
+    DateTimeOffset? EndAt,
+    IReadOnlyList<ProjectOrgChartNodeResponse> Children);

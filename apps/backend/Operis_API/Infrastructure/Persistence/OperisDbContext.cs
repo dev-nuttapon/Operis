@@ -119,6 +119,12 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.ProjectId).HasColumnName("project_id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(80);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
+            entity.Property(x => x.Responsibilities).HasColumnName("responsibilities").HasMaxLength(2000);
+            entity.Property(x => x.AuthorityScope).HasColumnName("authority_scope").HasMaxLength(500);
+            entity.Property(x => x.IsReviewRole).HasColumnName("is_review_role");
+            entity.Property(x => x.IsApprovalRole).HasColumnName("is_approval_role");
             entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
@@ -127,6 +133,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
             entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.ProjectId, x.Name }).IsUnique().HasFilter("\"deleted_at\" IS NULL");
+            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique().HasFilter("\"deleted_at\" IS NULL AND \"code\" IS NOT NULL");
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
             entity.HasIndex(x => x.ProjectId);
         });
@@ -187,7 +194,15 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(120);
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(200);
+            entity.Property(x => x.ProjectType).HasColumnName("project_type").HasMaxLength(80);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.SponsorUserId).HasColumnName("sponsor_user_id").HasMaxLength(64);
+            entity.Property(x => x.Methodology).HasColumnName("methodology").HasMaxLength(80);
+            entity.Property(x => x.Phase).HasColumnName("phase").HasMaxLength(80);
             entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.StatusReason).HasColumnName("status_reason").HasMaxLength(500);
+            entity.Property(x => x.PlannedStartAt).HasColumnName("planned_start_at");
+            entity.Property(x => x.PlannedEndAt).HasColumnName("planned_end_at");
             entity.Property(x => x.StartAt).HasColumnName("start_at");
             entity.Property(x => x.EndAt).HasColumnName("end_at");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
@@ -195,8 +210,14 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
             entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.OwnerUserId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.SponsorUserId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => x.Code).IsUnique().HasFilter("\"deleted_at\" IS NULL");
             entity.HasIndex(x => new { x.DeletedAt, x.Status, x.CreatedAt });
+            entity.HasIndex(x => x.ProjectType);
+            entity.HasIndex(x => x.Phase);
+            entity.HasIndex(x => x.OwnerUserId);
+            entity.HasIndex(x => x.SponsorUserId);
         });
 
         modelBuilder.Entity<UserProjectAssignmentEntity>(entity =>
@@ -209,6 +230,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.ProjectRoleId).HasColumnName("project_role_id");
             entity.Property(x => x.ReportsToUserId).HasColumnName("reports_to_user_id").HasMaxLength(64);
             entity.Property(x => x.IsPrimary).HasColumnName("is_primary");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ChangeReason).HasColumnName("change_reason").HasMaxLength(500);
+            entity.Property(x => x.ReplacedByAssignmentId).HasColumnName("replaced_by_assignment_id");
             entity.Property(x => x.StartAt).HasColumnName("start_at");
             entity.Property(x => x.EndAt).HasColumnName("end_at");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
@@ -217,10 +241,12 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<ProjectRoleEntity>().WithMany().HasForeignKey(x => x.ProjectRoleId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.ReportsToUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<UserProjectAssignmentEntity>().WithMany().HasForeignKey(x => x.ReplacedByAssignmentId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => new { x.UserId, x.ProjectId, x.ProjectRoleId });
             entity.HasIndex(x => new { x.ProjectId, x.IsPrimary });
             entity.HasIndex(x => x.ProjectRoleId);
             entity.HasIndex(x => x.ReportsToUserId);
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.StartAt });
         });
 
         modelBuilder.Entity<AppRoleEntity>(entity =>

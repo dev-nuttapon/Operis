@@ -27,6 +27,7 @@ public interface IProjectQueries
     Task<PagedResult<ProjectResponse>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ReferenceDataQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ProjectOrgChartNodeResponse>> GetProjectOrgChartAsync(Guid projectId, CancellationToken cancellationToken);
 }
 
 public sealed class ProjectQueries(
@@ -49,18 +50,40 @@ public sealed class ProjectQueries(
         var items = await source
             .Skip(skip)
             .Take(pageSize)
+            .Select(x => new
+            {
+                Entity = x,
+                OwnerDisplayName = dbContext.Users
+                    .Where(user => user.Id == x.OwnerUserId && user.DeletedAt == null)
+                    .Select(user => user.Id)
+                    .FirstOrDefault(),
+                SponsorDisplayName = dbContext.Users
+                    .Where(user => user.Id == x.SponsorUserId && user.DeletedAt == null)
+                    .Select(user => user.Id)
+                    .FirstOrDefault()
+            })
             .Select(x => new ProjectResponse(
-                x.Id,
-                x.Code,
-                x.Name,
-                x.Status,
-                x.StartAt,
-                x.EndAt,
-                x.CreatedAt,
-                x.UpdatedAt,
-                x.DeletedReason,
-                x.DeletedBy,
-                x.DeletedAt))
+                x.Entity.Id,
+                x.Entity.Code,
+                x.Entity.Name,
+                x.Entity.ProjectType,
+                x.Entity.OwnerUserId,
+                x.OwnerDisplayName,
+                x.Entity.SponsorUserId,
+                x.SponsorDisplayName,
+                x.Entity.Methodology,
+                x.Entity.Phase,
+                x.Entity.Status,
+                x.Entity.StatusReason,
+                x.Entity.PlannedStartAt,
+                x.Entity.PlannedEndAt,
+                x.Entity.StartAt,
+                x.Entity.EndAt,
+                x.Entity.CreatedAt,
+                x.Entity.UpdatedAt,
+                x.Entity.DeletedReason,
+                x.Entity.DeletedBy,
+                x.Entity.DeletedAt))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -102,6 +125,12 @@ public sealed class ProjectQueries(
                     ? dbContext.Projects.Where(project => project.Id == x.ProjectId.Value).Select(project => project.Name).FirstOrDefault()
                     : null,
                 x.Name,
+                x.Code,
+                x.Description,
+                x.Responsibilities,
+                x.AuthorityScope,
+                x.IsReviewRole,
+                x.IsApprovalRole,
                 x.DisplayOrder,
                 x.CreatedAt,
                 x.UpdatedAt,
@@ -126,7 +155,7 @@ public sealed class ProjectQueries(
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
         IQueryable<UserProjectAssignmentEntity> source = dbContext.UserProjectAssignments
             .AsNoTracking()
-            .Where(x => x.ProjectId == query.ProjectId);
+            .Where(x => x.ProjectId == query.ProjectId && x.Status == "Active");
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -158,6 +187,9 @@ public sealed class ProjectQueries(
                     ? null
                     : dbContext.Users.Where(user => user.Id == x.ReportsToUserId).Select(user => user.Id).FirstOrDefault(),
                 x.IsPrimary,
+                x.Status,
+                x.ChangeReason,
+                x.ReplacedByAssignmentId,
                 x.StartAt,
                 x.EndAt,
                 x.CreatedAt,
@@ -175,13 +207,89 @@ public sealed class ProjectQueries(
         return new PagedResult<ProjectAssignmentResponse>(items, total, page, pageSize);
     }
 
+    public async Task<IReadOnlyList<ProjectOrgChartNodeResponse>> GetProjectOrgChartAsync(Guid projectId, CancellationToken cancellationToken)
+    {
+        var projectExists = await dbContext.Projects
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == projectId && x.DeletedAt == null, cancellationToken);
+        if (!projectExists)
+        {
+            return [];
+        }
+
+        var assignments = await dbContext.UserProjectAssignments
+            .AsNoTracking()
+            .Where(x => x.ProjectId == projectId && x.Status == "Active")
+            .OrderBy(x => x.StartAt)
+            .ThenBy(x => x.CreatedAt)
+            .Select(x => new
+            {
+                x.Id,
+                x.UserId,
+                UserEmail = dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
+                UserDisplayName = dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
+                x.ProjectRoleId,
+                ProjectRoleName = dbContext.ProjectRoles.Where(role => role.Id == x.ProjectRoleId).Select(role => role.Name).FirstOrDefault() ?? string.Empty,
+                x.IsPrimary,
+                x.Status,
+                x.ReportsToUserId,
+                x.StartAt,
+                x.EndAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var childrenLookup = assignments
+            .GroupBy(x => x.ReportsToUserId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        ProjectOrgChartNodeResponse BuildNode(dynamic assignment)
+        {
+            var children = childrenLookup.TryGetValue((string?)assignment.UserId, out var childAssignments)
+                ? childAssignments.Select(BuildNode).ToList()
+                : [];
+
+            return new ProjectOrgChartNodeResponse(
+                assignment.Id,
+                assignment.UserId,
+                assignment.UserEmail,
+                assignment.UserDisplayName,
+                assignment.ProjectRoleId,
+                assignment.ProjectRoleName,
+                assignment.IsPrimary,
+                assignment.Status,
+                assignment.ReportsToUserId,
+                assignment.StartAt,
+                assignment.EndAt,
+                children);
+        }
+
+        var roots = assignments
+            .Where(x => string.IsNullOrWhiteSpace(x.ReportsToUserId) || assignments.All(parent => parent.UserId != x.ReportsToUserId))
+            .Select(BuildNode)
+            .ToList();
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "view_org_chart",
+            EntityType: "project_assignment",
+            EntityId: projectId.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { projectId, nodes = assignments.Count }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return roots;
+    }
+
     private static IQueryable<ProjectEntity> ApplyProjectSorting(IQueryable<ProjectEntity> source, string? sortBy, string? sortOrder)
     {
         var descending = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
         return (sortBy ?? string.Empty).ToLowerInvariant() switch
         {
             "code" => descending ? source.OrderByDescending(x => x.Code) : source.OrderBy(x => x.Code),
+            "projecttype" => descending ? source.OrderByDescending(x => x.ProjectType) : source.OrderBy(x => x.ProjectType),
+            "phase" => descending ? source.OrderByDescending(x => x.Phase) : source.OrderBy(x => x.Phase),
             "status" => descending ? source.OrderByDescending(x => x.Status) : source.OrderBy(x => x.Status),
+            "plannedstartat" => descending ? source.OrderByDescending(x => x.PlannedStartAt) : source.OrderBy(x => x.PlannedStartAt),
             "startat" => descending ? source.OrderByDescending(x => x.StartAt) : source.OrderBy(x => x.StartAt),
             _ => descending ? source.OrderByDescending(x => x.CreatedAt) : source.OrderBy(x => x.CreatedAt)
         };

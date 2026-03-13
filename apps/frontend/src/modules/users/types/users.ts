@@ -272,7 +272,17 @@ export interface Project {
   id: string;
   code: string;
   name: string;
+  projectType: string;
+  ownerUserId: string | null;
+  ownerDisplayName: string | null;
+  sponsorUserId: string | null;
+  sponsorDisplayName: string | null;
+  methodology: string | null;
+  phase: string | null;
   status: string;
+  statusReason: string | null;
+  plannedStartAt: string | null;
+  plannedEndAt: string | null;
   startAt: string | null;
   endAt: string | null;
   createdAt: string;
@@ -287,6 +297,12 @@ export interface ProjectRole {
   projectId: string | null;
   projectName: string | null;
   name: string;
+  code: string | null;
+  description: string | null;
+  responsibilities: string | null;
+  authorityScope: string | null;
+  isReviewRole: boolean;
+  isApprovalRole: boolean;
   displayOrder: number;
   createdAt: string;
   updatedAt: string | null;
@@ -307,16 +323,42 @@ export interface ProjectAssignment {
   reportsToUserId: string | null;
   reportsToDisplayName: string | null;
   isPrimary: boolean;
+  status: string;
+  changeReason: string | null;
+  replacedByAssignmentId: string | null;
   startAt: string;
   endAt: string | null;
   createdAt: string;
   updatedAt: string | null;
 }
 
+export interface ProjectOrgChartNode {
+  assignmentId: string;
+  userId: string;
+  userEmail: string | null;
+  userDisplayName: string | null;
+  projectRoleId: string;
+  projectRoleName: string;
+  isPrimary: boolean;
+  status: string;
+  reportsToUserId: string | null;
+  startAt: string;
+  endAt: string | null;
+  children: ProjectOrgChartNode[];
+}
+
 export interface CreateProjectInput {
   code: string;
   name: string;
+  projectType: string;
+  ownerUserId?: string;
+  sponsorUserId?: string;
+  methodology?: string;
+  phase?: string;
   status: string;
+  statusReason?: string;
+  plannedStartAt?: string;
+  plannedEndAt?: string;
   startAt?: string;
   endAt?: string;
 }
@@ -328,6 +370,12 @@ export interface UpdateProjectInput extends CreateProjectInput {
 export interface CreateProjectRoleInput {
   projectId: string;
   name: string;
+  code?: string;
+  description?: string;
+  responsibilities?: string;
+  authorityScope?: string;
+  isReviewRole: boolean;
+  isApprovalRole: boolean;
   displayOrder: number;
 }
 
@@ -347,6 +395,7 @@ export interface CreateProjectAssignmentInput {
 
 export interface UpdateProjectAssignmentInput extends CreateProjectAssignmentInput {
   id: string;
+  reason: string;
 }
 
 export interface ApproveRegistrationInput {

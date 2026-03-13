@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operis_API.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Operis_API.Infrastructure.Persistence;
 namespace Operis_API.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(OperisDbContext))]
-    partial class OperisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260313035624_AddProjectGovernanceMetadata")]
+    partial class AddProjectGovernanceMetadata
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -393,16 +396,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("AuthorityScope")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("authority_scope");
-
-                    b.Property<string>("Code")
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)")
-                        .HasColumnName("code");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -421,22 +414,9 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("deleted_reason");
 
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
-
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer")
                         .HasColumnName("display_order");
-
-                    b.Property<bool>("IsApprovalRole")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_approval_role");
-
-                    b.Property<bool>("IsReviewRole")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_review_role");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -448,11 +428,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("project_id");
 
-                    b.Property<string>("Responsibilities")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("responsibilities");
-
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -460,10 +435,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectId");
-
-                    b.HasIndex("ProjectId", "Code")
-                        .IsUnique()
-                        .HasFilter("\"deleted_at\" IS NULL AND \"code\" IS NOT NULL");
 
                     b.HasIndex("ProjectId", "Name")
                         .IsUnique()
@@ -742,11 +713,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("ChangeReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("change_reason");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -767,10 +733,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("project_role_id");
 
-                    b.Property<Guid?>("ReplacedByAssignmentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("replaced_by_assignment_id");
-
                     b.Property<string>("ReportsToUserId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
@@ -779,12 +741,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("StartAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("start_at");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("status");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -800,13 +756,9 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ProjectRoleId");
 
-                    b.HasIndex("ReplacedByAssignmentId");
-
                     b.HasIndex("ReportsToUserId");
 
                     b.HasIndex("ProjectId", "IsPrimary");
-
-                    b.HasIndex("ProjectId", "Status", "StartAt");
 
                     b.HasIndex("UserId", "ProjectId", "ProjectRoleId");
 
@@ -1247,11 +1199,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ProjectRoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Operis_API.Modules.Users.Infrastructure.UserProjectAssignmentEntity", null)
-                        .WithMany()
-                        .HasForeignKey("ReplacedByAssignmentId")
-                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Operis_API.Modules.Users.Infrastructure.UserEntity", null)
                         .WithMany()

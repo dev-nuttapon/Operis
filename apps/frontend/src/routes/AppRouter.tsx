@@ -31,6 +31,9 @@ const ProjectRolesPage = lazy(() =>
 const ProjectMembersPage = lazy(() =>
   import("../modules/users/pages/ProjectMembersPage").then((module) => ({ default: module.ProjectMembersPage }))
 );
+const ProjectOrgChartPage = lazy(() =>
+  import("../modules/users/pages/ProjectOrgChartPage").then((module) => ({ default: module.ProjectOrgChartPage }))
+);
 const AuditLogsPage = lazy(() =>
   import("../modules/audits/pages/AuditLogsPage").then((module) => ({ default: module.AuditLogsPage }))
 );
@@ -70,6 +73,7 @@ export function AppRouter() {
               <Route path="admin/projects" element={<ProjectsPage />} />
               <Route path="admin/project-roles" element={<ProjectRolesPage />} />
               <Route path="admin/project-members" element={<ProjectMembersPage />} />
+              <Route path="admin/project-org-chart" element={<ProjectOrgChartPage />} />
               <Route path="admin/invitations" element={<AdminUsersPage />} />
               <Route path="admin/registrations" element={<AdminUsersPage />} />
               <Route path="admin/audit-logs" element={<AuditLogsPage />} />

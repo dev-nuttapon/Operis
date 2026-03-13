@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
+import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined } from "@ant-design/icons";
@@ -8,19 +9,153 @@ import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
-import type { Project } from "../types/users";
+import type { CreateProjectInput, Project, UpdateProjectInput, User } from "../types/users";
 
-const projectStatusOptions = [
-  { value: "Planned", label: "Planned" },
-  { value: "Active", label: "Active" },
-  { value: "OnHold", label: "On Hold" },
-  { value: "Completed", label: "Completed" },
-  { value: "Cancelled", label: "Cancelled" },
-];
+type ProjectFormValues = {
+  code: string;
+  name: string;
+  projectType: string;
+  ownerUserId?: string;
+  sponsorUserId?: string;
+  methodology?: string;
+  phase?: string;
+  status: string;
+  statusReason?: string;
+  plannedPeriod?: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  actualPeriod?: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+};
+
+function toUserLabel(user: User) {
+  return user.keycloak?.email ?? user.keycloak?.username ?? user.id;
+}
+
+function normalizeProjectPayload(values: ProjectFormValues): Omit<CreateProjectInput, "id"> {
+  return {
+    code: values.code,
+    name: values.name,
+    projectType: values.projectType,
+    ownerUserId: values.ownerUserId,
+    sponsorUserId: values.sponsorUserId,
+    methodology: values.methodology,
+    phase: values.phase,
+    status: values.status,
+    statusReason: values.statusReason,
+    plannedStartAt: values.plannedPeriod?.[0]?.startOf("day").toISOString(),
+    plannedEndAt: values.plannedPeriod?.[1]?.endOf("day").toISOString(),
+    startAt: values.actualPeriod?.[0]?.startOf("day").toISOString(),
+    endAt: values.actualPeriod?.[1]?.endOf("day").toISOString(),
+  };
+}
+
+function toInitialValues(project: Project): ProjectFormValues {
+  return {
+    code: project.code,
+    name: project.name,
+    projectType: project.projectType,
+    ownerUserId: project.ownerUserId ?? undefined,
+    sponsorUserId: project.sponsorUserId ?? undefined,
+    methodology: project.methodology ?? undefined,
+    phase: project.phase ?? undefined,
+    status: project.status,
+    statusReason: project.statusReason ?? undefined,
+    plannedPeriod:
+      project.plannedStartAt || project.plannedEndAt
+        ? [project.plannedStartAt ? dayjs(project.plannedStartAt) : null, project.plannedEndAt ? dayjs(project.plannedEndAt) : null]
+        : undefined,
+    actualPeriod:
+      project.startAt || project.endAt
+        ? [project.startAt ? dayjs(project.startAt) : null, project.endAt ? dayjs(project.endAt) : null]
+        : undefined,
+  };
+}
+
+function ProjectForm({
+  form,
+  t,
+  userOptions,
+}: {
+  form: FormInstance<ProjectFormValues>;
+  t: ReturnType<typeof useTranslation>["t"];
+  userOptions: { label: string; value: string }[];
+}) {
+  const projectStatusOptions = [
+    { value: "planned", label: t("projects.options.status.planned") },
+    { value: "active", label: t("projects.options.status.active") },
+    { value: "onhold", label: t("projects.options.status.on_hold") },
+    { value: "completed", label: t("projects.options.status.completed") },
+    { value: "cancelled", label: t("projects.options.status.cancelled") },
+  ];
+  const projectTypeOptions = [
+    { value: "Internal", label: t("projects.options.project_type.internal") },
+    { value: "Customer", label: t("projects.options.project_type.customer") },
+    { value: "Compliance", label: t("projects.options.project_type.compliance") },
+    { value: "Improvement", label: t("projects.options.project_type.improvement") },
+  ];
+  const methodologyOptions = [
+    { value: "Agile", label: t("projects.options.methodology.agile") },
+    { value: "Waterfall", label: t("projects.options.methodology.waterfall") },
+    { value: "Hybrid", label: t("projects.options.methodology.hybrid") },
+  ];
+  const phaseOptions = [
+    { value: "Initiation", label: t("projects.options.phase.initiation") },
+    { value: "Planning", label: t("projects.options.phase.planning") },
+    { value: "Execution", label: t("projects.options.phase.execution") },
+    { value: "Monitoring", label: t("projects.options.phase.monitoring") },
+    { value: "Closure", label: t("projects.options.phase.closure") },
+  ];
+
+  return (
+    <Form form={form} layout="vertical">
+      <Form.Item name="code" label={t("projects.fields.code")} rules={[{ required: true }]}> 
+        <Input placeholder={t("projects.placeholders.code")} />
+      </Form.Item>
+      <Form.Item name="name" label={t("projects.fields.name")} rules={[{ required: true }]}> 
+        <Input placeholder={t("projects.placeholders.name")} />
+      </Form.Item>
+      <Form.Item name="projectType" label={t("projects.fields.project_type")} initialValue="Internal" rules={[{ required: true }]}> 
+        <Select options={projectTypeOptions} />
+      </Form.Item>
+      <Form.Item name="ownerUserId" label={t("projects.fields.owner")}> 
+        <Select allowClear showSearch optionFilterProp="label" options={userOptions} placeholder={t("projects.placeholders.owner")} />
+      </Form.Item>
+      <Form.Item name="sponsorUserId" label={t("projects.fields.sponsor")}> 
+        <Select allowClear showSearch optionFilterProp="label" options={userOptions} placeholder={t("projects.placeholders.sponsor")} />
+      </Form.Item>
+      <Form.Item name="methodology" label={t("projects.fields.methodology")}> 
+        <Select allowClear options={methodologyOptions} placeholder={t("projects.placeholders.methodology")} />
+      </Form.Item>
+      <Form.Item name="phase" label={t("projects.fields.phase")}> 
+        <Select allowClear options={phaseOptions} placeholder={t("projects.placeholders.phase")} />
+      </Form.Item>
+      <Form.Item name="status" label={t("projects.fields.status")} initialValue="planned" rules={[{ required: true }]}> 
+        <Select options={projectStatusOptions} />
+      </Form.Item>
+      <Form.Item name="statusReason" label={t("projects.fields.status_reason")}> 
+        <Input.TextArea rows={3} placeholder={t("projects.placeholders.status_reason")} />
+      </Form.Item>
+      <Form.Item name="plannedPeriod" label={t("projects.fields.planned_period")}> 
+        <DatePicker.RangePicker style={{ width: "100%" }} />
+      </Form.Item>
+      <Form.Item name="actualPeriod" label={t("projects.fields.actual_period")}> 
+        <DatePicker.RangePicker style={{ width: "100%" }} />
+      </Form.Item>
+    </Form>
+  );
+}
 
 export function ProjectsPage() {
   const { t, i18n } = useTranslation();
   const { notification } = App.useApp();
+  const projectStatusLabel = useMemo<Record<string, string>>(
+    () => ({
+      planned: t("projects.options.status.planned"),
+      active: t("projects.options.status.active"),
+      onhold: t("projects.options.status.on_hold"),
+      completed: t("projects.options.status.completed"),
+      cancelled: t("projects.options.status.cancelled"),
+    }),
+    [t],
+  );
   const [paging, setPaging] = useState({
     page: 1,
     pageSize: 10,
@@ -31,20 +166,20 @@ export function ProjectsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
-  const [createForm] = Form.useForm();
-  const [editForm] = Form.useForm();
+  const [createForm] = Form.useForm<ProjectFormValues>();
+  const [editForm] = Form.useForm<ProjectFormValues>();
   const [deleteForm] = Form.useForm();
 
-  const {
-    projectsQuery,
-    createProjectMutation,
-    updateProjectMutation,
-    deleteProjectMutation,
-  } = useProjectAdmin({
+  const { projectsQuery, projectMemberUsersQuery, createProjectMutation, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
     projects: paging,
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
   });
+
+  const userOptions = useMemo(
+    () => (projectMemberUsersQuery.data?.items ?? []).map((item) => ({ label: toUserLabel(item), value: item.id })),
+    [projectMemberUsersQuery.data?.items],
+  );
 
   const handleError = (fallbackTitle: string, error: unknown) => {
     const presentation = getApiErrorPresentation(error, fallbackTitle);
@@ -55,19 +190,22 @@ export function ProjectsPage() {
     () => [
       { title: t("projects.columns.code"), dataIndex: "code", sorter: true },
       { title: t("projects.columns.name"), dataIndex: "name", sorter: true },
+      { title: t("projects.columns.project_type"), dataIndex: "projectType", sorter: true },
+      { title: t("projects.columns.phase"), dataIndex: "phase", sorter: true, render: (value: string | null) => value ?? "-" },
+      { title: t("projects.columns.owner"), dataIndex: "ownerDisplayName", render: (value: string | null) => value ?? "-" },
       {
         title: t("projects.columns.status"),
         dataIndex: "status",
         sorter: true,
         render: (value: string) => (
-          <Tag color={value === "Active" ? "green" : value === "Completed" ? "blue" : value === "Cancelled" ? "red" : "gold"}>
-            {value}
+          <Tag color={value === "active" ? "green" : value === "completed" ? "blue" : value === "cancelled" ? "red" : "gold"}>
+            {projectStatusLabel[value] ?? value}
           </Tag>
         ),
       },
       {
-        title: t("projects.columns.start_at"),
-        dataIndex: "startAt",
+        title: t("projects.columns.planned_start_at"),
+        dataIndex: "plannedStartAt",
         sorter: true,
         render: (value: string | null) => formatDate(value, i18n.language),
       },
@@ -85,15 +223,7 @@ export function ProjectsPage() {
               icon={<EditOutlined />}
               onClick={() => {
                 setEditTarget(record);
-                editForm.setFieldsValue({
-                  code: record.code,
-                  name: record.name,
-                  status: record.status,
-                  period:
-                    record.startAt || record.endAt
-                      ? [record.startAt ? dayjs(record.startAt) : null, record.endAt ? dayjs(record.endAt) : null]
-                      : undefined,
-                });
+                editForm.setFieldsValue(toInitialValues(record));
               }}
             >
               {t("common.actions.edit")}
@@ -112,8 +242,39 @@ export function ProjectsPage() {
         ),
       },
     ],
-    [deleteForm, editForm, i18n.language, t],
+    [deleteForm, editForm, i18n.language, projectStatusLabel, t],
   );
+
+  const submitCreate = (values: ProjectFormValues) => {
+    createProjectMutation.mutate(normalizeProjectPayload(values), {
+      onSuccess: () => {
+        setCreateOpen(false);
+        createForm.resetFields();
+        notification.success({ message: t("projects.messages.created", { name: values.name }) });
+      },
+      onError: (error) => handleError(t("projects.messages.create_failed"), error),
+    });
+  };
+
+  const submitEdit = (values: ProjectFormValues) => {
+    if (!editTarget) {
+      return;
+    }
+
+    const payload: UpdateProjectInput = {
+      id: editTarget.id,
+      ...normalizeProjectPayload(values),
+    };
+
+    updateProjectMutation.mutate(payload, {
+      onSuccess: () => {
+        setEditTarget(null);
+        editForm.resetFields();
+        notification.success({ message: t("projects.messages.updated", { name: values.name }) });
+      },
+      onError: (error) => handleError(t("projects.messages.update_failed"), error),
+    });
+  };
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -150,7 +311,7 @@ export function ProjectsPage() {
           rowKey="id"
           columns={columns}
           dataSource={projectsQuery.data?.items ?? []}
-          loading={projectsQuery.isLoading}
+          loading={projectsQuery.isLoading || projectMemberUsersQuery.isLoading}
           pagination={{
             current: projectsQuery.data?.page ?? paging.page,
             pageSize: projectsQuery.data?.pageSize ?? paging.pageSize,
@@ -179,42 +340,12 @@ export function ProjectsPage() {
           createForm.resetFields();
         }}
         onOk={() => {
-          createForm.validateFields().then((values) => {
-            createProjectMutation.mutate(
-              {
-                code: values.code,
-                name: values.name,
-                status: values.status,
-                startAt: values.period?.[0]?.startOf("day").toISOString(),
-                endAt: values.period?.[1]?.endOf("day").toISOString(),
-              },
-              {
-                onSuccess: () => {
-                  setCreateOpen(false);
-                  createForm.resetFields();
-                  notification.success({ message: t("projects.messages.created", { name: values.name }) });
-                },
-                onError: (error) => handleError(t("projects.messages.create_failed"), error),
-              },
-            );
-          }).catch(() => undefined);
+          createForm.validateFields().then(submitCreate).catch(() => undefined);
         }}
         confirmLoading={createProjectMutation.isPending}
+        width={720}
       >
-        <Form form={createForm} layout="vertical">
-          <Form.Item name="code" label={t("projects.fields.code")} rules={[{ required: true }]}>
-            <Input placeholder={t("projects.placeholders.code")} />
-          </Form.Item>
-          <Form.Item name="name" label={t("projects.fields.name")} rules={[{ required: true }]}>
-            <Input placeholder={t("projects.placeholders.name")} />
-          </Form.Item>
-          <Form.Item name="status" label={t("projects.fields.status")} initialValue="Planned" rules={[{ required: true }]}>
-            <Select options={projectStatusOptions} />
-          </Form.Item>
-          <Form.Item name="period" label={t("projects.fields.period")}>
-            <DatePicker.RangePicker style={{ width: "100%" }} />
-          </Form.Item>
-        </Form>
+        <ProjectForm form={createForm} t={t} userOptions={userOptions} />
       </Modal>
 
       <Modal
@@ -225,46 +356,12 @@ export function ProjectsPage() {
           editForm.resetFields();
         }}
         onOk={() => {
-          editForm.validateFields().then((values) => {
-            if (!editTarget) {
-              return;
-            }
-            updateProjectMutation.mutate(
-              {
-                id: editTarget.id,
-                code: values.code,
-                name: values.name,
-                status: values.status,
-                startAt: values.period?.[0]?.startOf("day").toISOString(),
-                endAt: values.period?.[1]?.endOf("day").toISOString(),
-              },
-              {
-                onSuccess: () => {
-                  setEditTarget(null);
-                  editForm.resetFields();
-                  notification.success({ message: t("projects.messages.updated", { name: values.name }) });
-                },
-                onError: (error) => handleError(t("projects.messages.update_failed"), error),
-              },
-            );
-          }).catch(() => undefined);
+          editForm.validateFields().then(submitEdit).catch(() => undefined);
         }}
         confirmLoading={updateProjectMutation.isPending}
+        width={720}
       >
-        <Form form={editForm} layout="vertical">
-          <Form.Item name="code" label={t("projects.fields.code")} rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="name" label={t("projects.fields.name")} rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="status" label={t("projects.fields.status")} rules={[{ required: true }]}>
-            <Select options={projectStatusOptions} />
-          </Form.Item>
-          <Form.Item name="period" label={t("projects.fields.period")}>
-            <DatePicker.RangePicker style={{ width: "100%" }} />
-          </Form.Item>
-        </Form>
+        <ProjectForm form={editForm} t={t} userOptions={userOptions} />
       </Modal>
 
       <Modal
