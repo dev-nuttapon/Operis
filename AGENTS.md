@@ -254,10 +254,13 @@ Frontend changes must keep these checks passing:
 * `npm test`
 * `npm run build:local`
 * `npm run perf:bundle-report`
+* `npm run perf:bundle-budget`
 
 Backend changes must keep these checks passing:
 
 * `node scripts/check-backend-architecture.mjs`
+* `node scripts/check-module-contracts.mjs`
+* `dotnet test apps/backend/Operis_API.Tests/Operis_API.Tests.csproj`
 * `dotnet build apps/backend/Operis_API/Operis_API.csproj`
 
 AI should prefer adding or updating guardrails when a rule is important enough to preserve across future modules.

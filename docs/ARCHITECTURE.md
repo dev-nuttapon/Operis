@@ -98,6 +98,7 @@ Each module should contain:
 
 Readiness reference
 
+* `docs/PROJECT_SNAPSHOT.md`
 * `docs/MODULE_READINESS.md`
 * `docs/BASELINE_STATUS.md`
 * `docs/MODULE_CONTRACTS.md`

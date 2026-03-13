@@ -76,6 +76,7 @@ Only continue with these when justified by real work.
 * add module tests when a module gains new write flows
 * extend manifests and contracts when a module surface grows
 * keep new modules aligned with `docs/MODULE_TEMPLATE.md`
+* use `docs/NEW_MODULE_CHECKLIST.md` before merging any new module
 
 ## performance-driven work
 
@@ -99,6 +100,14 @@ Use this rule before doing more architecture work:
 2. if the task prevents a clear regression, do it
 3. if the task is backed by measured performance pain, do it
 4. otherwise, prefer feature delivery over more baseline refactoring
+
+Related operating docs:
+
+* `docs/PROJECT_SNAPSHOT.md`
+* `docs/MODULE_TEMPLATE.md`
+* `docs/NEW_MODULE_CHECKLIST.md`
+* `docs/MODULE_CONTRACTS.md`
+* `docs/PERFORMANCE_HOTSPOTS.md`
 
 ---
 
