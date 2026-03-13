@@ -1,17 +1,18 @@
 import { Alert, Card, Divider, Typography } from "antd";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { WorkflowDefinitionCreateForm } from "../components/WorkflowDefinitionCreateForm";
+import { WorkflowDefinitionFilters } from "../components/WorkflowDefinitionFilters";
 import { WorkflowDefinitionList } from "../components/WorkflowDefinitionList";
 import { useCreateWorkflowDefinition } from "../hooks/useCreateWorkflowDefinition";
 import { useUpdateWorkflowDefinition } from "../hooks/useUpdateWorkflowDefinition";
 import { useWorkflowDefinitionActions } from "../hooks/useWorkflowDefinitionActions";
 import { useWorkflowDefinitionEditor } from "../hooks/useWorkflowDefinitionEditor";
-import { useWorkflowDefinitions } from "../hooks/useWorkflowDefinitions";
+import { useWorkflowDefinitionsScreen } from "../hooks/useWorkflowDefinitionsScreen";
 
 const { Paragraph, Title } = Typography;
 
 export function WorkflowDefinitionsPage() {
-  const definitionsQuery = useWorkflowDefinitions();
+  const { definitionsQuery, filteredDefinitions, setStatusFilter, statusFilter, statusSummary } = useWorkflowDefinitionsScreen();
   const createDefinitionMutation = useCreateWorkflowDefinition();
   const updateDefinitionMutation = useUpdateWorkflowDefinition();
   const { activateMutation, archiveMutation } = useWorkflowDefinitionActions();
@@ -63,8 +64,16 @@ export function WorkflowDefinitionsPage() {
 
       <Divider />
 
+      <WorkflowDefinitionFilters
+        selectedFilter={statusFilter}
+        statusSummary={statusSummary}
+        onSelectFilter={setStatusFilter}
+      />
+
+      <Divider />
+
       <WorkflowDefinitionList
-        definitions={definitionsQuery.data ?? []}
+        definitions={filteredDefinitions}
         isLoading={definitionsQuery.isLoading}
         isMutating={updateDefinitionMutation.isPending || activateMutation.isPending || archiveMutation.isPending}
         editingWorkflowDefinitionId={editingWorkflowDefinitionId}

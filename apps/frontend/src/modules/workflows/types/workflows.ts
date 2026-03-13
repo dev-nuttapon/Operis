@@ -5,6 +5,15 @@ export interface WorkflowDefinitionSummary {
   status: "draft" | "active" | "archived";
 }
 
+export type WorkflowStatusFilter = "all" | WorkflowDefinitionSummary["status"];
+
+export interface WorkflowDefinitionStatusSummary {
+  all: number;
+  draft: number;
+  active: number;
+  archived: number;
+}
+
 export interface CreateWorkflowDefinitionInput {
   name: string;
 }

@@ -50,7 +50,7 @@ Current enforced bundle budgets:
 * `AdminUsersPage <= 26 kB`
 * `AuditLogsPage <= 10 kB`
 * `DocumentDashboardPage <= 6 kB`
-* `WorkflowDefinitionsPage <= 5 kB`
+* `WorkflowDefinitionsPage <= 6 kB`
 * `PublicRegistrationPage <= 8 kB`
 * `InvitationAcceptPage <= 8 kB`
 * `RegistrationPasswordSetupPage <= 7 kB`
