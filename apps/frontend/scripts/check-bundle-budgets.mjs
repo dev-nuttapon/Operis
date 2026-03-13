@@ -11,6 +11,7 @@ const budgetsKb = new Map([
   ["AdminUsersPage", 26],
   ["AuditLogsPage", 10],
   ["DocumentDashboardPage", 6],
+  ["WorkflowDefinitionsPage", 5],
   ["PublicRegistrationPage", 8],
   ["InvitationAcceptPage", 8],
   ["RegistrationPasswordSetupPage", 7],

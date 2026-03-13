@@ -8,3 +8,12 @@ export interface WorkflowDefinitionSummary {
 export interface CreateWorkflowDefinitionInput {
   name: string;
 }
+
+export interface UpdateWorkflowDefinitionInput {
+  workflowDefinitionId: string;
+  name: string;
+}
+
+export interface WorkflowDefinitionActionInput {
+  workflowDefinitionId: string;
+}

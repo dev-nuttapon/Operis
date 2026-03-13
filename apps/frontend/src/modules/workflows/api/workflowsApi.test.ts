@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../../../shared/lib/apiClient";
-import { createWorkflowDefinition, listWorkflowDefinitions } from "./workflowsApi";
+import { activateWorkflowDefinition, archiveWorkflowDefinition, createWorkflowDefinition, listWorkflowDefinitions, updateWorkflowDefinition } from "./workflowsApi";
 
 vi.mock("../../../shared/lib/apiClient", () => ({
   apiRequest: vi.fn(),
@@ -30,6 +30,58 @@ describe("createWorkflowDefinition", () => {
     expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions", {
       method: "POST",
       body: { name: "Document Review" },
+    });
+  });
+});
+
+describe("activateWorkflowDefinition", () => {
+  it("posts to the activate endpoint", async () => {
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      id: "1",
+      code: "document-review",
+      name: "Document Review",
+      status: "active",
+    });
+
+    await activateWorkflowDefinition("1");
+
+    expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions/1/activate", {
+      method: "POST",
+    });
+  });
+});
+
+describe("updateWorkflowDefinition", () => {
+  it("puts to the update endpoint", async () => {
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      id: "1",
+      code: "policy-approval",
+      name: "Policy Approval",
+      status: "draft",
+    });
+
+    await updateWorkflowDefinition({ workflowDefinitionId: "1", name: "Policy Approval" });
+
+    expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions/1", {
+      method: "PUT",
+      body: { name: "Policy Approval" },
+    });
+  });
+});
+
+describe("archiveWorkflowDefinition", () => {
+  it("posts to the archive endpoint", async () => {
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      id: "1",
+      code: "document-review",
+      name: "Document Review",
+      status: "archived",
+    });
+
+    await archiveWorkflowDefinition("1");
+
+    expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions/1/archive", {
+      method: "POST",
     });
   });
 });

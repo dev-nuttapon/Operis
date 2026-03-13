@@ -108,6 +108,7 @@ Module entry:
 Application surfaces:
 
 * workflow definition queries
+* workflow definition commands
 
 ---
 

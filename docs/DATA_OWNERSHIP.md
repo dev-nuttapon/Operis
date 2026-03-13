@@ -29,6 +29,7 @@ Ownership rules:
 | `user_registration_requests` | `users` | self-registration workflow state | includes password setup token state |
 | `user_invitations` | `users` | invitation workflow state | includes invitation token lifecycle |
 | `audit_logs` | `audits` | immutable audit trail | cross-cutting write target, but storage ownership belongs to `audits` |
+| `workflow_definitions` | `workflows` | workflow definition state | draft and active workflow metadata owned by `workflows` |
 
 ---
 
@@ -69,6 +70,18 @@ Extraction boundary:
 Migration caution:
 
 * this is the most natural candidate for separate retention and compliance policies later
+
+## workflows
+
+Extraction boundary:
+
+* owns workflow definition metadata and workflow-definition lifecycle
+* should keep workflow orchestration inside backend application services
+
+Migration caution:
+
+* keep workflow-definition reads and writes together if extracted later
+* avoid leaking raw workflow persistence access to other modules
 
 ---
 

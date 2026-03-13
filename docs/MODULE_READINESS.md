@@ -106,7 +106,7 @@ Current module status based on the repository state on `2026-03-13`:
 | `auth` | `7/10` | `n/a` | `7/10` | Public API is clearer now, but this is still a cross-cutting module with high app-shell coupling. |
 | `audits` | `6.5/10` | `7.5/10` | `7/10` | Backend query layer exists and now has both application tests and handler-level composition coverage. |
 | `documents` | `6/10` | `7/10` | `6.5/10` | Backend follows `Module -> Application -> Contracts` and now has query plus handler-level composition tests. |
-| `workflows` | `5.5/10` | `6/10` | `5.5/10` | New module skeleton exists with public surfaces, manifests, and baseline structure, but no real workflow feature set yet. |
+| `workflows` | `6.5/10` | `7/10` | `6.5/10` | Workflow definitions now have real query/create flows, persistence ownership, and baseline tests across frontend and backend. |
 
 ---
 

@@ -22,6 +22,12 @@ public sealed class WorkflowsModule : IModule
             .WithName("Workflows_ListDefinitions");
         group.MapPost("/definitions", CreateWorkflowDefinitionAsync)
             .WithName("Workflows_CreateDefinition");
+        group.MapPut("/definitions/{workflowDefinitionId:guid}", UpdateWorkflowDefinitionAsync)
+            .WithName("Workflows_UpdateDefinition");
+        group.MapPost("/definitions/{workflowDefinitionId:guid}/activate", ActivateWorkflowDefinitionAsync)
+            .WithName("Workflows_ActivateDefinition");
+        group.MapPost("/definitions/{workflowDefinitionId:guid}/archive", ArchiveWorkflowDefinitionAsync)
+            .WithName("Workflows_ArchiveDefinition");
 
         return endpoints;
     }
@@ -44,6 +50,45 @@ public sealed class WorkflowsModule : IModule
         return result.Status switch
         {
             WorkflowCommandStatus.Success => Results.Created($"/api/v1/workflows/definitions/{result.Response!.Id}", result.Response),
+            WorkflowCommandStatus.Conflict => Results.Conflict(new ProblemDetails { Title = result.ErrorMessage }),
+            WorkflowCommandStatus.ValidationError => Results.BadRequest(new ProblemDetails { Title = result.ErrorMessage }),
+            _ => Results.BadRequest()
+        };
+    }
+
+    private static async Task<IResult> UpdateWorkflowDefinitionAsync(
+        Guid workflowDefinitionId,
+        UpdateWorkflowDefinitionRequest request,
+        IWorkflowCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.UpdateDefinitionAsync(workflowDefinitionId, request, cancellationToken);
+        return ToCommandResult(result);
+    }
+
+    private static async Task<IResult> ActivateWorkflowDefinitionAsync(
+        Guid workflowDefinitionId,
+        IWorkflowCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.ActivateDefinitionAsync(workflowDefinitionId, cancellationToken);
+        return ToCommandResult(result);
+    }
+
+    private static async Task<IResult> ArchiveWorkflowDefinitionAsync(
+        Guid workflowDefinitionId,
+        IWorkflowCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.ArchiveDefinitionAsync(workflowDefinitionId, cancellationToken);
+        return ToCommandResult(result);
+    }
+
+    private static IResult ToCommandResult(WorkflowCommandResult result)
+    {
+        return result.Status switch
+        {
+            WorkflowCommandStatus.Success => Results.Ok(result.Response),
             WorkflowCommandStatus.Conflict => Results.Conflict(new ProblemDetails { Title = result.ErrorMessage }),
             WorkflowCommandStatus.ValidationError => Results.BadRequest(new ProblemDetails { Title = result.ErrorMessage }),
             _ => Results.BadRequest()

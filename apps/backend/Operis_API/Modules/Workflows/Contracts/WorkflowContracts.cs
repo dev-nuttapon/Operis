@@ -7,3 +7,4 @@ public sealed record WorkflowDefinitionContract(
     string Status);
 
 public sealed record CreateWorkflowDefinitionRequest(string Name);
+public sealed record UpdateWorkflowDefinitionRequest(string Name);

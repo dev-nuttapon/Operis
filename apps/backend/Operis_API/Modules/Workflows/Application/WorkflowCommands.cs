@@ -18,18 +18,13 @@ public sealed class WorkflowCommands(
             return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.");
         }
 
-        var code = ToCode(name);
-        if (string.IsNullOrWhiteSpace(code))
+        var uniqueness = await ValidateUniqueCodeAsync(name, null, cancellationToken);
+        if (uniqueness is not null)
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.");
+            return uniqueness;
         }
 
-        var exists = await dbContext.WorkflowDefinitions
-            .AnyAsync(x => x.Code == code, cancellationToken);
-        if (exists)
-        {
-            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition already exists.");
-        }
+        var code = ToCode(name)!;
 
         var entity = new WorkflowDefinitionEntity
         {
@@ -60,6 +55,83 @@ public sealed class WorkflowCommands(
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
             Response: ToContract(entity));
+    }
+
+    public async Task<WorkflowCommandResult> UpdateDefinitionAsync(Guid workflowDefinitionId, UpdateWorkflowDefinitionRequest request, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.WorkflowDefinitions.FirstOrDefaultAsync(x => x.Id == workflowDefinitionId, cancellationToken);
+        if (entity is null)
+        {
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition does not exist.");
+        }
+
+        var name = NormalizeName(request.Name);
+        if (name is null)
+        {
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.");
+        }
+
+        var uniqueness = await ValidateUniqueCodeAsync(name, workflowDefinitionId, cancellationToken);
+        if (uniqueness is not null)
+        {
+            return uniqueness;
+        }
+
+        var before = ToContract(entity);
+        entity.Name = name;
+        entity.Code = ToCode(name)!;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "workflows",
+            Action: "update",
+            EntityType: "workflow_definition",
+            EntityId: entity.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Before: before,
+            After: ToContract(entity),
+            Changes: new
+            {
+                entity.Name,
+                entity.Code,
+                entity.UpdatedAt
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new WorkflowCommandResult(
+            WorkflowCommandStatus.Success,
+            Response: ToContract(entity));
+    }
+
+    public async Task<WorkflowCommandResult> ActivateDefinitionAsync(Guid workflowDefinitionId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.WorkflowDefinitions.FirstOrDefaultAsync(x => x.Id == workflowDefinitionId, cancellationToken);
+        if (entity is null)
+        {
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition does not exist.");
+        }
+
+        if (entity.Status == "active")
+        {
+            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition is already active.");
+        }
+
+        return await UpdateStatusAsync(entity, "active", "activate", StatusCodes.Status200OK, cancellationToken);
+    }
+
+    public async Task<WorkflowCommandResult> ArchiveDefinitionAsync(Guid workflowDefinitionId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.WorkflowDefinitions.FirstOrDefaultAsync(x => x.Id == workflowDefinitionId, cancellationToken);
+        if (entity is null)
+        {
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition does not exist.");
+        }
+
+        if (entity.Status == "archived")
+        {
+            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition is already archived.");
+        }
+
+        return await UpdateStatusAsync(entity, "archived", "archive", StatusCodes.Status200OK, cancellationToken);
     }
 
     private static string? NormalizeName(string? input)
@@ -100,5 +172,56 @@ public sealed class WorkflowCommands(
             entity.Code,
             entity.Name,
             entity.Status);
+    }
+
+    private async Task<WorkflowCommandResult?> ValidateUniqueCodeAsync(
+        string name,
+        Guid? currentWorkflowDefinitionId,
+        CancellationToken cancellationToken)
+    {
+        var code = ToCode(name);
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.");
+        }
+
+        var exists = await dbContext.WorkflowDefinitions
+            .AnyAsync(x => x.Code == code && x.Id != currentWorkflowDefinitionId, cancellationToken);
+        if (exists)
+        {
+            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition already exists.");
+        }
+
+        return null;
+    }
+
+    private async Task<WorkflowCommandResult> UpdateStatusAsync(
+        WorkflowDefinitionEntity entity,
+        string status,
+        string action,
+        int statusCode,
+        CancellationToken cancellationToken)
+    {
+        var before = ToContract(entity);
+        entity.Status = status;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "workflows",
+            Action: action,
+            EntityType: "workflow_definition",
+            EntityId: entity.Id.ToString(),
+            StatusCode: statusCode,
+            Before: before,
+            After: ToContract(entity),
+            Changes: new
+            {
+                entity.Status,
+                entity.UpdatedAt
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new WorkflowCommandResult(
+            WorkflowCommandStatus.Success,
+            Response: ToContract(entity));
     }
 }
