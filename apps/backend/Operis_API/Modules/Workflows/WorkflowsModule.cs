@@ -67,8 +67,8 @@ public sealed class WorkflowsModule : IModule
         return result.Status switch
         {
             WorkflowCommandStatus.Success => Results.Created($"/api/v1/workflows/definitions/{result.Response!.Id}", result.Response),
-            WorkflowCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
-            WorkflowCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
+            WorkflowCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
+            WorkflowCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
             _ => BadRequestWithCode(null)
         };
     }
@@ -127,23 +127,23 @@ public sealed class WorkflowsModule : IModule
         return result.Status switch
         {
             WorkflowCommandStatus.Success => Results.Ok(result.Response),
-            WorkflowCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
-            WorkflowCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
+            WorkflowCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
+            WorkflowCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
             _ => BadRequestWithCode(null)
         };
     }
 
-    private static IResult BadRequestWithCode(string? detail) =>
+    private static IResult BadRequestWithCode(string? detail, string? code = null) =>
         Results.BadRequest(ApiProblemDetailsFactory.Create(
             StatusCodes.Status400BadRequest,
-            ApiErrorCodeResolver.Resolve(detail, ApiErrorCodes.RequestValidationFailed),
+            code ?? ApiErrorCodeResolver.Resolve(detail, ApiErrorCodes.RequestValidationFailed),
             "Validation failed.",
             detail));
 
-    private static IResult ConflictWithCode(string? detail) =>
+    private static IResult ConflictWithCode(string? detail, string? code = null) =>
         Results.Conflict(ApiProblemDetailsFactory.Create(
             StatusCodes.Status409Conflict,
-            ApiErrorCodeResolver.Resolve(detail, ApiErrorCodes.RequestValidationFailed),
+            code ?? ApiErrorCodeResolver.Resolve(detail, ApiErrorCodes.RequestValidationFailed),
             "Request conflict.",
             detail));
 }

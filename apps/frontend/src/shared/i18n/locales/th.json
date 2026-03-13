@@ -126,6 +126,39 @@
     "success_description": "รหัสผ่านของคุณถูกบันทึกเรียบร้อยแล้ว\nกรุณาเข้าสู่ระบบเพื่อเริ่มต้นใช้งาน",
     "go_login": "ไปหน้า Login"
   },
+  "workflow_definitions": {
+    "page_title": "จัดการ Workflow",
+    "page_description": "การจัดการ workflow จะอยู่ในโมดูลนี้เมื่อฟังก์ชันเติบโตครบขึ้น",
+    "form": {
+      "name": "ชื่อ workflow"
+    },
+    "placeholders": {
+      "name": "กรอกชื่อ workflow"
+    },
+    "validation": {
+      "name_required": "กรุณากรอกชื่อ workflow",
+      "name_max_length": "ชื่อ workflow ต้องมีไม่เกิน 200 ตัวอักษร"
+    },
+    "actions": {
+      "create_draft": "สร้างฉบับร่าง",
+      "activate": "เปิดใช้งาน",
+      "archive": "จัดเก็บ"
+    },
+    "filters": {
+      "all": "ทั้งหมด",
+      "draft": "ฉบับร่าง",
+      "active": "ใช้งานอยู่",
+      "archived": "จัดเก็บแล้ว",
+      "summary": "ใช้งานอยู่ {{active}} / ฉบับร่าง {{draft}} / จัดเก็บแล้ว {{archived}}"
+    },
+    "empty": "ยังไม่มี workflow",
+    "notifications": {
+      "create_failed_title": "ไม่สามารถสร้าง workflow ได้",
+      "update_failed_title": "ไม่สามารถแก้ไข workflow ได้",
+      "activate_failed_title": "ไม่สามารถเปิดใช้งาน workflow ได้",
+      "archive_failed_title": "ไม่สามารถจัดเก็บ workflow ได้"
+    }
+  },
   "common": {
     "application_name": "Operis",
     "dashboard": "แดชบอร์ด",
@@ -238,6 +271,23 @@
     "department_exists": "มีแผนกนี้อยู่แล้ว",
     "job_title_exists": "มีตำแหน่งนี้อยู่แล้ว",
     "project_role_exists": "มีตำแหน่งโครงการนี้อยู่แล้ว",
+    "project_required_fields": "กรุณาระบุรหัสโครงการและชื่อโครงการ",
+    "project_type_required": "กรุณาเลือกประเภทโครงการ",
+    "project_code_exists": "มีรหัสโครงการนี้อยู่แล้ว",
+    "project_not_found": "ไม่พบโครงการที่เลือก",
+    "project_owner_not_found": "ไม่พบเจ้าของโครงการที่เลือก",
+    "project_sponsor_not_found": "ไม่พบผู้สนับสนุนโครงการที่เลือก",
+    "project_role_code_exists": "มีรหัสตำแหน่งโครงการนี้ในโครงการแล้ว",
+    "project_role_not_found_in_project": "ไม่พบตำแหน่งโครงการที่เลือกในโครงการนี้",
+    "project_assignment_user_not_found": "ไม่พบผู้ใช้งานที่เลือกสำหรับโครงการ",
+    "project_assignment_reporting_line_invalid": "ผู้ที่ถูกรายงานต่อจะต้องถูกกำหนดเข้าโครงการนี้ก่อน",
+    "project_assignment_active_only": "แก้ไขได้เฉพาะการกำหนดสมาชิกโครงการที่ยังใช้งานอยู่",
+    "project_assignment_change_reason_required": "กรุณาระบุเหตุผลในการเปลี่ยนแปลง",
+    "project_type_template_exists": "มีแม่แบบประเภทโครงการนี้อยู่แล้ว",
+    "project_type_template_not_found": "ไม่พบแม่แบบประเภทโครงการที่เลือก",
+    "project_type_role_requirement_required": "กรุณาระบุชื่อบทบาทที่ต้องมี",
+    "project_type_role_requirement_exists": "มีข้อกำหนดบทบาทนี้อยู่แล้วในประเภทโครงการที่เลือก",
+    "project_type_role_requirement_code_exists": "มีรหัสข้อกำหนดบทบาทนี้อยู่แล้วในประเภทโครงการที่เลือก",
     "division_required": "กรุณาระบุชื่อฝ่าย",
     "division_not_found": "ไม่พบฝ่ายที่เลือก",
     "department_required": "กรุณาระบุชื่อแผนก",

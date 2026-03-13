@@ -1,4 +1,5 @@
 import { Button, Form, Input } from "antd";
+import { useTranslation } from "react-i18next";
 import type { CreateWorkflowDefinitionInput } from "../types/workflows";
 
 interface WorkflowDefinitionCreateFormProps {
@@ -7,6 +8,7 @@ interface WorkflowDefinitionCreateFormProps {
 }
 
 export function WorkflowDefinitionCreateForm({ isSubmitting, onSubmit }: WorkflowDefinitionCreateFormProps) {
+  const { t } = useTranslation();
   const [form] = Form.useForm<CreateWorkflowDefinitionInput>();
 
   return (
@@ -19,17 +21,17 @@ export function WorkflowDefinitionCreateForm({ isSubmitting, onSubmit }: Workflo
       }}
     >
       <Form.Item
-        label="Definition name"
+        label={t("workflow_definitions.form.name")}
         name="name"
         rules={[
-          { required: true, message: "Definition name is required." },
-          { max: 200, message: "Definition name must be 200 characters or fewer." },
+          { required: true, message: t("workflow_definitions.validation.name_required") },
+          { max: 200, message: t("workflow_definitions.validation.name_max_length") },
         ]}
       >
-        <Input placeholder="Enter workflow definition name" />
+        <Input placeholder={t("workflow_definitions.placeholders.name")} />
       </Form.Item>
       <Button htmlType="submit" type="primary" loading={isSubmitting}>
-        Create draft
+        {t("workflow_definitions.actions.create_draft")}
       </Button>
     </Form>
   );

@@ -1,5 +1,6 @@
 import { Button, List, Space, Tag } from "antd";
 import { lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import type { WorkflowDefinitionSummary } from "../types/workflows";
 
 const WorkflowDefinitionEditForm = lazy(async () => {
@@ -30,11 +31,18 @@ export function WorkflowDefinitionList({
   onActivate,
   onArchive,
 }: WorkflowDefinitionListProps) {
+  const { t } = useTranslation();
+  const statusLabels: Record<string, string> = {
+    draft: t("workflow_definitions.filters.draft"),
+    active: t("workflow_definitions.filters.active"),
+    archived: t("workflow_definitions.filters.archived"),
+  };
+
   return (
     <List
       dataSource={definitions}
       loading={isLoading}
-      locale={{ emptyText: "No workflow definitions yet." }}
+      locale={{ emptyText: t("workflow_definitions.empty") }}
       renderItem={(item) => {
         const actions = [
           <Button
@@ -43,7 +51,7 @@ export function WorkflowDefinitionList({
             disabled={isMutating}
             onClick={() => onStartEdit(item.id)}
           >
-            Edit
+            {t("common.actions.edit")}
           </Button>,
           item.status !== "active" ? (
             <Button
@@ -52,7 +60,7 @@ export function WorkflowDefinitionList({
               disabled={isMutating}
               onClick={() => onActivate(item.id)}
             >
-              Activate
+              {t("workflow_definitions.actions.activate")}
             </Button>
           ) : null,
           item.status !== "archived" ? (
@@ -63,7 +71,7 @@ export function WorkflowDefinitionList({
               disabled={isMutating}
               onClick={() => onArchive(item.id)}
             >
-              Archive
+              {t("workflow_definitions.actions.archive")}
             </Button>
           ) : null,
         ].filter(Boolean);
@@ -82,7 +90,7 @@ export function WorkflowDefinitionList({
             ) : (
               <Space>
                 <span>{item.name}</span>
-                <Tag>{item.status}</Tag>
+                <Tag>{statusLabels[item.status] ?? item.status}</Tag>
                 <Tag>{item.code}</Tag>
               </Space>
             )}

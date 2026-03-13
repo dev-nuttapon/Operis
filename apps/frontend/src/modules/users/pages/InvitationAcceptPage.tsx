@@ -45,28 +45,28 @@ export function InvitationAcceptPage() {
       return presentation;
     }
 
-    if (hasApiErrorCode(error, "invitation_expired") || error.message === t("errors.invitation_expired")) {
+    if (hasApiErrorCode(error, "invitation_expired")) {
       return {
         title: t("invitation_page.notifications.expired_title"),
         description: t("invitation_page.notifications.expired_description"),
       };
     }
 
-    if (hasApiErrorCode(error, "invitation_cancelled") || error.message === t("errors.invitation_cancelled")) {
+    if (hasApiErrorCode(error, "invitation_cancelled")) {
       return {
         title: t("invitation_page.notifications.cancelled_title"),
         description: t("invitation_page.notifications.cancelled_description"),
       };
     }
 
-    if (hasApiErrorCode(error, "invitation_accepted") || error.message === t("errors.invitation_accepted")) {
+    if (hasApiErrorCode(error, "invitation_accepted")) {
       return {
         title: t("invitation_page.notifications.accepted_title"),
         description: t("invitation_page.notifications.accepted_description"),
       };
     }
 
-    if (hasApiErrorCode(error, "user_exists", "keycloak_user_exists") || error.message === t("errors.user_exists") || error.message === t("errors.keycloak_user_exists")) {
+    if (hasApiErrorCode(error, "user_exists", "keycloak_user_exists")) {
       return {
         title: t("invitation_page.notifications.email_in_use_title"),
         description: t("invitation_page.notifications.email_in_use_description"),

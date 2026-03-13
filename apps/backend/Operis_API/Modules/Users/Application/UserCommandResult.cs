@@ -14,6 +14,7 @@ public enum UserCommandStatus
 public sealed record UserCommandResult(
     UserCommandStatus Status,
     string? ErrorMessage = null,
+    string? ErrorCode = null,
     string? ProblemTitle = null,
     int? ProblemStatusCode = null,
     UserResponse? Response = null);

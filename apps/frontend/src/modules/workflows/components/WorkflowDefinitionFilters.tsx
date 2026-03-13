@@ -1,4 +1,5 @@
 import { Button, Space, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import type { WorkflowDefinitionStatusSummary, WorkflowStatusFilter } from "../types/workflows";
 
 const { Text } = Typography;
@@ -16,6 +17,14 @@ export function WorkflowDefinitionFilters({
   statusSummary,
   onSelectFilter,
 }: WorkflowDefinitionFiltersProps) {
+  const { t } = useTranslation();
+  const filterLabels: Record<WorkflowStatusFilter, string> = {
+    all: t("workflow_definitions.filters.all"),
+    draft: t("workflow_definitions.filters.draft"),
+    active: t("workflow_definitions.filters.active"),
+    archived: t("workflow_definitions.filters.archived"),
+  };
+
   return (
     <Space orientation="vertical" size={12} style={{ width: "100%" }}>
       <Space wrap>
@@ -25,12 +34,16 @@ export function WorkflowDefinitionFilters({
             type={selectedFilter === filter ? "primary" : "default"}
             onClick={() => onSelectFilter(filter)}
           >
-            {filter} ({statusSummary[filter]})
+            {filterLabels[filter]} ({statusSummary[filter]})
           </Button>
         ))}
       </Space>
       <Text type="secondary">
-        {statusSummary.active} active / {statusSummary.draft} draft / {statusSummary.archived} archived
+        {t("workflow_definitions.filters.summary", {
+          active: statusSummary.active,
+          draft: statusSummary.draft,
+          archived: statusSummary.archived,
+        })}
       </Text>
     </Space>
   );

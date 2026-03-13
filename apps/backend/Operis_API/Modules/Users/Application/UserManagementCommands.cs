@@ -4,6 +4,7 @@ using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Domain;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Users.Application;
 
@@ -17,35 +18,41 @@ public sealed class UserManagementCommands(
         var email = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(email))
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, "Email is required.");
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Email is required.", ApiErrorCodes.EmailRequired);
         }
 
         var password = request.Password?.Trim();
         if (string.IsNullOrWhiteSpace(password))
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, "Password is required.");
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Password is required.", ApiErrorCodes.PasswordRequired);
         }
 
         if (password.Length < 8)
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, "Password must be at least 8 characters.");
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Password must be at least 8 characters.", ApiErrorCodes.PasswordMinLength);
         }
 
         if (!string.Equals(password, request.ConfirmPassword, StringComparison.Ordinal))
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, "Password and confirmation do not match.");
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Password and confirmation do not match.", ApiErrorCodes.PasswordMismatch);
         }
 
         var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
         if (!departmentValidation.Success)
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, departmentValidation.ErrorMessage);
+            return new UserCommandResult(
+                UserCommandStatus.ValidationError,
+                departmentValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(departmentValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
         if (!jobTitleValidation.Success)
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
+            return new UserCommandResult(
+                UserCommandStatus.ValidationError,
+                jobTitleValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(jobTitleValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var roleIds = request.RoleIds ?? [];
@@ -59,7 +66,7 @@ public sealed class UserManagementCommands(
 
         if (selectedRoles.Count != roleIds.Count)
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, "One or more selected roles do not exist.");
+            return new UserCommandResult(UserCommandStatus.ValidationError, "One or more selected roles do not exist.", ApiErrorCodes.RolesNotFound);
         }
 
         var existingKeycloakUser = await keycloakAdminClient.FindUserByEmailAsync(email, cancellationToken);
@@ -67,7 +74,7 @@ public sealed class UserManagementCommands(
             && await dbContext.Users.AnyAsync(x => x.Id == existingKeycloakUser.Id, cancellationToken);
         if (userExists)
         {
-            return new UserCommandResult(UserCommandStatus.Conflict, "User already exists.");
+            return new UserCommandResult(UserCommandStatus.Conflict, "User already exists.", ApiErrorCodes.UserExists);
         }
 
         var keycloakResult = await keycloakAdminClient.CreateUserAsync(
@@ -81,6 +88,7 @@ public sealed class UserManagementCommands(
             return new UserCommandResult(
                 UserCommandStatus.ExternalFailure,
                 keycloakResult.ErrorMessage,
+                ApiErrorCodes.ExternalDependencyFailure,
                 "Unable to provision user in Keycloak.",
                 StatusCodes.Status502BadGateway);
         }
@@ -103,10 +111,11 @@ public sealed class UserManagementCommands(
             if (!roleAssigned)
             {
                 return new UserCommandResult(
-                    UserCommandStatus.ExternalFailure,
-                    "The selected roles could not be mapped in Keycloak.",
-                    "Unable to assign roles in Keycloak.",
-                    StatusCodes.Status502BadGateway);
+                UserCommandStatus.ExternalFailure,
+                "The selected roles could not be mapped in Keycloak.",
+                ApiErrorCodes.ExternalDependencyFailure,
+                "Unable to assign roles in Keycloak.",
+                StatusCodes.Status502BadGateway);
             }
         }
 
@@ -145,19 +154,25 @@ public sealed class UserManagementCommands(
         var email = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(email))
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, "Email is required.");
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Email is required.", ApiErrorCodes.EmailRequired);
         }
 
         var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
         if (!departmentValidation.Success)
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, departmentValidation.ErrorMessage);
+            return new UserCommandResult(
+                UserCommandStatus.ValidationError,
+                departmentValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(departmentValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
         if (!jobTitleValidation.Success)
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
+            return new UserCommandResult(
+                UserCommandStatus.ValidationError,
+                jobTitleValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(jobTitleValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var roleIds = request.RoleIds ?? [];
@@ -170,7 +185,7 @@ public sealed class UserManagementCommands(
                 .ToListAsync(cancellationToken);
         if (selectedRoles.Count != roleIds.Count)
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, "One or more selected roles do not exist.");
+            return new UserCommandResult(UserCommandStatus.ValidationError, "One or more selected roles do not exist.", ApiErrorCodes.RolesNotFound);
         }
 
         var existingProfile = await ResolveKeycloakProfileAsync(user, cancellationToken);
@@ -178,7 +193,7 @@ public sealed class UserManagementCommands(
         var existingKeycloakUser = await keycloakAdminClient.FindUserByEmailAsync(email, cancellationToken);
         if (existingKeycloakUser is not null && !string.Equals(existingKeycloakUser.Id, user.Id, StringComparison.Ordinal))
         {
-            return new UserCommandResult(UserCommandStatus.Conflict, "User already exists.");
+            return new UserCommandResult(UserCommandStatus.Conflict, "User already exists.", ApiErrorCodes.UserExists);
         }
 
         var keycloakResult = await keycloakAdminClient.UpdateUserAsync(
@@ -190,10 +205,11 @@ public sealed class UserManagementCommands(
         if (!keycloakResult.Success)
         {
             return keycloakResult.Conflict
-                ? new UserCommandResult(UserCommandStatus.Conflict, "User already exists.")
+                ? new UserCommandResult(UserCommandStatus.Conflict, "User already exists.", ApiErrorCodes.UserExists)
                 : new UserCommandResult(
                     UserCommandStatus.ExternalFailure,
                     keycloakResult.ErrorMessage,
+                    ApiErrorCodes.ExternalDependencyFailure,
                     "Unable to update user in Keycloak.",
                     StatusCodes.Status502BadGateway);
         }
@@ -209,6 +225,7 @@ public sealed class UserManagementCommands(
             return new UserCommandResult(
                 UserCommandStatus.ExternalFailure,
                 "The selected roles could not be synchronized in Keycloak.",
+                ApiErrorCodes.ExternalDependencyFailure,
                 "Unable to update roles in Keycloak.",
                 StatusCodes.Status502BadGateway);
         }
@@ -259,6 +276,7 @@ public sealed class UserManagementCommands(
             return new UserCommandResult(
                 UserCommandStatus.ExternalFailure,
                 keycloakResult.ErrorMessage,
+                ApiErrorCodes.ExternalDependencyFailure,
                 "Unable to disable user in Keycloak.",
                 StatusCodes.Status502BadGateway);
         }

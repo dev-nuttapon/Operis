@@ -3,6 +3,7 @@ using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Users.Application;
 
@@ -16,13 +17,13 @@ public sealed class UserReferenceDataCommands(
         var name = NormalizeRequiredName(request.Name);
         if (name is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Division name is required.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Division name is required.", ApiErrorCodes.DivisionRequired);
         }
 
         var exists = await dbContext.Divisions.AnyAsync(x => x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Division already exists.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Division already exists.", ApiErrorCodes.DivisionExists);
         }
 
         var entity = new DivisionEntity
@@ -58,13 +59,13 @@ public sealed class UserReferenceDataCommands(
         var name = NormalizeRequiredName(request.Name);
         if (name is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Division name is required.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Division name is required.", ApiErrorCodes.DivisionRequired);
         }
 
         var exists = await dbContext.Divisions.AnyAsync(x => x.Id != divisionId && x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Division already exists.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Division already exists.", ApiErrorCodes.DivisionExists);
         }
 
         var before = ToDivisionAuditState(entity);
@@ -119,7 +120,7 @@ public sealed class UserReferenceDataCommands(
         var name = NormalizeRequiredName(request.Name);
         if (name is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department name is required.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department name is required.", ApiErrorCodes.DepartmentRequired);
         }
 
         if (request.DivisionId.HasValue)
@@ -129,14 +130,14 @@ public sealed class UserReferenceDataCommands(
                 cancellationToken);
             if (!divisionExists)
             {
-                return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Division does not exist.");
+                return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Division does not exist.", ApiErrorCodes.DivisionNotFound);
             }
         }
 
         var exists = await dbContext.Departments.AnyAsync(x => x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Department already exists.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Department already exists.", ApiErrorCodes.DepartmentExists);
         }
 
         var entity = new DepartmentEntity
@@ -180,7 +181,7 @@ public sealed class UserReferenceDataCommands(
         var name = NormalizeRequiredName(request.Name);
         if (name is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department name is required.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department name is required.", ApiErrorCodes.DepartmentRequired);
         }
 
         if (request.DivisionId.HasValue)
@@ -190,14 +191,14 @@ public sealed class UserReferenceDataCommands(
                 cancellationToken);
             if (!divisionExists)
             {
-                return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Division does not exist.");
+                return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Division does not exist.", ApiErrorCodes.DivisionNotFound);
             }
         }
 
         var exists = await dbContext.Departments.AnyAsync(x => x.Id != departmentId && x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Department already exists.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Department already exists.", ApiErrorCodes.DepartmentExists);
         }
 
         var before = ToDepartmentAuditState(entity);
@@ -271,12 +272,12 @@ public sealed class UserReferenceDataCommands(
         var name = NormalizeRequiredName(request.Name);
         if (name is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Job title name is required.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Job title name is required.", ApiErrorCodes.JobTitleRequired);
         }
 
         if (!request.DepartmentId.HasValue)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department is required when job title is selected.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department is required when job title is selected.", ApiErrorCodes.DepartmentRequiredForJobTitle);
         }
 
         var department = await dbContext.Departments
@@ -284,13 +285,13 @@ public sealed class UserReferenceDataCommands(
             .FirstOrDefaultAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
         if (department is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department does not exist.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department does not exist.", ApiErrorCodes.DepartmentNotFound);
         }
 
         var exists = await dbContext.JobTitles.AnyAsync(x => x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Job title already exists.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Job title already exists.", ApiErrorCodes.JobTitleExists);
         }
 
         var entity = new JobTitleEntity
@@ -334,12 +335,12 @@ public sealed class UserReferenceDataCommands(
         var name = NormalizeRequiredName(request.Name);
         if (name is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Job title name is required.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Job title name is required.", ApiErrorCodes.JobTitleRequired);
         }
 
         if (!request.DepartmentId.HasValue)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department is required when job title is selected.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department is required when job title is selected.", ApiErrorCodes.DepartmentRequiredForJobTitle);
         }
 
         var department = await dbContext.Departments
@@ -347,13 +348,13 @@ public sealed class UserReferenceDataCommands(
             .FirstOrDefaultAsync(x => x.Id == request.DepartmentId.Value && x.DeletedAt == null, cancellationToken);
         if (department is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department does not exist.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Department does not exist.", ApiErrorCodes.DepartmentNotFound);
         }
 
         var exists = await dbContext.JobTitles.AnyAsync(x => x.Id != jobTitleId && x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Job title already exists.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Job title already exists.", ApiErrorCodes.JobTitleExists);
         }
 
         var before = ToJobTitleAuditState(entity);
@@ -427,13 +428,13 @@ public sealed class UserReferenceDataCommands(
         var name = NormalizeRequiredName(request.Name);
         if (name is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Project role name is required.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Project role name is required.", ApiErrorCodes.RequestValidationFailed);
         }
 
         var exists = await dbContext.ProjectRoles.AnyAsync(x => x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Project role already exists.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Project role already exists.", ApiErrorCodes.ProjectRoleExists);
         }
 
         var entity = new ProjectRoleEntity
@@ -469,13 +470,13 @@ public sealed class UserReferenceDataCommands(
         var name = NormalizeRequiredName(request.Name);
         if (name is null)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Project role name is required.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.ValidationError, "Project role name is required.", ApiErrorCodes.RequestValidationFailed);
         }
 
         var exists = await dbContext.ProjectRoles.AnyAsync(x => x.Id != projectRoleId && x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Project role already exists.");
+            return new MasterDataCommandResult(MasterDataCommandStatus.Conflict, "Project role already exists.", ApiErrorCodes.ProjectRoleExists);
         }
 
         var before = ToProjectRoleAuditState(entity);

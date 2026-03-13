@@ -5,6 +5,7 @@ using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Domain;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Users.Application;
 
@@ -18,36 +19,42 @@ public sealed class UserInvitationCommands(
         var email = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(email))
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Email is required.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Email is required.", ApiErrorCodes.EmailRequired);
         }
 
         var invitedBy = request.InvitedBy?.Trim();
         if (string.IsNullOrWhiteSpace(invitedBy))
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Invited by is required.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Invited by is required.", ApiErrorCodes.InvitedByRequired);
         }
 
         var emailConflict = await ValidateEmailAvailabilityAsync(email, cancellationToken: cancellationToken);
         if (emailConflict is not null)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.Conflict, emailConflict);
+            return new InvitationCommandResult(InvitationCommandStatus.Conflict, emailConflict, ApiErrorCodeResolver.Resolve(emailConflict, ApiErrorCodes.RequestValidationFailed));
         }
 
         if (request.ExpiresAt.HasValue && request.ExpiresAt.Value <= DateTimeOffset.UtcNow)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Expiration date must be in the future.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Expiration date must be in the future.", ApiErrorCodes.ExpirationFuture);
         }
 
         var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
         if (!departmentValidation.Success)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, departmentValidation.ErrorMessage);
+            return new InvitationCommandResult(
+                InvitationCommandStatus.ValidationError,
+                departmentValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(departmentValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
         if (!jobTitleValidation.Success)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
+            return new InvitationCommandResult(
+                InvitationCommandStatus.ValidationError,
+                jobTitleValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(jobTitleValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var invitation = new UserInvitationEntity
@@ -96,40 +103,46 @@ public sealed class UserInvitationCommands(
         var status = GetInvitationStatus(invitation);
         if (status == InvitationStatus.Accepted)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Accepted invitation cannot be updated.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Accepted invitation cannot be updated.", ApiErrorCodes.InvitationUpdateAccepted);
         }
 
         if (status == InvitationStatus.Cancelled)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Cancelled invitation cannot be updated.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Cancelled invitation cannot be updated.", ApiErrorCodes.InvitationUpdateCancelled);
         }
 
         if (status == InvitationStatus.Rejected)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Rejected invitation cannot be updated.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Rejected invitation cannot be updated.", ApiErrorCodes.InvitationUpdateRejected);
         }
 
         var email = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(email))
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Email is required.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Email is required.", ApiErrorCodes.EmailRequired);
         }
 
         if (request.ExpiresAt.HasValue && request.ExpiresAt.Value <= DateTimeOffset.UtcNow)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Expiration date must be in the future.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Expiration date must be in the future.", ApiErrorCodes.ExpirationFuture);
         }
 
         var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
         if (!departmentValidation.Success)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, departmentValidation.ErrorMessage);
+            return new InvitationCommandResult(
+                InvitationCommandStatus.ValidationError,
+                departmentValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(departmentValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
         if (!jobTitleValidation.Success)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
+            return new InvitationCommandResult(
+                InvitationCommandStatus.ValidationError,
+                jobTitleValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(jobTitleValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var before = ToInvitationAuditState(invitation);
@@ -139,7 +152,7 @@ public sealed class UserInvitationCommands(
             var emailConflict = await ValidateEmailAvailabilityAsync(email, cancellationToken, invitation.Id);
             if (emailConflict is not null)
             {
-                return new InvitationCommandResult(InvitationCommandStatus.Conflict, emailConflict);
+                return new InvitationCommandResult(InvitationCommandStatus.Conflict, emailConflict, ApiErrorCodeResolver.Resolve(emailConflict, ApiErrorCodes.RequestValidationFailed));
             }
         }
 
@@ -185,7 +198,7 @@ public sealed class UserInvitationCommands(
         var status = GetInvitationStatus(invitation);
         if (status == InvitationStatus.Accepted)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Accepted invitation cannot be cancelled.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Accepted invitation cannot be cancelled.", ApiErrorCodes.InvitationCancelAccepted);
         }
 
         invitation.Status = InvitationStatus.Cancelled;
@@ -224,44 +237,44 @@ public sealed class UserInvitationCommands(
         var status = GetInvitationStatus(invitation);
         if (status == InvitationStatus.Accepted)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.Conflict, "Invitation has already been accepted.");
+            return new InvitationCommandResult(InvitationCommandStatus.Conflict, "Invitation has already been accepted.", ApiErrorCodes.InvitationAccepted);
         }
 
         if (status == InvitationStatus.Rejected)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.Conflict, "Invitation has already been rejected.");
+            return new InvitationCommandResult(InvitationCommandStatus.Conflict, "Invitation has already been rejected.", ApiErrorCodes.InvitationRejected);
         }
 
         if (status == InvitationStatus.Cancelled)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Invitation has been cancelled.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Invitation has been cancelled.", ApiErrorCodes.InvitationCancelled);
         }
 
         if (status == InvitationStatus.Expired)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Invitation has expired.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Invitation has expired.", ApiErrorCodes.InvitationExpired);
         }
 
         var password = request.Password?.Trim();
         if (string.IsNullOrWhiteSpace(password))
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Password is required.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Password is required.", ApiErrorCodes.PasswordRequired);
         }
 
         if (password.Length < 8)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Password must be at least 8 characters.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Password must be at least 8 characters.", ApiErrorCodes.PasswordMinLength);
         }
 
         if (!string.Equals(password, request.ConfirmPassword, StringComparison.Ordinal))
         {
-            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Password and confirmation do not match.");
+            return new InvitationCommandResult(InvitationCommandStatus.ValidationError, "Password and confirmation do not match.", ApiErrorCodes.PasswordMismatch);
         }
 
         var emailConflict = await ValidateEmailAvailabilityAsync(invitation.Email, cancellationToken, invitation.Id);
         if (emailConflict is not null)
         {
-            return new InvitationCommandResult(InvitationCommandStatus.Conflict, emailConflict);
+            return new InvitationCommandResult(InvitationCommandStatus.Conflict, emailConflict, ApiErrorCodeResolver.Resolve(emailConflict, ApiErrorCodes.RequestValidationFailed));
         }
 
         var firstName = request.FirstName.Trim();
@@ -277,6 +290,7 @@ public sealed class UserInvitationCommands(
             return new InvitationCommandResult(
                 InvitationCommandStatus.ExternalFailure,
                 keycloakResult.ErrorMessage,
+                ApiErrorCodes.ExternalDependencyFailure,
                 "Unable to provision user in Keycloak.",
                 StatusCodes.Status502BadGateway);
         }

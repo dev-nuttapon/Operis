@@ -1,4 +1,5 @@
 import { Alert, Card, Divider, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { WorkflowDefinitionCreateForm } from "../components/WorkflowDefinitionCreateForm";
 import { WorkflowDefinitionFilters } from "../components/WorkflowDefinitionFilters";
@@ -12,29 +13,30 @@ import { useWorkflowDefinitionsScreen } from "../hooks/useWorkflowDefinitionsScr
 const { Paragraph, Title } = Typography;
 
 export function WorkflowDefinitionsPage() {
+  const { t } = useTranslation();
   const { definitionsQuery, filteredDefinitions, setStatusFilter, statusFilter, statusSummary } = useWorkflowDefinitionsScreen();
   const createDefinitionMutation = useCreateWorkflowDefinition();
   const updateDefinitionMutation = useUpdateWorkflowDefinition();
   const { activateMutation, archiveMutation } = useWorkflowDefinitionActions();
   const { editingWorkflowDefinitionId, startEditing, stopEditing } = useWorkflowDefinitionEditor();
   const createErrorPresentation = createDefinitionMutation.isError
-    ? getApiErrorPresentation(createDefinitionMutation.error, "Unable to create workflow definition")
+    ? getApiErrorPresentation(createDefinitionMutation.error, t("workflow_definitions.notifications.create_failed_title"))
     : null;
   const actionErrorPresentation = updateDefinitionMutation.isError
-    ? getApiErrorPresentation(updateDefinitionMutation.error, "Unable to update workflow definition")
+    ? getApiErrorPresentation(updateDefinitionMutation.error, t("workflow_definitions.notifications.update_failed_title"))
     : activateMutation.isError
-    ? getApiErrorPresentation(activateMutation.error, "Unable to activate workflow definition")
+    ? getApiErrorPresentation(activateMutation.error, t("workflow_definitions.notifications.activate_failed_title"))
     : archiveMutation.isError
-      ? getApiErrorPresentation(archiveMutation.error, "Unable to archive workflow definition")
+      ? getApiErrorPresentation(archiveMutation.error, t("workflow_definitions.notifications.archive_failed_title"))
       : null;
 
   return (
     <Card variant="borderless" style={{ borderRadius: 16 }}>
       <Title level={2} style={{ marginTop: 0 }}>
-        Workflow Definitions
+        {t("workflow_definitions.page_title")}
       </Title>
       <Paragraph type="secondary">
-        Workflow management will live in this module as the feature surface grows.
+        {t("workflow_definitions.page_description")}
       </Paragraph>
 
       {createErrorPresentation ? (

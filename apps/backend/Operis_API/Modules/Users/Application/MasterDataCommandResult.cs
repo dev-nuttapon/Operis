@@ -13,4 +13,5 @@ public enum MasterDataCommandStatus
 public sealed record MasterDataCommandResult(
     MasterDataCommandStatus Status,
     string? ErrorMessage = null,
+    string? ErrorCode = null,
     MasterDataResponse? Response = null);

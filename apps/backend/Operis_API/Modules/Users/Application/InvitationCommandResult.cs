@@ -14,6 +14,7 @@ public enum InvitationCommandStatus
 public sealed record InvitationCommandResult(
     InvitationCommandStatus Status,
     string? ErrorMessage = null,
+    string? ErrorCode = null,
     string? ProblemTitle = null,
     int? ProblemStatusCode = null,
     InvitationResponse? Response = null);

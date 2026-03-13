@@ -126,6 +126,39 @@
     "success_description": "Your password has been saved successfully.\nPlease sign in to continue.",
     "go_login": "Go to Login"
   },
+  "workflow_definitions": {
+    "page_title": "Workflow Definitions",
+    "page_description": "Workflow management will live in this module as the feature surface grows.",
+    "form": {
+      "name": "Definition name"
+    },
+    "placeholders": {
+      "name": "Enter workflow definition name"
+    },
+    "validation": {
+      "name_required": "Definition name is required.",
+      "name_max_length": "Definition name must be 200 characters or fewer."
+    },
+    "actions": {
+      "create_draft": "Create draft",
+      "activate": "Activate",
+      "archive": "Archive"
+    },
+    "filters": {
+      "all": "All",
+      "draft": "Draft",
+      "active": "Active",
+      "archived": "Archived",
+      "summary": "{{active}} active / {{draft}} draft / {{archived}} archived"
+    },
+    "empty": "No workflow definitions yet.",
+    "notifications": {
+      "create_failed_title": "Unable to create workflow definition",
+      "update_failed_title": "Unable to update workflow definition",
+      "activate_failed_title": "Unable to activate workflow definition",
+      "archive_failed_title": "Unable to archive workflow definition"
+    }
+  },
   "common": {
     "application_name": "Operis",
     "dashboard": "Dashboard",
@@ -238,6 +271,23 @@
     "department_exists": "Department already exists.",
     "job_title_exists": "Job title already exists.",
     "project_role_exists": "Project role already exists.",
+    "project_required_fields": "Project code and project name are required.",
+    "project_type_required": "Project type is required.",
+    "project_code_exists": "Project code already exists.",
+    "project_not_found": "The selected project does not exist.",
+    "project_owner_not_found": "The selected project owner does not exist.",
+    "project_sponsor_not_found": "The selected project sponsor does not exist.",
+    "project_role_code_exists": "Project role code already exists in this project.",
+    "project_role_not_found_in_project": "The selected project role does not exist in this project.",
+    "project_assignment_user_not_found": "The selected project member does not exist.",
+    "project_assignment_reporting_line_invalid": "The selected reporting line user must already be assigned to this project.",
+    "project_assignment_active_only": "Only active project assignments can be updated.",
+    "project_assignment_change_reason_required": "A change reason is required.",
+    "project_type_template_exists": "Project type template already exists.",
+    "project_type_template_not_found": "The selected project type template does not exist.",
+    "project_type_role_requirement_required": "Role name is required.",
+    "project_type_role_requirement_exists": "This role requirement already exists for the selected project type.",
+    "project_type_role_requirement_code_exists": "This role requirement code already exists for the selected project type.",
     "division_required": "Division name is required.",
     "division_not_found": "The selected division does not exist.",
     "department_required": "Department name is required.",

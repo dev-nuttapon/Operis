@@ -5,6 +5,7 @@ using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Domain;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Users.Application;
 
@@ -18,25 +19,31 @@ public sealed class UserRegistrationCommands(
         var email = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(email))
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Email is required.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Email is required.", ApiErrorCodes.EmailRequired);
         }
 
         var emailConflict = await ValidateEmailAvailabilityAsync(email, cancellationToken: cancellationToken);
         if (emailConflict is not null)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.Conflict, emailConflict);
+            return new RegistrationCommandResult(RegistrationCommandStatus.Conflict, emailConflict, ApiErrorCodeResolver.Resolve(emailConflict, ApiErrorCodes.RequestValidationFailed));
         }
 
         var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
         if (!departmentValidation.Success)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, departmentValidation.ErrorMessage);
+            return new RegistrationCommandResult(
+                RegistrationCommandStatus.ValidationError,
+                departmentValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(departmentValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var jobTitleValidation = await ValidateJobTitleSelectionAsync(request.DepartmentId, request.JobTitleId, cancellationToken);
         if (!jobTitleValidation.Success)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, jobTitleValidation.ErrorMessage);
+            return new RegistrationCommandResult(
+                RegistrationCommandStatus.ValidationError,
+                jobTitleValidation.ErrorMessage,
+                ApiErrorCodeResolver.Resolve(jobTitleValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var registrationRequest = new UserRegistrationRequestEntity
@@ -82,7 +89,7 @@ public sealed class UserRegistrationCommands(
 
         if (registrationRequest.Status != RegistrationRequestStatus.Pending)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Registration request has already been reviewed.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Registration request has already been reviewed.", ApiErrorCodes.RegistrationReviewed);
         }
 
         var before = ToRegistrationRequestAuditState(registrationRequest);
@@ -91,7 +98,7 @@ public sealed class UserRegistrationCommands(
             && await dbContext.Users.AnyAsync(x => x.Id == existingKeycloakUser.Id, cancellationToken);
         if (userExists)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.Conflict, "User already exists.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.Conflict, "User already exists.", ApiErrorCodes.UserExists);
         }
 
         var keycloakResult = await keycloakAdminClient.CreateUserAsync(
@@ -105,6 +112,7 @@ public sealed class UserRegistrationCommands(
             return new RegistrationCommandResult(
                 RegistrationCommandStatus.ExternalFailure,
                 keycloakResult.ErrorMessage,
+                ApiErrorCodes.ExternalDependencyFailure,
                 "Unable to provision user in Keycloak.",
                 StatusCodes.Status502BadGateway);
         }
@@ -175,7 +183,7 @@ public sealed class UserRegistrationCommands(
 
         if (registrationRequest.Status != RegistrationRequestStatus.Pending)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Registration request has already been reviewed.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Registration request has already been reviewed.", ApiErrorCodes.RegistrationReviewed);
         }
 
         var before = ToRegistrationRequestAuditState(registrationRequest);
@@ -222,33 +230,33 @@ public sealed class UserRegistrationCommands(
 
         if (registrationRequest.Status != RegistrationRequestStatus.Approved)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Registration request is not approved.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Registration request is not approved.", ApiErrorCodes.RegistrationNotApproved);
         }
 
         if (registrationRequest.PasswordSetupCompletedAt.HasValue)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.Conflict, "Password setup has already been completed.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.Conflict, "Password setup has already been completed.", ApiErrorCodes.PasswordSetupCompleted);
         }
 
         if (registrationRequest.PasswordSetupExpiresAt.HasValue &&
             registrationRequest.PasswordSetupExpiresAt.Value <= DateTimeOffset.UtcNow)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Password setup link has expired.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Password setup link has expired.", ApiErrorCodes.PasswordSetupExpired);
         }
 
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Password is required.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Password is required.", ApiErrorCodes.PasswordRequired);
         }
 
         if (request.Password.Length < 8)
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Password must be at least 8 characters.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Password must be at least 8 characters.", ApiErrorCodes.PasswordMinLength);
         }
 
         if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
         {
-            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Password and confirmation do not match.");
+            return new RegistrationCommandResult(RegistrationCommandStatus.ValidationError, "Password and confirmation do not match.", ApiErrorCodes.PasswordMismatch);
         }
 
         if (string.IsNullOrWhiteSpace(registrationRequest.ProvisionedUserId))
@@ -256,6 +264,7 @@ public sealed class UserRegistrationCommands(
             return new RegistrationCommandResult(
                 RegistrationCommandStatus.InternalFailure,
                 "The approved registration is missing a provisioned Keycloak user reference.",
+                ApiErrorCodes.InternalFailure,
                 "Unable to resolve provisioned user.",
                 StatusCodes.Status500InternalServerError);
         }
@@ -271,6 +280,7 @@ public sealed class UserRegistrationCommands(
             return new RegistrationCommandResult(
                 RegistrationCommandStatus.ExternalFailure,
                 passwordUpdated.ErrorMessage,
+                ApiErrorCodes.ExternalDependencyFailure,
                 "Unable to update password in Keycloak.",
                 StatusCodes.Status502BadGateway);
         }

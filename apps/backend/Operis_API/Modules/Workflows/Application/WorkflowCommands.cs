@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Workflows.Infrastructure;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 using System.Text;
 
 namespace Operis_API.Modules.Workflows;
@@ -15,7 +16,7 @@ public sealed class WorkflowCommands(
         var name = NormalizeName(request.Name);
         if (name is null)
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.");
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.", ApiErrorCodes.WorkflowDefinitionNameRequired);
         }
 
         var uniqueness = await ValidateUniqueCodeAsync(name, null, cancellationToken);
@@ -62,13 +63,13 @@ public sealed class WorkflowCommands(
         var entity = await dbContext.WorkflowDefinitions.FirstOrDefaultAsync(x => x.Id == workflowDefinitionId, cancellationToken);
         if (entity is null)
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition does not exist.");
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition does not exist.", ApiErrorCodes.WorkflowDefinitionNotFound);
         }
 
         var name = NormalizeName(request.Name);
         if (name is null)
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.");
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.", ApiErrorCodes.WorkflowDefinitionNameRequired);
         }
 
         var uniqueness = await ValidateUniqueCodeAsync(name, workflowDefinitionId, cancellationToken);
@@ -107,12 +108,12 @@ public sealed class WorkflowCommands(
         var entity = await dbContext.WorkflowDefinitions.FirstOrDefaultAsync(x => x.Id == workflowDefinitionId, cancellationToken);
         if (entity is null)
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition does not exist.");
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition does not exist.", ApiErrorCodes.WorkflowDefinitionNotFound);
         }
 
         if (entity.Status == "active")
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition is already active.");
+            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition is already active.", ApiErrorCodes.WorkflowDefinitionAlreadyActive);
         }
 
         return await UpdateStatusAsync(entity, "active", "activate", StatusCodes.Status200OK, cancellationToken);
@@ -123,12 +124,12 @@ public sealed class WorkflowCommands(
         var entity = await dbContext.WorkflowDefinitions.FirstOrDefaultAsync(x => x.Id == workflowDefinitionId, cancellationToken);
         if (entity is null)
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition does not exist.");
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition does not exist.", ApiErrorCodes.WorkflowDefinitionNotFound);
         }
 
         if (entity.Status == "archived")
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition is already archived.");
+            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition is already archived.", ApiErrorCodes.WorkflowDefinitionAlreadyArchived);
         }
 
         return await UpdateStatusAsync(entity, "archived", "archive", StatusCodes.Status200OK, cancellationToken);
@@ -182,14 +183,14 @@ public sealed class WorkflowCommands(
         var code = ToCode(name);
         if (string.IsNullOrWhiteSpace(code))
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.");
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.", ApiErrorCodes.WorkflowDefinitionNameRequired);
         }
 
         var exists = await dbContext.WorkflowDefinitions
             .AnyAsync(x => x.Code == code && x.Id != currentWorkflowDefinitionId, cancellationToken);
         if (exists)
         {
-            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition already exists.");
+            return new WorkflowCommandResult(WorkflowCommandStatus.Conflict, "Workflow definition already exists.", ApiErrorCodes.WorkflowDefinitionAlreadyExists);
         }
 
         return null;

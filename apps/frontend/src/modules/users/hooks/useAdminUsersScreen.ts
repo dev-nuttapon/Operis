@@ -132,35 +132,35 @@ export function useAdminUsersScreen(input: {
       return presentation;
     }
 
-    if (hasApiErrorCode(error, "user_exists", "keycloak_user_exists") || error.message === input.t("errors.user_exists") || error.message === input.t("errors.keycloak_user_exists")) {
+    if (hasApiErrorCode(error, "user_exists", "keycloak_user_exists")) {
       return {
         title: input.t("admin_users.notifications.email_in_use_title"),
         description: input.t("admin_users.notifications.email_in_use_description"),
       };
     }
 
-    if (hasApiErrorCode(error, "pending_invitation_exists") || error.message === input.t("errors.pending_invitation_exists")) {
+    if (hasApiErrorCode(error, "pending_invitation_exists")) {
       return {
         title: input.t("admin_users.notifications.pending_invitation_title"),
         description: input.t("admin_users.notifications.pending_invitation_description"),
       };
     }
 
-    if (hasApiErrorCode(error, "pending_registration_exists") || error.message === input.t("errors.pending_registration_exists")) {
+    if (hasApiErrorCode(error, "pending_registration_exists")) {
       return {
         title: input.t("admin_users.notifications.pending_request_title"),
         description: input.t("admin_users.notifications.pending_request_description"),
       };
     }
 
-    if (hasApiErrorCode(error, "invitation_accepted") || error.message === input.t("errors.invitation_accepted")) {
+    if (hasApiErrorCode(error, "invitation_accepted")) {
       return {
         title: input.t("admin_users.notifications.invitation_accepted_title"),
         description: input.t("admin_users.notifications.invitation_accepted_description"),
       };
     }
 
-    if (hasApiErrorCode(error, "invitation_expired") || error.message === input.t("errors.invitation_expired")) {
+    if (hasApiErrorCode(error, "invitation_expired")) {
       return {
         title: input.t("admin_users.notifications.invitation_expired_title"),
         description: input.t("admin_users.notifications.invitation_expired_description"),

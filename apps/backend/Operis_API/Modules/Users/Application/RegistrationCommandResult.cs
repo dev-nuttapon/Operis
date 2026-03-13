@@ -15,6 +15,7 @@ public enum RegistrationCommandStatus
 public sealed record RegistrationCommandResult(
     RegistrationCommandStatus Status,
     string? ErrorMessage = null,
+    string? ErrorCode = null,
     string? ProblemTitle = null,
     int? ProblemStatusCode = null,
     RegistrationRequestResponse? Response = null,

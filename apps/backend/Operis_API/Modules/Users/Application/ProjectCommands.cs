@@ -3,19 +3,20 @@ using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Users.Application;
 
 public interface IProjectCommands
 {
-    Task<(bool Success, string? Error, ProjectResponse? Response)> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken);
-    Task<(bool Success, string? Error, ProjectResponse? Response, bool NotFound)> UpdateProjectAsync(Guid projectId, UpdateProjectRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectResponse? Response)> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectResponse? Response, bool NotFound)> UpdateProjectAsync(Guid projectId, UpdateProjectRequest request, CancellationToken cancellationToken);
     Task<(bool Success, bool NotFound)> DeleteProjectAsync(Guid projectId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken);
-    Task<(bool Success, string? Error, ProjectRoleResponse? Response)> CreateProjectRoleAsync(CreateProjectRoleRequest request, CancellationToken cancellationToken);
-    Task<(bool Success, string? Error, ProjectRoleResponse? Response, bool NotFound)> UpdateProjectRoleAsync(Guid projectRoleId, UpdateProjectRoleRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectRoleResponse? Response)> CreateProjectRoleAsync(CreateProjectRoleRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectRoleResponse? Response, bool NotFound)> UpdateProjectRoleAsync(Guid projectRoleId, UpdateProjectRoleRequest request, CancellationToken cancellationToken);
     Task<(bool Success, bool NotFound)> DeleteProjectRoleAsync(Guid projectRoleId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken);
-    Task<(bool Success, string? Error, ProjectAssignmentResponse? Response)> CreateProjectAssignmentAsync(CreateProjectAssignmentRequest request, CancellationToken cancellationToken);
-    Task<(bool Success, string? Error, ProjectAssignmentResponse? Response, bool NotFound)> UpdateProjectAssignmentAsync(Guid assignmentId, UpdateProjectAssignmentRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectAssignmentResponse? Response)> CreateProjectAssignmentAsync(CreateProjectAssignmentRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectAssignmentResponse? Response, bool NotFound)> UpdateProjectAssignmentAsync(Guid assignmentId, UpdateProjectAssignmentRequest request, CancellationToken cancellationToken);
     Task<(bool Success, bool NotFound)> DeleteProjectAssignmentAsync(Guid assignmentId, SoftDeleteRequest request, CancellationToken cancellationToken);
 }
 
@@ -24,31 +25,31 @@ public sealed class ProjectCommands(
     IAuditLogWriter auditLogWriter,
     IReferenceDataCache referenceDataCache) : IProjectCommands
 {
-    public async Task<(bool Success, string? Error, ProjectResponse? Response)> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectResponse? Response)> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken)
     {
         var code = NormalizeRequired(request.Code, 120);
         var name = NormalizeRequired(request.Name, 200);
         var projectType = NormalizeRequired(request.ProjectType, 80);
         if (code is null || name is null)
         {
-            return (false, "Project code and name are required.", null);
+            return (false, "Project code and name are required.", ApiErrorCodes.ProjectRequiredFields, null);
         }
         if (projectType is null)
         {
-            return (false, "Project type is required.", null);
+            return (false, "Project type is required.", ApiErrorCodes.ProjectTypeRequired, null);
         }
 
         var ownerUserId = NormalizeOptional(request.OwnerUserId, 64);
         var sponsorUserId = NormalizeOptional(request.SponsorUserId, 64);
         if (await ValidateProjectUsersAsync(ownerUserId, sponsorUserId, cancellationToken) is { } userError)
         {
-            return (false, userError, null);
+            return (false, userError, ApiErrorCodeResolver.Resolve(userError, ApiErrorCodes.RequestValidationFailed), null);
         }
 
         var exists = await dbContext.Projects.AnyAsync(x => x.Code == code && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Project code already exists.", null);
+            return (false, "Project code already exists.", ApiErrorCodes.ProjectCodeExists, null);
         }
 
         var entity = new ProjectEntity
@@ -73,15 +74,15 @@ public sealed class ProjectCommands(
         dbContext.Projects.Add(entity);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "create", EntityType: "project", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status201Created, After: ToProjectState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return (true, null, await ToProjectResponseAsync(entity, cancellationToken));
+        return (true, null, null, await ToProjectResponseAsync(entity, cancellationToken));
     }
 
-    public async Task<(bool Success, string? Error, ProjectResponse? Response, bool NotFound)> UpdateProjectAsync(Guid projectId, UpdateProjectRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectResponse? Response, bool NotFound)> UpdateProjectAsync(Guid projectId, UpdateProjectRequest request, CancellationToken cancellationToken)
     {
         var entity = await dbContext.Projects.FirstOrDefaultAsync(x => x.Id == projectId && x.DeletedAt == null, cancellationToken);
         if (entity is null)
         {
-            return (false, null, null, true);
+            return (false, null, null, null, true);
         }
 
         var code = NormalizeRequired(request.Code, 120);
@@ -89,24 +90,24 @@ public sealed class ProjectCommands(
         var projectType = NormalizeRequired(request.ProjectType, 80);
         if (code is null || name is null)
         {
-            return (false, "Project code and name are required.", null, false);
+            return (false, "Project code and name are required.", ApiErrorCodes.ProjectRequiredFields, null, false);
         }
         if (projectType is null)
         {
-            return (false, "Project type is required.", null, false);
+            return (false, "Project type is required.", ApiErrorCodes.ProjectTypeRequired, null, false);
         }
 
         var exists = await dbContext.Projects.AnyAsync(x => x.Id != projectId && x.Code == code && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Project code already exists.", null, false);
+            return (false, "Project code already exists.", ApiErrorCodes.ProjectCodeExists, null, false);
         }
 
         var ownerUserId = NormalizeOptional(request.OwnerUserId, 64);
         var sponsorUserId = NormalizeOptional(request.SponsorUserId, 64);
         if (await ValidateProjectUsersAsync(ownerUserId, sponsorUserId, cancellationToken) is { } userError)
         {
-            return (false, userError, null, false);
+            return (false, userError, ApiErrorCodeResolver.Resolve(userError, ApiErrorCodes.RequestValidationFailed), null, false);
         }
 
         var before = ToProjectState(entity);
@@ -127,7 +128,7 @@ public sealed class ProjectCommands(
 
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Before: before, After: ToProjectState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return (true, null, await ToProjectResponseAsync(entity, cancellationToken), false);
+        return (true, null, null, await ToProjectResponseAsync(entity, cancellationToken), false);
     }
 
     public async Task<(bool Success, bool NotFound)> DeleteProjectAsync(Guid projectId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken)
@@ -148,32 +149,32 @@ public sealed class ProjectCommands(
         return (true, false);
     }
 
-    public async Task<(bool Success, string? Error, ProjectRoleResponse? Response)> CreateProjectRoleAsync(CreateProjectRoleRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectRoleResponse? Response)> CreateProjectRoleAsync(CreateProjectRoleRequest request, CancellationToken cancellationToken)
     {
         var name = NormalizeRequired(request.Name, 120);
         var code = NormalizeOptional(request.Code, 80);
         if (name is null)
         {
-            return (false, "Project role name is required.", null);
+            return (false, "Project role name is required.", ApiErrorCodes.ProjectTypeRoleRequirementRequired, null);
         }
 
         var project = await dbContext.Projects.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.ProjectId && x.DeletedAt == null, cancellationToken);
         if (project is null)
         {
-            return (false, "Project does not exist.", null);
+            return (false, "Project does not exist.", ApiErrorCodes.ProjectNotFound, null);
         }
 
         var exists = await dbContext.ProjectRoles.AnyAsync(x => x.ProjectId == request.ProjectId && x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Project role already exists in this project.", null);
+            return (false, "Project role already exists in this project.", ApiErrorCodes.ProjectRoleExists, null);
         }
         if (!string.IsNullOrWhiteSpace(code))
         {
             var codeExists = await dbContext.ProjectRoles.AnyAsync(x => x.ProjectId == request.ProjectId && x.Code == code && x.DeletedAt == null, cancellationToken);
             if (codeExists)
             {
-                return (false, "Project role code already exists in this project.", null);
+                return (false, "Project role code already exists in this project.", ApiErrorCodes.ProjectRoleCodeExists, null);
             }
         }
 
@@ -200,41 +201,41 @@ public sealed class ProjectCommands(
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "create", EntityType: "project_role", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status201Created, After: ToProjectRoleState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
         await referenceDataCache.InvalidateProjectRolesAsync(cancellationToken);
-        return (true, null, ToProjectRoleResponse(entity, project.Name));
+        return (true, null, null, ToProjectRoleResponse(entity, project.Name));
     }
 
-    public async Task<(bool Success, string? Error, ProjectRoleResponse? Response, bool NotFound)> UpdateProjectRoleAsync(Guid projectRoleId, UpdateProjectRoleRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectRoleResponse? Response, bool NotFound)> UpdateProjectRoleAsync(Guid projectRoleId, UpdateProjectRoleRequest request, CancellationToken cancellationToken)
     {
         var entity = await dbContext.ProjectRoles.FirstOrDefaultAsync(x => x.Id == projectRoleId && x.DeletedAt == null, cancellationToken);
         if (entity is null)
         {
-            return (false, null, null, true);
+            return (false, null, null, null, true);
         }
 
         var name = NormalizeRequired(request.Name, 120);
         var code = NormalizeOptional(request.Code, 80);
         if (name is null)
         {
-            return (false, "Project role name is required.", null, false);
+            return (false, "Project role name is required.", ApiErrorCodes.ProjectTypeRoleRequirementRequired, null, false);
         }
 
         var project = await dbContext.Projects.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.ProjectId && x.DeletedAt == null, cancellationToken);
         if (project is null)
         {
-            return (false, "Project does not exist.", null, false);
+            return (false, "Project does not exist.", ApiErrorCodes.ProjectNotFound, null, false);
         }
 
         var exists = await dbContext.ProjectRoles.AnyAsync(x => x.Id != projectRoleId && x.ProjectId == request.ProjectId && x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Project role already exists in this project.", null, false);
+            return (false, "Project role already exists in this project.", ApiErrorCodes.ProjectRoleExists, null, false);
         }
         if (!string.IsNullOrWhiteSpace(code))
         {
             var codeExists = await dbContext.ProjectRoles.AnyAsync(x => x.Id != projectRoleId && x.ProjectId == request.ProjectId && x.Code == code && x.DeletedAt == null, cancellationToken);
             if (codeExists)
             {
-                return (false, "Project role code already exists in this project.", null, false);
+                return (false, "Project role code already exists in this project.", ApiErrorCodes.ProjectRoleCodeExists, null, false);
             }
         }
 
@@ -256,7 +257,7 @@ public sealed class ProjectCommands(
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project_role", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Before: before, After: ToProjectRoleState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
         await referenceDataCache.InvalidateProjectRolesAsync(cancellationToken);
-        return (true, null, ToProjectRoleResponse(entity, project.Name), false);
+        return (true, null, null, ToProjectRoleResponse(entity, project.Name), false);
     }
 
     public async Task<(bool Success, bool NotFound)> DeleteProjectRoleAsync(Guid projectRoleId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken)
@@ -277,12 +278,12 @@ public sealed class ProjectCommands(
         return (true, false);
     }
 
-    public async Task<(bool Success, string? Error, ProjectAssignmentResponse? Response)> CreateProjectAssignmentAsync(CreateProjectAssignmentRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectAssignmentResponse? Response)> CreateProjectAssignmentAsync(CreateProjectAssignmentRequest request, CancellationToken cancellationToken)
     {
         var validation = await ValidateProjectAssignmentAsync(request.UserId, request.ProjectId, request.ProjectRoleId, request.ReportsToUserId, null, cancellationToken);
         if (validation is not null)
         {
-            return (false, validation, null);
+            return (false, validation, ApiErrorCodeResolver.Resolve(validation, ApiErrorCodes.RequestValidationFailed), null);
         }
 
         var entity = new UserProjectAssignmentEntity
@@ -302,30 +303,30 @@ public sealed class ProjectCommands(
         dbContext.UserProjectAssignments.Add(entity);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "create", EntityType: "project_assignment", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status201Created, After: ToProjectAssignmentState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return (true, null, await BuildProjectAssignmentResponseAsync(entity.Id, cancellationToken));
+        return (true, null, null, await BuildProjectAssignmentResponseAsync(entity.Id, cancellationToken));
     }
 
-    public async Task<(bool Success, string? Error, ProjectAssignmentResponse? Response, bool NotFound)> UpdateProjectAssignmentAsync(Guid assignmentId, UpdateProjectAssignmentRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectAssignmentResponse? Response, bool NotFound)> UpdateProjectAssignmentAsync(Guid assignmentId, UpdateProjectAssignmentRequest request, CancellationToken cancellationToken)
     {
         var entity = await dbContext.UserProjectAssignments.FirstOrDefaultAsync(x => x.Id == assignmentId, cancellationToken);
         if (entity is null)
         {
-            return (false, null, null, true);
+            return (false, null, null, null, true);
         }
         if (!string.Equals(entity.Status, "Active", StringComparison.OrdinalIgnoreCase))
         {
-            return (false, "Only active assignments can be updated.", null, false);
+            return (false, "Only active assignments can be updated.", ApiErrorCodes.ProjectAssignmentActiveOnly, null, false);
         }
 
         var validation = await ValidateProjectAssignmentAsync(request.UserId, request.ProjectId, request.ProjectRoleId, request.ReportsToUserId, assignmentId, cancellationToken);
         if (validation is not null)
         {
-            return (false, validation, null, false);
+            return (false, validation, ApiErrorCodeResolver.Resolve(validation, ApiErrorCodes.RequestValidationFailed), null, false);
         }
         var reason = NormalizeRequired(request.Reason, 500);
         if (reason is null)
         {
-            return (false, "Change reason is required.", null, false);
+            return (false, "Change reason is required.", ApiErrorCodes.ProjectAssignmentChangeReasonRequired, null, false);
         }
 
         var before = ToProjectAssignmentState(entity);
@@ -352,7 +353,7 @@ public sealed class ProjectCommands(
         dbContext.UserProjectAssignments.Add(replacement);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project_assignment", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Reason: reason, Before: before, After: ToProjectAssignmentState(replacement)));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return (true, null, await BuildProjectAssignmentResponseAsync(replacement.Id, cancellationToken), false);
+        return (true, null, null, await BuildProjectAssignmentResponseAsync(replacement.Id, cancellationToken), false);
     }
 
     public async Task<(bool Success, bool NotFound)> DeleteProjectAssignmentAsync(Guid assignmentId, SoftDeleteRequest request, CancellationToken cancellationToken)

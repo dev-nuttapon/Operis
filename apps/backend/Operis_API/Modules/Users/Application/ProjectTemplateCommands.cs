@@ -3,16 +3,17 @@ using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Users.Application;
 
 public interface IProjectTemplateCommands
 {
-    Task<(bool Success, string? Error, ProjectTypeTemplateResponse? Response)> CreateProjectTypeTemplateAsync(CreateProjectTypeTemplateRequest request, CancellationToken cancellationToken);
-    Task<(bool Success, string? Error, ProjectTypeTemplateResponse? Response, bool NotFound)> UpdateProjectTypeTemplateAsync(Guid templateId, UpdateProjectTypeTemplateRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectTypeTemplateResponse? Response)> CreateProjectTypeTemplateAsync(CreateProjectTypeTemplateRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectTypeTemplateResponse? Response, bool NotFound)> UpdateProjectTypeTemplateAsync(Guid templateId, UpdateProjectTypeTemplateRequest request, CancellationToken cancellationToken);
     Task<(bool Success, bool NotFound)> DeleteProjectTypeTemplateAsync(Guid templateId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken);
-    Task<(bool Success, string? Error, ProjectTypeRoleRequirementResponse? Response)> CreateProjectTypeRoleRequirementAsync(CreateProjectTypeRoleRequirementRequest request, CancellationToken cancellationToken);
-    Task<(bool Success, string? Error, ProjectTypeRoleRequirementResponse? Response, bool NotFound)> UpdateProjectTypeRoleRequirementAsync(Guid requirementId, UpdateProjectTypeRoleRequirementRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectTypeRoleRequirementResponse? Response)> CreateProjectTypeRoleRequirementAsync(CreateProjectTypeRoleRequirementRequest request, CancellationToken cancellationToken);
+    Task<(bool Success, string? Error, string? ErrorCode, ProjectTypeRoleRequirementResponse? Response, bool NotFound)> UpdateProjectTypeRoleRequirementAsync(Guid requirementId, UpdateProjectTypeRoleRequirementRequest request, CancellationToken cancellationToken);
     Task<(bool Success, bool NotFound)> DeleteProjectTypeRoleRequirementAsync(Guid requirementId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken);
 }
 
@@ -20,18 +21,18 @@ public sealed class ProjectTemplateCommands(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter) : IProjectTemplateCommands
 {
-    public async Task<(bool Success, string? Error, ProjectTypeTemplateResponse? Response)> CreateProjectTypeTemplateAsync(CreateProjectTypeTemplateRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectTypeTemplateResponse? Response)> CreateProjectTypeTemplateAsync(CreateProjectTypeTemplateRequest request, CancellationToken cancellationToken)
     {
         var projectType = NormalizeRequired(request.ProjectType, 80);
         if (projectType is null)
         {
-            return (false, "Project type is required.", null);
+            return (false, "Project type is required.", ApiErrorCodes.ProjectTypeRequired, null);
         }
 
         var exists = await dbContext.ProjectTypeTemplates.AnyAsync(x => x.ProjectType == projectType && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Project type template already exists.", null);
+            return (false, "Project type template already exists.", ApiErrorCodes.ProjectTypeTemplateExists, null);
         }
 
         var entity = new ProjectTypeTemplateEntity
@@ -53,27 +54,27 @@ public sealed class ProjectTemplateCommands(
         dbContext.ProjectTypeTemplates.Add(entity);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "create", EntityType: "project_type_template", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status201Created, After: ToProjectTypeTemplateState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return (true, null, ToProjectTypeTemplateResponse(entity));
+        return (true, null, null, ToProjectTypeTemplateResponse(entity));
     }
 
-    public async Task<(bool Success, string? Error, ProjectTypeTemplateResponse? Response, bool NotFound)> UpdateProjectTypeTemplateAsync(Guid templateId, UpdateProjectTypeTemplateRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectTypeTemplateResponse? Response, bool NotFound)> UpdateProjectTypeTemplateAsync(Guid templateId, UpdateProjectTypeTemplateRequest request, CancellationToken cancellationToken)
     {
         var entity = await dbContext.ProjectTypeTemplates.FirstOrDefaultAsync(x => x.Id == templateId && x.DeletedAt == null, cancellationToken);
         if (entity is null)
         {
-            return (false, null, null, true);
+            return (false, null, null, null, true);
         }
 
         var projectType = NormalizeRequired(request.ProjectType, 80);
         if (projectType is null)
         {
-            return (false, "Project type is required.", null, false);
+            return (false, "Project type is required.", ApiErrorCodes.ProjectTypeRequired, null, false);
         }
 
         var exists = await dbContext.ProjectTypeTemplates.AnyAsync(x => x.Id != templateId && x.ProjectType == projectType && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Project type template already exists.", null, false);
+            return (false, "Project type template already exists.", ApiErrorCodes.ProjectTypeTemplateExists, null, false);
         }
 
         var before = ToProjectTypeTemplateState(entity);
@@ -91,7 +92,7 @@ public sealed class ProjectTemplateCommands(
 
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project_type_template", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Before: before, After: ToProjectTypeTemplateState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return (true, null, ToProjectTypeTemplateResponse(entity), false);
+        return (true, null, null, ToProjectTypeTemplateResponse(entity), false);
     }
 
     public async Task<(bool Success, bool NotFound)> DeleteProjectTypeTemplateAsync(Guid templateId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken)
@@ -111,25 +112,25 @@ public sealed class ProjectTemplateCommands(
         return (true, false);
     }
 
-    public async Task<(bool Success, string? Error, ProjectTypeRoleRequirementResponse? Response)> CreateProjectTypeRoleRequirementAsync(CreateProjectTypeRoleRequirementRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectTypeRoleRequirementResponse? Response)> CreateProjectTypeRoleRequirementAsync(CreateProjectTypeRoleRequirementRequest request, CancellationToken cancellationToken)
     {
         var template = await dbContext.ProjectTypeTemplates.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.ProjectTypeTemplateId && x.DeletedAt == null, cancellationToken);
         if (template is null)
         {
-            return (false, "Project type template does not exist.", null);
+            return (false, "Project type template does not exist.", ApiErrorCodes.ProjectTypeTemplateNotFound, null);
         }
 
         var roleName = NormalizeRequired(request.RoleName, 120);
         var roleCode = NormalizeOptional(request.RoleCode, 80);
         if (roleName is null)
         {
-            return (false, "Role name is required.", null);
+            return (false, "Role name is required.", ApiErrorCodes.ProjectTypeRoleRequirementRequired, null);
         }
 
         var exists = await dbContext.ProjectTypeRoleRequirements.AnyAsync(x => x.ProjectTypeTemplateId == request.ProjectTypeTemplateId && x.RoleName == roleName && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Role requirement already exists for this project type.", null);
+            return (false, "Role requirement already exists for this project type.", ApiErrorCodes.ProjectTypeRoleRequirementExists, null);
         }
 
         if (!string.IsNullOrWhiteSpace(roleCode))
@@ -137,7 +138,7 @@ public sealed class ProjectTemplateCommands(
             var codeExists = await dbContext.ProjectTypeRoleRequirements.AnyAsync(x => x.ProjectTypeTemplateId == request.ProjectTypeTemplateId && x.RoleCode == roleCode && x.DeletedAt == null, cancellationToken);
             if (codeExists)
             {
-                return (false, "Role requirement code already exists for this project type.", null);
+                return (false, "Role requirement code already exists for this project type.", ApiErrorCodes.ProjectTypeRoleRequirementCodeExists, null);
             }
         }
 
@@ -155,34 +156,34 @@ public sealed class ProjectTemplateCommands(
         dbContext.ProjectTypeRoleRequirements.Add(entity);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "create", EntityType: "project_type_role_requirement", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status201Created, After: ToProjectTypeRoleRequirementState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return (true, null, ToProjectTypeRoleRequirementResponse(entity, template.ProjectType));
+        return (true, null, null, ToProjectTypeRoleRequirementResponse(entity, template.ProjectType));
     }
 
-    public async Task<(bool Success, string? Error, ProjectTypeRoleRequirementResponse? Response, bool NotFound)> UpdateProjectTypeRoleRequirementAsync(Guid requirementId, UpdateProjectTypeRoleRequirementRequest request, CancellationToken cancellationToken)
+    public async Task<(bool Success, string? Error, string? ErrorCode, ProjectTypeRoleRequirementResponse? Response, bool NotFound)> UpdateProjectTypeRoleRequirementAsync(Guid requirementId, UpdateProjectTypeRoleRequirementRequest request, CancellationToken cancellationToken)
     {
         var entity = await dbContext.ProjectTypeRoleRequirements.FirstOrDefaultAsync(x => x.Id == requirementId && x.DeletedAt == null, cancellationToken);
         if (entity is null)
         {
-            return (false, null, null, true);
+            return (false, null, null, null, true);
         }
 
         var template = await dbContext.ProjectTypeTemplates.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.ProjectTypeTemplateId && x.DeletedAt == null, cancellationToken);
         if (template is null)
         {
-            return (false, "Project type template does not exist.", null, false);
+            return (false, "Project type template does not exist.", ApiErrorCodes.ProjectTypeTemplateNotFound, null, false);
         }
 
         var roleName = NormalizeRequired(request.RoleName, 120);
         var roleCode = NormalizeOptional(request.RoleCode, 80);
         if (roleName is null)
         {
-            return (false, "Role name is required.", null, false);
+            return (false, "Role name is required.", ApiErrorCodes.ProjectTypeRoleRequirementRequired, null, false);
         }
 
         var exists = await dbContext.ProjectTypeRoleRequirements.AnyAsync(x => x.Id != requirementId && x.ProjectTypeTemplateId == request.ProjectTypeTemplateId && x.RoleName == roleName && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Role requirement already exists for this project type.", null, false);
+            return (false, "Role requirement already exists for this project type.", ApiErrorCodes.ProjectTypeRoleRequirementExists, null, false);
         }
 
         if (!string.IsNullOrWhiteSpace(roleCode))
@@ -190,7 +191,7 @@ public sealed class ProjectTemplateCommands(
             var codeExists = await dbContext.ProjectTypeRoleRequirements.AnyAsync(x => x.Id != requirementId && x.ProjectTypeTemplateId == request.ProjectTypeTemplateId && x.RoleCode == roleCode && x.DeletedAt == null, cancellationToken);
             if (codeExists)
             {
-                return (false, "Role requirement code already exists for this project type.", null, false);
+                return (false, "Role requirement code already exists for this project type.", ApiErrorCodes.ProjectTypeRoleRequirementCodeExists, null, false);
             }
         }
 
@@ -204,7 +205,7 @@ public sealed class ProjectTemplateCommands(
 
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project_type_role_requirement", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Before: before, After: ToProjectTypeRoleRequirementState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
-        return (true, null, ToProjectTypeRoleRequirementResponse(entity, template.ProjectType), false);
+        return (true, null, null, ToProjectTypeRoleRequirementResponse(entity, template.ProjectType), false);
     }
 
     public async Task<(bool Success, bool NotFound)> DeleteProjectTypeRoleRequirementAsync(Guid requirementId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken)

@@ -295,8 +295,8 @@ public sealed class UsersModule : IModule
         var result = await commands.CreateDivisionAsync(request, cancellationToken);
         return result.Status switch
         {
-            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
+            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Created($"/api/v1/users/divisions/{result.Response!.Id}", result.Response)
         };
     }
@@ -318,8 +318,8 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             MasterDataCommandStatus.NotFound => NotFoundWithCode(),
-            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
+            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Ok(result.Response)
         };
     }
@@ -376,8 +376,8 @@ public sealed class UsersModule : IModule
         var result = await commands.CreateDepartmentAsync(request, cancellationToken);
         return result.Status switch
         {
-            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
+            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Created($"/api/v1/users/departments/{result.Response!.Id}", result.Response)
         };
     }
@@ -399,8 +399,8 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             MasterDataCommandStatus.NotFound => NotFoundWithCode(),
-            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
+            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Ok(result.Response)
         };
     }
@@ -457,8 +457,8 @@ public sealed class UsersModule : IModule
         var result = await commands.CreateJobTitleAsync(request, cancellationToken);
         return result.Status switch
         {
-            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
+            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Created($"/api/v1/users/job-titles/{result.Response!.Id}", result.Response)
         };
     }
@@ -480,8 +480,8 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             MasterDataCommandStatus.NotFound => NotFoundWithCode(),
-            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
+            MasterDataCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Ok(result.Response)
         };
     }
@@ -577,7 +577,7 @@ public sealed class UsersModule : IModule
 
         var result = await commands.CreateProjectTypeTemplateAsync(request, cancellationToken);
         return !result.Success
-            ? BadRequestWithCode(result.Error)
+            ? BadRequestWithCode(result.Error, result.ErrorCode)
             : Results.Created($"/api/v1/users/project-type-templates/{result.Response!.Id}", result.Response);
     }
 
@@ -600,7 +600,7 @@ public sealed class UsersModule : IModule
             return NotFoundWithCode();
         }
 
-        return !result.Success ? BadRequestWithCode(result.Error) : Results.Ok(result.Response);
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
     }
 
     private static async Task<IResult> DeleteProjectTypeTemplateAsync(
@@ -655,7 +655,7 @@ public sealed class UsersModule : IModule
 
         var result = await commands.CreateProjectTypeRoleRequirementAsync(request, cancellationToken);
         return !result.Success
-            ? BadRequestWithCode(result.Error)
+            ? BadRequestWithCode(result.Error, result.ErrorCode)
             : Results.Created($"/api/v1/users/project-type-role-requirements/{result.Response!.Id}", result.Response);
     }
 
@@ -678,7 +678,7 @@ public sealed class UsersModule : IModule
             return NotFoundWithCode();
         }
 
-        return !result.Success ? BadRequestWithCode(result.Error) : Results.Ok(result.Response);
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
     }
 
     private static async Task<IResult> DeleteProjectTypeRoleRequirementAsync(
@@ -713,7 +713,7 @@ public sealed class UsersModule : IModule
         var result = await commands.CreateProjectAsync(request, cancellationToken);
         if (!result.Success)
         {
-            return BadRequestWithCode(result.Error);
+            return BadRequestWithCode(result.Error, result.ErrorCode);
         }
 
         return Results.Created($"/api/v1/users/projects/{result.Response!.Id}", result.Response);
@@ -740,7 +740,7 @@ public sealed class UsersModule : IModule
 
         if (!result.Success)
         {
-            return BadRequestWithCode(result.Error);
+            return BadRequestWithCode(result.Error, result.ErrorCode);
         }
 
         return Results.Ok(result.Response);
@@ -777,7 +777,7 @@ public sealed class UsersModule : IModule
 
         var result = await commands.CreateProjectRoleAsync(request, cancellationToken);
         return !result.Success
-            ? BadRequestWithCode(result.Error)
+            ? BadRequestWithCode(result.Error, result.ErrorCode)
             : Results.Created($"/api/v1/users/project-roles/{result.Response!.Id}", result.Response);
     }
 
@@ -800,7 +800,7 @@ public sealed class UsersModule : IModule
             return NotFoundWithCode();
         }
 
-        return !result.Success ? BadRequestWithCode(result.Error) : Results.Ok(result.Response);
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
     }
 
     private static async Task<IResult> DeleteProjectRoleAsync(
@@ -855,7 +855,7 @@ public sealed class UsersModule : IModule
 
         var result = await commands.CreateProjectAssignmentAsync(request, cancellationToken);
         return !result.Success
-            ? BadRequestWithCode(result.Error)
+            ? BadRequestWithCode(result.Error, result.ErrorCode)
             : Results.Created($"/api/v1/users/project-assignments/{result.Response!.Id}", result.Response);
     }
 
@@ -926,7 +926,7 @@ public sealed class UsersModule : IModule
             return NotFoundWithCode();
         }
 
-        return !result.Success ? BadRequestWithCode(result.Error) : Results.Ok(result.Response);
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
     }
 
     private static async Task<IResult> DeleteProjectAssignmentAsync(
@@ -963,7 +963,7 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             UserCommandStatus.NotFound => NotFoundWithCode(),
-            UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
+            UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.NoContent()
         };
     }
@@ -985,9 +985,9 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             UserCommandStatus.NotFound => NotFoundWithCode(),
-            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            UserCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
-            UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
+            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            UserCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
+            UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.Ok(result.Response)
         };
     }
@@ -1009,7 +1009,7 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             UserCommandStatus.NotFound => NotFoundWithCode(),
-            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
+            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.NoContent()
         };
     }
@@ -1022,8 +1022,8 @@ public sealed class UsersModule : IModule
         var result = await commands.CreateRegistrationRequestAsync(request, cancellationToken);
         return result.Status switch
         {
-            RegistrationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            RegistrationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
+            RegistrationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            RegistrationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Created($"/api/v1/users/registration-requests/{result.Response!.Id}", result.Response)
         };
     }
@@ -1111,9 +1111,9 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             RegistrationCommandStatus.NotFound => NotFoundWithCode(),
-            RegistrationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            RegistrationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
-            RegistrationCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
+            RegistrationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            RegistrationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
+            RegistrationCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.Ok(result.Response)
         };
     }
@@ -1135,7 +1135,7 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             RegistrationCommandStatus.NotFound => NotFoundWithCode(),
-            RegistrationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
+            RegistrationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Ok(result.Response)
         };
     }
@@ -1163,10 +1163,10 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             RegistrationCommandStatus.NotFound => NotFoundWithCode(),
-            RegistrationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            RegistrationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
-            RegistrationCommandStatus.InternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ProblemStatusCode, ApiErrorCodes.InternalFailure),
-            RegistrationCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
+            RegistrationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            RegistrationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
+            RegistrationCommandStatus.InternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.InternalFailure),
+            RegistrationCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.NoContent()
         };
     }
@@ -1224,8 +1224,8 @@ public sealed class UsersModule : IModule
         var result = await commands.CreateInvitationAsync(request, cancellationToken);
         return result.Status switch
         {
-            InvitationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            InvitationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
+            InvitationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            InvitationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Created($"/api/v1/users/invitations/{result.Response!.Id}", result.Response)
         };
     }
@@ -1247,8 +1247,8 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             InvitationCommandStatus.NotFound => NotFoundWithCode(),
-            InvitationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            InvitationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
+            InvitationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            InvitationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Ok(result.Response)
         };
     }
@@ -1269,7 +1269,7 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             InvitationCommandStatus.NotFound => NotFoundWithCode(),
-            InvitationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
+            InvitationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Ok(result.Response)
         };
     }
@@ -1284,9 +1284,9 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             InvitationCommandStatus.NotFound => NotFoundWithCode(),
-            InvitationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            InvitationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
-            InvitationCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
+            InvitationCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            InvitationCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
+            InvitationCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.Ok(result.Response)
         };
     }
@@ -1306,9 +1306,9 @@ public sealed class UsersModule : IModule
         var result = await commands.CreateUserAsync(request, cancellationToken);
         return result.Status switch
         {
-            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage),
-            UserCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage),
-            UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
+            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            UserCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
+            UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.Created($"/api/v1/users/{result.Response!.Id}", result.Response)
         };
     }
@@ -1323,17 +1323,17 @@ public sealed class UsersModule : IModule
     private static bool LacksPermission(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission) =>
         !permissionMatrix.HasPermission(principal, permission);
 
-    private static IResult BadRequestWithCode(string? detail) =>
+    private static IResult BadRequestWithCode(string? detail, string? code = null) =>
         Results.BadRequest(ApiProblemDetailsFactory.Create(
             StatusCodes.Status400BadRequest,
-            ApiErrorCodeResolver.Resolve(detail, ApiErrorCodes.RequestValidationFailed),
+            code ?? ApiErrorCodeResolver.Resolve(detail, ApiErrorCodes.RequestValidationFailed),
             "Validation failed.",
             detail));
 
-    private static IResult ConflictWithCode(string? detail) =>
+    private static IResult ConflictWithCode(string? detail, string? code = null) =>
         Results.Conflict(ApiProblemDetailsFactory.Create(
             StatusCodes.Status409Conflict,
-            ApiErrorCodeResolver.Resolve(detail, ApiErrorCodes.RequestValidationFailed),
+            code ?? ApiErrorCodeResolver.Resolve(detail, ApiErrorCodes.RequestValidationFailed),
             "Request conflict.",
             detail));
 
@@ -1344,10 +1344,10 @@ public sealed class UsersModule : IModule
             "Resource not found.",
             detail));
 
-    private static IResult ProblemWithCode(string? title, string? detail, int? statusCode, string fallbackCode) =>
+    private static IResult ProblemWithCode(string? title, string? detail, string? code, int? statusCode, string fallbackCode) =>
         Results.Problem(ApiProblemDetailsFactory.Create(
             statusCode ?? StatusCodes.Status500InternalServerError,
-            ApiErrorCodeResolver.Resolve(detail, fallbackCode),
+            code ?? ApiErrorCodeResolver.Resolve(detail, fallbackCode),
             title ?? "Request failed.",
             detail));
 

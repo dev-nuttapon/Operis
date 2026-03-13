@@ -3,6 +3,7 @@ using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Users.Application;
 
@@ -21,13 +22,13 @@ public sealed class UserOrgAssignmentCommands(
         var departmentValidation = await ValidateDepartmentSelectionAsync(request.DivisionId, request.DepartmentId, cancellationToken);
         if (!departmentValidation.Success)
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, departmentValidation.ErrorMessage);
+            return new UserCommandResult(UserCommandStatus.ValidationError, departmentValidation.ErrorMessage, ApiErrorCodeResolver.Resolve(departmentValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var positionValidation = await ValidatePositionSelectionAsync(request.DepartmentId, request.PositionId, cancellationToken);
         if (!positionValidation.Success)
         {
-            return new UserCommandResult(UserCommandStatus.ValidationError, positionValidation.ErrorMessage);
+            return new UserCommandResult(UserCommandStatus.ValidationError, positionValidation.ErrorMessage, ApiErrorCodeResolver.Resolve(positionValidation.ErrorMessage, ApiErrorCodes.RequestValidationFailed));
         }
 
         var existing = await dbContext.UserOrgAssignments
