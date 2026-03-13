@@ -90,6 +90,11 @@ const quickActions: ProjectWorkspacePrototypeQuickAction[] = [
     targetSection: "orgChart",
   },
   {
+    id: "workflow",
+    labelKey: "project_workspace_prototype.quick_actions.workflow",
+    targetSection: "workflow",
+  },
+  {
     id: "compliance",
     labelKey: "project_workspace_prototype.quick_actions.compliance",
     targetSection: "compliance",

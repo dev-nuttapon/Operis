@@ -24,6 +24,7 @@ import type { DataNode } from "antd/es/tree";
 import {
   AuditOutlined,
   ClusterOutlined,
+  DeploymentUnitOutlined,
   FileSearchOutlined,
   ProfileOutlined,
   ProjectOutlined,
@@ -148,6 +149,7 @@ export function ProjectWorkspacePrototypePage() {
       { label: t("project_workspace_prototype.sections.team"), value: "team" },
       { label: t("project_workspace_prototype.sections.org_chart"), value: "orgChart" },
       { label: t("project_workspace_prototype.sections.roles"), value: "roles" },
+      { label: t("project_workspace_prototype.sections.workflow"), value: "workflow" },
       { label: t("project_workspace_prototype.sections.compliance"), value: "compliance" },
       { label: t("project_workspace_prototype.sections.evidence"), value: "evidence" },
       { label: t("project_workspace_prototype.sections.audit_trail"), value: "auditTrail" },
@@ -433,6 +435,79 @@ export function ProjectWorkspacePrototypePage() {
                     </Space>
                   ),
                 }))}
+              />
+            </Card>
+          </Space>
+        );
+      case "workflow":
+        return (
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Card size="small" title={t("project_workspace_prototype.workflow.title")}>
+              <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                <Typography.Text type="secondary">
+                  {t("project_workspace_prototype.workflow.description")}
+                </Typography.Text>
+                <Steps current={0} responsive items={workflowPreviewSteps} />
+              </Space>
+            </Card>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} xl={12}>
+                <Card size="small" title={t("project_workspace_prototype.workflow.required_evidence_title")}>
+                  <List
+                    dataSource={sizedRequiredDocuments}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <Space direction="vertical" size={2} style={{ width: "100%" }}>
+                          <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+                            <Space>
+                              <Tag>{item.code}</Tag>
+                              <Typography.Text strong>{item.name}</Typography.Text>
+                            </Space>
+                            <Tag color={item.status === "Ready" ? "green" : item.status === "Draft" ? "gold" : "red"}>
+                              {item.status}
+                            </Tag>
+                          </Flex>
+                          <Typography.Text type="secondary">
+                            {t("project_workspace_prototype.workflow.required_evidence_meta", {
+                              owner: item.ownerRoleCode,
+                              stage: item.stage,
+                            })}
+                          </Typography.Text>
+                        </Space>
+                      </List.Item>
+                    )}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} xl={12}>
+                <Card size="small" title={t("project_workspace_prototype.workflow.gates_title")}>
+                  <Timeline
+                    items={approvalSteps.map((step, index) => ({
+                      color: index === approvalSteps.length - 1 ? "green" : "blue",
+                      children: (
+                        <Space direction="vertical" size={2}>
+                          <Typography.Text strong>{`${step.roleCode} · ${step.roleName}`}</Typography.Text>
+                          <Typography.Text>{step.action}</Typography.Text>
+                          <Typography.Text type="secondary">{step.output}</Typography.Text>
+                        </Space>
+                      ),
+                    }))}
+                  />
+                </Card>
+              </Col>
+            </Row>
+            <Card size="small" title={t("project_workspace_prototype.workflow.live_questions_title")}>
+              <List
+                dataSource={[
+                  t("project_workspace_prototype.workflow.questions.1"),
+                  t("project_workspace_prototype.workflow.questions.2"),
+                  t("project_workspace_prototype.workflow.questions.3"),
+                ]}
+                renderItem={(item) => (
+                  <List.Item>
+                    <Typography.Text>{item}</Typography.Text>
+                  </List.Item>
+                )}
               />
             </Card>
           </Space>
@@ -773,6 +848,7 @@ export function ProjectWorkspacePrototypePage() {
                           { icon: <TeamOutlined />, label: t("project_workspace_prototype.side_panels.team_register") },
                           { icon: <ClusterOutlined />, label: t("project_workspace_prototype.side_panels.org_chart") },
                           { icon: <ProfileOutlined />, label: t("project_workspace_prototype.side_panels.role_matrix") },
+                          { icon: <DeploymentUnitOutlined />, label: t("project_workspace_prototype.side_panels.workflow") },
                           { icon: <SafetyCertificateOutlined />, label: t("project_workspace_prototype.side_panels.compliance") },
                           { icon: <FileSearchOutlined />, label: t("project_workspace_prototype.side_panels.evidence") },
                           { icon: <AuditOutlined />, label: t("project_workspace_prototype.side_panels.audit") },

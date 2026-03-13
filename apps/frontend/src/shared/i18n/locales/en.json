@@ -797,6 +797,7 @@
       "team": "Team",
       "org_chart": "Org Chart",
       "roles": "Roles",
+      "workflow": "Workflow",
       "compliance": "Compliance",
       "evidence": "Evidence",
       "audit_trail": "Audit Trail"
@@ -822,6 +823,7 @@
     "quick_actions": {
       "role_gap": "Open role coverage gap",
       "org_chart": "Review project org chart",
+      "workflow": "Open workflow preview",
       "compliance": "Open compliance checks",
       "evidence": "Review evidence pack",
       "audit": "Open audit trail"
@@ -886,6 +888,19 @@
       },
       "dependencies_title": "Role Dependency Map"
     },
+    "workflow": {
+      "title": "Workflow Preview",
+      "description": "Use this section to validate how project roles, approval gates, and required evidence should flow before wiring live workflow behavior.",
+      "required_evidence_title": "Required Evidence by Stage",
+      "required_evidence_meta": "Owner role: {{owner}} · Stage: {{stage}}",
+      "gates_title": "Approval Gates",
+      "live_questions_title": "Questions to Validate",
+      "questions": {
+        "1": "Is it obvious which role is expected to review, approve, or release at each step?",
+        "2": "Can the team understand which evidence must exist before the next gate opens?",
+        "3": "Would a project lead know where to click next when a gate is blocked?"
+      }
+    },
     "compliance": {
       "title": "Compliance Readiness Checklist",
       "drill_down": "Open related section",
@@ -943,6 +958,7 @@
       "team_register": "Team register",
       "org_chart": "Project org chart",
       "role_matrix": "Role matrix",
+      "workflow": "Workflow preview",
       "compliance": "Compliance checklist",
       "evidence": "Evidence package",
       "audit": "Audit trail",

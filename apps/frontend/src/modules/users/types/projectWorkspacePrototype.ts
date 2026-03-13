@@ -3,6 +3,7 @@ export type ProjectWorkspacePrototypeSection =
   | "team"
   | "orgChart"
   | "roles"
+  | "workflow"
   | "compliance"
   | "evidence"
   | "auditTrail";
