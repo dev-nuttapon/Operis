@@ -147,7 +147,9 @@
     "master_departments": "Departments",
     "master_job_titles": "Job Titles",
     "master_positions": "Positions",
+    "projects": "Projects",
     "master_project_roles": "Project Roles",
+    "project_members": "Project Members",
     "notifications": "Notifications",
     "mark_all_read": "Mark all as read",
     "view_all_notifications": "View all (3)",
@@ -168,6 +170,8 @@
       "confirm": "Confirm",
       "confirm_delete": "Confirm Deletion",
       "copy_link": "Copy link",
+      "yes": "Yes",
+      "no": "No",
       "send_invitation": "Send Invitation",
       "approve": "Approve",
       "reject": "Reject"
@@ -464,6 +468,121 @@
       "list_title": "Affiliation Assignments",
       "modal_title": "Set affiliation for {{email}}",
       "modal_title_fallback": "Set user affiliation"
+    }
+  },
+  "projects": {
+    "page_title": "Projects",
+    "page_description": "Create and manage projects before assigning project roles and members.",
+    "search_placeholder": "Search by project code or name",
+    "create_action": "Add Project",
+    "create_modal_title": "Add Project",
+    "edit_modal_title": "Edit Project",
+    "edit_modal_title_with_name": "Edit project {{name}}",
+    "delete_modal_title": "Delete Project",
+    "delete_modal_title_with_name": "Delete project {{name}}",
+    "delete_description": "Confirm the soft delete and provide a reason.",
+    "fields": {
+      "code": "Project code",
+      "name": "Project name",
+      "status": "Status",
+      "period": "Project period"
+    },
+    "placeholders": {
+      "code": "e.g. PRJ-2026-001",
+      "name": "e.g. ERP Rollout",
+      "delete_reason": "e.g. project cancelled / replaced with a new record"
+    },
+    "columns": {
+      "code": "Project Code",
+      "name": "Project Name",
+      "status": "Status",
+      "start_at": "Start",
+      "end_at": "End"
+    },
+    "messages": {
+      "created": "Created project {{name}}",
+      "updated": "Updated project {{name}}",
+      "deleted": "Deleted project {{name}}",
+      "create_failed": "Unable to create the project",
+      "update_failed": "Unable to update the project",
+      "delete_failed": "Unable to delete the project"
+    }
+  },
+  "project_roles": {
+    "page_title": "Project Roles",
+    "page_description": "Select a project first, then define the roles that apply only to that project.",
+    "select_project_placeholder": "Select project",
+    "select_project_message": "Select a project before managing project roles.",
+    "search_placeholder": "Search project role",
+    "create_action": "Add Project Role",
+    "create_modal_title": "Add Project Role",
+    "edit_modal_title": "Edit Project Role",
+    "edit_modal_title_with_name": "Edit project role {{name}}",
+    "delete_modal_title": "Delete Project Role",
+    "delete_modal_title_with_name": "Delete project role {{name}}",
+    "delete_description": "Confirm deletion of a role from project {{project}} and provide a reason.",
+    "fields": {
+      "project": "Project",
+      "name": "Role name",
+      "display_order": "Display order"
+    },
+    "placeholders": {
+      "name": "e.g. Project Manager",
+      "delete_reason": "e.g. role structure updated / previous item removed"
+    },
+    "columns": {
+      "name": "Role Name",
+      "display_order": "Display Order"
+    },
+    "messages": {
+      "created": "Created project role {{name}}",
+      "updated": "Updated project role {{name}}",
+      "deleted": "Deleted project role {{name}}",
+      "create_failed": "Unable to create the project role",
+      "update_failed": "Unable to update the project role",
+      "delete_failed": "Unable to delete the project role"
+    }
+  },
+  "project_members": {
+    "page_title": "Project Members",
+    "page_description": "Select a project to manage who is in the project, which role each person holds, and who they report to within the project.",
+    "select_project_placeholder": "Select project",
+    "select_project_message": "Select a project before managing project members.",
+    "search_placeholder": "Search by member or project role",
+    "create_action": "Add Project Member",
+    "create_modal_title": "Add Project Member",
+    "edit_modal_title": "Edit Project Member",
+    "edit_modal_title_with_name": "Edit project member {{name}}",
+    "delete_modal_title": "Remove Project Member",
+    "delete_modal_title_with_name": "Remove project member {{name}}",
+    "delete_description": "Confirm removing this member from the project.",
+    "fields": {
+      "user": "User",
+      "project_role": "Project role",
+      "reports_to": "Reports to",
+      "period": "Assignment period",
+      "is_primary": "Set as the primary role in this project"
+    },
+    "placeholders": {
+      "user": "Select user",
+      "project_role": "Select project role",
+      "reports_to": "Select manager in the project"
+    },
+    "columns": {
+      "member": "Member",
+      "project_role": "Project Role",
+      "reports_to": "Reports To",
+      "primary": "Primary",
+      "start_at": "Start",
+      "end_at": "End"
+    },
+    "messages": {
+      "created": "Added the member to the project",
+      "updated": "Updated the project member",
+      "deleted": "Removed the member from the project",
+      "create_failed": "Unable to add the member to the project",
+      "update_failed": "Unable to update the project member",
+      "delete_failed": "Unable to remove the member from the project"
     }
   },
   "documents": {

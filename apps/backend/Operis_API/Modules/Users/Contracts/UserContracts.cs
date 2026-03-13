@@ -19,6 +19,12 @@ public sealed record CreateDepartmentRequest(string Name, int DisplayOrder, Guid
 public sealed record UpdateDepartmentRequest(string Name, int DisplayOrder, Guid? DivisionId);
 public sealed record CreateJobTitleRequest(string Name, int DisplayOrder, Guid? DepartmentId);
 public sealed record UpdateJobTitleRequest(string Name, int DisplayOrder, Guid? DepartmentId);
+public sealed record CreateProjectRequest(string Code, string Name, string Status, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
+public sealed record UpdateProjectRequest(string Code, string Name, string Status, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
+public sealed record CreateProjectRoleRequest(Guid ProjectId, string Name, int DisplayOrder);
+public sealed record UpdateProjectRoleRequest(Guid ProjectId, string Name, int DisplayOrder);
+public sealed record CreateProjectAssignmentRequest(string UserId, Guid ProjectId, Guid ProjectRoleId, string? ReportsToUserId, bool IsPrimary, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
+public sealed record UpdateProjectAssignmentRequest(string UserId, Guid ProjectId, Guid ProjectRoleId, string? ReportsToUserId, bool IsPrimary, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
 public sealed record SoftDeleteRequest(string Reason);
 
 public sealed record UserResponse(
@@ -126,3 +132,42 @@ public sealed record MasterDataResponse(
     DateTimeOffset? DeletedAt);
 
 public sealed record AppRoleResponse(Guid Id, string Name, string KeycloakRoleName, string? Description, int DisplayOrder);
+public sealed record ProjectResponse(
+    Guid Id,
+    string Code,
+    string Name,
+    string Status,
+    DateTimeOffset? StartAt,
+    DateTimeOffset? EndAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    string? DeletedReason,
+    string? DeletedBy,
+    DateTimeOffset? DeletedAt);
+public sealed record ProjectRoleResponse(
+    Guid Id,
+    Guid? ProjectId,
+    string? ProjectName,
+    string Name,
+    int DisplayOrder,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    string? DeletedReason,
+    string? DeletedBy,
+    DateTimeOffset? DeletedAt);
+public sealed record ProjectAssignmentResponse(
+    Guid Id,
+    string UserId,
+    string? UserEmail,
+    string? UserDisplayName,
+    Guid ProjectId,
+    string ProjectName,
+    Guid ProjectRoleId,
+    string ProjectRoleName,
+    string? ReportsToUserId,
+    string? ReportsToDisplayName,
+    bool IsPrimary,
+    DateTimeOffset StartAt,
+    DateTimeOffset? EndAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);

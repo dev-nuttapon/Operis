@@ -17,7 +17,7 @@ public sealed class UserReferenceDataCommandsTests
         var sut = new UserReferenceDataCommands(dbContext, auditLogWriter, referenceDataCache);
 
         var result = await sut.CreateDepartmentAsync(
-            new CreateMasterDataRequest("Quality", 10),
+            new CreateDepartmentRequest("Quality", 10, null),
             CancellationToken.None);
 
         var department = await dbContext.Departments.SingleAsync(x => x.Name == "Quality");
@@ -46,7 +46,7 @@ public sealed class UserReferenceDataCommandsTests
         var sut = new UserReferenceDataCommands(dbContext, auditLogWriter, referenceDataCache);
 
         var result = await sut.CreateDepartmentAsync(
-            new CreateMasterDataRequest("Quality", 10),
+            new CreateDepartmentRequest("Quality", 10, null),
             CancellationToken.None);
 
         Assert.Equal(MasterDataCommandStatus.Conflict, result.Status);

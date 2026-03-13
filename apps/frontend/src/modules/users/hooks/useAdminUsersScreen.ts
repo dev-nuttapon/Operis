@@ -78,14 +78,6 @@ export function useAdminUsersScreen(input: {
     sortBy: "displayOrder",
     sortOrder: "asc" as "asc" | "desc",
   });
-  const [projectRolePaging, setProjectRolePaging] = useState({
-    page: 1,
-    pageSize: 10,
-    search: "",
-    sortBy: "displayOrder",
-    sortOrder: "asc" as "asc" | "desc",
-  });
-
   const adminUsers = useAdminUsers({
     users: usersPaging,
     registrationRequests: registrationPaging,
@@ -93,7 +85,6 @@ export function useAdminUsersScreen(input: {
     divisions: divisionPaging,
     departments: departmentPaging,
     jobTitles: jobTitlePaging,
-    projectRoles: projectRolePaging,
   });
 
   const [inviteForm] = Form.useForm();
@@ -108,12 +99,9 @@ export function useAdminUsersScreen(input: {
   const [editDepartmentForm] = Form.useForm();
   const [createJobTitleForm] = Form.useForm();
   const [editJobTitleForm] = Form.useForm();
-  const [createProjectRoleForm] = Form.useForm();
-  const [editProjectRoleForm] = Form.useForm();
   const [deleteDivisionForm] = Form.useForm();
   const [deleteDepartmentForm] = Form.useForm();
   const [deleteJobTitleForm] = Form.useForm();
-  const [deleteProjectRoleForm] = Form.useForm();
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
@@ -124,7 +112,6 @@ export function useAdminUsersScreen(input: {
   const [editingDivision, setEditingDivision] = useState<MasterDataItem | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<MasterDataItem | null>(null);
   const [editingJobTitle, setEditingJobTitle] = useState<MasterDataItem | null>(null);
-  const [editingProjectRole, setEditingProjectRole] = useState<MasterDataItem | null>(null);
   const [creatingUser, setCreatingUser] = useState(false);
   const [creatingDivision, setCreatingDivision] = useState(false);
   const [creatingDepartment, setCreatingDepartment] = useState(false);
@@ -132,8 +119,6 @@ export function useAdminUsersScreen(input: {
   const [deletingDepartment, setDeletingDepartment] = useState<MasterDataItem | null>(null);
   const [creatingJobTitle, setCreatingJobTitle] = useState(false);
   const [deletingJobTitle, setDeletingJobTitle] = useState<MasterDataItem | null>(null);
-  const [creatingProjectRole, setCreatingProjectRole] = useState(false);
-  const [deletingProjectRole, setDeletingProjectRole] = useState<MasterDataItem | null>(null);
   const [managingRegistration, setManagingRegistration] = useState<RegistrationRequest | null>(null);
 
   const handleSuccess = (message: string) => {
@@ -211,24 +196,20 @@ export function useAdminUsersScreen(input: {
     createDivisionForm,
     createDepartmentForm,
     createJobTitleForm,
-    createProjectRoleForm,
     createUserForm,
     creatingDivision,
     creatingDepartment,
     creatingInvitation,
     creatingJobTitle,
-    creatingProjectRole,
     creatingUser,
     currentSection,
     deleteDivisionForm,
     deleteDepartmentForm,
     deleteJobTitleForm,
-    deleteProjectRoleForm,
     deleteUserForm,
     deletingDivision,
     deletingDepartment,
     deletingJobTitle,
-    deletingProjectRole,
     deletingUser,
     divisionPaging,
     editDivisionForm,
@@ -236,20 +217,17 @@ export function useAdminUsersScreen(input: {
     editDepartmentForm,
     editInvitationForm,
     editJobTitleForm,
-    editProjectRoleForm,
     editUserForm,
     editingDivision,
     editingDepartment,
     editingInvitation,
     editingJobTitle,
-    editingProjectRole,
     editingUser,
     handleError,
     handleSuccess,
     invitationPaging,
     inviteForm,
     jobTitlePaging,
-    projectRolePaging,
     managingRegistration,
     registrationPaging,
     reviewRegistrationForm,
@@ -257,12 +235,10 @@ export function useAdminUsersScreen(input: {
     setCreatingDepartment,
     setCreatingInvitation,
     setCreatingJobTitle,
-    setCreatingProjectRole,
     setCreatingUser,
     setDeletingDivision,
     setDeletingDepartment,
     setDeletingJobTitle,
-    setDeletingProjectRole,
     setDeletingUser,
     setDivisionPaging,
     setDepartmentPaging,
@@ -270,11 +246,9 @@ export function useAdminUsersScreen(input: {
     setEditingDepartment,
     setEditingInvitation,
     setEditingJobTitle,
-    setEditingProjectRole,
     setEditingUser,
     setInvitationPaging,
     setJobTitlePaging,
-    setProjectRolePaging,
     setManagingRegistration,
     setRegistrationPaging,
     setUsersPaging,

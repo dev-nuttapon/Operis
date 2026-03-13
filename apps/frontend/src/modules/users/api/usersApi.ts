@@ -8,6 +8,9 @@ import type {
   CreateJobTitleInput,
   CreateMasterDataInput,
   CreateInvitationInput,
+  CreateProjectAssignmentInput,
+  CreateProjectInput,
+  CreateProjectRoleInput,
   CreateUserInput,
   RegistrationPasswordSetupDetail,
   UpdateUserInput,
@@ -16,9 +19,14 @@ import type {
   AppRoleItem,
   CreateRegistrationRequestInput,
   ListInvitationsInput,
+  ListProjectAssignmentsInput,
+  ListProjectsInput,
   ListRegistrationRequestsInput,
   ListUsersInput,
   MasterDataItem,
+  Project,
+  ProjectAssignment,
+  ProjectRole,
   RegistrationRequest,
   RejectRegistrationInput,
   SoftDeleteInput,
@@ -27,6 +35,9 @@ import type {
   UpdateDepartmentInput,
   UpdateJobTitleInput,
   UpdateInvitationInput,
+  UpdateProjectAssignmentInput,
+  UpdateProjectInput,
+  UpdateProjectRoleInput,
   UpsertUserOrgAssignmentInput,
   User,
 } from "../types/users";
@@ -268,7 +279,7 @@ export function listPublicJobTitlesByDepartment(departmentId: string, signal?: A
 }
 
 export function listProjectRoles(input?: ListQueryInput, signal?: AbortSignal) {
-  return apiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/project-roles${toListQuery(input)}`, { signal });
+  return apiRequest<PaginatedResult<ProjectRole>>(`/api/v1/users/project-roles${toListQuery(input)}`, { signal });
 }
 
 export function listPublicJobTitles(signal?: AbortSignal) {
@@ -282,8 +293,39 @@ export function createJobTitle(input: CreateJobTitleInput) {
   });
 }
 
-export function createProjectRole(input: CreateMasterDataInput) {
-  return apiRequest<MasterDataItem>("/api/v1/users/project-roles", {
+export function listProjects(input?: ListProjectsInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<Project>>(`/api/v1/users/projects${toListQuery(input)}`, { signal });
+}
+
+export function createProject(input: CreateProjectInput) {
+  return apiRequest<Project>("/api/v1/users/projects", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export function updateProject(input: UpdateProjectInput) {
+  return apiRequest<Project>(`/api/v1/users/projects/${input.id}`, {
+    method: "PUT",
+    body: {
+      code: input.code,
+      name: input.name,
+      status: input.status,
+      startAt: input.startAt,
+      endAt: input.endAt,
+    },
+  });
+}
+
+export function deleteProject(id: string, input: SoftDeleteInput) {
+  return apiRequest<void>(`/api/v1/users/projects/${id}`, {
+    method: "DELETE",
+    body: input,
+  });
+}
+
+export function createProjectRole(input: CreateProjectRoleInput) {
+  return apiRequest<ProjectRole>("/api/v1/users/project-roles", {
     method: "POST",
     body: input,
   });
@@ -296,10 +338,10 @@ export function updateJobTitle(input: UpdateJobTitleInput) {
   });
 }
 
-export function updateProjectRole(input: UpdateMasterDataInput) {
-  return apiRequest<MasterDataItem>(`/api/v1/users/project-roles/${input.id}`, {
+export function updateProjectRole(input: UpdateProjectRoleInput) {
+  return apiRequest<ProjectRole>(`/api/v1/users/project-roles/${input.id}`, {
     method: "PUT",
-    body: { name: input.name, displayOrder: input.displayOrder },
+    body: { projectId: input.projectId, name: input.name, displayOrder: input.displayOrder },
   });
 }
 
@@ -314,6 +356,45 @@ export function deleteProjectRole(id: string, input: SoftDeleteInput) {
   return apiRequest<void>(`/api/v1/users/project-roles/${id}`, {
     method: "DELETE",
     body: input,
+  });
+}
+
+export function listProjectAssignments(input: ListProjectAssignmentsInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  params.set("projectId", input.projectId);
+  if (input.page) params.set("page", String(input.page));
+  if (input.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input.search) params.set("search", input.search);
+  if (input.sortBy) params.set("sortBy", input.sortBy);
+  if (input.sortOrder) params.set("sortOrder", input.sortOrder);
+  return apiRequest<PaginatedResult<ProjectAssignment>>(`/api/v1/users/project-assignments?${params.toString()}`, { signal });
+}
+
+export function createProjectAssignment(input: CreateProjectAssignmentInput) {
+  return apiRequest<ProjectAssignment>("/api/v1/users/project-assignments", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export function updateProjectAssignment(input: UpdateProjectAssignmentInput) {
+  return apiRequest<ProjectAssignment>(`/api/v1/users/project-assignments/${input.id}`, {
+    method: "PUT",
+    body: {
+      userId: input.userId,
+      projectId: input.projectId,
+      projectRoleId: input.projectRoleId,
+      reportsToUserId: input.reportsToUserId,
+      isPrimary: input.isPrimary,
+      startAt: input.startAt,
+      endAt: input.endAt,
+    },
+  });
+}
+
+export function deleteProjectAssignment(id: string) {
+  return apiRequest<void>(`/api/v1/users/project-assignments/${id}`, {
+    method: "DELETE",
   });
 }
 

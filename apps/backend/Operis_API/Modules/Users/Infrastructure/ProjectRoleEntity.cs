@@ -3,6 +3,7 @@ namespace Operis_API.Modules.Users.Infrastructure;
 public sealed class ProjectRoleEntity
 {
     public Guid Id { get; init; }
+    public Guid? ProjectId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int DisplayOrder { get; set; }
     public DateTimeOffset CreatedAt { get; init; }

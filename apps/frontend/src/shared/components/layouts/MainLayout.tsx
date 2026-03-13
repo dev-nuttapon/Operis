@@ -167,8 +167,16 @@ export function MainLayout() {
                   label: tr('common.master_project_structure'),
                   children: [
                     {
-                      key: '/app/admin/master/project-roles',
+                      key: '/app/admin/projects',
+                      label: tr('common.projects'),
+                    },
+                    {
+                      key: '/app/admin/project-roles',
                       label: tr('common.master_project_roles'),
+                    },
+                    {
+                      key: '/app/admin/project-members',
+                      label: tr('common.project_members'),
                     },
                   ],
                 },
@@ -252,7 +260,9 @@ export function MainLayout() {
     if (path.includes('admin/master/divisions')) return tr('common.master_divisions');
     if (path.includes('admin/master/departments')) return tr('common.master_departments');
     if (path.includes('admin/master/positions')) return tr('common.master_positions');
-    if (path.includes('admin/master/project-roles')) return tr('common.master_project_roles');
+    if (path.includes('admin/projects')) return tr('common.projects');
+    if (path.includes('admin/project-roles')) return tr('common.master_project_roles');
+    if (path.includes('admin/project-members')) return tr('common.project_members');
     if (path.includes('admin/master')) return tr('common.master_data_management');
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
     if (path.includes('admin/registrations')) return tr('common.registration_approvals');
@@ -488,7 +498,11 @@ function getOpenKeys(path: string) {
     return ['/app/admin', '/app/admin/master', '/app/admin/master/permanent'];
   }
 
-  if (path.startsWith('/app/admin/master/project-roles')) {
+  if (
+    path.startsWith('/app/admin/projects') ||
+    path.startsWith('/app/admin/project-roles') ||
+    path.startsWith('/app/admin/project-members')
+  ) {
     return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
   }
 

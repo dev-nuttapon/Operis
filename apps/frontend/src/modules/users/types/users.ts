@@ -35,6 +35,23 @@ export interface ListInvitationsInput {
   pageSize?: number;
 }
 
+export interface ListProjectsInput {
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListProjectAssignmentsInput {
+  projectId: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
 export interface ReferenceDataListInput {
   search?: string;
   sortBy?: string;
@@ -249,6 +266,87 @@ export interface AppRoleItem {
   keycloakRoleName: string;
   description: string | null;
   displayOrder: number;
+}
+
+export interface Project {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  startAt: string | null;
+  endAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  deletedReason: string | null;
+  deletedBy: string | null;
+  deletedAt: string | null;
+}
+
+export interface ProjectRole {
+  id: string;
+  projectId: string | null;
+  projectName: string | null;
+  name: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string | null;
+  deletedReason: string | null;
+  deletedBy: string | null;
+  deletedAt: string | null;
+}
+
+export interface ProjectAssignment {
+  id: string;
+  userId: string;
+  userEmail: string | null;
+  userDisplayName: string | null;
+  projectId: string;
+  projectName: string;
+  projectRoleId: string;
+  projectRoleName: string;
+  reportsToUserId: string | null;
+  reportsToDisplayName: string | null;
+  isPrimary: boolean;
+  startAt: string;
+  endAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateProjectInput {
+  code: string;
+  name: string;
+  status: string;
+  startAt?: string;
+  endAt?: string;
+}
+
+export interface UpdateProjectInput extends CreateProjectInput {
+  id: string;
+}
+
+export interface CreateProjectRoleInput {
+  projectId: string;
+  name: string;
+  displayOrder: number;
+}
+
+export interface UpdateProjectRoleInput extends CreateProjectRoleInput {
+  id: string;
+}
+
+export interface CreateProjectAssignmentInput {
+  userId: string;
+  projectId: string;
+  projectRoleId: string;
+  reportsToUserId?: string;
+  isPrimary: boolean;
+  startAt?: string;
+  endAt?: string;
+}
+
+export interface UpdateProjectAssignmentInput extends CreateProjectAssignmentInput {
+  id: string;
 }
 
 export interface ApproveRegistrationInput {

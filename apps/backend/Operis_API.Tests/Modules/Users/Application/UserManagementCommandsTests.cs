@@ -35,6 +35,7 @@ public sealed class UserManagementCommandsTests
                 "admin@example.com",
                 null,
                 null,
+                null,
                 [Guid.NewGuid()]),
             CancellationToken.None);
 
@@ -65,6 +66,7 @@ public sealed class UserManagementCommandsTests
                 "Password123!",
                 "Password123!",
                 "admin@example.com",
+                null,
                 null,
                 null,
                 []),

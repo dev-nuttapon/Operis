@@ -6,6 +6,7 @@ public sealed class UserProjectAssignmentEntity
     public string UserId { get; set; } = string.Empty;
     public Guid ProjectId { get; set; }
     public Guid ProjectRoleId { get; set; }
+    public string? ReportsToUserId { get; set; }
     public bool IsPrimary { get; set; }
     public DateTimeOffset StartAt { get; set; }
     public DateTimeOffset? EndAt { get; set; }

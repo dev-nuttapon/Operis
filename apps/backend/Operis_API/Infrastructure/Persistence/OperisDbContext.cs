@@ -117,6 +117,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.ToTable("project_roles");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
             entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
@@ -124,8 +125,10 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
             entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
-            entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Name }).IsUnique().HasFilter("\"deleted_at\" IS NULL");
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
+            entity.HasIndex(x => x.ProjectId);
         });
 
         modelBuilder.Entity<UserOrgAssignmentEntity>(entity =>
@@ -204,6 +207,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.UserId).HasColumnName("user_id").HasMaxLength(64);
             entity.Property(x => x.ProjectId).HasColumnName("project_id");
             entity.Property(x => x.ProjectRoleId).HasColumnName("project_role_id");
+            entity.Property(x => x.ReportsToUserId).HasColumnName("reports_to_user_id").HasMaxLength(64);
             entity.Property(x => x.IsPrimary).HasColumnName("is_primary");
             entity.Property(x => x.StartAt).HasColumnName("start_at");
             entity.Property(x => x.EndAt).HasColumnName("end_at");
@@ -212,9 +216,11 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<ProjectRoleEntity>().WithMany().HasForeignKey(x => x.ProjectRoleId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.ReportsToUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.UserId, x.ProjectId, x.ProjectRoleId });
             entity.HasIndex(x => new { x.ProjectId, x.IsPrimary });
             entity.HasIndex(x => x.ProjectRoleId);
+            entity.HasIndex(x => x.ReportsToUserId);
         });
 
         modelBuilder.Entity<AppRoleEntity>(entity =>

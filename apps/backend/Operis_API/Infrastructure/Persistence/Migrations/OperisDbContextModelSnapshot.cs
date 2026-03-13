@@ -374,13 +374,19 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("name");
 
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ProjectId", "Name")
                         .IsUnique()
                         .HasFilter("\"deleted_at\" IS NULL");
 
@@ -677,6 +683,11 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("project_role_id");
 
+                    b.Property<string>("ReportsToUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("reports_to_user_id");
+
                     b.Property<DateTimeOffset>("StartAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("start_at");
@@ -694,6 +705,8 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectRoleId");
+
+                    b.HasIndex("ReportsToUserId");
 
                     b.HasIndex("ProjectId", "IsPrimary");
 
@@ -1032,6 +1045,14 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ProjectRoleEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ReportingLineEntity", b =>
                 {
                     b.HasOne("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", null)
@@ -1115,6 +1136,11 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ProjectRoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ReportsToUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Operis_API.Modules.Users.Infrastructure.UserEntity", null)
                         .WithMany()

@@ -147,7 +147,9 @@
     "master_departments": "แผนก",
     "master_job_titles": "ตำแหน่ง",
     "master_positions": "ตำแหน่ง",
+    "projects": "โครงการ",
     "master_project_roles": "ตำแหน่งโครงการ",
+    "project_members": "สมาชิกโครงการ",
     "notifications": "การแจ้งเตือน",
     "mark_all_read": "อ่านทั้งหมด",
     "view_all_notifications": "ดูทั้งหมด (3)",
@@ -168,6 +170,8 @@
       "confirm": "ยืนยัน",
       "confirm_delete": "ยืนยันการลบ",
       "copy_link": "คัดลอกลิงก์",
+      "yes": "ใช่",
+      "no": "ไม่ใช่",
       "send_invitation": "ส่งคำเชิญ",
       "approve": "อนุมัติ",
       "reject": "ปฏิเสธ"
@@ -464,6 +468,121 @@
       "list_title": "รายการกำหนดสังกัด",
       "modal_title": "กำหนดสังกัดให้ {{email}}",
       "modal_title_fallback": "กำหนดสังกัดผู้ใช้งาน"
+    }
+  },
+  "projects": {
+    "page_title": "โครงการ",
+    "page_description": "สร้างและจัดการโครงการ เพื่อใช้เป็นฐานสำหรับตำแหน่งและสมาชิกในแต่ละโครงการ",
+    "search_placeholder": "ค้นหาด้วยรหัสหรือชื่อโครงการ",
+    "create_action": "เพิ่มโครงการ",
+    "create_modal_title": "เพิ่มโครงการ",
+    "edit_modal_title": "แก้ไขโครงการ",
+    "edit_modal_title_with_name": "แก้ไขโครงการ {{name}}",
+    "delete_modal_title": "ลบโครงการ",
+    "delete_modal_title_with_name": "ลบโครงการ {{name}}",
+    "delete_description": "ยืนยันการลบแบบ soft delete และระบุเหตุผล",
+    "fields": {
+      "code": "รหัสโครงการ",
+      "name": "ชื่อโครงการ",
+      "status": "สถานะ",
+      "period": "ช่วงเวลาโครงการ"
+    },
+    "placeholders": {
+      "code": "เช่น PRJ-2026-001",
+      "name": "เช่น ERP Rollout",
+      "delete_reason": "เช่น ยกเลิกโครงการ / สร้างรายการใหม่แทน"
+    },
+    "columns": {
+      "code": "รหัสโครงการ",
+      "name": "ชื่อโครงการ",
+      "status": "สถานะ",
+      "start_at": "เริ่มต้น",
+      "end_at": "สิ้นสุด"
+    },
+    "messages": {
+      "created": "สร้างโครงการ {{name}} แล้ว",
+      "updated": "แก้ไขโครงการ {{name}} แล้ว",
+      "deleted": "ลบโครงการ {{name}} แล้ว",
+      "create_failed": "ไม่สามารถสร้างโครงการได้",
+      "update_failed": "ไม่สามารถแก้ไขโครงการได้",
+      "delete_failed": "ไม่สามารถลบโครงการได้"
+    }
+  },
+  "project_roles": {
+    "page_title": "ตำแหน่งในโครงการ",
+    "page_description": "เลือกโครงการก่อน แล้วจึงเพิ่มตำแหน่งที่ใช้เฉพาะในโครงการนั้น",
+    "select_project_placeholder": "เลือกโครงการ",
+    "select_project_message": "กรุณาเลือกโครงการก่อน เพื่อจัดการตำแหน่งในโครงการ",
+    "search_placeholder": "ค้นหาตำแหน่งในโครงการ",
+    "create_action": "เพิ่มตำแหน่งในโครงการ",
+    "create_modal_title": "เพิ่มตำแหน่งในโครงการ",
+    "edit_modal_title": "แก้ไขตำแหน่งในโครงการ",
+    "edit_modal_title_with_name": "แก้ไขตำแหน่งในโครงการ {{name}}",
+    "delete_modal_title": "ลบตำแหน่งในโครงการ",
+    "delete_modal_title_with_name": "ลบตำแหน่งในโครงการ {{name}}",
+    "delete_description": "ยืนยันการลบตำแหน่งของโครงการ {{project}} และระบุเหตุผล",
+    "fields": {
+      "project": "โครงการ",
+      "name": "ชื่อตำแหน่ง",
+      "display_order": "ลำดับ"
+    },
+    "placeholders": {
+      "name": "เช่น Project Manager",
+      "delete_reason": "เช่น ปรับโครงสร้างบทบาท / ยกเลิกรายการเดิม"
+    },
+    "columns": {
+      "name": "ชื่อตำแหน่ง",
+      "display_order": "ลำดับ"
+    },
+    "messages": {
+      "created": "สร้างตำแหน่งในโครงการ {{name}} แล้ว",
+      "updated": "แก้ไขตำแหน่งในโครงการ {{name}} แล้ว",
+      "deleted": "ลบตำแหน่งในโครงการ {{name}} แล้ว",
+      "create_failed": "ไม่สามารถสร้างตำแหน่งในโครงการได้",
+      "update_failed": "ไม่สามารถแก้ไขตำแหน่งในโครงการได้",
+      "delete_failed": "ไม่สามารถลบตำแหน่งในโครงการได้"
+    }
+  },
+  "project_members": {
+    "page_title": "สมาชิกโครงการ",
+    "page_description": "เลือกโครงการ แล้วกำหนดว่ามีใครบ้าง แต่ละคนอยู่ตำแหน่งอะไร และรายงานต่อใครในโครงการ",
+    "select_project_placeholder": "เลือกโครงการ",
+    "select_project_message": "กรุณาเลือกโครงการก่อน เพื่อจัดการสมาชิกของโครงการ",
+    "search_placeholder": "ค้นหาด้วยสมาชิกหรือตำแหน่งในโครงการ",
+    "create_action": "เพิ่มคนเข้าโครงการ",
+    "create_modal_title": "เพิ่มคนเข้าโครงการ",
+    "edit_modal_title": "แก้ไขสมาชิกโครงการ",
+    "edit_modal_title_with_name": "แก้ไขสมาชิกโครงการ {{name}}",
+    "delete_modal_title": "ลบสมาชิกโครงการ",
+    "delete_modal_title_with_name": "ลบสมาชิกโครงการ {{name}}",
+    "delete_description": "ยืนยันการนำสมาชิกออกจากโครงการนี้",
+    "fields": {
+      "user": "ผู้ใช้งาน",
+      "project_role": "ตำแหน่งในโครงการ",
+      "reports_to": "รายงานต่อ",
+      "period": "ช่วงเวลาการมอบหมาย",
+      "is_primary": "เป็นบทบาทหลักในโครงการนี้"
+    },
+    "placeholders": {
+      "user": "เลือกผู้ใช้งาน",
+      "project_role": "เลือกตำแหน่งในโครงการ",
+      "reports_to": "เลือกหัวหน้าในโครงการ"
+    },
+    "columns": {
+      "member": "สมาชิก",
+      "project_role": "ตำแหน่งในโครงการ",
+      "reports_to": "รายงานต่อ",
+      "primary": "หลัก",
+      "start_at": "เริ่มต้น",
+      "end_at": "สิ้นสุด"
+    },
+    "messages": {
+      "created": "เพิ่มสมาชิกเข้าโครงการแล้ว",
+      "updated": "แก้ไขสมาชิกโครงการแล้ว",
+      "deleted": "ลบสมาชิกออกจากโครงการแล้ว",
+      "create_failed": "ไม่สามารถเพิ่มสมาชิกเข้าโครงการได้",
+      "update_failed": "ไม่สามารถแก้ไขสมาชิกโครงการได้",
+      "delete_failed": "ไม่สามารถลบสมาชิกออกจากโครงการได้"
     }
   },
   "documents": {

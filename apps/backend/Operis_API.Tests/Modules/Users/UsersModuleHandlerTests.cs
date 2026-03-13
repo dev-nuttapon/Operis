@@ -19,7 +19,7 @@ public sealed class UsersModuleHandlerTests
         var commands = new UserReferenceDataCommands(dbContext, auditLogWriter, referenceDataCache);
 
         var result = await InvokeCreateDepartmentAsync(
-            new CreateMasterDataRequest("Quality", 1),
+            new CreateDepartmentRequest("Quality", 1, null),
             commands);
 
         var httpContext = TestHttpContextFactory.Create();
@@ -47,7 +47,7 @@ public sealed class UsersModuleHandlerTests
         var commands = new UserReferenceDataCommands(dbContext, auditLogWriter, referenceDataCache);
 
         var result = await InvokeCreateDepartmentAsync(
-            new CreateMasterDataRequest("Quality", 1),
+            new CreateDepartmentRequest("Quality", 1, null),
             commands);
 
         var httpContext = TestHttpContextFactory.Create();
@@ -56,7 +56,7 @@ public sealed class UsersModuleHandlerTests
         Assert.Equal(StatusCodes.Status409Conflict, httpContext.Response.StatusCode);
     }
 
-    private static async Task<IResult> InvokeCreateDepartmentAsync(CreateMasterDataRequest request, IUserReferenceDataCommands commands)
+    private static async Task<IResult> InvokeCreateDepartmentAsync(CreateDepartmentRequest request, IUserReferenceDataCommands commands)
     {
         var method = typeof(UsersModule).GetMethod(
             "CreateDepartmentAsync",

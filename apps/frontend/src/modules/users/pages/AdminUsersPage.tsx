@@ -62,15 +62,12 @@ export function AdminUsersPage() {
     createInvitationMutation,
     createJobTitleForm,
     createJobTitleMutation,
-    createProjectRoleForm,
-    createProjectRoleMutation,
     createUserForm,
     createUserMutation,
     creatingDivision,
     creatingDepartment,
     creatingInvitation,
     creatingJobTitle,
-    creatingProjectRole,
     creatingUser,
     currentSection,
     deleteDivisionForm,
@@ -79,14 +76,11 @@ export function AdminUsersPage() {
     deleteDepartmentMutation,
     deleteJobTitleForm,
     deleteJobTitleMutation,
-    deleteProjectRoleForm,
-    deleteProjectRoleMutation,
     deleteUserForm,
     deleteUserMutation,
     deletingDivision,
     deletingDepartment,
     deletingJobTitle,
-    deletingProjectRole,
     deletingUser,
     divisionPaging,
     divisionOptionsQuery,
@@ -98,13 +92,11 @@ export function AdminUsersPage() {
     editDepartmentForm,
     editInvitationForm,
     editJobTitleForm,
-    editProjectRoleForm,
     editUserForm,
     editingDivision,
     editingDepartment,
     editingInvitation,
     editingJobTitle,
-    editingProjectRole,
     editingUser,
     handleError,
     handleSuccess,
@@ -113,8 +105,6 @@ export function AdminUsersPage() {
     inviteForm,
     jobTitlePaging,
     jobTitlesQuery,
-    projectRolePaging,
-    projectRolesQuery,
     managingRegistration,
     registrationPaging,
     registrationRequestsQuery,
@@ -125,12 +115,10 @@ export function AdminUsersPage() {
     setCreatingDepartment,
     setCreatingInvitation,
     setCreatingJobTitle,
-    setCreatingProjectRole,
     setCreatingUser,
     setDeletingDivision,
     setDeletingDepartment,
     setDeletingJobTitle,
-    setDeletingProjectRole,
     setDeletingUser,
     setDivisionPaging,
     setDepartmentPaging,
@@ -138,11 +126,9 @@ export function AdminUsersPage() {
     setEditingDepartment,
     setEditingInvitation,
     setEditingJobTitle,
-    setEditingProjectRole,
     setEditingUser,
     setInvitationPaging,
     setJobTitlePaging,
-    setProjectRolePaging,
     setManagingRegistration,
     setRegistrationPaging,
     setUsersPaging,
@@ -152,7 +138,6 @@ export function AdminUsersPage() {
     updateDepartmentMutation,
     updateInvitationMutation,
     updateJobTitleMutation,
-    updateProjectRoleMutation,
     updateUserMutation,
     usersPaging,
     usersQuery,
@@ -425,37 +410,6 @@ export function AdminUsersPage() {
           />
         </Suspense>
       );
-    } else if (currentSection === "master-project-roles") {
-      pageTitle = t("admin_users.master.project_roles_title");
-      pageDescription = t("admin_users.master.project_roles_page_description");
-      pageContent = (
-        <Suspense fallback={null}>
-          <AdminMasterDataSection
-            createLabel={t("admin_users.master.create_project_role")}
-            data={projectRolesQuery.data?.items ?? []}
-            deleting={deleteProjectRoleMutation.isPending}
-            description={t("admin_users.master.project_roles_description")}
-            itemLabel={t("admin_users.columns.project_role")}
-            loading={projectRolesQuery.isLoading}
-            paging={projectRolePaging}
-            pagination={projectRolesQuery.data}
-            searchPlaceholder={t("admin_users.placeholders.search_project_roles")}
-            setCreating={setCreatingProjectRole}
-            setDeleting={setDeletingProjectRole}
-            setEditing={setEditingProjectRole}
-            setPaging={setProjectRolePaging}
-            t={t}
-            title={t("admin_users.master.project_roles_title")}
-            onDeletePrepare={() => {
-              deleteProjectRoleForm.resetFields();
-            }}
-            onEdit={(item) => {
-              editProjectRoleForm.setFieldValue("editName", item.name);
-              editProjectRoleForm.setFieldValue("editDisplayOrder", item.displayOrder);
-            }}
-          />
-        </Suspense>
-      );
     } else {
       pageContent = (
         <Suspense fallback={null}>
@@ -508,7 +462,7 @@ export function AdminUsersPage() {
         </Space>
       </Card>
 
-      {(usersQuery.error || registrationRequestsQuery.error || invitationsQuery.error || divisionsQuery.error || departmentsQuery.error || jobTitlesQuery.error || projectRolesQuery.error) ? (
+      {(usersQuery.error || registrationRequestsQuery.error || invitationsQuery.error || divisionsQuery.error || departmentsQuery.error || jobTitlesQuery.error) ? (
         <Alert
           type="error"
           showIcon
@@ -519,8 +473,7 @@ export function AdminUsersPage() {
               ?? invitationsQuery.error
               ?? divisionsQuery.error
               ?? departmentsQuery.error
-              ?? jobTitlesQuery.error
-              ?? projectRolesQuery.error;
+              ?? jobTitlesQuery.error;
             const presentation = getApiErrorPresentation(sourceError, t("errors.load_admin_data"));
             return presentation.description;
           })()}
@@ -829,7 +782,7 @@ export function AdminUsersPage() {
         </Suspense>
       ) : null}
 
-      {(creatingDivision || editingDivision !== null || deletingDivision !== null || creatingDepartment || editingDepartment !== null || deletingDepartment !== null || creatingJobTitle || editingJobTitle !== null || deletingJobTitle !== null || creatingProjectRole || editingProjectRole !== null || deletingProjectRole !== null) ? (
+      {(creatingDivision || editingDivision !== null || deletingDivision !== null || creatingDepartment || editingDepartment !== null || deletingDepartment !== null || creatingJobTitle || editingJobTitle !== null || deletingJobTitle !== null) ? (
         <Suspense fallback={null}>
           <AdminMasterDataModals
             createDivisionForm={createDivisionForm}
@@ -838,24 +791,18 @@ export function AdminUsersPage() {
             createDepartmentLoading={createDepartmentMutation.isPending}
             createJobTitleForm={createJobTitleForm}
             createJobTitleLoading={createJobTitleMutation.isPending}
-            createProjectRoleForm={createProjectRoleForm}
-            createProjectRoleLoading={createProjectRoleMutation.isPending}
             creatingDivision={creatingDivision}
             creatingDepartment={creatingDepartment}
             creatingJobTitle={creatingJobTitle}
-            creatingProjectRole={creatingProjectRole}
             deleteDivisionForm={deleteDivisionForm}
             deleteDivisionLoading={deleteDivisionMutation.isPending}
             deleteDepartmentForm={deleteDepartmentForm}
             deleteDepartmentLoading={deleteDepartmentMutation.isPending}
             deleteJobTitleForm={deleteJobTitleForm}
             deleteJobTitleLoading={deleteJobTitleMutation.isPending}
-            deleteProjectRoleForm={deleteProjectRoleForm}
-            deleteProjectRoleLoading={deleteProjectRoleMutation.isPending}
             deletingDivision={deletingDivision}
             deletingDepartment={deletingDepartment}
             deletingJobTitle={deletingJobTitle}
-            deletingProjectRole={deletingProjectRole}
             divisionOptions={divisionOptions}
             departmentOptions={departmentOptions}
             editDivisionForm={editDivisionForm}
@@ -864,12 +811,9 @@ export function AdminUsersPage() {
             editDepartmentLoading={updateDepartmentMutation.isPending}
             editJobTitleForm={editJobTitleForm}
             editJobTitleLoading={updateJobTitleMutation.isPending}
-            editProjectRoleForm={editProjectRoleForm}
-            editProjectRoleLoading={updateProjectRoleMutation.isPending}
             editingDivision={editingDivision}
             editingDepartment={editingDepartment}
             editingJobTitle={editingJobTitle}
-            editingProjectRole={editingProjectRole}
             onCloseCreateDivision={() => {
               setCreatingDivision(false);
               createDivisionForm.resetFields();
@@ -881,10 +825,6 @@ export function AdminUsersPage() {
             onCloseCreateJobTitle={() => {
               setCreatingJobTitle(false);
               createJobTitleForm.resetFields();
-            }}
-            onCloseCreateProjectRole={() => {
-              setCreatingProjectRole(false);
-              createProjectRoleForm.resetFields();
             }}
             onCloseDeleteDivision={() => {
               setDeletingDivision(null);
@@ -898,10 +838,6 @@ export function AdminUsersPage() {
               setDeletingJobTitle(null);
               deleteJobTitleForm.resetFields();
             }}
-            onCloseDeleteProjectRole={() => {
-              setDeletingProjectRole(null);
-              deleteProjectRoleForm.resetFields();
-            }}
             onCloseEditDivision={() => {
               setEditingDivision(null);
               editDivisionForm.resetFields();
@@ -913,10 +849,6 @@ export function AdminUsersPage() {
             onCloseEditJobTitle={() => {
               setEditingJobTitle(null);
               editJobTitleForm.resetFields();
-            }}
-            onCloseEditProjectRole={() => {
-              setEditingProjectRole(null);
-              editProjectRoleForm.resetFields();
             }}
             onCreateDivision={() => {
               createDivisionForm
@@ -967,24 +899,6 @@ export function AdminUsersPage() {
                         handleSuccess(t("admin_users.messages.job_title_created", { name: values.name }));
                       },
                       onError: (error) => handleError(t("errors.create_job_title_failed"), error),
-                    }
-                  );
-                })
-                .catch(() => undefined);
-            }}
-            onCreateProjectRole={() => {
-              createProjectRoleForm
-                .validateFields(["name", "displayOrder"])
-                .then((values: { displayOrder: number; name: string }) => {
-                  createProjectRoleMutation.mutate(
-                    { name: values.name, displayOrder: values.displayOrder },
-                    {
-                      onSuccess: () => {
-                        setCreatingProjectRole(false);
-                        createProjectRoleForm.resetFields();
-                        handleSuccess(t("admin_users.messages.project_role_created", { name: values.name }));
-                      },
-                      onError: (error) => handleError(t("errors.create_project_role_failed"), error),
                     }
                   );
                 })
@@ -1056,28 +970,6 @@ export function AdminUsersPage() {
                 })
                 .catch(() => undefined);
             }}
-            onDeleteProjectRole={() => {
-              if (!deletingProjectRole) {
-                return;
-              }
-
-              deleteProjectRoleForm
-                .validateFields(["reason"])
-                .then((values: { reason: string }) => {
-                  deleteProjectRoleMutation.mutate(
-                    { id: deletingProjectRole.id, reason: values.reason },
-                    {
-                      onSuccess: () => {
-                        setDeletingProjectRole(null);
-                        deleteProjectRoleForm.resetFields();
-                        handleSuccess(t("admin_users.messages.project_role_deleted", { name: deletingProjectRole.name }));
-                      },
-                      onError: (error) => handleError(t("errors.delete_project_role_failed"), error),
-                    }
-                  );
-                })
-                .catch(() => undefined);
-            }}
             onEditDivision={() => {
               editDivisionForm
                 .validateFields(["editName", "editDisplayOrder"])
@@ -1136,27 +1028,6 @@ export function AdminUsersPage() {
                         handleSuccess(t("admin_users.messages.job_title_updated", { name: values.editName }));
                       },
                       onError: (error) => handleError(t("errors.update_job_title_failed"), error),
-                    }
-                  );
-                })
-                .catch(() => undefined);
-            }}
-            onEditProjectRole={() => {
-              editProjectRoleForm
-                .validateFields(["editName", "editDisplayOrder"])
-                .then((values: { editDisplayOrder: number; editName: string }) => {
-                  if (!editingProjectRole) {
-                    return;
-                  }
-
-                  updateProjectRoleMutation.mutate(
-                    { id: editingProjectRole.id, name: values.editName, displayOrder: values.editDisplayOrder },
-                    {
-                      onSuccess: () => {
-                        setEditingProjectRole(null);
-                        handleSuccess(t("admin_users.messages.project_role_updated", { name: values.editName }));
-                      },
-                      onError: (error) => handleError(t("errors.update_project_role_failed"), error),
                     }
                   );
                 })

@@ -22,6 +22,15 @@ const PublicRegistrationPage = lazy(() =>
 const RegistrationPasswordSetupPage = lazy(() =>
   import("../modules/users/pages/RegistrationPasswordSetupPage").then((module) => ({ default: module.RegistrationPasswordSetupPage }))
 );
+const ProjectsPage = lazy(() =>
+  import("../modules/users/pages/ProjectsPage").then((module) => ({ default: module.ProjectsPage }))
+);
+const ProjectRolesPage = lazy(() =>
+  import("../modules/users/pages/ProjectRolesPage").then((module) => ({ default: module.ProjectRolesPage }))
+);
+const ProjectMembersPage = lazy(() =>
+  import("../modules/users/pages/ProjectMembersPage").then((module) => ({ default: module.ProjectMembersPage }))
+);
 const AuditLogsPage = lazy(() =>
   import("../modules/audits/pages/AuditLogsPage").then((module) => ({ default: module.AuditLogsPage }))
 );
@@ -58,7 +67,9 @@ export function AppRouter() {
               <Route path="admin/master/divisions" element={<AdminUsersPage />} />
               <Route path="admin/master/departments" element={<AdminUsersPage />} />
               <Route path="admin/master/positions" element={<AdminUsersPage />} />
-              <Route path="admin/master/project-roles" element={<AdminUsersPage />} />
+              <Route path="admin/projects" element={<ProjectsPage />} />
+              <Route path="admin/project-roles" element={<ProjectRolesPage />} />
+              <Route path="admin/project-members" element={<ProjectMembersPage />} />
               <Route path="admin/invitations" element={<AdminUsersPage />} />
               <Route path="admin/registrations" element={<AdminUsersPage />} />
               <Route path="admin/audit-logs" element={<AuditLogsPage />} />

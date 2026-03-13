@@ -27,6 +27,8 @@ public sealed class UsersModule : IModule
         services.AddScoped<IUserOrgAssignmentCommands, UserOrgAssignmentCommands>();
         services.AddScoped<IUserReferenceDataCommands, UserReferenceDataCommands>();
         services.AddScoped<IUserReferenceDataQueries, UserReferenceDataQueries>();
+        services.AddScoped<IProjectCommands, ProjectCommands>();
+        services.AddScoped<IProjectQueries, ProjectQueries>();
         services.AddSingleton<IReferenceDataCache, ReferenceDataCache>();
         services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>(client =>
         {
@@ -100,6 +102,18 @@ public sealed class UsersModule : IModule
             .AllowAnonymous()
             .WithName("Users_ListProjectRoles");
 
+        group.MapGet("/projects", ListProjectsAsync)
+            .WithName("Users_ListProjects");
+
+        group.MapPost("/projects", CreateProjectAsync)
+            .WithName("Users_CreateProject");
+
+        group.MapPut("/projects/{projectId:guid}", UpdateProjectAsync)
+            .WithName("Users_UpdateProject");
+
+        group.MapDelete("/projects/{projectId:guid}", DeleteProjectAsync)
+            .WithName("Users_DeleteProject");
+
         group.MapPost("/project-roles", CreateProjectRoleAsync)
             .WithName("Users_CreateProjectRole");
 
@@ -108,6 +122,18 @@ public sealed class UsersModule : IModule
 
         group.MapDelete("/project-roles/{projectRoleId:guid}", DeleteProjectRoleAsync)
             .WithName("Users_DeleteProjectRole");
+
+        group.MapGet("/project-assignments", ListProjectAssignmentsAsync)
+            .WithName("Users_ListProjectAssignments");
+
+        group.MapPost("/project-assignments", CreateProjectAssignmentAsync)
+            .WithName("Users_CreateProjectAssignment");
+
+        group.MapPut("/project-assignments/{assignmentId:guid}", UpdateProjectAssignmentAsync)
+            .WithName("Users_UpdateProjectAssignment");
+
+        group.MapDelete("/project-assignments/{assignmentId:guid}", DeleteProjectAssignmentAsync)
+            .WithName("Users_DeleteProjectAssignment");
 
         group.MapPut("/me/preferences", UpdateCurrentUserPreferencesAsync)
             .WithName("Users_UpdateCurrentUserPreferences");
@@ -369,7 +395,23 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> ListProjectRolesAsync(
-        IUserReferenceDataQueries queries,
+        IProjectQueries queries,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        Guid? projectId = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await queries.ListProjectRolesAsync(
+            new ReferenceDataQuery(search, sortBy, sortOrder, projectId, null, page, pageSize),
+            cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> ListProjectsAsync(
+        IProjectQueries queries,
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
@@ -377,55 +419,139 @@ public sealed class UsersModule : IModule
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var result = await queries.ListProjectRolesAsync(
-            new ReferenceDataQuery(search, sortBy, sortOrder, null, null, page, pageSize),
-            cancellationToken);
+        var result = await queries.ListProjectsAsync(new ProjectListQuery(search, sortBy, sortOrder, page, pageSize), cancellationToken);
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> CreateProjectAsync(
+        CreateProjectRequest request,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.CreateProjectAsync(request, cancellationToken);
+        if (!result.Success)
+        {
+            return Results.BadRequest(result.Error);
+        }
+
+        return Results.Created($"/api/v1/users/projects/{result.Response!.Id}", result.Response);
+    }
+
+    private static async Task<IResult> UpdateProjectAsync(
+        Guid projectId,
+        UpdateProjectRequest request,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.UpdateProjectAsync(projectId, request, cancellationToken);
+        if (result.NotFound)
+        {
+            return Results.NotFound();
+        }
+
+        if (!result.Success)
+        {
+            return Results.BadRequest(result.Error);
+        }
+
+        return Results.Ok(result.Response);
+    }
+
+    private static async Task<IResult> DeleteProjectAsync(
+        Guid projectId,
+        [FromBody] SoftDeleteRequest request,
+        ClaimsPrincipal principal,
+        [FromServices] IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.DeleteProjectAsync(projectId, request, ResolveActor(principal), cancellationToken);
+        return result.NotFound ? Results.NotFound() : Results.NoContent();
+    }
+
     private static async Task<IResult> CreateProjectRoleAsync(
-        CreateMasterDataRequest request,
-        IUserReferenceDataCommands commands,
+        CreateProjectRoleRequest request,
+        IProjectCommands commands,
         CancellationToken cancellationToken)
     {
         var result = await commands.CreateProjectRoleAsync(request, cancellationToken);
-        return result.Status switch
-        {
-            MasterDataCommandStatus.ValidationError => Results.BadRequest(result.ErrorMessage),
-            MasterDataCommandStatus.Conflict => Results.Conflict(result.ErrorMessage),
-            _ => Results.Created($"/api/v1/users/project-roles/{result.Response!.Id}", result.Response)
-        };
+        return !result.Success
+            ? Results.BadRequest(result.Error)
+            : Results.Created($"/api/v1/users/project-roles/{result.Response!.Id}", result.Response);
     }
 
     private static async Task<IResult> UpdateProjectRoleAsync(
         Guid projectRoleId,
-        UpdateMasterDataRequest request,
-        IUserReferenceDataCommands commands,
+        UpdateProjectRoleRequest request,
+        IProjectCommands commands,
         CancellationToken cancellationToken)
     {
         var result = await commands.UpdateProjectRoleAsync(projectRoleId, request, cancellationToken);
-        return result.Status switch
+        if (result.NotFound)
         {
-            MasterDataCommandStatus.NotFound => Results.NotFound(),
-            MasterDataCommandStatus.ValidationError => Results.BadRequest(result.ErrorMessage),
-            MasterDataCommandStatus.Conflict => Results.Conflict(result.ErrorMessage),
-            _ => Results.Ok(result.Response)
-        };
+            return Results.NotFound();
+        }
+
+        return !result.Success ? Results.BadRequest(result.Error) : Results.Ok(result.Response);
     }
 
     private static async Task<IResult> DeleteProjectRoleAsync(
         Guid projectRoleId,
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
-        [FromServices] IUserReferenceDataCommands commands,
+        [FromServices] IProjectCommands commands,
         CancellationToken cancellationToken)
     {
         var result = await commands.DeleteProjectRoleAsync(projectRoleId, request, ResolveActor(principal), cancellationToken);
-        return result.Status switch
+        return result.NotFound ? Results.NotFound() : Results.NoContent();
+    }
+
+    private static async Task<IResult> ListProjectAssignmentsAsync(
+        IProjectQueries queries,
+        Guid projectId,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await queries.ListProjectAssignmentsAsync(new ProjectAssignmentListQuery(projectId, search, sortBy, sortOrder, page, pageSize), cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> CreateProjectAssignmentAsync(
+        CreateProjectAssignmentRequest request,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.CreateProjectAssignmentAsync(request, cancellationToken);
+        return !result.Success
+            ? Results.BadRequest(result.Error)
+            : Results.Created($"/api/v1/users/project-assignments/{result.Response!.Id}", result.Response);
+    }
+
+    private static async Task<IResult> UpdateProjectAssignmentAsync(
+        Guid assignmentId,
+        UpdateProjectAssignmentRequest request,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.UpdateProjectAssignmentAsync(assignmentId, request, cancellationToken);
+        if (result.NotFound)
         {
-            MasterDataCommandStatus.NotFound => Results.NotFound(),
-            _ => Results.NoContent()
-        };
+            return Results.NotFound();
+        }
+
+        return !result.Success ? Results.BadRequest(result.Error) : Results.Ok(result.Response);
+    }
+
+    private static async Task<IResult> DeleteProjectAssignmentAsync(
+        Guid assignmentId,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var result = await commands.DeleteProjectAssignmentAsync(assignmentId, cancellationToken);
+        return result.NotFound ? Results.NotFound() : Results.NoContent();
     }
 
     private static async Task<IResult> DeleteUserAsync(

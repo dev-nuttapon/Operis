@@ -20,24 +20,18 @@ interface AdminMasterDataModalsProps {
   createDepartmentLoading: boolean;
   createJobTitleForm: any;
   createJobTitleLoading: boolean;
-  createProjectRoleForm: any;
-  createProjectRoleLoading: boolean;
   creatingDivision: boolean;
   creatingDepartment: boolean;
   creatingJobTitle: boolean;
-  creatingProjectRole: boolean;
   deleteDivisionForm: any;
   deleteDivisionLoading: boolean;
   deleteDepartmentForm: any;
   deleteDepartmentLoading: boolean;
   deleteJobTitleForm: any;
   deleteJobTitleLoading: boolean;
-  deleteProjectRoleForm: any;
-  deleteProjectRoleLoading: boolean;
   deletingDivision: EntityItem | null;
   deletingDepartment: EntityItem | null;
   deletingJobTitle: EntityItem | null;
-  deletingProjectRole: EntityItem | null;
   divisionOptions: OptionItem[];
   departmentOptions: OptionItem[];
   editDivisionForm: any;
@@ -46,36 +40,27 @@ interface AdminMasterDataModalsProps {
   editDepartmentLoading: boolean;
   editJobTitleForm: any;
   editJobTitleLoading: boolean;
-  editProjectRoleForm: any;
-  editProjectRoleLoading: boolean;
   editingDivision: EntityItem | null;
   editingDepartment: EntityItem | null;
   editingJobTitle: EntityItem | null;
-  editingProjectRole: EntityItem | null;
   onCloseCreateDivision: () => void;
   onCloseCreateDepartment: () => void;
   onCloseCreateJobTitle: () => void;
-  onCloseCreateProjectRole: () => void;
   onCloseDeleteDivision: () => void;
   onCloseDeleteDepartment: () => void;
   onCloseDeleteJobTitle: () => void;
-  onCloseDeleteProjectRole: () => void;
   onCloseEditDivision: () => void;
   onCloseEditDepartment: () => void;
   onCloseEditJobTitle: () => void;
-  onCloseEditProjectRole: () => void;
   onCreateDivision: () => void;
   onCreateDepartment: () => void;
   onCreateJobTitle: () => void;
-  onCreateProjectRole: () => void;
   onDeleteDivision: () => void;
   onDeleteDepartment: () => void;
   onDeleteJobTitle: () => void;
-  onDeleteProjectRole: () => void;
   onEditDivision: () => void;
   onEditDepartment: () => void;
   onEditJobTitle: () => void;
-  onEditProjectRole: () => void;
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
@@ -88,24 +73,18 @@ export function AdminMasterDataModals({
   createDepartmentLoading,
   createJobTitleForm,
   createJobTitleLoading,
-  createProjectRoleForm,
-  createProjectRoleLoading,
   creatingDivision,
   creatingDepartment,
   creatingJobTitle,
-  creatingProjectRole,
   deleteDivisionForm,
   deleteDivisionLoading,
   deleteDepartmentForm,
   deleteDepartmentLoading,
   deleteJobTitleForm,
   deleteJobTitleLoading,
-  deleteProjectRoleForm,
-  deleteProjectRoleLoading,
   deletingDivision,
   deletingDepartment,
   deletingJobTitle,
-  deletingProjectRole,
   divisionOptions,
   departmentOptions,
   editDivisionForm,
@@ -114,36 +93,27 @@ export function AdminMasterDataModals({
   editDepartmentLoading,
   editJobTitleForm,
   editJobTitleLoading,
-  editProjectRoleForm,
-  editProjectRoleLoading,
   editingDivision,
   editingDepartment,
   editingJobTitle,
-  editingProjectRole,
   onCloseCreateDivision,
   onCloseCreateDepartment,
   onCloseCreateJobTitle,
-  onCloseCreateProjectRole,
   onCloseDeleteDivision,
   onCloseDeleteDepartment,
   onCloseDeleteJobTitle,
-  onCloseDeleteProjectRole,
   onCloseEditDivision,
   onCloseEditDepartment,
   onCloseEditJobTitle,
-  onCloseEditProjectRole,
   onCreateDivision,
   onCreateDepartment,
   onCreateJobTitle,
-  onCreateProjectRole,
   onDeleteDivision,
   onDeleteDepartment,
   onDeleteJobTitle,
-  onDeleteProjectRole,
   onEditDivision,
   onEditDepartment,
   onEditJobTitle,
-  onEditProjectRole,
   t,
 }: AdminMasterDataModalsProps) {
   const createJobTitleDivisionId = Form.useWatch("divisionId", createJobTitleForm) as string | undefined;
@@ -355,62 +325,6 @@ export function AdminMasterDataModals({
           <Paragraph type="secondary">{t("admin_users.master.delete_soft_delete_description")}</Paragraph>
           <Form.Item name="reason" label={t("admin_users.fields.reason")} rules={[{ required: true, message: t("admin_users.validation.reason_required") }]}>
             <Input.TextArea rows={4} placeholder={t("admin_users.placeholders.job_title_delete_reason")} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={t("admin_users.master.create_project_role_modal_title")}
-        open={creatingProjectRole}
-        okText={t("common.actions.create")}
-        cancelText={t("common.actions.cancel")}
-        confirmLoading={createProjectRoleLoading}
-        onCancel={onCloseCreateProjectRole}
-        onOk={onCreateProjectRole}
-      >
-        <Form form={createProjectRoleForm} layout="vertical">
-          <Form.Item name="name" label={t("admin_users.master.project_role_name")} rules={[{ required: true, message: t("errors.project_role_required") }]}>
-            <Input placeholder={t("admin_users.placeholders.project_role_name")} />
-          </Form.Item>
-          <Form.Item name="displayOrder" label={t("admin_users.master.display_order")} rules={[{ required: true }]}>
-            <InputNumber min={0} style={{ width: "100%" }} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={t("admin_users.master.edit_project_role_modal_title")}
-        open={editingProjectRole !== null}
-        okText={t("common.actions.save")}
-        cancelText={t("common.actions.cancel")}
-        confirmLoading={editProjectRoleLoading}
-        onCancel={onCloseEditProjectRole}
-        onOk={onEditProjectRole}
-      >
-        <Form form={editProjectRoleForm} layout="vertical">
-          <Form.Item name="editName" label={t("admin_users.master.project_role_name")} rules={[{ required: true, message: t("errors.project_role_required") }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="editDisplayOrder" label={t("admin_users.master.display_order")} rules={[{ required: true }]}>
-            <InputNumber min={0} style={{ width: "100%" }} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={deletingProjectRole ? t("admin_users.master.delete_project_role_title_with_name", { name: deletingProjectRole.name }) : t("admin_users.master.delete_project_role_title")}
-        open={deletingProjectRole !== null}
-        okText={t("common.actions.delete")}
-        cancelText={t("common.actions.cancel")}
-        okButtonProps={{ danger: true }}
-        confirmLoading={deleteProjectRoleLoading}
-        onCancel={onCloseDeleteProjectRole}
-        onOk={onDeleteProjectRole}
-      >
-        <Form form={deleteProjectRoleForm} layout="vertical">
-          <Paragraph type="secondary">{t("admin_users.master.delete_soft_delete_description")}</Paragraph>
-          <Form.Item name="reason" label={t("admin_users.fields.reason")} rules={[{ required: true, message: t("admin_users.validation.reason_required") }]}>
-            <Input.TextArea rows={4} placeholder={t("admin_users.placeholders.project_role_delete_reason")} />
           </Form.Item>
         </Form>
       </Modal>
