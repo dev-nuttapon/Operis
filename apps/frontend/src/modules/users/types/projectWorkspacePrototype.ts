@@ -7,6 +7,12 @@ export type ProjectWorkspacePrototypeSection =
   | "evidence"
   | "auditTrail";
 
+export interface ProjectWorkspacePrototypeOption {
+  id: string;
+  labelKey: string;
+  descriptionKey: string;
+}
+
 export interface ProjectWorkspacePrototypeSummaryCard {
   id: string;
   tone: "blue" | "green" | "gold" | "red";
@@ -25,7 +31,8 @@ export interface ProjectWorkspacePrototypeMember {
   id: string;
   name: string;
   email: string;
-  role: string;
+  roleCode: string;
+  roleName: string;
   reportsTo?: string;
   primary: boolean;
   status: "Active" | "Warning";
@@ -74,4 +81,14 @@ export interface ProjectWorkspacePrototypeOrgNode {
   label: string;
   subtitle: string;
   children?: ProjectWorkspacePrototypeOrgNode[];
+}
+
+export interface ProjectWorkspacePrototypeDataset {
+  summaryCards: ProjectWorkspacePrototypeSummaryCard[];
+  teamMembers: ProjectWorkspacePrototypeMember[];
+  roles: ProjectWorkspacePrototypeRole[];
+  complianceChecks: ProjectWorkspacePrototypeComplianceCheck[];
+  evidenceItems: ProjectWorkspacePrototypeEvidenceItem[];
+  auditTrail: ProjectWorkspacePrototypeAuditEvent[];
+  orgChart: ProjectWorkspacePrototypeOrgNode[];
 }

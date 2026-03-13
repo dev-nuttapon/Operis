@@ -736,9 +736,55 @@
   },
   "project_workspace_prototype": {
     "page_title": "พื้นที่ทำงานโครงการ",
-    "page_description": "พื้นที่ทำงานศูนย์กลางของโครงการสำหรับ governance, โครงสร้างทีม, หลักฐาน และการตรวจสอบย้อนหลัง",
+    "page_description": "ต้นแบบพื้นที่ทำงานโครงการสำหรับทดลอง UX ด้าน governance โครงสร้างทีม หลักฐาน และการตรวจสอบย้อนหลัง",
     "select_project_placeholder": "เลือกพื้นที่ทำงานของโครงการ",
+    "select_template_placeholder": "เลือกแม่แบบของพื้นที่ทำงาน",
+    "select_scenario_placeholder": "เลือกสถานการณ์ต้นแบบ",
     "back_to_projects": "กลับไปหน้าโครงการ",
+    "templates": {
+      "software_delivery": {
+        "label": "ส่งมอบซอฟต์แวร์",
+        "description": "ใช้แม่แบบนี้เพื่อทดลองบทบาทอย่าง PM, SWA, SWT, CM, QA, DEV และจุดตรวจสำคัญก่อน release."
+      },
+      "compliance_audit": {
+        "label": "ตรวจประเมินด้าน compliance",
+        "description": "ใช้แม่แบบนี้เพื่อทดลองโครงสร้างการเตรียม audit, หลักฐานควบคุม, ลำดับอนุมัติ และ corrective action."
+      },
+      "process_improvement": {
+        "label": "ปรับปรุงกระบวนการ",
+        "description": "ใช้แม่แบบนี้เพื่อทดลองการ rollout กระบวนการ, ทีม pilot, บทบาทปรับปรุง และจุดควบคุมการเปลี่ยนแปลง."
+      }
+    },
+    "scenarios": {
+      "compact_team": {
+        "label": "ทีมขนาดเล็ก",
+        "description": "ทีมส่งมอบขนาดเล็กที่เน้นบทบาทหลักและมี governance แบบกระชับ."
+      },
+      "standard_team": {
+        "label": "ทีมมาตรฐาน",
+        "description": "ทีมโครงการที่มีสถาปัตยกรรม คุณภาพ วิเคราะห์ธุรกิจ และส่งมอบครบสมดุล."
+      },
+      "release_readiness": {
+        "label": "ความพร้อมก่อน release",
+        "description": "สถานการณ์ที่เน้น release gate, การอนุมัติ, configuration control และความพร้อมของหลักฐาน."
+      },
+      "audit_preparation": {
+        "label": "เตรียมพร้อม audit",
+        "description": "สถานการณ์ที่เน้นการเตรียม audit, การรวมหลักฐาน, ความพร้อมของ sign-off และเอกสารควบคุม."
+      },
+      "corrective_action": {
+        "label": "การแก้ไขข้อบกพร่อง",
+        "description": "สถานการณ์ที่เน้นเจ้าของการแก้ไข การติดตามการปิดประเด็น และการปรับปรุงกระบวนการแบบควบคุม."
+      },
+      "process_rollout": {
+        "label": "นำกระบวนการไปใช้",
+        "description": "สถานการณ์สำหรับวางแผน rollout, readiness review และการปล่อย process assets."
+      },
+      "pilot_team": {
+        "label": "ทีมทดลองนำร่อง",
+        "description": "ทีมปรับปรุงขนาดเล็กสำหรับทดลองใช้ก่อนขยายผล."
+      }
+    },
     "sections": {
       "overview": "ภาพรวม",
       "team": "ทีมโครงการ",
@@ -767,8 +813,9 @@
       }
     },
     "quick_actions": {
-      "missing_reviewer": "เปิดดูช่องว่างด้านผู้ทบทวน",
+      "role_gap": "เปิดดูช่องว่างของบทบาท",
       "org_chart": "ตรวจผังงานในโครงการ",
+      "compliance": "เปิดรายการตรวจความพร้อม",
       "evidence": "ดูชุดหลักฐาน",
       "audit": "เปิดประวัติการตรวจสอบ"
     },
@@ -777,11 +824,13 @@
       "project_type": "ประเภทโครงการ",
       "owner": "เจ้าของโครงการ",
       "sponsor": "ผู้สนับสนุนโครงการ",
+      "template": "แม่แบบพื้นที่ทำงาน",
+      "scenario": "สถานการณ์ต้นแบบ",
       "methodology": "วิธีดำเนินโครงการ",
       "phase": "ระยะโครงการ",
       "quick_actions_title": "ทางลัดสำคัญ",
-      "callout_title": "ขอบเขตปัจจุบัน",
-      "callout_description": "ตอนนี้ส่วน Overview และ Team ใช้ข้อมูลจริงแล้ว ส่วนที่เหลือยังเป็น prototype เพื่อทดสอบการคลิกและการจัดวางก่อนเชื่อมข้อมูลจริงทีละส่วน"
+      "callout_title": "จุดมุ่งหมายของต้นแบบ",
+      "callout_description": "workspace นี้ตั้งใจให้ขับด้วยแม่แบบและสถานการณ์ต้นแบบ เพื่อให้ทีมทดลองเส้นทางการใช้งาน คำเรียกบทบาท และ flow governance ก่อนผูกพฤติกรรมจริงทีละส่วน"
     },
     "team": {
       "title": "ทะเบียนทีมโครงการ",
@@ -819,9 +868,9 @@
         "title": "กำหนดเจ้าของโครงการแล้ว",
         "detail": "โครงการนี้มีผู้รับผิดชอบหลักที่ชัดเจนแล้ว"
       },
-      "reviewer": {
-        "title": "บทบาทผู้ทบทวนยังไม่ครบ",
-        "detail": "ควรมีอย่างน้อยหนึ่งตำแหน่งที่รับผิดชอบการทบทวนเพื่อให้ flow ISO/CMMI สมบูรณ์ขึ้น"
+      "role_gap": {
+        "title": "ยังมีช่องว่างของบทบาท",
+        "detail": "มีบางบทบาทในสถานการณ์นี้ถูกตั้งใจให้เป็นช่องว่าง เพื่อใช้ทดลองว่าหน้าจอควรพาผู้ใช้ไปแก้อย่างไร"
       },
       "org_chart": {
         "title": "ผังงานในโครงการถูกกำหนดแล้ว",
@@ -858,10 +907,9 @@
       "audit": "ประวัติการตรวจสอบ",
       "prototype_notes_title": "หมายเหตุของต้นแบบ",
       "selected_project_meta": "เจ้าของโครงการ: {{owner}} · ระยะ: {{phase}}",
-      "prototype_notes_1": "workspace นี้ผูกกับโครงการจริงแล้วและใช้ข้อมูลโครงการจริงในส่วนหลัก",
-      "prototype_notes_2": "ตอนนี้ Overview และ Team ดึงข้อมูลจริงจาก Projects และ Project Members",
-      "prototype_notes_3": "ส่วน Org Chart, Roles, Compliance, Evidence และ Audit Trail ยังทำหน้าที่เป็น prototype สำหรับทดสอบ interaction",
-      "prototype_notes_4": "layout ถูกคงไว้ให้เสถียรเพื่อให้เปลี่ยนแต่ละ section จาก prototype ไปเป็นข้อมูลจริงได้ทีละส่วน"
+      "prototype_notes_1": "โครงการที่เลือกถูกใช้เป็นบริบทธุรกิจด้านบนของ workspace เท่านั้น",
+      "prototype_notes_2": "ส่วนหลักด้านล่างถูกขับด้วยแม่แบบและสถานการณ์ต้นแบบ เพื่อทดลองโครงบทบาทและการจัดวางให้ยืดหยุ่น",
+      "prototype_notes_3": "ใช้ชุดต้นแบบนี้เพื่อลองคำอย่าง SWT, SWA, CM, QA และบทบาทอนุมัติก่อนผูกข้อมูลจริง"
     }
   },
   "project_evidence": {

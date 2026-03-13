@@ -736,9 +736,55 @@
   },
   "project_workspace_prototype": {
     "page_title": "Project Workspace",
-    "page_description": "Project-centered workspace for governance, team structure, evidence, and audit navigation.",
+    "page_description": "Prototype workspace for testing project governance UX, role structures, evidence flow, and audit navigation.",
     "select_project_placeholder": "Select a project workspace",
+    "select_template_placeholder": "Select a workspace template",
+    "select_scenario_placeholder": "Select a prototype scenario",
     "back_to_projects": "Back to Projects",
+    "templates": {
+      "software_delivery": {
+        "label": "Software Delivery",
+        "description": "Use this template to evaluate roles such as PM, SWA, SWT, CM, QA, DEV, and release-related checkpoints."
+      },
+      "compliance_audit": {
+        "label": "Compliance Audit",
+        "description": "Use this template to prototype audit preparation, controlled evidence, approval flow, and corrective action structure."
+      },
+      "process_improvement": {
+        "label": "Process Improvement",
+        "description": "Use this template to test process rollout, pilot teams, improvement roles, and governance transitions."
+      }
+    },
+    "scenarios": {
+      "compact_team": {
+        "label": "Compact Team",
+        "description": "A small delivery team focused on core execution roles with lightweight governance."
+      },
+      "standard_team": {
+        "label": "Standard Team",
+        "description": "A balanced project team with architecture, quality, business analysis, and delivery coverage."
+      },
+      "release_readiness": {
+        "label": "Release Readiness",
+        "description": "A governance-heavy scenario focused on release gates, approvals, configuration control, and evidence readiness."
+      },
+      "audit_preparation": {
+        "label": "Audit Preparation",
+        "description": "A scenario centered on audit preparation, evidence consolidation, sign-off readiness, and controlled records."
+      },
+      "corrective_action": {
+        "label": "Corrective Action",
+        "description": "A scenario focused on remediation ownership, closure tracking, and controlled process updates."
+      },
+      "process_rollout": {
+        "label": "Process Rollout",
+        "description": "A scenario for organization-wide rollout planning, readiness review, and release of process assets."
+      },
+      "pilot_team": {
+        "label": "Pilot Team",
+        "description": "A smaller improvement team for piloting process changes before broader rollout."
+      }
+    },
     "sections": {
       "overview": "Overview",
       "team": "Team",
@@ -767,8 +813,9 @@
       }
     },
     "quick_actions": {
-      "missing_reviewer": "Open role coverage gap",
+      "role_gap": "Open role coverage gap",
       "org_chart": "Review project org chart",
+      "compliance": "Open compliance checks",
       "evidence": "Review evidence pack",
       "audit": "Open audit trail"
     },
@@ -777,11 +824,13 @@
       "project_type": "Project Type",
       "owner": "Owner",
       "sponsor": "Sponsor",
+      "template": "Workspace Template",
+      "scenario": "Prototype Scenario",
       "methodology": "Methodology",
       "phase": "Phase",
       "quick_actions_title": "Quick actions",
-      "callout_title": "Current scope",
-      "callout_description": "Overview and Team now use live project data. The remaining sections still use prototype content until their live data flow is connected."
+      "callout_title": "Prototype focus",
+      "callout_description": "This workspace is intentionally driven by template and scenario presets so the team can validate navigation, terminology, and governance flow before committing to live section behavior."
     },
     "team": {
       "title": "Project Team Register",
@@ -819,9 +868,9 @@
         "title": "Project owner is assigned",
         "detail": "The project already has a clearly identified owner."
       },
-      "reviewer": {
-        "title": "Reviewer coverage is incomplete",
-        "detail": "At least one reviewer-capable role should be assigned to strengthen ISO/CMMI review flow."
+      "role_gap": {
+        "title": "Role coverage still has gaps",
+        "detail": "At least one role in this scenario is intentionally marked as a gap so the team can test how compliance issues should guide users."
       },
       "org_chart": {
         "title": "Project org chart is defined",
@@ -858,10 +907,9 @@
       "audit": "Audit trail",
       "prototype_notes_title": "Prototype Notes",
       "selected_project_meta": "Owner: {{owner}} · Phase: {{phase}}",
-      "prototype_notes_1": "This workspace is now anchored to a real project and reuses live project metadata.",
-      "prototype_notes_2": "Overview and Team already use live data from Projects and Project Members.",
-      "prototype_notes_3": "Org Chart, Roles, Compliance, Evidence, and Audit Trail still act as prototype sections for interaction testing.",
-      "prototype_notes_4": "The layout is intentionally kept stable so the remaining sections can be switched from prototype to live data one by one."
+      "prototype_notes_1": "The selected project only provides business context at the top of the workspace.",
+      "prototype_notes_2": "The main sections are driven by template and scenario presets so role patterns can be evaluated quickly.",
+      "prototype_notes_3": "Use these presets to validate terms such as SWT, SWA, CM, QA, and approval roles before wiring live project behavior."
     }
   },
   "project_evidence": {

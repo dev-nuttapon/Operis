@@ -34,11 +34,10 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectWorkspacePrototype } from "../hooks/useProjectWorkspacePrototype";
-import { formatDate } from "../utils/adminUsersPresentation";
-import type { ProjectAssignment } from "../types/users";
 import type {
   ProjectWorkspacePrototypeAuditEvent,
   ProjectWorkspacePrototypeComplianceCheck,
+  ProjectWorkspacePrototypeMember,
   ProjectWorkspacePrototypeOrgNode,
   ProjectWorkspacePrototypeRole,
   ProjectWorkspacePrototypeSection,
@@ -82,18 +81,34 @@ function buildOrgChartTree(nodes: ProjectWorkspacePrototypeOrgNode[]): DataNode[
 }
 
 export function ProjectWorkspacePrototypePage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
-  const { section, setSection, quickActions, roles, complianceChecks, evidenceItems, auditTrail, orgChart } =
-    useProjectWorkspacePrototype();
+  const {
+    section,
+    setSection,
+    templateId,
+    setTemplateId,
+    scenarioId,
+    setScenarioId,
+    templateOptions,
+    scenarioOptions,
+    quickActions,
+    summaryCards,
+    teamMembers,
+    roles,
+    complianceChecks,
+    evidenceItems,
+    auditTrail,
+    orgChart,
+  } = useProjectWorkspacePrototype();
 
-  const { projectsQuery, projectRolesQuery, projectAssignmentsQuery } = useProjectAdmin({
+  const { projectsQuery } = useProjectAdmin({
     projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
-    projectRoles: { projectId, page: 1, pageSize: 100, sortBy: "displayOrder", sortOrder: "asc" },
-    projectAssignments: projectId ? { projectId, page: 1, pageSize: 100, sortBy: "createdAt", sortOrder: "desc" } : null,
+    projectRoles: { page: 1, pageSize: 100, sortBy: "displayOrder", sortOrder: "asc" },
+    projectAssignments: null,
   });
 
   const projectOptions = useMemo(
@@ -129,80 +144,49 @@ export function ProjectWorkspacePrototypePage() {
     [t],
   );
 
-  const activeAssignments = useMemo(
-    () => (projectAssignmentsQuery.data?.items ?? []).filter((item) => item.status === "Active"),
-    [projectAssignmentsQuery.data?.items],
-  );
-  const reportingRoots = useMemo(
-    () => activeAssignments.filter((item) => !item.reportsToUserId),
-    [activeAssignments],
-  );
+  const selectedTemplate = templateOptions.find((option) => option.id === templateId) ?? null;
+  const selectedScenario = scenarioOptions.find((option) => option.id === scenarioId) ?? null;
+  const orgChartTree = useMemo(() => buildOrgChartTree(orgChart), [orgChart]);
 
-  const summaryCards = useMemo(
-    () => [
-      {
-        id: "project-type",
-        tone: "blue" as const,
-        title: t("project_workspace_prototype.summary.project_type.title"),
-        value: selectedProject?.projectType ?? "-",
-        helper: t("project_workspace_prototype.summary.project_type.helper"),
-      },
-      {
-        id: "active-members",
-        tone: "green" as const,
-        title: t("project_workspace_prototype.summary.active_members.title"),
-        value: String(activeAssignments.length),
-        helper: t("project_workspace_prototype.summary.active_members.helper"),
-      },
-      {
-        id: "active-roles",
-        tone: "gold" as const,
-        title: t("project_workspace_prototype.summary.active_roles.title"),
-        value: String(projectRolesQuery.data?.items?.length ?? 0),
-        helper: t("project_workspace_prototype.summary.active_roles.helper"),
-      },
-      {
-        id: "reporting-roots",
-        tone: "red" as const,
-        title: t("project_workspace_prototype.summary.reporting_roots.title"),
-        value: String(reportingRoots.length),
-        helper: t("project_workspace_prototype.summary.reporting_roots.helper"),
-      },
-    ],
-    [activeAssignments.length, projectRolesQuery.data?.items?.length, reportingRoots.length, selectedProject?.projectType, t],
-  );
-
-  const teamColumns: ColumnsType<ProjectAssignment> = [
+  const teamColumns: ColumnsType<ProjectWorkspacePrototypeMember> = [
     {
       title: t("project_workspace_prototype.team.columns.member"),
-      dataIndex: "userDisplayName",
+      dataIndex: "name",
       render: (_, record) => (
         <Space direction="vertical" size={2}>
-          <Typography.Text strong>{record.userDisplayName ?? record.userEmail ?? record.userId}</Typography.Text>
-          <Typography.Text type="secondary">{record.userEmail ?? record.userId}</Typography.Text>
+          <Typography.Text strong>{record.name}</Typography.Text>
+          <Typography.Text type="secondary">{record.email}</Typography.Text>
         </Space>
       ),
     },
-    { title: t("project_workspace_prototype.team.columns.role"), dataIndex: "projectRoleName" },
+    {
+      title: t("project_workspace_prototype.team.columns.role"),
+      dataIndex: "roleName",
+      render: (_, record) => (
+        <Space>
+          <Tag>{record.roleCode}</Tag>
+          <Typography.Text>{record.roleName}</Typography.Text>
+        </Space>
+      ),
+    },
     {
       title: t("project_workspace_prototype.team.columns.reports_to"),
-      dataIndex: "reportsToDisplayName",
-      render: (value: string | null) => value ?? "-",
+      dataIndex: "reportsTo",
+      render: (value: string | undefined) => value ?? "-",
     },
     {
       title: t("project_workspace_prototype.team.columns.primary"),
-      dataIndex: "isPrimary",
+      dataIndex: "primary",
       render: (value: boolean) => <Tag color={value ? "blue" : "default"}>{value ? t("common.actions.yes") : t("common.actions.no")}</Tag>,
     },
     {
       title: t("project_workspace_prototype.team.columns.status"),
       dataIndex: "status",
-      render: (value: string) => <Tag color={value === "Active" ? "green" : value === "Removed" ? "red" : "gold"}>{value}</Tag>,
+      render: (value: string) => <Tag color={value === "Active" ? "green" : "gold"}>{value}</Tag>,
     },
     {
       title: t("project_workspace_prototype.team.columns.period"),
-      key: "period",
-      render: (_, record) => `${formatDate(record.startAt, i18n.language)} - ${formatDate(record.endAt, i18n.language)}`,
+      dataIndex: "period",
     },
   ];
 
@@ -231,20 +215,12 @@ export function ProjectWorkspacePrototypePage() {
     { title: t("project_workspace_prototype.audit.columns.detail"), dataIndex: "detail" },
   ];
 
-  const orgChartTree = useMemo(() => buildOrgChartTree(orgChart), [orgChart]);
-
   const renderSection = (current: ProjectWorkspacePrototypeSection) => {
     switch (current) {
       case "team":
         return (
           <Card size="small" title={t("project_workspace_prototype.team.title")}>
-            <Table
-              rowKey="id"
-              columns={teamColumns}
-              dataSource={projectAssignmentsQuery.data?.items ?? []}
-              loading={projectAssignmentsQuery.isLoading}
-              pagination={false}
-            />
+            <Table rowKey="id" columns={teamColumns} dataSource={teamMembers} pagination={false} />
           </Card>
         );
       case "orgChart":
@@ -263,7 +239,7 @@ export function ProjectWorkspacePrototypePage() {
               {roles.map((role) => (
                 <Col key={role.id} xs={24} lg={12}>
                   <Card size="small">
-                    <Space direction="vertical" size={8}>
+                    <Space direction="vertical" size={8} style={{ width: "100%" }}>
                       <Flex justify="space-between" align="center">
                         <Typography.Text strong>{role.name}</Typography.Text>
                         <Tag>{role.code}</Tag>
@@ -312,7 +288,7 @@ export function ProjectWorkspacePrototypePage() {
               renderItem={(item) => (
                 <List.Item
                   actions={[
-                    <Button key={`${item.id}-view`} onClick={() => setSection("auditTrail")}>
+                    <Button key={`${item.id}-history`} onClick={() => setSection("auditTrail")}>
                       {t("project_workspace_prototype.evidence.view_history")}
                     </Button>,
                   ]}
@@ -375,7 +351,7 @@ export function ProjectWorkspacePrototypePage() {
                 {
                   key: "type",
                   label: t("project_workspace_prototype.overview.project_type"),
-                  children: selectedProject?.projectType ?? "-",
+                  children: selectedProject?.projectType ?? (selectedTemplate ? t(selectedTemplate.labelKey) : "-"),
                 },
                 {
                   key: "owner",
@@ -388,14 +364,14 @@ export function ProjectWorkspacePrototypePage() {
                   children: selectedProject?.sponsorDisplayName ?? "-",
                 },
                 {
-                  key: "methodology",
-                  label: t("project_workspace_prototype.overview.methodology"),
-                  children: selectedProject?.methodology ?? "-",
+                  key: "template",
+                  label: t("project_workspace_prototype.overview.template"),
+                  children: selectedTemplate ? t(selectedTemplate.labelKey) : "-",
                 },
                 {
-                  key: "phase",
-                  label: t("project_workspace_prototype.overview.phase"),
-                  children: selectedProject?.phase ?? "-",
+                  key: "scenario",
+                  label: t("project_workspace_prototype.overview.scenario"),
+                  children: selectedScenario ? t(selectedScenario.labelKey) : "-",
                 },
               ]}
             />
@@ -409,7 +385,7 @@ export function ProjectWorkspacePrototypePage() {
               </Flex>
             </Card>
             <Alert
-              type="warning"
+              type="info"
               showIcon
               message={t("project_workspace_prototype.overview.callout_title")}
               description={t("project_workspace_prototype.overview.callout_description")}
@@ -454,18 +430,32 @@ export function ProjectWorkspacePrototypePage() {
           <Space direction="vertical" size={20} style={{ width: "100%" }}>
             <Card size="small">
               <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  style={{ minWidth: 320, maxWidth: "100%" }}
-                  placeholder={t("project_workspace_prototype.select_project_placeholder")}
-                  options={projectOptions}
-                  value={projectId}
-                  onChange={(value: string) => navigate(`/app/projects/${value}/workspace`)}
-                />
-                <Button onClick={() => navigate("/app/admin/projects")}>
-                  {t("project_workspace_prototype.back_to_projects")}
-                </Button>
+                <Space wrap size={12}>
+                  <Select
+                    showSearch
+                    optionFilterProp="label"
+                    style={{ minWidth: 320, maxWidth: "100%" }}
+                    placeholder={t("project_workspace_prototype.select_project_placeholder")}
+                    options={projectOptions}
+                    value={projectId}
+                    onChange={(value: string) => navigate(`/app/projects/${value}/workspace`)}
+                  />
+                  <Select
+                    style={{ minWidth: 220 }}
+                    options={templateOptions.map((option) => ({ label: t(option.labelKey), value: option.id }))}
+                    value={templateId}
+                    onChange={(value: string) => setTemplateId(value)}
+                    placeholder={t("project_workspace_prototype.select_template_placeholder")}
+                  />
+                  <Select
+                    style={{ minWidth: 220 }}
+                    options={scenarioOptions.map((option) => ({ label: t(option.labelKey), value: option.id }))}
+                    value={scenarioId}
+                    onChange={(value: string) => setScenarioId(value)}
+                    placeholder={t("project_workspace_prototype.select_scenario_placeholder")}
+                  />
+                </Space>
+                <Button onClick={() => navigate("/app/admin/projects")}>{t("project_workspace_prototype.back_to_projects")}</Button>
               </Flex>
             </Card>
 
@@ -483,11 +473,11 @@ export function ProjectWorkspacePrototypePage() {
                   styles={{ body: { padding: 18 } }}
                 >
                   <Space direction="vertical" size={2}>
-                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>{card.title}</Typography.Text>
+                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>{t(card.titleKey)}</Typography.Text>
                     <Typography.Title level={2} style={{ margin: 0, color: "#fff" }}>
                       {card.value}
                     </Typography.Title>
-                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>{card.helper}</Typography.Text>
+                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>{t(card.helperKey)}</Typography.Text>
                   </Space>
                 </Card>
               ))}
@@ -495,16 +485,12 @@ export function ProjectWorkspacePrototypePage() {
 
             <Card size="small">
               <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
-                <Space size={10}>
+                <Space size={10} wrap>
                   <Tag color="processing">{selectedProject?.code ?? "-"}</Tag>
                   <Tag color="green">{selectedProject?.status ?? "-"}</Tag>
                   <Typography.Text strong>{selectedProject?.name ?? "-"}</Typography.Text>
                 </Space>
-                <Segmented
-                  options={sectionOptions}
-                  value={section}
-                  onChange={(value) => setSection(value as ProjectWorkspacePrototypeSection)}
-                />
+                <Segmented options={sectionOptions} value={section} onChange={(value) => setSection(value as ProjectWorkspacePrototypeSection)} />
               </Flex>
             </Card>
 
@@ -536,18 +522,18 @@ export function ProjectWorkspacePrototypePage() {
                   </Card>
 
                   <Card size="small" title={t("project_workspace_prototype.side_panels.prototype_notes_title")}>
-                    <Space direction="vertical" size={8}>
-                      <Typography.Text strong>{selectedProject?.projectType ?? "-"}</Typography.Text>
+                    <Space direction="vertical" size={10}>
                       <Typography.Text type="secondary">
                         {t("project_workspace_prototype.side_panels.selected_project_meta", {
                           owner: selectedProject?.ownerDisplayName ?? "-",
                           phase: selectedProject?.phase ?? "-",
                         })}
                       </Typography.Text>
-                      <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_1")}</Typography.Text>
-                      <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_2")}</Typography.Text>
-                      <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_3")}</Typography.Text>
-                      <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_4")}</Typography.Text>
+                      {selectedTemplate ? <Typography.Paragraph style={{ margin: 0 }}>{t(selectedTemplate.descriptionKey)}</Typography.Paragraph> : null}
+                      {selectedScenario ? <Typography.Paragraph style={{ margin: 0 }}>{t(selectedScenario.descriptionKey)}</Typography.Paragraph> : null}
+                      <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_1")}</Typography.Paragraph>
+                      <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_2")}</Typography.Paragraph>
+                      <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_3")}</Typography.Paragraph>
                     </Space>
                   </Card>
                 </Space>
