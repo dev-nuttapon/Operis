@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePublicRegistration } from "../hooks/usePublicRegistration";
 import { useOrgStructureOptions } from "../hooks/useOrgStructureOptions";
-import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { ApiError, getApiErrorPresentation, hasApiErrorCode } from "../../../shared/lib/apiClient";
 import { useThemeStore, type ThemeMode } from "../../../shared/store/useThemeStore";
 
 const { Paragraph, Title } = Typography;
@@ -49,21 +49,21 @@ export function PublicRegistrationPage() {
       };
     }
 
-    if (error.message === t("errors.user_exists") || error.message === t("errors.keycloak_user_exists")) {
+    if (hasApiErrorCode(error, "user_exists", "keycloak_user_exists") || error.message === t("errors.user_exists") || error.message === t("errors.keycloak_user_exists")) {
       return {
         title: t("public_registration.notifications.email_in_use_title"),
         description: t("public_registration.notifications.email_in_use_description"),
       };
     }
 
-    if (error.message === t("errors.pending_registration_exists")) {
+    if (hasApiErrorCode(error, "pending_registration_exists") || error.message === t("errors.pending_registration_exists")) {
       return {
         title: t("public_registration.notifications.pending_request_title"),
         description: t("public_registration.notifications.pending_request_description"),
       };
     }
 
-    if (error.message === t("errors.pending_invitation_exists")) {
+    if (hasApiErrorCode(error, "pending_invitation_exists") || error.message === t("errors.pending_invitation_exists")) {
       return {
         title: t("public_registration.notifications.pending_invitation_title"),
         description: t("public_registration.notifications.pending_invitation_description"),

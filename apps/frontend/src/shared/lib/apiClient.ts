@@ -19,16 +19,19 @@ interface FileRequestResult {
 export class ApiError extends Error {
   readonly status: number;
   readonly category: "network" | "bad_request" | "unauthorized" | "forbidden" | "not_found" | "conflict" | "server" | "unknown";
+  readonly code?: string;
 
   constructor(
     message: string,
     status: number,
-    category: "network" | "bad_request" | "unauthorized" | "forbidden" | "not_found" | "conflict" | "server" | "unknown" = "unknown"
+    category: "network" | "bad_request" | "unauthorized" | "forbidden" | "not_found" | "conflict" | "server" | "unknown" = "unknown",
+    code?: string
   ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.category = category;
+    this.code = code;
   }
 }
 
@@ -75,7 +78,11 @@ const messageKeyMap: Record<string, string> = {
   "Keycloak user already exists but cannot resolve id.": "errors.keycloak_user_exists",
 };
 
-function localizeApiMessage(message: string, status: number) {
+function localizeApiMessage(message: string, status: number, code?: string) {
+  if (code && i18n.exists(`errors.${code}`)) {
+    return i18n.t(`errors.${code}`);
+  }
+
   const key = messageKeyMap[message];
   if (key) {
     return i18n.t(key);
@@ -131,6 +138,10 @@ export function getApiErrorPresentation(error: unknown, fallbackTitle?: string) 
   };
 }
 
+export function hasApiErrorCode(error: unknown, ...codes: string[]) {
+  return error instanceof ApiError && !!error.code && codes.includes(error.code);
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   if (options.auth !== false) {
     await refreshToken(30);
@@ -163,12 +174,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok) {
     let message = i18n.t("errors.request_failed", { status: response.status });
+    let code: string | undefined;
 
     try {
       const contentType = response.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
-        const payload = await response.json() as { detail?: string; title?: string };
+        const payload = await response.json() as { detail?: string; title?: string; code?: string };
         message = payload.detail || payload.title || message;
+        code = payload.code;
       } else {
         const text = await response.text();
         if (text) {
@@ -180,9 +193,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
 
     throw new ApiError(
-      localizeApiMessage(message, response.status),
+      localizeApiMessage(message, response.status, code),
       response.status,
-      getErrorCategory(response.status)
+      getErrorCategory(response.status),
+      code
     );
   }
 
@@ -222,12 +236,14 @@ export async function apiFileRequest(path: string, options: RequestOptions = {})
 
   if (!response.ok) {
     let message = i18n.t("errors.request_failed", { status: response.status });
+    let code: string | undefined;
 
     try {
       const contentType = response.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {
-        const payload = await response.json() as { detail?: string; title?: string };
+        const payload = await response.json() as { detail?: string; title?: string; code?: string };
         message = payload.detail || payload.title || message;
+        code = payload.code;
       } else {
         const text = await response.text();
         if (text) {
@@ -238,7 +254,7 @@ export async function apiFileRequest(path: string, options: RequestOptions = {})
       // Keep default message when parsing fails.
     }
 
-    throw new ApiError(localizeApiMessage(message, response.status), response.status, getErrorCategory(response.status));
+    throw new ApiError(localizeApiMessage(message, response.status, code), response.status, getErrorCategory(response.status), code);
   }
 
   const disposition = response.headers.get("content-disposition") ?? "";
