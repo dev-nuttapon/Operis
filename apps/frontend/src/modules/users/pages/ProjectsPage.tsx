@@ -6,7 +6,10 @@ import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { permissions } from "../../../shared/authz/permissions";
+import { usePermissions } from "../../../shared/authz/usePermissions";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectTemplates } from "../hooks/useProjectTemplates";
@@ -143,6 +146,10 @@ function ProjectForm({
 export function ProjectsPage() {
   const { t, i18n } = useTranslation();
   const { notification } = App.useApp();
+  const navigate = useNavigate();
+  const permissionState = usePermissions();
+  const canReadProjects = permissionState.hasPermission(permissions.projects.read);
+  const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
   const projectStatusLabel = useMemo<Record<string, string>>(
     () => ({
       planned: t("projects.options.status.planned"),
@@ -238,30 +245,56 @@ export function ProjectsPage() {
         key: "actions",
         render: (_, record) => (
           <Space>
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => {
-                setEditTarget(record);
-                editForm.setFieldsValue(toInitialValues(record));
-              }}
-            >
-              {t("common.actions.edit")}
-            </Button>
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => {
-                setDeleteTarget(record);
-                deleteForm.resetFields();
-              }}
-            >
-              {t("common.actions.delete")}
-            </Button>
+            {canManageProjects ? (
+              <>
+                <Button
+                  icon={<FolderOpenOutlined />}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(`/app/projects/${record.id}/workspace`);
+                  }}
+                >
+                  {t("projects.actions.open_workspace")}
+                </Button>
+                <Button
+                  icon={<EditOutlined />}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setEditTarget(record);
+                    editForm.setFieldsValue(toInitialValues(record));
+                  }}
+                >
+                  {t("common.actions.edit")}
+                </Button>
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setDeleteTarget(record);
+                    deleteForm.resetFields();
+                  }}
+                >
+                  {t("common.actions.delete")}
+                </Button>
+              </>
+            ) : null}
+            {!canManageProjects && canReadProjects ? (
+              <Button
+                icon={<FolderOpenOutlined />}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigate(`/app/projects/${record.id}/workspace`);
+                }}
+              >
+                {t("projects.actions.open_workspace")}
+              </Button>
+            ) : null}
           </Space>
         ),
       },
     ],
-    [deleteForm, editForm, i18n.language, projectStatusLabel, t],
+    [canManageProjects, canReadProjects, deleteForm, editForm, i18n.language, navigate, projectStatusLabel, t],
   );
 
   const submitCreate = (values: ProjectFormValues) => {
@@ -321,16 +354,27 @@ export function ProjectsPage() {
             style={{ width: 360, maxWidth: "100%" }}
             onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
           />
-          <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
-            {t("projects.create_action")}
-          </Button>
+          {canManageProjects ? (
+            <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
+              {t("projects.create_action")}
+            </Button>
+          ) : null}
         </Space>
 
         <Table
           rowKey="id"
           columns={columns}
-          dataSource={projectsQuery.data?.items ?? []}
-          loading={projectsQuery.isLoading || projectMemberUsersQuery.isLoading}
+          dataSource={canReadProjects ? (projectsQuery.data?.items ?? []) : []}
+          loading={canReadProjects ? (projectsQuery.isLoading || projectMemberUsersQuery.isLoading) : false}
+          rowClassName={() => (canReadProjects ? "clickable-project-row" : "")}
+          onRow={(record) =>
+            canReadProjects
+              ? {
+                  onClick: () => navigate(`/app/projects/${record.id}/workspace`),
+                  style: { cursor: "pointer" },
+                }
+              : {}
+          }
           pagination={{
             current: projectsQuery.data?.page ?? paging.page,
             pageSize: projectsQuery.data?.pageSize ?? paging.pageSize,
@@ -353,7 +397,7 @@ export function ProjectsPage() {
 
       <Modal
         title={t("projects.create_modal_title")}
-        open={createOpen}
+        open={createOpen && canManageProjects}
         onCancel={() => {
           setCreateOpen(false);
           createForm.resetFields();
@@ -369,7 +413,7 @@ export function ProjectsPage() {
 
       <Modal
         title={editTarget ? t("projects.edit_modal_title_with_name", { name: editTarget.name }) : t("projects.edit_modal_title")}
-        open={editTarget !== null}
+        open={editTarget !== null && canManageProjects}
         onCancel={() => {
           setEditTarget(null);
           editForm.resetFields();
@@ -385,7 +429,7 @@ export function ProjectsPage() {
 
       <Modal
         title={deleteTarget ? t("projects.delete_modal_title_with_name", { name: deleteTarget.name }) : t("projects.delete_modal_title")}
-        open={deleteTarget !== null}
+        open={deleteTarget !== null && canManageProjects}
         onCancel={() => {
           setDeleteTarget(null);
           deleteForm.resetFields();

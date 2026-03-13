@@ -3,11 +3,12 @@ import { useTranslation } from "react-i18next";
 import type { CreateWorkflowDefinitionInput } from "../types/workflows";
 
 interface WorkflowDefinitionCreateFormProps {
+  canManage: boolean;
   isSubmitting: boolean;
   onSubmit: (values: CreateWorkflowDefinitionInput) => void;
 }
 
-export function WorkflowDefinitionCreateForm({ isSubmitting, onSubmit }: WorkflowDefinitionCreateFormProps) {
+export function WorkflowDefinitionCreateForm({ canManage, isSubmitting, onSubmit }: WorkflowDefinitionCreateFormProps) {
   const { t } = useTranslation();
   const [form] = Form.useForm<CreateWorkflowDefinitionInput>();
 
@@ -30,7 +31,7 @@ export function WorkflowDefinitionCreateForm({ isSubmitting, onSubmit }: Workflo
       >
         <Input placeholder={t("workflow_definitions.placeholders.name")} />
       </Form.Item>
-      <Button htmlType="submit" type="primary" loading={isSubmitting}>
+      <Button htmlType="submit" type="primary" loading={isSubmitting} disabled={!canManage}>
         {t("workflow_definitions.actions.create_draft")}
       </Button>
     </Form>

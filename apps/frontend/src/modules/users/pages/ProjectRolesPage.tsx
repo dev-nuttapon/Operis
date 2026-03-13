@@ -6,6 +6,8 @@ import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SolutionOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { permissions } from "../../../shared/authz/permissions";
+import { usePermissions } from "../../../shared/authz/usePermissions";
 import { toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import type { CreateProjectRoleInput, ProjectRole, UpdateProjectRoleInput } from "../types/users";
@@ -116,6 +118,9 @@ function ProjectRoleForm({
 export function ProjectRolesPage() {
   const { t } = useTranslation();
   const { notification } = App.useApp();
+  const permissionState = usePermissions();
+  const canReadProjects = permissionState.hasPermission(permissions.projects.read);
+  const canManageProjectRoles = permissionState.hasPermission(permissions.projects.manageRoles);
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
   const [paging, setPaging] = useState({
     page: 1,
@@ -197,30 +202,34 @@ export function ProjectRolesPage() {
         key: "actions",
         render: (_, record) => (
           <Space>
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => {
-                setEditTarget(record);
-                editForm.setFieldsValue(toProjectRoleInitialValues(record, selectedProjectId));
-              }}
-            >
-              {t("common.actions.edit")}
-            </Button>
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => {
-                setDeleteTarget(record);
-                deleteForm.resetFields();
-              }}
-            >
-              {t("common.actions.delete")}
-            </Button>
+            {canManageProjectRoles ? (
+              <>
+                <Button
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    setEditTarget(record);
+                    editForm.setFieldsValue(toProjectRoleInitialValues(record, selectedProjectId));
+                  }}
+                >
+                  {t("common.actions.edit")}
+                </Button>
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => {
+                    setDeleteTarget(record);
+                    deleteForm.resetFields();
+                  }}
+                >
+                  {t("common.actions.delete")}
+                </Button>
+              </>
+            ) : null}
           </Space>
         ),
       },
     ],
-    [deleteForm, editForm, selectedProjectId, t],
+    [canManageProjectRoles, deleteForm, editForm, selectedProjectId, t],
   );
 
   const createRole = (values: ProjectRoleFormValues) => {
@@ -314,7 +323,9 @@ export function ProjectRolesPage() {
             }}
           />
 
-          {!selectedProjectId ? (
+          {!canReadProjects ? (
+            <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
+          ) : !selectedProjectId ? (
             <Alert type="info" showIcon message={t("project_roles.select_project_message")} />
           ) : (
             <>
@@ -325,32 +336,34 @@ export function ProjectRolesPage() {
                   style={{ width: 360, maxWidth: "100%" }}
                   onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
                 />
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  size="large"
-                  onClick={() => {
-                    createForm.setFieldsValue({
-                      projectId: selectedProjectId,
-                      isReviewRole: false,
-                      isApprovalRole: false,
-                      canCreateDocuments: false,
-                      canReviewDocuments: false,
-                      canApproveDocuments: false,
-                      canReleaseDocuments: false,
-                    });
-                    setCreateOpen(true);
-                  }}
-                >
-                  {t("project_roles.create_action")}
-                </Button>
+                {canManageProjectRoles ? (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    size="large"
+                    onClick={() => {
+                      createForm.setFieldsValue({
+                        projectId: selectedProjectId,
+                        isReviewRole: false,
+                        isApprovalRole: false,
+                        canCreateDocuments: false,
+                        canReviewDocuments: false,
+                        canApproveDocuments: false,
+                        canReleaseDocuments: false,
+                      });
+                      setCreateOpen(true);
+                    }}
+                  >
+                    {t("project_roles.create_action")}
+                  </Button>
+                ) : null}
               </Space>
 
               <Table
                 rowKey="id"
                 columns={columns}
-                dataSource={projectRolesQuery.data?.items ?? []}
-                loading={projectRolesQuery.isLoading}
+                dataSource={canReadProjects ? (projectRolesQuery.data?.items ?? []) : []}
+                loading={canReadProjects ? projectRolesQuery.isLoading : false}
                 pagination={{
                   current: projectRolesQuery.data?.page ?? paging.page,
                   pageSize: projectRolesQuery.data?.pageSize ?? paging.pageSize,
@@ -376,7 +389,7 @@ export function ProjectRolesPage() {
 
       <Modal
         title={t("project_roles.create_modal_title")}
-        open={createOpen}
+        open={createOpen && canManageProjectRoles}
         onCancel={() => {
           setCreateOpen(false);
           createForm.resetFields();
@@ -392,7 +405,7 @@ export function ProjectRolesPage() {
 
       <Modal
         title={editTarget ? t("project_roles.edit_modal_title_with_name", { name: editTarget.name }) : t("project_roles.edit_modal_title")}
-        open={editTarget !== null}
+        open={editTarget !== null && canManageProjectRoles}
         onCancel={() => {
           setEditTarget(null);
           editForm.resetFields();
@@ -408,7 +421,7 @@ export function ProjectRolesPage() {
 
       <Modal
         title={deleteTarget ? t("project_roles.delete_modal_title_with_name", { name: deleteTarget.name }) : t("project_roles.delete_modal_title")}
-        open={deleteTarget !== null}
+        open={deleteTarget !== null && canManageProjectRoles}
         onCancel={() => {
           setDeleteTarget(null);
           deleteForm.resetFields();

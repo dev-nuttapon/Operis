@@ -7,10 +7,15 @@ import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import type { ProjectAssignmentHistoryRow, ProjectRoleResponsibilityRow, ProjectTeamRegisterRow } from "../types/users";
 import { formatDate } from "../utils/adminUsersPresentation";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { permissions } from "../../../shared/authz/permissions";
+import { usePermissions } from "../../../shared/authz/usePermissions";
 
 export function ProjectEvidencePage() {
   const { t, i18n } = useTranslation();
   const { notification } = App.useApp();
+  const permissionState = usePermissions();
+  const canReadEvidence = permissionState.hasPermission(permissions.projects.readEvidence);
+  const canExportEvidence = permissionState.hasPermission(permissions.projects.exportEvidence);
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
 
   const { projectsQuery, projectEvidenceQuery, exportProjectEvidenceCsv } = useProjectAdmin({
@@ -145,7 +150,9 @@ export function ProjectEvidencePage() {
             onChange={(value) => setSelectedProjectId(value)}
           />
 
-          {!selectedProjectId ? (
+          {!canReadEvidence ? (
+            <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
+          ) : !selectedProjectId ? (
             <Alert type="info" showIcon message={t("project_evidence.select_project_message")} />
           ) : !evidence ? (
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_evidence.empty")} />
@@ -156,9 +163,11 @@ export function ProjectEvidencePage() {
               </Typography.Title>
 
               <Space style={{ width: "100%", justifyContent: "flex-end" }}>
-                <Button icon={<DownloadOutlined />} onClick={handleExport}>
-                  {t("project_evidence.export.action")}
-                </Button>
+                {canExportEvidence ? (
+                  <Button icon={<DownloadOutlined />} onClick={handleExport}>
+                    {t("project_evidence.export.action")}
+                  </Button>
+                ) : null}
               </Space>
 
               <Card size="small" title={t("project_evidence.team_register.title")}>

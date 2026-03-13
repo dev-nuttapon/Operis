@@ -281,6 +281,7 @@ export function MainLayout() {
     if (path.includes('admin/project-roles')) return tr('common.master_project_roles');
     if (path.includes('admin/project-members')) return tr('common.project_members');
     if (path.includes('admin/project-org-chart')) return tr('common.project_org_chart');
+    if (path.includes('/projects/') && path.includes('/workspace')) return tr('common.project_workspace_prototype');
     if (path.includes('admin/project-evidence')) return tr('common.project_evidence');
     if (path.includes('admin/project-compliance')) return tr('common.project_compliance');
     if (path.includes('admin/master')) return tr('common.master_data_management');
@@ -527,6 +528,10 @@ function getOpenKeys(path: string) {
     path.startsWith('/app/admin/project-evidence') ||
     path.startsWith('/app/admin/project-compliance')
   ) {
+    return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
+  }
+
+  if (path.startsWith('/app/projects/') && path.endsWith('/workspace')) {
     return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
   }
 

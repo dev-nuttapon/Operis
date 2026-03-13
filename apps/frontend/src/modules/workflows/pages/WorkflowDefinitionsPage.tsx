@@ -1,6 +1,8 @@
 import { Alert, Card, Divider, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { permissions } from "../../../shared/authz/permissions";
+import { usePermissions } from "../../../shared/authz/usePermissions";
 import { WorkflowDefinitionCreateForm } from "../components/WorkflowDefinitionCreateForm";
 import { WorkflowDefinitionFilters } from "../components/WorkflowDefinitionFilters";
 import { WorkflowDefinitionList } from "../components/WorkflowDefinitionList";
@@ -14,6 +16,9 @@ const { Paragraph, Title } = Typography;
 
 export function WorkflowDefinitionsPage() {
   const { t } = useTranslation();
+  const permissionState = usePermissions();
+  const canReadWorkflows = permissionState.hasPermission(permissions.workflows.read);
+  const canManageDefinitions = permissionState.hasPermission(permissions.workflows.manageDefinitions);
   const { definitionsQuery, filteredDefinitions, setStatusFilter, statusFilter, statusSummary } = useWorkflowDefinitionsScreen();
   const createDefinitionMutation = useCreateWorkflowDefinition();
   const updateDefinitionMutation = useUpdateWorkflowDefinition();
@@ -39,6 +44,15 @@ export function WorkflowDefinitionsPage() {
         {t("workflow_definitions.page_description")}
       </Paragraph>
 
+      {!canReadWorkflows ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={t("errors.title_forbidden")}
+        />
+      ) : null}
+
       {createErrorPresentation ? (
         <Alert
           type="error"
@@ -59,37 +73,45 @@ export function WorkflowDefinitionsPage() {
         />
       ) : null}
 
-      <WorkflowDefinitionCreateForm
-        isSubmitting={createDefinitionMutation.isPending}
-        onSubmit={(values) => createDefinitionMutation.mutate(values)}
-      />
+      {canReadWorkflows ? (
+        <WorkflowDefinitionCreateForm
+          canManage={canManageDefinitions}
+          isSubmitting={createDefinitionMutation.isPending}
+          onSubmit={(values) => createDefinitionMutation.mutate(values)}
+        />
+      ) : null}
 
       <Divider />
 
-      <WorkflowDefinitionFilters
-        selectedFilter={statusFilter}
-        statusSummary={statusSummary}
-        onSelectFilter={setStatusFilter}
-      />
+      {canReadWorkflows ? (
+        <WorkflowDefinitionFilters
+          selectedFilter={statusFilter}
+          statusSummary={statusSummary}
+          onSelectFilter={setStatusFilter}
+        />
+      ) : null}
 
       <Divider />
 
-      <WorkflowDefinitionList
-        definitions={filteredDefinitions}
-        isLoading={definitionsQuery.isLoading}
-        isMutating={updateDefinitionMutation.isPending || activateMutation.isPending || archiveMutation.isPending}
-        editingWorkflowDefinitionId={editingWorkflowDefinitionId}
-        onStartEdit={startEditing}
-        onCancelEdit={stopEditing}
-        onUpdate={(workflowDefinitionId, name) => {
-          updateDefinitionMutation.mutate(
-            { workflowDefinitionId, name },
-            { onSuccess: () => stopEditing() },
-          );
-        }}
-        onActivate={(workflowDefinitionId) => activateMutation.mutate({ workflowDefinitionId })}
-        onArchive={(workflowDefinitionId) => archiveMutation.mutate({ workflowDefinitionId })}
-      />
+      {canReadWorkflows ? (
+        <WorkflowDefinitionList
+          canManage={canManageDefinitions}
+          definitions={filteredDefinitions}
+          isLoading={definitionsQuery.isLoading}
+          isMutating={updateDefinitionMutation.isPending || activateMutation.isPending || archiveMutation.isPending}
+          editingWorkflowDefinitionId={editingWorkflowDefinitionId}
+          onStartEdit={startEditing}
+          onCancelEdit={stopEditing}
+          onUpdate={(workflowDefinitionId, name) => {
+            updateDefinitionMutation.mutate(
+              { workflowDefinitionId, name },
+              { onSuccess: () => stopEditing() },
+            );
+          }}
+          onActivate={(workflowDefinitionId) => activateMutation.mutate({ workflowDefinitionId })}
+          onArchive={(workflowDefinitionId) => archiveMutation.mutate({ workflowDefinitionId })}
+        />
+      ) : null}
     </Card>
   );
 }

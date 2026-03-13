@@ -43,6 +43,9 @@ const ProjectCompliancePage = lazy(() =>
 const ProjectTypeTemplatesPage = lazy(() =>
   import("../modules/users/pages/ProjectTypeTemplatesPage").then((module) => ({ default: module.ProjectTypeTemplatesPage }))
 );
+const ProjectWorkspacePrototypePage = lazy(() =>
+  import("../modules/users/pages/ProjectWorkspacePrototypePage").then((module) => ({ default: module.ProjectWorkspacePrototypePage }))
+);
 const AuditLogsPage = lazy(() =>
   import("../modules/audits/pages/AuditLogsPage").then((module) => ({ default: module.AuditLogsPage }))
 );
@@ -83,6 +86,7 @@ export function AppRouter() {
               <Route path="admin/project-roles" element={<ProjectRolesPage />} />
               <Route path="admin/project-members" element={<ProjectMembersPage />} />
               <Route path="admin/project-org-chart" element={<ProjectOrgChartPage />} />
+              <Route path="projects/:projectId/workspace" element={<ProjectWorkspacePrototypePage />} />
               <Route path="admin/project-evidence" element={<ProjectEvidencePage />} />
               <Route path="admin/project-compliance" element={<ProjectCompliancePage />} />
               <Route path="admin/project-type-templates" element={<ProjectTypeTemplatesPage />} />

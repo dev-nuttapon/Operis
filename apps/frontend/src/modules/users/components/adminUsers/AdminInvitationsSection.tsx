@@ -2,6 +2,8 @@ import { Button, Card, DatePicker, Input, Select, Space, Table, Typography } fro
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { EditOutlined, EyeOutlined, MailOutlined } from "@ant-design/icons";
+import { permissions } from "../../../../shared/authz/permissions";
+import { usePermissions } from "../../../../shared/authz/usePermissions";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import { invitationStatusOptions, toApiSortOrder, toRange } from "../../utils/adminUsersPresentation";
@@ -53,6 +55,8 @@ export function AdminInvitationsSection({
   onCancelInvitation,
   onPrefillInvitationEdit,
 }: AdminInvitationsSectionProps) {
+  const permissionState = usePermissions();
+  const canInviteUsers = permissionState.hasPermission(permissions.users.invite);
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card variant="borderless">
@@ -91,9 +95,11 @@ export function AdminInvitationsSection({
               setPaging((current) => ({ ...current, page: 1, ...normalized }));
             }}
           />
-          <Button type="primary" icon={<MailOutlined />} size="large" onClick={() => setCreatingInvitation(true)}>
-            {t("admin_users.invitations.open_create")}
-          </Button>
+          {canInviteUsers ? (
+            <Button type="primary" icon={<MailOutlined />} size="large" onClick={() => setCreatingInvitation(true)}>
+              {t("admin_users.invitations.open_create")}
+            </Button>
+          ) : null}
         </Space>
         <Table
           rowKey="id"
@@ -113,26 +119,30 @@ export function AdminInvitationsSection({
                       >
                         {t("common.actions.view")}
                       </Button>
-                      <Button
-                        icon={<EditOutlined />}
-                        disabled={record.status === "Accepted" || record.status === "Cancelled" || record.status === "Rejected"}
-                        onClick={() => {
-                          setEditingInvitation(record);
-                          onPrefillInvitationEdit(record);
-                        }}
-                      >
-                        {t("common.actions.edit")}
-                      </Button>
-                      <Button
-                        danger
-                        disabled={record.status === "Accepted"}
-                        loading={cancelInvitationLoading}
-                        onClick={() => {
-                          onCancelInvitation(record);
-                        }}
-                      >
-                        {t("admin_users.invitations.cancel_action")}
-                      </Button>
+                      {canInviteUsers ? (
+                        <>
+                          <Button
+                            icon={<EditOutlined />}
+                            disabled={record.status === "Accepted" || record.status === "Cancelled" || record.status === "Rejected"}
+                            onClick={() => {
+                              setEditingInvitation(record);
+                              onPrefillInvitationEdit(record);
+                            }}
+                          >
+                            {t("common.actions.edit")}
+                          </Button>
+                          <Button
+                            danger
+                            disabled={record.status === "Accepted"}
+                            loading={cancelInvitationLoading}
+                            onClick={() => {
+                              onCancelInvitation(record);
+                            }}
+                          >
+                            {t("admin_users.invitations.cancel_action")}
+                          </Button>
+                        </>
+                      ) : null}
                     </Space>
                   ),
                 }

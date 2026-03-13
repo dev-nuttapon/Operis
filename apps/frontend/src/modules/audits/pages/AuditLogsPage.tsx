@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
+import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SortOrder, SorterResult } from "antd/es/table/interface";
 import { EyeOutlined, SearchOutlined, TeamOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { permissions } from "../../../shared/authz/permissions";
+import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useAuditLogs } from "../hooks/useAuditLogs";
 import type { AuditLogItem, ListAuditLogsInput } from "../types/audits";
 
@@ -56,6 +58,8 @@ function toApiSortOrder(order?: SortOrder): "asc" | "desc" | undefined {
 export function AuditLogsPage() {
   const { t, i18n } = useTranslation();
   const { notification } = App.useApp();
+  const permissionState = usePermissions();
+  const canReadAuditLogs = permissionState.hasPermission(permissions.auditLogs.read);
   const [form] = Form.useForm();
   const [filters, setFilters] = useState<ListAuditLogsInput>({ page: 1, pageSize: 10, sortBy: "occurredAt", sortOrder: "desc" });
   const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
@@ -200,6 +204,10 @@ export function AuditLogsPage() {
       </Card>
 
       <Card variant="borderless">
+        {!canReadAuditLogs ? (
+          <Alert type="warning" showIcon message={t("errors.title_forbidden")} style={{ marginBottom: 16 }} />
+        ) : null}
+
         <Form form={form} layout="vertical" onFinish={handleSearch}>
           <Space wrap size={16} align="end" style={{ marginBottom: 16 }}>
             <Form.Item name="module" label={t("audit_logs.filters.module")}>
@@ -243,8 +251,8 @@ export function AuditLogsPage() {
         <Table<AuditLogItem>
           rowKey="id"
           columns={columns}
-          dataSource={auditLogsQuery.data?.items ?? []}
-          loading={auditLogsQuery.isLoading}
+          dataSource={canReadAuditLogs ? (auditLogsQuery.data?.items ?? []) : []}
+          loading={canReadAuditLogs ? auditLogsQuery.isLoading : false}
           pagination={{
             current: auditLogsQuery.data?.page ?? filters.page ?? 1,
             pageSize: auditLogsQuery.data?.pageSize ?? filters.pageSize ?? 10,

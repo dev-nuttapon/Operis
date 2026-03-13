@@ -2,6 +2,8 @@ import { Button, Card, DatePicker, Divider, Input, Select, Space, Table, Tag, Ty
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import { permissions } from "../../../../shared/authz/permissions";
+import { usePermissions } from "../../../../shared/authz/usePermissions";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import {
@@ -54,6 +56,8 @@ export function AdminRegistrationsSection({
   setViewingRegistrationLink,
   t,
 }: AdminRegistrationsSectionProps) {
+  const permissionState = usePermissions();
+  const canReviewRegistrations = permissionState.hasPermission(permissions.users.reviewRegistrations);
   const columns: ColumnsType<RegistrationRequest> = [
     {
       title: t("admin_users.columns.applicant"),
@@ -100,7 +104,7 @@ export function AdminRegistrationsSection({
       title: t("admin_users.columns.actions"),
       key: "actions",
       render: (_, record) =>
-        record.status === "Pending" ? (
+        record.status === "Pending" && canReviewRegistrations ? (
           <Button
             icon={<CheckCircleOutlined />}
             onClick={() => {

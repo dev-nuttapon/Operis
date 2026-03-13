@@ -2,6 +2,8 @@ import { Button, Card, Input, Space, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { permissions } from "../../../../shared/authz/permissions";
+import { usePermissions } from "../../../../shared/authz/usePermissions";
 import { toApiSortOrder } from "../../utils/adminUsersPresentation";
 import type { MasterDataItem } from "../../types/users";
 
@@ -58,6 +60,8 @@ export function AdminMasterDataSection({
   onDeletePrepare,
   onEdit,
 }: AdminMasterDataSectionProps) {
+  const permissionState = usePermissions();
+  const canManagePermanentOrg = permissionState.hasPermission(permissions.masterData.managePermanentOrg);
   const columns: ColumnsType<MasterDataItem> = [
     {
       title: itemLabel,
@@ -75,26 +79,30 @@ export function AdminMasterDataSection({
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditing(record);
-              onEdit(record);
-            }}
-          >
-            {t("common.actions.edit")}
-          </Button>
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            loading={deleting}
-            onClick={() => {
-              setDeleting(record);
-              onDeletePrepare();
-            }}
-          >
-            {t("common.actions.delete")}
-          </Button>
+          {canManagePermanentOrg ? (
+            <>
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setEditing(record);
+                  onEdit(record);
+                }}
+              >
+                {t("common.actions.edit")}
+              </Button>
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                loading={deleting}
+                onClick={() => {
+                  setDeleting(record);
+                  onDeletePrepare();
+                }}
+              >
+                {t("common.actions.delete")}
+              </Button>
+            </>
+          ) : null}
         </Space>
       ),
     },
@@ -115,9 +123,11 @@ export function AdminMasterDataSection({
           placeholder={searchPlaceholder}
           onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
         />
-        <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreating(true)}>
-          {createLabel}
-        </Button>
+        {canManagePermanentOrg ? (
+          <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreating(true)}>
+            {createLabel}
+          </Button>
+        ) : null}
       </Space>
       <Table
         rowKey="id"

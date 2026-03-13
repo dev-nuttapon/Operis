@@ -4,6 +4,8 @@ import type { ColumnsType } from "antd/es/table";
 import { DeleteOutlined, EditOutlined, PlusOutlined, ProfileOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { permissions } from "../../../shared/authz/permissions";
+import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useProjectTemplates } from "../hooks/useProjectTemplates";
 import type {
   CreateProjectTypeRoleRequirementInput,
@@ -23,6 +25,8 @@ const PROJECT_TYPE_OPTIONS = ["Internal", "Customer", "Compliance", "Improvement
 export function ProjectTypeTemplatesPage() {
   const { t } = useTranslation();
   const { notification } = App.useApp();
+  const permissionState = usePermissions();
+  const canManageTemplates = permissionState.hasPermission(permissions.projects.manageTemplates);
   const [templatePaging, setTemplatePaging] = useState({ page: 1, pageSize: 10, search: "", sortBy: "projectType", sortOrder: "asc" as "asc" | "desc" });
   const [requirementPaging, setRequirementPaging] = useState({ page: 1, pageSize: 10, search: "", sortBy: "displayOrder", sortOrder: "asc" as "asc" | "desc" });
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTypeTemplate | null>(null);
@@ -70,13 +74,17 @@ export function ProjectTypeTemplatesPage() {
         render: (_, record) => (
           <Space>
             <Button onClick={() => setSelectedTemplate(record)}>{t("common.actions.view")}</Button>
-            <Button icon={<EditOutlined />} onClick={() => { setEditTemplateTarget(record); editTemplateForm.setFieldsValue(record); }}>{t("common.actions.edit")}</Button>
-            <Button danger icon={<DeleteOutlined />} onClick={() => { setDeleteTemplateTarget(record); templateDeleteForm.resetFields(); }}>{t("common.actions.delete")}</Button>
+            {canManageTemplates ? (
+              <>
+                <Button icon={<EditOutlined />} onClick={() => { setEditTemplateTarget(record); editTemplateForm.setFieldsValue(record); }}>{t("common.actions.edit")}</Button>
+                <Button danger icon={<DeleteOutlined />} onClick={() => { setDeleteTemplateTarget(record); templateDeleteForm.resetFields(); }}>{t("common.actions.delete")}</Button>
+              </>
+            ) : null}
           </Space>
         ),
       },
     ],
-    [editTemplateForm, t, templateDeleteForm],
+    [canManageTemplates, editTemplateForm, t, templateDeleteForm],
   );
 
   const requirementColumns: ColumnsType<ProjectTypeRoleRequirement> = useMemo(
@@ -89,13 +97,17 @@ export function ProjectTypeTemplatesPage() {
         key: "actions",
         render: (_, record) => (
           <Space>
-            <Button icon={<EditOutlined />} onClick={() => { setEditRequirementTarget(record); editRequirementForm.setFieldsValue({ projectTypeTemplateId: record.projectTypeTemplateId, roleName: record.roleName, roleCode: record.roleCode ?? undefined, description: record.description ?? undefined, displayOrder: record.displayOrder }); }}>{t("common.actions.edit")}</Button>
-            <Button danger icon={<DeleteOutlined />} onClick={() => { setDeleteRequirementTarget(record); requirementDeleteForm.resetFields(); }}>{t("common.actions.delete")}</Button>
+            {canManageTemplates ? (
+              <>
+                <Button icon={<EditOutlined />} onClick={() => { setEditRequirementTarget(record); editRequirementForm.setFieldsValue({ projectTypeTemplateId: record.projectTypeTemplateId, roleName: record.roleName, roleCode: record.roleCode ?? undefined, description: record.description ?? undefined, displayOrder: record.displayOrder }); }}>{t("common.actions.edit")}</Button>
+                <Button danger icon={<DeleteOutlined />} onClick={() => { setDeleteRequirementTarget(record); requirementDeleteForm.resetFields(); }}>{t("common.actions.delete")}</Button>
+              </>
+            ) : null}
           </Space>
         ),
       },
     ],
-    [editRequirementForm, requirementDeleteForm, t],
+    [canManageTemplates, editRequirementForm, requirementDeleteForm, t],
   );
 
   const saveTemplate = (values: TemplateFormValues, target?: ProjectTypeTemplate | null) => {
@@ -147,7 +159,7 @@ export function ProjectTypeTemplatesPage() {
       <Card variant="borderless">
         <Space wrap style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }}>
           <Input.Search allowClear placeholder={t("project_type_templates.search_placeholder")} style={{ width: 360, maxWidth: "100%" }} onSearch={(value) => setTemplatePaging((current) => ({ ...current, page: 1, search: value }))} />
-          <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateTemplateOpen(true)}>{t("project_type_templates.create_action")}</Button>
+          {canManageTemplates ? <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateTemplateOpen(true)}>{t("project_type_templates.create_action")}</Button> : null}
         </Space>
         <Table
           rowKey="id"
@@ -159,11 +171,11 @@ export function ProjectTypeTemplatesPage() {
         />
       </Card>
 
-      <Card variant="borderless" title={t("project_type_templates.role_requirements.title")} extra={<Button type="primary" onClick={() => {
+      <Card variant="borderless" title={t("project_type_templates.role_requirements.title")} extra={canManageTemplates ? <Button type="primary" onClick={() => {
         if (!selectedTemplate) return;
         requirementForm.setFieldsValue({ projectTypeTemplateId: selectedTemplate.id, displayOrder: 100 } as RequirementFormValues);
         setCreateRequirementOpen(true);
-      }} disabled={!selectedTemplate}>{t("project_type_templates.role_requirements.create_action")}</Button>}>
+      }} disabled={!selectedTemplate}>{t("project_type_templates.role_requirements.create_action")}</Button> : null}>
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
           <Select
             placeholder={t("project_type_templates.role_requirements.select_template")}
@@ -185,29 +197,29 @@ export function ProjectTypeTemplatesPage() {
         </Space>
       </Card>
 
-      <Modal open={createTemplateOpen} title={t("project_type_templates.create_action")} onCancel={() => setCreateTemplateOpen(false)} onOk={() => templateForm.submit()} confirmLoading={createTemplateMutation.isPending}>
+      <Modal open={createTemplateOpen && canManageTemplates} title={t("project_type_templates.create_action")} onCancel={() => setCreateTemplateOpen(false)} onOk={() => templateForm.submit()} confirmLoading={createTemplateMutation.isPending}>
         <ProjectTypeTemplateForm form={templateForm} t={t} onFinish={(values) => saveTemplate(values)} />
       </Modal>
 
-      <Modal open={Boolean(editTemplateTarget)} title={t("common.actions.edit")} onCancel={() => setEditTemplateTarget(null)} onOk={() => editTemplateForm.submit()} confirmLoading={updateTemplateMutation.isPending}>
+      <Modal open={Boolean(editTemplateTarget) && canManageTemplates} title={t("common.actions.edit")} onCancel={() => setEditTemplateTarget(null)} onOk={() => editTemplateForm.submit()} confirmLoading={updateTemplateMutation.isPending}>
         <ProjectTypeTemplateForm form={editTemplateForm} t={t} onFinish={(values) => saveTemplate(values, editTemplateTarget)} />
       </Modal>
 
-      <Modal open={Boolean(deleteTemplateTarget)} title={t("common.actions.delete")} onCancel={() => setDeleteTemplateTarget(null)} onOk={() => templateDeleteForm.submit()} confirmLoading={deleteTemplateMutation.isPending}>
+      <Modal open={Boolean(deleteTemplateTarget) && canManageTemplates} title={t("common.actions.delete")} onCancel={() => setDeleteTemplateTarget(null)} onOk={() => templateDeleteForm.submit()} confirmLoading={deleteTemplateMutation.isPending}>
         <Form form={templateDeleteForm} layout="vertical" onFinish={(values: { reason: string }) => deleteTemplateMutation.mutate({ id: deleteTemplateTarget!.id, input: { reason: values.reason } as SoftDeleteInput }, { onSuccess: () => { setDeleteTemplateTarget(null); notification.success({ message: t("project_type_templates.messages.deleted") }); }, onError: (error) => handleError(t("project_type_templates.messages.delete_failed"), error) })}>
           <Form.Item name="reason" label={t("admin_users.fields.delete_reason")} rules={[{ required: true }]}><Input.TextArea rows={3} /></Form.Item>
         </Form>
       </Modal>
 
-      <Modal open={createRequirementOpen} title={t("project_type_templates.role_requirements.create_action")} onCancel={() => setCreateRequirementOpen(false)} onOk={() => requirementForm.submit()} confirmLoading={createRoleRequirementMutation.isPending}>
+      <Modal open={createRequirementOpen && canManageTemplates} title={t("project_type_templates.role_requirements.create_action")} onCancel={() => setCreateRequirementOpen(false)} onOk={() => requirementForm.submit()} confirmLoading={createRoleRequirementMutation.isPending}>
         <ProjectTypeRoleRequirementForm form={requirementForm} t={t} selectedTemplate={selectedTemplate} onFinish={(values) => saveRequirement(values)} />
       </Modal>
 
-      <Modal open={Boolean(editRequirementTarget)} title={t("common.actions.edit")} onCancel={() => setEditRequirementTarget(null)} onOk={() => editRequirementForm.submit()} confirmLoading={updateRoleRequirementMutation.isPending}>
+      <Modal open={Boolean(editRequirementTarget) && canManageTemplates} title={t("common.actions.edit")} onCancel={() => setEditRequirementTarget(null)} onOk={() => editRequirementForm.submit()} confirmLoading={updateRoleRequirementMutation.isPending}>
         <ProjectTypeRoleRequirementForm form={editRequirementForm} t={t} selectedTemplate={selectedTemplate} onFinish={(values) => saveRequirement(values, editRequirementTarget)} />
       </Modal>
 
-      <Modal open={Boolean(deleteRequirementTarget)} title={t("common.actions.delete")} onCancel={() => setDeleteRequirementTarget(null)} onOk={() => requirementDeleteForm.submit()} confirmLoading={deleteRoleRequirementMutation.isPending}>
+      <Modal open={Boolean(deleteRequirementTarget) && canManageTemplates} title={t("common.actions.delete")} onCancel={() => setDeleteRequirementTarget(null)} onOk={() => requirementDeleteForm.submit()} confirmLoading={deleteRoleRequirementMutation.isPending}>
         <Form form={requirementDeleteForm} layout="vertical" onFinish={(values: { reason: string }) => deleteRoleRequirementMutation.mutate({ id: deleteRequirementTarget!.id, input: { reason: values.reason } as SoftDeleteInput }, { onSuccess: () => { setDeleteRequirementTarget(null); notification.success({ message: t("project_type_templates.role_requirements.messages.deleted") }); }, onError: (error) => handleError(t("project_type_templates.role_requirements.messages.delete_failed"), error) })}>
           <Form.Item name="reason" label={t("admin_users.fields.delete_reason")} rules={[{ required: true }]}><Input.TextArea rows={3} /></Form.Item>
         </Form>

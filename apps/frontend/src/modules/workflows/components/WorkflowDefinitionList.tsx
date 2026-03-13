@@ -9,6 +9,7 @@ const WorkflowDefinitionEditForm = lazy(async () => {
 });
 
 interface WorkflowDefinitionListProps {
+  canManage: boolean;
   definitions: WorkflowDefinitionSummary[];
   isLoading: boolean;
   isMutating: boolean;
@@ -21,6 +22,7 @@ interface WorkflowDefinitionListProps {
 }
 
 export function WorkflowDefinitionList({
+  canManage,
   definitions,
   isLoading,
   isMutating,
@@ -44,37 +46,39 @@ export function WorkflowDefinitionList({
       loading={isLoading}
       locale={{ emptyText: t("workflow_definitions.empty") }}
       renderItem={(item) => {
-        const actions = [
-          <Button
-            key="edit"
-            type="link"
-            disabled={isMutating}
-            onClick={() => onStartEdit(item.id)}
-          >
-            {t("common.actions.edit")}
-          </Button>,
-          item.status !== "active" ? (
-            <Button
-              key="activate"
-              type="link"
-              disabled={isMutating}
-              onClick={() => onActivate(item.id)}
-            >
-              {t("workflow_definitions.actions.activate")}
-            </Button>
-          ) : null,
-          item.status !== "archived" ? (
-            <Button
-              key="archive"
-              type="link"
-              danger
-              disabled={isMutating}
-              onClick={() => onArchive(item.id)}
-            >
-              {t("workflow_definitions.actions.archive")}
-            </Button>
-          ) : null,
-        ].filter(Boolean);
+        const actions = canManage
+          ? [
+              <Button
+                key="edit"
+                type="link"
+                disabled={isMutating}
+                onClick={() => onStartEdit(item.id)}
+              >
+                {t("common.actions.edit")}
+              </Button>,
+              item.status !== "active" ? (
+                <Button
+                  key="activate"
+                  type="link"
+                  disabled={isMutating}
+                  onClick={() => onActivate(item.id)}
+                >
+                  {t("workflow_definitions.actions.activate")}
+                </Button>
+              ) : null,
+              item.status !== "archived" ? (
+                <Button
+                  key="archive"
+                  type="link"
+                  danger
+                  disabled={isMutating}
+                  onClick={() => onArchive(item.id)}
+                >
+                  {t("workflow_definitions.actions.archive")}
+                </Button>
+              ) : null,
+            ].filter(Boolean)
+          : [];
 
         return (
           <List.Item actions={actions}>

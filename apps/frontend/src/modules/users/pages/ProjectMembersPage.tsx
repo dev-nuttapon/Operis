@@ -7,6 +7,8 @@ import { DeleteOutlined, EditOutlined, PlusOutlined, ShareAltOutlined } from "@a
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { permissions } from "../../../shared/authz/permissions";
+import { usePermissions } from "../../../shared/authz/usePermissions";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import type { ProjectAssignment, UpdateProjectAssignmentInput, User } from "../types/users";
@@ -68,6 +70,9 @@ function ProjectMemberForm({
 export function ProjectMembersPage() {
   const { t, i18n } = useTranslation();
   const { notification } = App.useApp();
+  const permissionState = usePermissions();
+  const canReadProjects = permissionState.hasPermission(permissions.projects.read);
+  const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
   const [paging, setPaging] = useState({
     page: 1,
@@ -155,33 +160,37 @@ export function ProjectMembersPage() {
         key: "actions",
         render: (_, record) => (
           <Space>
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => {
-                setEditTarget(record);
-                editForm.setFieldsValue({
-                  userId: record.userId,
-                  projectRoleId: record.projectRoleId,
-                  reportsToUserId: record.reportsToUserId ?? undefined,
-                  isPrimary: record.isPrimary,
-                  reason: undefined,
-                  period: [record.startAt ? dayjs(record.startAt) : null, record.endAt ? dayjs(record.endAt) : null],
-                });
-              }}
-            >
-              {t("common.actions.edit")}
-            </Button>
-            <Button danger icon={<DeleteOutlined />} onClick={() => {
-              setDeleteTarget(record);
-              deleteForm.resetFields();
-            }}>
-              {t("common.actions.delete")}
-            </Button>
+            {canManageProjectMembers ? (
+              <>
+                <Button
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    setEditTarget(record);
+                    editForm.setFieldsValue({
+                      userId: record.userId,
+                      projectRoleId: record.projectRoleId,
+                      reportsToUserId: record.reportsToUserId ?? undefined,
+                      isPrimary: record.isPrimary,
+                      reason: undefined,
+                      period: [record.startAt ? dayjs(record.startAt) : null, record.endAt ? dayjs(record.endAt) : null],
+                    });
+                  }}
+                >
+                  {t("common.actions.edit")}
+                </Button>
+                <Button danger icon={<DeleteOutlined />} onClick={() => {
+                  setDeleteTarget(record);
+                  deleteForm.resetFields();
+                }}>
+                  {t("common.actions.delete")}
+                </Button>
+              </>
+            ) : null}
           </Space>
         ),
       },
     ],
-    [editForm, i18n.language, t, userMap, deleteForm],
+    [canManageProjectMembers, editForm, i18n.language, t, userMap, deleteForm],
   );
 
   const createAssignment = (values: ProjectMemberFormValues) => {
@@ -269,7 +278,9 @@ export function ProjectMembersPage() {
             }}
           />
 
-          {!selectedProjectId ? (
+          {!canReadProjects ? (
+            <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
+          ) : !selectedProjectId ? (
             <Alert type="info" showIcon message={t("project_members.select_project_message")} />
           ) : (
             <>
@@ -280,16 +291,18 @@ export function ProjectMembersPage() {
                   style={{ width: 360, maxWidth: "100%" }}
                   onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
                 />
-                <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
-                  {t("project_members.create_action")}
-                </Button>
+                {canManageProjectMembers ? (
+                  <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
+                    {t("project_members.create_action")}
+                  </Button>
+                ) : null}
               </Space>
 
               <Table
                 rowKey="id"
                 columns={columns}
-                dataSource={projectAssignmentsQuery.data?.items ?? []}
-                loading={projectAssignmentsQuery.isLoading}
+                dataSource={canReadProjects ? (projectAssignmentsQuery.data?.items ?? []) : []}
+                loading={canReadProjects ? projectAssignmentsQuery.isLoading : false}
                 pagination={{
                   current: projectAssignmentsQuery.data?.page ?? paging.page,
                   pageSize: projectAssignmentsQuery.data?.pageSize ?? paging.pageSize,
@@ -315,7 +328,7 @@ export function ProjectMembersPage() {
 
       <Modal
         title={t("project_members.create_modal_title")}
-        open={createOpen}
+        open={createOpen && canManageProjectMembers}
         onCancel={() => {
           setCreateOpen(false);
           createForm.resetFields();
@@ -331,7 +344,7 @@ export function ProjectMembersPage() {
 
       <Modal
         title={editTarget ? t("project_members.edit_modal_title_with_name", { name: userMap.get(editTarget.userId) ?? editTarget.userDisplayName ?? editTarget.userEmail ?? editTarget.userId }) : t("project_members.edit_modal_title")}
-        open={editTarget !== null}
+        open={editTarget !== null && canManageProjectMembers}
         onCancel={() => {
           setEditTarget(null);
           editForm.resetFields();
@@ -347,7 +360,7 @@ export function ProjectMembersPage() {
 
       <Modal
         title={deleteTarget ? t("project_members.delete_modal_title_with_name", { name: userMap.get(deleteTarget.userId) ?? deleteTarget.userDisplayName ?? deleteTarget.userEmail ?? deleteTarget.userId }) : t("project_members.delete_modal_title")}
-        open={deleteTarget !== null}
+        open={deleteTarget !== null && canManageProjectMembers}
         onCancel={() => {
           setDeleteTarget(null);
           deleteForm.resetFields();

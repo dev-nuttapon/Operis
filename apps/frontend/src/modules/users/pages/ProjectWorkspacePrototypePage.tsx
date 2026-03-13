@@ -1,0 +1,524 @@
+import { useEffect, useMemo } from "react";
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Flex,
+  List,
+  Row,
+  Segmented,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Timeline,
+  Tree,
+  Typography,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
+import type { DataNode } from "antd/es/tree";
+import {
+  AuditOutlined,
+  ClusterOutlined,
+  FileSearchOutlined,
+  ProfileOutlined,
+  ProjectOutlined,
+  SafetyCertificateOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router-dom";
+import { permissions } from "../../../shared/authz/permissions";
+import { usePermissions } from "../../../shared/authz/usePermissions";
+import { useProjectAdmin } from "../hooks/useProjectAdmin";
+import { useProjectWorkspacePrototype } from "../hooks/useProjectWorkspacePrototype";
+import type {
+  ProjectWorkspacePrototypeAuditEvent,
+  ProjectWorkspacePrototypeComplianceCheck,
+  ProjectWorkspacePrototypeMember,
+  ProjectWorkspacePrototypeOrgNode,
+  ProjectWorkspacePrototypeRole,
+  ProjectWorkspacePrototypeSection,
+  ProjectWorkspacePrototypeSummaryCard,
+} from "../types/projectWorkspacePrototype";
+
+function toneToStyle(tone: ProjectWorkspacePrototypeSummaryCard["tone"]) {
+  switch (tone) {
+    case "green":
+      return { background: "linear-gradient(135deg, #16a34a, #15803d)" };
+    case "gold":
+      return { background: "linear-gradient(135deg, #d97706, #b45309)" };
+    case "red":
+      return { background: "linear-gradient(135deg, #dc2626, #b91c1c)" };
+    default:
+      return { background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)" };
+  }
+}
+
+function complianceColor(severity: ProjectWorkspacePrototypeComplianceCheck["severity"]) {
+  switch (severity) {
+    case "passed":
+      return "success";
+    case "warning":
+      return "warning";
+    default:
+      return "error";
+  }
+}
+
+function buildOrgChartTree(nodes: ProjectWorkspacePrototypeOrgNode[]): DataNode[] {
+  return nodes.map((node) => ({
+    key: node.id,
+    title: (
+      <Space direction="vertical" size={2}>
+        <Typography.Text strong>{node.label}</Typography.Text>
+        <Typography.Text type="secondary">{node.subtitle}</Typography.Text>
+      </Space>
+    ),
+    children: node.children ? buildOrgChartTree(node.children) : undefined,
+  }));
+}
+
+export function ProjectWorkspacePrototypePage() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { projectId } = useParams<{ projectId: string }>();
+  const permissionState = usePermissions();
+  const canReadProjects = permissionState.hasPermission(permissions.projects.read);
+  const {
+    section,
+    setSection,
+    summaryCards,
+    quickActions,
+    teamMembers,
+    roles,
+    complianceChecks,
+    evidenceItems,
+    auditTrail,
+    orgChart,
+  } = useProjectWorkspacePrototype();
+  const { projectsQuery } = useProjectAdmin({
+    projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
+    projectRoles: { page: 1, pageSize: 10 },
+    projectAssignments: null,
+  });
+
+  const projectOptions = useMemo(
+    () =>
+      (projectsQuery.data?.items ?? []).map((item) => ({
+        label: `${item.code} - ${item.name}`,
+        value: item.id,
+      })),
+    [projectsQuery.data?.items],
+  );
+
+  const selectedProject = useMemo(
+    () => (projectsQuery.data?.items ?? []).find((item) => item.id === projectId) ?? null,
+    [projectId, projectsQuery.data?.items],
+  );
+
+  useEffect(() => {
+    if (!projectId && (projectsQuery.data?.items?.length ?? 0) > 0) {
+      navigate(`/app/projects/${projectsQuery.data!.items[0]!.id}/workspace`, { replace: true });
+    }
+  }, [navigate, projectId, projectsQuery.data?.items]);
+
+  const sectionOptions = useMemo(
+    () => [
+      { label: t("project_workspace_prototype.sections.overview"), value: "overview" },
+      { label: t("project_workspace_prototype.sections.team"), value: "team" },
+      { label: t("project_workspace_prototype.sections.org_chart"), value: "orgChart" },
+      { label: t("project_workspace_prototype.sections.roles"), value: "roles" },
+      { label: t("project_workspace_prototype.sections.compliance"), value: "compliance" },
+      { label: t("project_workspace_prototype.sections.evidence"), value: "evidence" },
+      { label: t("project_workspace_prototype.sections.audit_trail"), value: "auditTrail" },
+    ],
+    [t],
+  );
+
+  const teamColumns: ColumnsType<ProjectWorkspacePrototypeMember> = [
+    {
+      title: t("project_workspace_prototype.team.columns.member"),
+      dataIndex: "name",
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          <Typography.Text strong>{record.name}</Typography.Text>
+          <Typography.Text type="secondary">{record.email}</Typography.Text>
+        </Space>
+      ),
+    },
+    { title: t("project_workspace_prototype.team.columns.role"), dataIndex: "role" },
+    {
+      title: t("project_workspace_prototype.team.columns.reports_to"),
+      dataIndex: "reportsTo",
+      render: (value?: string) => value ?? "-",
+    },
+    {
+      title: t("project_workspace_prototype.team.columns.primary"),
+      dataIndex: "primary",
+      render: (value: boolean) => <Tag color={value ? "blue" : "default"}>{value ? t("common.actions.yes") : t("common.actions.no")}</Tag>,
+    },
+    {
+      title: t("project_workspace_prototype.team.columns.status"),
+      dataIndex: "status",
+      render: (value: ProjectWorkspacePrototypeMember["status"]) => (
+        <Tag color={value === "Active" ? "green" : "gold"}>{value}</Tag>
+      ),
+    },
+    { title: t("project_workspace_prototype.team.columns.period"), dataIndex: "period" },
+  ];
+
+  const roleColumns: ColumnsType<ProjectWorkspacePrototypeRole> = [
+    { title: t("project_workspace_prototype.roles.columns.role"), dataIndex: "name" },
+    { title: t("project_workspace_prototype.roles.columns.code"), dataIndex: "code" },
+    {
+      title: t("project_workspace_prototype.roles.columns.permissions"),
+      key: "permissions",
+      render: (_, record) => (
+        <Space wrap size={[4, 4]}>
+          {record.review ? <Tag color="processing">{t("project_workspace_prototype.roles.permissions.review")}</Tag> : null}
+          {record.approval ? <Tag color="success">{t("project_workspace_prototype.roles.permissions.approval")}</Tag> : null}
+          {record.release ? <Tag color="purple">{t("project_workspace_prototype.roles.permissions.release")}</Tag> : null}
+        </Space>
+      ),
+    },
+    { title: t("project_workspace_prototype.roles.columns.members"), dataIndex: "memberCount" },
+  ];
+
+  const auditColumns: ColumnsType<ProjectWorkspacePrototypeAuditEvent> = [
+    { title: t("project_workspace_prototype.audit.columns.when"), dataIndex: "timestamp" },
+    { title: t("project_workspace_prototype.audit.columns.actor"), dataIndex: "actor" },
+    { title: t("project_workspace_prototype.audit.columns.action"), dataIndex: "action" },
+    { title: t("project_workspace_prototype.audit.columns.target"), dataIndex: "target" },
+    { title: t("project_workspace_prototype.audit.columns.detail"), dataIndex: "detail" },
+  ];
+
+  const orgChartTree = useMemo(() => buildOrgChartTree(orgChart), [orgChart]);
+
+  const renderSection = (current: ProjectWorkspacePrototypeSection) => {
+    switch (current) {
+      case "team":
+        return (
+          <Card size="small" title={t("project_workspace_prototype.team.title")}>
+            <Table rowKey="id" columns={teamColumns} dataSource={teamMembers} pagination={false} />
+          </Card>
+        );
+      case "orgChart":
+        return (
+          <Card size="small" title={t("project_workspace_prototype.org_chart.title")}>
+            <Tree defaultExpandAll showLine selectable={false} treeData={orgChartTree} />
+          </Card>
+        );
+      case "roles":
+        return (
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Card size="small" title={t("project_workspace_prototype.roles.title")}>
+              <Table rowKey="id" columns={roleColumns} dataSource={roles} pagination={false} />
+            </Card>
+            <Row gutter={[16, 16]}>
+              {roles.map((role) => (
+                <Col key={role.id} xs={24} lg={12}>
+                  <Card size="small">
+                    <Space direction="vertical" size={8}>
+                      <Flex justify="space-between" align="center">
+                        <Typography.Text strong>{role.name}</Typography.Text>
+                        <Tag>{role.code}</Tag>
+                      </Flex>
+                      <Typography.Text type="secondary">{role.responsibility}</Typography.Text>
+                      <Descriptions size="small" column={1}>
+                        <Descriptions.Item label={t("project_workspace_prototype.roles.authority")}>
+                          {role.authority}
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </Space>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </Space>
+        );
+      case "compliance":
+        return (
+          <Card size="small" title={t("project_workspace_prototype.compliance.title")}>
+            <Space direction="vertical" size={12} style={{ width: "100%" }}>
+              {complianceChecks.map((check) => (
+                <Alert
+                  key={check.id}
+                  type={complianceColor(check.severity)}
+                  showIcon
+                  message={t(check.titleKey)}
+                  description={
+                    <Space direction="vertical" size={8}>
+                      <Typography.Text>{t(check.detailKey)}</Typography.Text>
+                      <Button type="link" style={{ paddingInline: 0 }} onClick={() => setSection(check.targetSection)}>
+                        {t("project_workspace_prototype.compliance.drill_down")}
+                      </Button>
+                    </Space>
+                  }
+                />
+              ))}
+            </Space>
+          </Card>
+        );
+      case "evidence":
+        return (
+          <Card size="small" title={t("project_workspace_prototype.evidence.title")}>
+            <List
+              dataSource={evidenceItems}
+              renderItem={(item) => (
+                <List.Item
+                  actions={[
+                    <Button key={`${item.id}-view`} onClick={() => setSection("auditTrail")}>
+                      {t("project_workspace_prototype.evidence.view_history")}
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={item.title}
+                    description={
+                      <Space direction="vertical" size={2}>
+                        <Typography.Text>{item.description}</Typography.Text>
+                        <Typography.Text type="secondary">
+                          {t("project_workspace_prototype.evidence.meta", {
+                            updated: item.lastUpdated,
+                            format: item.format,
+                          })}
+                        </Typography.Text>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
+        );
+      case "auditTrail":
+        return (
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Card size="small" title={t("project_workspace_prototype.audit.timeline_title")}>
+              <Timeline
+                items={auditTrail.map((event) => ({
+                  color: "blue",
+                  children: (
+                    <Space direction="vertical" size={0}>
+                      <Typography.Text strong>{`${event.actor} · ${event.action}`}</Typography.Text>
+                      <Typography.Text>{event.detail}</Typography.Text>
+                      <Typography.Text type="secondary">{`${event.timestamp} · ${event.target}`}</Typography.Text>
+                    </Space>
+                  ),
+                }))}
+              />
+            </Card>
+            <Card size="small" title={t("project_workspace_prototype.audit.table_title")}>
+              <Table rowKey="id" columns={auditColumns} dataSource={auditTrail} pagination={false} />
+            </Card>
+          </Space>
+        );
+      case "overview":
+      default:
+        return (
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Descriptions
+              bordered
+              size="small"
+              column={{ xs: 1, md: 2 }}
+              items={[
+                {
+                  key: "code",
+                  label: t("project_workspace_prototype.overview.project_code"),
+                  children: "PRJ-ISO-001",
+                },
+                {
+                  key: "type",
+                  label: t("project_workspace_prototype.overview.project_type"),
+                  children: "Compliance",
+                },
+                {
+                  key: "owner",
+                  label: t("project_workspace_prototype.overview.owner"),
+                  children: "Nuttapon Suksa-ard",
+                },
+                {
+                  key: "sponsor",
+                  label: t("project_workspace_prototype.overview.sponsor"),
+                  children: "Operations Director",
+                },
+                {
+                  key: "methodology",
+                  label: t("project_workspace_prototype.overview.methodology"),
+                  children: "Stage-based governance",
+                },
+                {
+                  key: "phase",
+                  label: t("project_workspace_prototype.overview.phase"),
+                  children: "Execution",
+                },
+              ]}
+            />
+            <Card size="small" title={t("project_workspace_prototype.overview.quick_actions_title")}>
+              <Flex gap={12} wrap="wrap">
+                {quickActions.map((action) => (
+                  <Button key={action.id} onClick={() => setSection(action.targetSection)}>
+                    {t(action.labelKey)}
+                  </Button>
+                ))}
+              </Flex>
+            </Card>
+            <Alert
+              type="warning"
+              showIcon
+              message={t("project_workspace_prototype.overview.callout_title")}
+              description={t("project_workspace_prototype.overview.callout_description")}
+            />
+          </Space>
+        );
+    }
+  };
+
+  return (
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Card variant="borderless">
+        <Space align="start" size={16}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              color: "#fff",
+            }}
+          >
+            <ProjectOutlined />
+          </div>
+          <div>
+            <Typography.Title level={3} style={{ margin: 0 }}>
+              {t("project_workspace_prototype.page_title")}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
+              {t("project_workspace_prototype.page_description")}
+            </Typography.Paragraph>
+          </div>
+        </Space>
+      </Card>
+
+      <Card variant="borderless">
+        {!canReadProjects ? (
+          <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
+        ) : (
+          <Space direction="vertical" size={20} style={{ width: "100%" }}>
+            <Card size="small">
+              <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
+                <Select
+                  showSearch
+                  optionFilterProp="label"
+                  style={{ minWidth: 320, maxWidth: "100%" }}
+                  placeholder={t("project_workspace_prototype.select_project_placeholder")}
+                  options={projectOptions}
+                  value={projectId}
+                  onChange={(value: string) => navigate(`/app/projects/${value}/workspace`)}
+                />
+                <Button onClick={() => navigate("/app/admin/projects")}>
+                  {t("project_workspace_prototype.back_to_projects")}
+                </Button>
+              </Flex>
+            </Card>
+
+            <Flex gap={16} wrap="wrap">
+              {summaryCards.map((card) => (
+                <Card
+                  key={card.id}
+                  size="small"
+                  style={{
+                    minWidth: 220,
+                    flex: "1 1 220px",
+                    ...toneToStyle(card.tone),
+                    color: "#fff",
+                  }}
+                  styles={{ body: { padding: 18 } }}
+                >
+                  <Space direction="vertical" size={2}>
+                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>
+                      {t(card.titleKey)}
+                    </Typography.Text>
+                    <Typography.Title level={2} style={{ margin: 0, color: "#fff" }}>
+                      {card.value}
+                    </Typography.Title>
+                    <Typography.Text style={{ color: "rgba(255,255,255,0.9)" }}>
+                      {t(card.helperKey)}
+                    </Typography.Text>
+                  </Space>
+                </Card>
+              ))}
+            </Flex>
+
+            <Card size="small">
+              <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
+                <Space size={10}>
+                  <Tag color="processing">{selectedProject?.code ?? "PRJ-ISO-001"}</Tag>
+                  <Tag color="green">{selectedProject?.status ?? "active"}</Tag>
+                  <Typography.Text strong>{selectedProject?.name ?? "ISO Process Rollout"}</Typography.Text>
+                </Space>
+                <Segmented
+                  options={sectionOptions}
+                  value={section}
+                  onChange={(value) => setSection(value as ProjectWorkspacePrototypeSection)}
+                />
+              </Flex>
+            </Card>
+
+            <Row gutter={[16, 16]}>
+              <Col xs={24} xl={17}>
+                {renderSection(section)}
+              </Col>
+              <Col xs={24} xl={7}>
+                <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                  <Card size="small" title={t("project_workspace_prototype.side_panels.project_controls")}>
+                    <List
+                      dataSource={[
+                        { icon: <TeamOutlined />, label: t("project_workspace_prototype.side_panels.team_register") },
+                        { icon: <ClusterOutlined />, label: t("project_workspace_prototype.side_panels.org_chart") },
+                        { icon: <ProfileOutlined />, label: t("project_workspace_prototype.side_panels.role_matrix") },
+                        { icon: <SafetyCertificateOutlined />, label: t("project_workspace_prototype.side_panels.compliance") },
+                        { icon: <FileSearchOutlined />, label: t("project_workspace_prototype.side_panels.evidence") },
+                        { icon: <AuditOutlined />, label: t("project_workspace_prototype.side_panels.audit") },
+                      ]}
+                      renderItem={(item) => (
+                        <List.Item>
+                          <Space>
+                            {item.icon}
+                            <Typography.Text>{item.label}</Typography.Text>
+                          </Space>
+                        </List.Item>
+                      )}
+                    />
+                  </Card>
+
+                  <Card size="small" title={t("project_workspace_prototype.side_panels.prototype_notes_title")}>
+                    <Space direction="vertical" size={8}>
+                      <Typography.Text strong>
+                        {selectedProject?.projectType ?? "Compliance"}
+                      </Typography.Text>
+                      <Typography.Text type="secondary">
+                        {t("project_workspace_prototype.side_panels.selected_project_meta", {
+                          owner: selectedProject?.ownerDisplayName ?? "Nuttapon Suksa-ard",
+                          phase: selectedProject?.phase ?? "Execution",
+                        })}
+                      </Typography.Text>
+                      <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_1")}</Typography.Text>
+                      <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_2")}</Typography.Text>
+                      <Typography.Text>{t("project_workspace_prototype.side_panels.prototype_notes_3")}</Typography.Text>
+                    </Space>
+                  </Card>
+                </Space>
+              </Col>
+            </Row>
+          </Space>
+        )}
+      </Card>
+    </Space>
+  );
+}

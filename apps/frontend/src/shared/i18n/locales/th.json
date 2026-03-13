@@ -184,6 +184,7 @@
     "master_project_roles": "ตำแหน่งโครงการ",
     "project_members": "สมาชิกโครงการ",
     "project_org_chart": "ผังงานในโครงการ",
+    "project_workspace_prototype": "ต้นแบบพื้นที่ทำงานโครงการ",
     "project_evidence": "หลักฐานโครงการ",
     "project_compliance": "ความพร้อมตามเกณฑ์โครงการ",
     "project_type_templates": "แม่แบบประเภทโครงการ",
@@ -732,6 +733,135 @@
     "empty": "ยังไม่มีสมาชิกที่กำหนดผังงานในโครงการนี้",
     "primary_member": "บทบาทหลัก",
     "summary": "จำนวนโหนดเริ่มต้น {{count}} รายการ"
+  },
+  "project_workspace_prototype": {
+    "page_title": "ต้นแบบพื้นที่ทำงานโครงการ",
+    "page_description": "หน้า prototype สำหรับทดลองคลิกและตรวจรูปแบบการนำทางของ governance, evidence และ audit ก่อนเชื่อมกับข้อมูลจริง",
+    "select_project_placeholder": "เลือกพื้นที่ทำงานของโครงการ",
+    "back_to_projects": "กลับไปหน้าโครงการ",
+    "sections": {
+      "overview": "ภาพรวม",
+      "team": "ทีมโครงการ",
+      "org_chart": "ผังงาน",
+      "roles": "ตำแหน่ง",
+      "compliance": "ความพร้อม",
+      "evidence": "หลักฐาน",
+      "audit_trail": "ประวัติการตรวจสอบ"
+    },
+    "summary": {
+      "readiness": {
+        "title": "ระดับความพร้อม",
+        "helper": "ภาพรวมความพร้อมด้าน governance"
+      },
+      "members": {
+        "title": "สมาชิกทีม",
+        "helper": "จำนวนคนที่ active ในโครงการ"
+      },
+      "gaps": {
+        "title": "ช่องว่างที่ต้องแก้",
+        "helper": "รายการที่ยังต้องดำเนินการ"
+      },
+      "evidence": {
+        "title": "ชุดหลักฐาน",
+        "helper": "ชุดหลักฐานที่รอตรวจทาน"
+      }
+    },
+    "quick_actions": {
+      "missing_reviewer": "เปิดดูช่องว่างด้านผู้ทบทวน",
+      "org_chart": "ตรวจผังงานในโครงการ",
+      "evidence": "ดูชุดหลักฐาน",
+      "audit": "เปิดประวัติการตรวจสอบ"
+    },
+    "overview": {
+      "project_code": "รหัสโครงการ",
+      "project_type": "ประเภทโครงการ",
+      "owner": "เจ้าของโครงการ",
+      "sponsor": "ผู้สนับสนุนโครงการ",
+      "methodology": "วิธีดำเนินโครงการ",
+      "phase": "ระยะโครงการ",
+      "quick_actions_title": "ทางลัดสำคัญ",
+      "callout_title": "วัตถุประสงค์ของต้นแบบ",
+      "callout_description": "ใช้หน้านี้เพื่อตรวจว่ารูปแบบการนำทาง การ drill-down และการจัดกลุ่มหน้าจอเหมาะสมก่อนเชื่อม workflow โครงการจริง"
+    },
+    "team": {
+      "title": "ทะเบียนทีมโครงการ",
+      "columns": {
+        "member": "สมาชิก",
+        "role": "ตำแหน่งในโครงการ",
+        "reports_to": "รายงานต่อ",
+        "primary": "หลัก",
+        "status": "สถานะ",
+        "period": "ช่วงเวลา"
+      }
+    },
+    "org_chart": {
+      "title": "โครงสร้างการรายงานในโครงการ"
+    },
+    "roles": {
+      "title": "เมทริกซ์ตำแหน่งในโครงการ",
+      "columns": {
+        "role": "ตำแหน่ง",
+        "code": "รหัส",
+        "permissions": "สิทธิ์",
+        "members": "สมาชิก"
+      },
+      "permissions": {
+        "review": "ทบทวน",
+        "approval": "อนุมัติ",
+        "release": "ปล่อยเอกสาร"
+      },
+      "authority": "ขอบเขตอำนาจ"
+    },
+    "compliance": {
+      "title": "รายการตรวจความพร้อม",
+      "drill_down": "เปิดส่วนที่เกี่ยวข้อง",
+      "owner": {
+        "title": "กำหนดเจ้าของโครงการแล้ว",
+        "detail": "โครงการนี้มีผู้รับผิดชอบหลักที่ชัดเจนแล้ว"
+      },
+      "reviewer": {
+        "title": "บทบาทผู้ทบทวนยังไม่ครบ",
+        "detail": "ควรมีอย่างน้อยหนึ่งตำแหน่งที่รับผิดชอบการทบทวนเพื่อให้ flow ISO/CMMI สมบูรณ์ขึ้น"
+      },
+      "org_chart": {
+        "title": "ผังงานในโครงการถูกกำหนดแล้ว",
+        "detail": "โครงการนี้มีสายรายงานชัดเจนและมีจุดเริ่มต้นของผังงานแล้ว"
+      },
+      "evidence": {
+        "title": "ชุดหลักฐานยังไม่ครบ",
+        "detail": "หลักฐานสำหรับ release และ snapshot ตาม milestone ยังต้องจัดเตรียมก่อนใช้ตรวจประเมิน"
+      }
+    },
+    "evidence": {
+      "title": "ชุดหลักฐาน",
+      "view_history": "เปิดดูประวัติ",
+      "meta": "อัปเดต {{updated}} · {{format}}"
+    },
+    "audit": {
+      "timeline_title": "ลำดับเหตุการณ์ล่าสุด",
+      "table_title": "รายละเอียดการตรวจสอบ",
+      "columns": {
+        "when": "เวลา",
+        "actor": "ผู้ดำเนินการ",
+        "action": "การกระทำ",
+        "target": "เป้าหมาย",
+        "detail": "รายละเอียด"
+      }
+    },
+    "side_panels": {
+      "project_controls": "บล็อกของพื้นที่ทำงาน",
+      "team_register": "ทะเบียนทีม",
+      "org_chart": "ผังงานในโครงการ",
+      "role_matrix": "เมทริกซ์ตำแหน่ง",
+      "compliance": "รายการตรวจความพร้อม",
+      "evidence": "ชุดหลักฐาน",
+      "audit": "ประวัติการตรวจสอบ",
+      "prototype_notes_title": "หมายเหตุของต้นแบบ",
+      "selected_project_meta": "เจ้าของโครงการ: {{owner}} · ระยะ: {{phase}}",
+      "prototype_notes_1": "หน้านี้ใช้ข้อมูล mock เพื่อให้ทดลองคลิกและทดสอบการนำทางได้เร็ว",
+      "prototype_notes_2": "ปุ่มภายในหน้าจะพาไปยัง section อื่นเพื่อจำลองพฤติกรรม drill-down ของ flow จริง",
+      "prototype_notes_3": "layout นี้ถูกวางไว้เพื่อทดสอบ workspace สำหรับ ISO/CMMI ก่อนเชื่อมกับข้อมูลโครงการจริง"
+    }
   },
   "project_evidence": {
     "page_title": "หลักฐานโครงการ",

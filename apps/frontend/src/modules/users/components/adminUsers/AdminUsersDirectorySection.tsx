@@ -2,6 +2,8 @@ import { Button, Card, DatePicker, Input, Select, Space, Table, Tag, Typography 
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, UserAddOutlined } from "@ant-design/icons";
+import { permissions } from "../../../../shared/authz/permissions";
+import { usePermissions } from "../../../../shared/authz/usePermissions";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import {
@@ -64,6 +66,10 @@ export function AdminUsersDirectorySection({
   setPaging,
   t,
 }: AdminUsersDirectorySectionProps) {
+  const permissionState = usePermissions();
+  const canCreateUsers = permissionState.hasPermission(permissions.users.create);
+  const canUpdateUsers = permissionState.hasPermission(permissions.users.update);
+  const canDeleteUsers = permissionState.hasPermission(permissions.users.delete);
   const columns: ColumnsType<User> = [
     {
       title: t("admin_users.columns.name"),
@@ -120,38 +126,42 @@ export function AdminUsersDirectorySection({
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => {
-              const matchedRoleIds = roleItems
-                .filter((item) => record.roles.includes(item.name))
-                .map((item) => item.id);
+          {canUpdateUsers ? (
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => {
+                const matchedRoleIds = roleItems
+                  .filter((item) => record.roles.includes(item.name))
+                  .map((item) => item.id);
 
-              setEditingUser(record);
-              editUserForm.setFieldsValue({
-                email: record.keycloak?.email ?? "",
-                firstName: record.keycloak?.firstName ?? "",
-                lastName: record.keycloak?.lastName ?? "",
-                divisionId: record.divisionId ?? undefined,
-                departmentId: record.departmentId ?? undefined,
-                jobTitleId: record.jobTitleId ?? undefined,
-                roleIds: matchedRoleIds,
-              });
-            }}
-          >
-            {t("common.actions.edit")}
-          </Button>
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            loading={deleteUserLoading}
-            onClick={() => {
-              setDeletingUser(record);
-              deleteUserForm.resetFields();
-            }}
-          >
-            {t("common.actions.delete")}
-          </Button>
+                setEditingUser(record);
+                editUserForm.setFieldsValue({
+                  email: record.keycloak?.email ?? "",
+                  firstName: record.keycloak?.firstName ?? "",
+                  lastName: record.keycloak?.lastName ?? "",
+                  divisionId: record.divisionId ?? undefined,
+                  departmentId: record.departmentId ?? undefined,
+                  jobTitleId: record.jobTitleId ?? undefined,
+                  roleIds: matchedRoleIds,
+                });
+              }}
+            >
+              {t("common.actions.edit")}
+            </Button>
+          ) : null}
+          {canDeleteUsers ? (
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              loading={deleteUserLoading}
+              onClick={() => {
+                setDeletingUser(record);
+                deleteUserForm.resetFields();
+              }}
+            >
+              {t("common.actions.delete")}
+            </Button>
+          ) : null}
         </Space>
       ),
     },
@@ -195,9 +205,11 @@ export function AdminUsersDirectorySection({
               setPaging((current) => ({ ...current, page: 1, ...normalized }));
             }}
           />
-          <Button type="primary" icon={<UserAddOutlined />} size="large" onClick={() => setCreatingUser(true)}>
-            {t("admin_users.directory.create_user")}
-          </Button>
+          {canCreateUsers ? (
+            <Button type="primary" icon={<UserAddOutlined />} size="large" onClick={() => setCreatingUser(true)}>
+              {t("admin_users.directory.create_user")}
+            </Button>
+          ) : null}
         </Space>
         <Table
           rowKey="id"
