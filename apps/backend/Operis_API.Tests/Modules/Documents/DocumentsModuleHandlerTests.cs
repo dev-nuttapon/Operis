@@ -1,8 +1,10 @@
 using System.Reflection;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Operis_API.Modules.Documents;
 using Operis_API.Modules.Documents.Application;
 using Operis_API.Modules.Documents.Infrastructure;
+using Operis_API.Shared.Security;
 using Operis_API.Tests.Support;
 
 namespace Operis_API.Tests.Modules.Documents;
@@ -32,7 +34,22 @@ public sealed class DocumentsModuleHandlerTests
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
     }
 
-    private static async Task<IResult> InvokeListDocumentsAsync(IDocumentQueries queries)
+    [Fact]
+    public async Task ListDocumentsAsync_WithoutPermission_ReturnsForbidden()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var auditLogWriter = new FakeAuditLogWriter();
+        var queries = new DocumentQueries(dbContext, auditLogWriter);
+
+        var result = await InvokeListDocumentsAsync(queries, CreateUnprivilegedPrincipal());
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+    }
+
+    private static async Task<IResult> InvokeListDocumentsAsync(IDocumentQueries queries, ClaimsPrincipal? principal = null)
     {
         var method = typeof(DocumentsModule).GetMethod(
             "ListDocumentsAsync",
@@ -41,8 +58,14 @@ public sealed class DocumentsModuleHandlerTests
 
         var task = (Task<IResult>)method.Invoke(
             null,
-            [queries, CancellationToken.None])!;
+            [principal ?? CreateAdminPrincipal(), new PermissionMatrix(), queries, CancellationToken.None])!;
 
         return await task;
     }
+
+    private static ClaimsPrincipal CreateAdminPrincipal() =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.Role, "operis:super_admin")], "TestAuth"));
+
+    private static ClaimsPrincipal CreateUnprivilegedPrincipal() =>
+        new(new ClaimsIdentity([], "TestAuth"));
 }

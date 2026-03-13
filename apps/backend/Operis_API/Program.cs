@@ -10,6 +10,7 @@ using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Modules;
+using Operis_API.Shared.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,7 @@ builder.Configuration.ApplyRedisUrlOverride();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuditLogWriter, AuditLogWriter>();
+builder.Services.AddSingleton<IPermissionMatrix, PermissionMatrix>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());

@@ -9,6 +9,7 @@ using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
 using Operis_API.Shared.Modules;
+using Operis_API.Shared.Security;
 
 namespace Operis_API.Modules.Users;
 
@@ -29,6 +30,8 @@ public sealed class UsersModule : IModule
         services.AddScoped<IUserReferenceDataQueries, UserReferenceDataQueries>();
         services.AddScoped<IProjectCommands, ProjectCommands>();
         services.AddScoped<IProjectQueries, ProjectQueries>();
+        services.AddScoped<IProjectTemplateCommands, ProjectTemplateCommands>();
+        services.AddScoped<IProjectTemplateQueries, ProjectTemplateQueries>();
         services.AddSingleton<IReferenceDataCache, ReferenceDataCache>();
         services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>(client =>
         {
@@ -105,6 +108,30 @@ public sealed class UsersModule : IModule
         group.MapGet("/projects", ListProjectsAsync)
             .WithName("Users_ListProjects");
 
+        group.MapGet("/project-type-templates", ListProjectTypeTemplatesAsync)
+            .WithName("Users_ListProjectTypeTemplates");
+
+        group.MapPost("/project-type-templates", CreateProjectTypeTemplateAsync)
+            .WithName("Users_CreateProjectTypeTemplate");
+
+        group.MapPut("/project-type-templates/{templateId:guid}", UpdateProjectTypeTemplateAsync)
+            .WithName("Users_UpdateProjectTypeTemplate");
+
+        group.MapDelete("/project-type-templates/{templateId:guid}", DeleteProjectTypeTemplateAsync)
+            .WithName("Users_DeleteProjectTypeTemplate");
+
+        group.MapGet("/project-type-role-requirements", ListProjectTypeRoleRequirementsAsync)
+            .WithName("Users_ListProjectTypeRoleRequirements");
+
+        group.MapPost("/project-type-role-requirements", CreateProjectTypeRoleRequirementAsync)
+            .WithName("Users_CreateProjectTypeRoleRequirement");
+
+        group.MapPut("/project-type-role-requirements/{requirementId:guid}", UpdateProjectTypeRoleRequirementAsync)
+            .WithName("Users_UpdateProjectTypeRoleRequirement");
+
+        group.MapDelete("/project-type-role-requirements/{requirementId:guid}", DeleteProjectTypeRoleRequirementAsync)
+            .WithName("Users_DeleteProjectTypeRoleRequirement");
+
         group.MapPost("/projects", CreateProjectAsync)
             .WithName("Users_CreateProject");
 
@@ -128,6 +155,15 @@ public sealed class UsersModule : IModule
 
         group.MapGet("/projects/{projectId:guid}/org-chart", GetProjectOrgChartAsync)
             .WithName("Users_GetProjectOrgChart");
+
+        group.MapGet("/projects/{projectId:guid}/evidence", GetProjectEvidenceAsync)
+            .WithName("Users_GetProjectEvidence");
+
+        group.MapGet("/projects/{projectId:guid}/evidence/export", ExportProjectEvidenceAsync)
+            .WithName("Users_ExportProjectEvidence");
+
+        group.MapGet("/projects/{projectId:guid}/compliance", GetProjectComplianceAsync)
+            .WithName("Users_GetProjectCompliance");
 
         group.MapPost("/project-assignments", CreateProjectAssignmentAsync)
             .WithName("Users_CreateProjectAssignment");
@@ -189,6 +225,8 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> ListUsersAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         IUserQueries queries,
         bool includeIdentity = true,
         UserStatus? status = null,
@@ -201,6 +239,11 @@ public sealed class UsersModule : IModule
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Users.Read))
+        {
+            return Results.Forbid();
+        }
+
         var result = await queries.ListUsersAsync(
             new UserListQuery(includeIdentity, status, from, to, search, sortBy, sortOrder, page, pageSize),
             cancellationToken);
@@ -208,9 +251,16 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> ListRolesAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         IUserReferenceDataQueries queries,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Users.Read))
+        {
+            return Results.Forbid();
+        }
+
         var roles = await queries.ListRolesAsync(cancellationToken);
         return Results.Ok(roles);
     }
@@ -231,10 +281,17 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> CreateDivisionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         CreateMasterDataRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.MasterData.ManagePermanentOrg))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CreateDivisionAsync(request, cancellationToken);
         return result.Status switch
         {
@@ -245,11 +302,18 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> UpdateDivisionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid divisionId,
         UpdateMasterDataRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.MasterData.ManagePermanentOrg))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpdateDivisionAsync(divisionId, request, cancellationToken);
         return result.Status switch
         {
@@ -264,9 +328,15 @@ public sealed class UsersModule : IModule
         Guid divisionId,
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
         [FromServices] IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.MasterData.ManagePermanentOrg))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.DeleteDivisionAsync(divisionId, request, ResolveActor(principal), cancellationToken);
         return result.Status switch
         {
@@ -292,10 +362,17 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> CreateDepartmentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         CreateDepartmentRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.MasterData.ManagePermanentOrg))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CreateDepartmentAsync(request, cancellationToken);
         return result.Status switch
         {
@@ -306,11 +383,18 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> UpdateDepartmentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid departmentId,
         UpdateDepartmentRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.MasterData.ManagePermanentOrg))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpdateDepartmentAsync(departmentId, request, cancellationToken);
         return result.Status switch
         {
@@ -325,9 +409,15 @@ public sealed class UsersModule : IModule
         Guid departmentId,
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
         [FromServices] IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.MasterData.ManagePermanentOrg))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.DeleteDepartmentAsync(departmentId, request, ResolveActor(principal), cancellationToken);
         return result.Status switch
         {
@@ -353,10 +443,17 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> CreateJobTitleAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         CreateJobTitleRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.MasterData.ManagePermanentOrg))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CreateJobTitleAsync(request, cancellationToken);
         return result.Status switch
         {
@@ -367,11 +464,18 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> UpdateJobTitleAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid jobTitleId,
         UpdateJobTitleRequest request,
         IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.MasterData.ManagePermanentOrg))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpdateJobTitleAsync(jobTitleId, request, cancellationToken);
         return result.Status switch
         {
@@ -386,9 +490,15 @@ public sealed class UsersModule : IModule
         Guid jobTitleId,
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
         [FromServices] IUserReferenceDataCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.MasterData.ManagePermanentOrg))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.DeleteJobTitleAsync(jobTitleId, request, ResolveActor(principal), cancellationToken);
         return result.Status switch
         {
@@ -414,6 +524,8 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> ListProjectsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         IProjectQueries queries,
         string? search = null,
         string? sortBy = null,
@@ -422,15 +534,182 @@ public sealed class UsersModule : IModule
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.Read))
+        {
+            return Results.Forbid();
+        }
+
         var result = await queries.ListProjectsAsync(new ProjectListQuery(search, sortBy, sortOrder, page, pageSize), cancellationToken);
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> ListProjectTypeTemplatesAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IProjectTemplateQueries queries,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListProjectTypeTemplatesAsync(new ProjectListQuery(search, sortBy, sortOrder, page, pageSize), cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> CreateProjectTypeTemplateAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        CreateProjectTypeTemplateRequest request,
+        IProjectTemplateCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.CreateProjectTypeTemplateAsync(request, cancellationToken);
+        return !result.Success
+            ? Results.BadRequest(result.Error)
+            : Results.Created($"/api/v1/users/project-type-templates/{result.Response!.Id}", result.Response);
+    }
+
+    private static async Task<IResult> UpdateProjectTypeTemplateAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid templateId,
+        UpdateProjectTypeTemplateRequest request,
+        IProjectTemplateCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.UpdateProjectTypeTemplateAsync(templateId, request, cancellationToken);
+        if (result.NotFound)
+        {
+            return Results.NotFound();
+        }
+
+        return !result.Success ? Results.BadRequest(result.Error) : Results.Ok(result.Response);
+    }
+
+    private static async Task<IResult> DeleteProjectTypeTemplateAsync(
+        Guid templateId,
+        [FromBody] SoftDeleteRequest request,
+        ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
+        [FromServices] IProjectTemplateCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.DeleteProjectTypeTemplateAsync(templateId, request, ResolveActor(principal), cancellationToken);
+        return result.NotFound ? Results.NotFound() : Results.NoContent();
+    }
+
+    private static async Task<IResult> ListProjectTypeRoleRequirementsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IProjectTemplateQueries queries,
+        Guid templateId,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListProjectTypeRoleRequirementsAsync(templateId, search, sortBy, sortOrder, page, pageSize, cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> CreateProjectTypeRoleRequirementAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        CreateProjectTypeRoleRequirementRequest request,
+        IProjectTemplateCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.CreateProjectTypeRoleRequirementAsync(request, cancellationToken);
+        return !result.Success
+            ? Results.BadRequest(result.Error)
+            : Results.Created($"/api/v1/users/project-type-role-requirements/{result.Response!.Id}", result.Response);
+    }
+
+    private static async Task<IResult> UpdateProjectTypeRoleRequirementAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid requirementId,
+        UpdateProjectTypeRoleRequirementRequest request,
+        IProjectTemplateCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.UpdateProjectTypeRoleRequirementAsync(requirementId, request, cancellationToken);
+        if (result.NotFound)
+        {
+            return Results.NotFound();
+        }
+
+        return !result.Success ? Results.BadRequest(result.Error) : Results.Ok(result.Response);
+    }
+
+    private static async Task<IResult> DeleteProjectTypeRoleRequirementAsync(
+        Guid requirementId,
+        [FromBody] SoftDeleteRequest request,
+        ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
+        [FromServices] IProjectTemplateCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.DeleteProjectTypeRoleRequirementAsync(requirementId, request, ResolveActor(principal), cancellationToken);
+        return result.NotFound ? Results.NotFound() : Results.NoContent();
+    }
+
     private static async Task<IResult> CreateProjectAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         CreateProjectRequest request,
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.Manage))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CreateProjectAsync(request, cancellationToken);
         if (!result.Success)
         {
@@ -441,11 +720,18 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> UpdateProjectAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid projectId,
         UpdateProjectRequest request,
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.Manage))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpdateProjectAsync(projectId, request, cancellationToken);
         if (result.NotFound)
         {
@@ -464,18 +750,31 @@ public sealed class UsersModule : IModule
         Guid projectId,
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
         [FromServices] IProjectCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.Manage))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.DeleteProjectAsync(projectId, request, ResolveActor(principal), cancellationToken);
         return result.NotFound ? Results.NotFound() : Results.NoContent();
     }
 
     private static async Task<IResult> CreateProjectRoleAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         CreateProjectRoleRequest request,
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageRoles))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CreateProjectRoleAsync(request, cancellationToken);
         return !result.Success
             ? Results.BadRequest(result.Error)
@@ -483,11 +782,18 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> UpdateProjectRoleAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid projectRoleId,
         UpdateProjectRoleRequest request,
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageRoles))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpdateProjectRoleAsync(projectRoleId, request, cancellationToken);
         if (result.NotFound)
         {
@@ -501,14 +807,22 @@ public sealed class UsersModule : IModule
         Guid projectRoleId,
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
         [FromServices] IProjectCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageRoles))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.DeleteProjectRoleAsync(projectRoleId, request, ResolveActor(principal), cancellationToken);
         return result.NotFound ? Results.NotFound() : Results.NoContent();
     }
 
     private static async Task<IResult> ListProjectAssignmentsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         IProjectQueries queries,
         Guid projectId,
         string? search = null,
@@ -518,15 +832,27 @@ public sealed class UsersModule : IModule
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.Read))
+        {
+            return Results.Forbid();
+        }
+
         var result = await queries.ListProjectAssignmentsAsync(new ProjectAssignmentListQuery(projectId, search, sortBy, sortOrder, page, pageSize), cancellationToken);
         return Results.Ok(result);
     }
 
     private static async Task<IResult> CreateProjectAssignmentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         CreateProjectAssignmentRequest request,
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageMembers))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CreateProjectAssignmentAsync(request, cancellationToken);
         return !result.Success
             ? Results.BadRequest(result.Error)
@@ -534,20 +860,66 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> GetProjectOrgChartAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid projectId,
         IProjectQueries queries,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.Read))
+        {
+            return Results.Forbid();
+        }
+
         var result = await queries.GetProjectOrgChartAsync(projectId, cancellationToken);
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> GetProjectEvidenceAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid projectId,
+        IProjectQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ReadEvidence))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetProjectEvidenceAsync(projectId, cancellationToken);
+        return result is null ? Results.NotFound() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetProjectComplianceAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid projectId,
+        IProjectQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ReadCompliance))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetProjectComplianceAsync(projectId, cancellationToken);
+        return result is null ? Results.NotFound() : Results.Ok(result);
+    }
+
     private static async Task<IResult> UpdateProjectAssignmentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid assignmentId,
         UpdateProjectAssignmentRequest request,
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageMembers))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpdateProjectAssignmentAsync(assignmentId, request, cancellationToken);
         if (result.NotFound)
         {
@@ -560,9 +932,16 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> DeleteProjectAssignmentAsync(
         Guid assignmentId,
         [FromBody] SoftDeleteRequest request,
+        ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageMembers))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.DeleteProjectAssignmentAsync(assignmentId, request, cancellationToken);
         return result.NotFound ? Results.NotFound() : Results.NoContent();
     }
@@ -571,9 +950,15 @@ public sealed class UsersModule : IModule
         string userId,
         [FromBody] SoftDeleteRequest request,
         ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
         [FromServices] IUserManagementCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Delete))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.DeleteUserAsync(userId, request, ResolveActor(principal), cancellationToken);
         return result.Status switch
         {
@@ -587,11 +972,18 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> UpdateUserAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         string userId,
         UpdateUserRequest request,
         IUserManagementCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpdateUserAsync(userId, request, cancellationToken);
         return result.Status switch
         {
@@ -607,11 +999,18 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> UpsertUserOrgAssignmentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         string userId,
         UpsertUserOrgAssignmentRequest request,
         IUserOrgAssignmentCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpsertPrimaryAssignmentAsync(userId, request, cancellationToken);
         return result.Status switch
         {
@@ -656,6 +1055,8 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> ListRegistrationRequestsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         IUserRegistrationQueries queries,
         RegistrationRequestStatus? status,
         DateTimeOffset? from = null,
@@ -667,18 +1068,51 @@ public sealed class UsersModule : IModule
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.ReviewRegistrations))
+        {
+            return Results.Forbid();
+        }
+
         var result = await queries.ListRegistrationRequestsAsync(
             new RegistrationQuery(status, from, to, search, sortBy, sortOrder, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> ExportProjectEvidenceAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid projectId,
+        IProjectQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ExportEvidence))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetProjectEvidenceExportAsync(projectId, cancellationToken);
+        if (result is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.File(result.Content, result.ContentType, result.FileName);
+    }
+
     private static async Task<IResult> ApproveRegistrationRequestAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid requestId,
         ReviewRegistrationRequest request,
         IUserRegistrationCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.ReviewRegistrations))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.ApproveRegistrationRequestAsync(requestId, request, cancellationToken);
         return result.Status switch
         {
@@ -694,11 +1128,18 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> RejectRegistrationRequestAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid requestId,
         RejectRegistrationRequest request,
         IUserRegistrationCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.ReviewRegistrations))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.RejectRegistrationRequestAsync(requestId, request, cancellationToken);
         return result.Status switch
         {
@@ -746,6 +1187,8 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> ListInvitationsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         IUserInvitationQueries queries,
         InvitationStatus? status,
         DateTimeOffset? from = null,
@@ -757,6 +1200,11 @@ public sealed class UsersModule : IModule
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Read))
+        {
+            return Results.Forbid();
+        }
+
         var result = await queries.ListInvitationsAsync(
             new InvitationQuery(status, from, to, search, sortBy, sortOrder, page, pageSize),
             cancellationToken);
@@ -777,10 +1225,17 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> CreateInvitationAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         CreateInvitationRequest request,
         IUserInvitationCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Invite))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CreateInvitationAsync(request, cancellationToken);
         return result.Status switch
         {
@@ -791,11 +1246,18 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> UpdateInvitationAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid invitationId,
         UpdateInvitationRequest request,
         IUserInvitationCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Invite))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpdateInvitationAsync(invitationId, request, cancellationToken);
         return result.Status switch
         {
@@ -807,10 +1269,17 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> CancelInvitationAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid invitationId,
         IUserInvitationCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Invite))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CancelInvitationAsync(invitationId, cancellationToken);
         return result.Status switch
         {
@@ -841,10 +1310,17 @@ public sealed class UsersModule : IModule
     }
 
     private static async Task<IResult> CreateUserAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         CreateUserRequest request,
         IUserManagementCommands commands,
         CancellationToken cancellationToken)
     {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Create))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CreateUserAsync(request, cancellationToken);
         return result.Status switch
         {
@@ -864,6 +1340,9 @@ public sealed class UsersModule : IModule
         ?? principal.FindFirstValue("name")
         ?? principal.FindFirstValue("sub")
         ?? "system";
+
+    private static bool LacksPermission(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission) =>
+        !permissionMatrix.HasPermission(principal, permission);
 
     private static string? NormalizeLanguage(string? value)
     {

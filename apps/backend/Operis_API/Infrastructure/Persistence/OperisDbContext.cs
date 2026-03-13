@@ -17,6 +17,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<UserOrgAssignmentEntity> UserOrgAssignments => Set<UserOrgAssignmentEntity>();
     public DbSet<ReportingLineEntity> ReportingLines => Set<ReportingLineEntity>();
     public DbSet<ProjectEntity> Projects => Set<ProjectEntity>();
+    public DbSet<ProjectTypeTemplateEntity> ProjectTypeTemplates => Set<ProjectTypeTemplateEntity>();
+    public DbSet<ProjectTypeRoleRequirementEntity> ProjectTypeRoleRequirements => Set<ProjectTypeRoleRequirementEntity>();
     public DbSet<UserProjectAssignmentEntity> UserProjectAssignments => Set<UserProjectAssignmentEntity>();
     public DbSet<AppRoleEntity> AppRoles => Set<AppRoleEntity>();
     public DbSet<UserRegistrationRequestEntity> UserRegistrationRequests => Set<UserRegistrationRequestEntity>();
@@ -123,6 +125,10 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
             entity.Property(x => x.Responsibilities).HasColumnName("responsibilities").HasMaxLength(2000);
             entity.Property(x => x.AuthorityScope).HasColumnName("authority_scope").HasMaxLength(500);
+            entity.Property(x => x.CanCreateDocuments).HasColumnName("can_create_documents");
+            entity.Property(x => x.CanReviewDocuments).HasColumnName("can_review_documents");
+            entity.Property(x => x.CanApproveDocuments).HasColumnName("can_approve_documents");
+            entity.Property(x => x.CanReleaseDocuments).HasColumnName("can_release_documents");
             entity.Property(x => x.IsReviewRole).HasColumnName("is_review_role");
             entity.Property(x => x.IsApprovalRole).HasColumnName("is_approval_role");
             entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
@@ -218,6 +224,49 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.Phase);
             entity.HasIndex(x => x.OwnerUserId);
             entity.HasIndex(x => x.SponsorUserId);
+        });
+
+        modelBuilder.Entity<ProjectTypeTemplateEntity>(entity =>
+        {
+            entity.ToTable("project_type_templates");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectType).HasColumnName("project_type").HasMaxLength(80);
+            entity.Property(x => x.RequireSponsor).HasColumnName("require_sponsor");
+            entity.Property(x => x.RequirePlannedPeriod).HasColumnName("require_planned_period");
+            entity.Property(x => x.RequireActiveTeam).HasColumnName("require_active_team");
+            entity.Property(x => x.RequirePrimaryAssignment).HasColumnName("require_primary_assignment");
+            entity.Property(x => x.RequireReportingRoot).HasColumnName("require_reporting_root");
+            entity.Property(x => x.RequireDocumentCreator).HasColumnName("require_document_creator");
+            entity.Property(x => x.RequireReviewer).HasColumnName("require_reviewer");
+            entity.Property(x => x.RequireApprover).HasColumnName("require_approver");
+            entity.Property(x => x.RequireReleaseRole).HasColumnName("require_release_role");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
+            entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasIndex(x => x.ProjectType).IsUnique().HasFilter("\"deleted_at\" IS NULL");
+        });
+
+        modelBuilder.Entity<ProjectTypeRoleRequirementEntity>(entity =>
+        {
+            entity.ToTable("project_type_role_requirements");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectTypeTemplateId).HasColumnName("project_type_template_id");
+            entity.Property(x => x.RoleName).HasColumnName("role_name").HasMaxLength(120);
+            entity.Property(x => x.RoleCode).HasColumnName("role_code").HasMaxLength(80);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
+            entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.HasOne<ProjectTypeTemplateEntity>().WithMany().HasForeignKey(x => x.ProjectTypeTemplateId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectTypeTemplateId, x.RoleName }).HasFilter("\"deleted_at\" IS NULL");
+            entity.HasIndex(x => new { x.ProjectTypeTemplateId, x.RoleCode }).HasFilter("\"deleted_at\" IS NULL AND \"role_code\" IS NOT NULL");
         });
 
         modelBuilder.Entity<UserProjectAssignmentEntity>(entity =>

@@ -16,6 +16,8 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../modules/auth';
+import { usePermissions } from '../../authz/usePermissions';
+import { permissions } from '../../authz/permissions';
 import { useThemeStore, ThemeMode } from '../../store/useThemeStore';
 import i18n from '../../i18n/config';
 import { useI18nLanguage } from '../../i18n/hooks/useI18nLanguage';
@@ -37,15 +39,13 @@ export function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
+  const permissionState = usePermissions();
   const { theme: currentTheme, setTheme } = useThemeStore();
-  const roles = Array.isArray(user?.roles) ? user.roles : [];
-  const hasAdminAccess = roles.some((role) =>
-    [
-      'operis:super_admin',
-      'operis:system_admin',
-      'operis_super_admin',
-      'operis_system_admin',
-    ].includes(role)
+  const hasAdminAccess = permissionState.hasAnyPermission(
+    permissions.users.read,
+    permissions.masterData.read,
+    permissions.projects.read,
+    permissions.auditLogs.read,
   );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
@@ -171,6 +171,10 @@ export function MainLayout() {
                       label: tr('common.projects'),
                     },
                     {
+                      key: '/app/admin/project-type-templates',
+                      label: tr('common.project_type_templates'),
+                    },
+                    {
                       key: '/app/admin/project-roles',
                       label: tr('common.master_project_roles'),
                     },
@@ -181,6 +185,14 @@ export function MainLayout() {
                     {
                       key: '/app/admin/project-org-chart',
                       label: tr('common.project_org_chart'),
+                    },
+                    {
+                      key: '/app/admin/project-evidence',
+                      label: tr('common.project_evidence'),
+                    },
+                    {
+                      key: '/app/admin/project-compliance',
+                      label: tr('common.project_compliance'),
                     },
                   ],
                 },
@@ -265,9 +277,12 @@ export function MainLayout() {
     if (path.includes('admin/master/departments')) return tr('common.master_departments');
     if (path.includes('admin/master/positions')) return tr('common.master_positions');
     if (path.includes('admin/projects')) return tr('common.projects');
+    if (path.includes('admin/project-type-templates')) return tr('common.project_type_templates');
     if (path.includes('admin/project-roles')) return tr('common.master_project_roles');
     if (path.includes('admin/project-members')) return tr('common.project_members');
     if (path.includes('admin/project-org-chart')) return tr('common.project_org_chart');
+    if (path.includes('admin/project-evidence')) return tr('common.project_evidence');
+    if (path.includes('admin/project-compliance')) return tr('common.project_compliance');
     if (path.includes('admin/master')) return tr('common.master_data_management');
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
     if (path.includes('admin/registrations')) return tr('common.registration_approvals');
@@ -505,8 +520,12 @@ function getOpenKeys(path: string) {
 
   if (
     path.startsWith('/app/admin/projects') ||
+    path.startsWith('/app/admin/project-type-templates') ||
     path.startsWith('/app/admin/project-roles') ||
-    path.startsWith('/app/admin/project-members')
+    path.startsWith('/app/admin/project-members') ||
+    path.startsWith('/app/admin/project-org-chart') ||
+    path.startsWith('/app/admin/project-evidence') ||
+    path.startsWith('/app/admin/project-compliance')
   ) {
     return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
   }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
@@ -22,12 +23,28 @@ public sealed record ProjectAssignmentListQuery(
     int Page = 1,
     int PageSize = 10);
 
+file sealed record ProjectOrgChartRow(
+    Guid Id,
+    string UserId,
+    string? UserEmail,
+    string? UserDisplayName,
+    Guid ProjectRoleId,
+    string ProjectRoleName,
+    bool IsPrimary,
+    string Status,
+    string? ReportsToUserId,
+    DateTimeOffset StartAt,
+    DateTimeOffset? EndAt);
+
 public interface IProjectQueries
 {
     Task<PagedResult<ProjectResponse>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ReferenceDataQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken);
     Task<IReadOnlyList<ProjectOrgChartNodeResponse>> GetProjectOrgChartAsync(Guid projectId, CancellationToken cancellationToken);
+    Task<ProjectEvidenceResponse?> GetProjectEvidenceAsync(Guid projectId, CancellationToken cancellationToken);
+    Task<ProjectEvidenceExportResult?> GetProjectEvidenceExportAsync(Guid projectId, CancellationToken cancellationToken);
+    Task<ProjectComplianceResponse?> GetProjectComplianceAsync(Guid projectId, CancellationToken cancellationToken);
 }
 
 public sealed class ProjectQueries(
@@ -129,6 +146,10 @@ public sealed class ProjectQueries(
                 x.Description,
                 x.Responsibilities,
                 x.AuthorityScope,
+                x.CanCreateDocuments,
+                x.CanReviewDocuments,
+                x.CanApproveDocuments,
+                x.CanReleaseDocuments,
                 x.IsReviewRole,
                 x.IsApprovalRole,
                 x.DisplayOrder,
@@ -222,29 +243,28 @@ public sealed class ProjectQueries(
             .Where(x => x.ProjectId == projectId && x.Status == "Active")
             .OrderBy(x => x.StartAt)
             .ThenBy(x => x.CreatedAt)
-            .Select(x => new
-            {
+            .Select(x => new ProjectOrgChartRow(
                 x.Id,
                 x.UserId,
-                UserEmail = dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
-                UserDisplayName = dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
+                dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
+                dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
                 x.ProjectRoleId,
-                ProjectRoleName = dbContext.ProjectRoles.Where(role => role.Id == x.ProjectRoleId).Select(role => role.Name).FirstOrDefault() ?? string.Empty,
+                dbContext.ProjectRoles.Where(role => role.Id == x.ProjectRoleId).Select(role => role.Name).FirstOrDefault() ?? string.Empty,
                 x.IsPrimary,
                 x.Status,
                 x.ReportsToUserId,
                 x.StartAt,
-                x.EndAt
-            })
+                x.EndAt))
             .ToListAsync(cancellationToken);
 
         var childrenLookup = assignments
-            .GroupBy(x => x.ReportsToUserId)
+            .Where(x => !string.IsNullOrWhiteSpace(x.ReportsToUserId))
+            .GroupBy(x => x.ReportsToUserId!)
             .ToDictionary(group => group.Key, group => group.ToList());
 
-        ProjectOrgChartNodeResponse BuildNode(dynamic assignment)
+        ProjectOrgChartNodeResponse BuildNode(ProjectOrgChartRow assignment)
         {
-            var children = childrenLookup.TryGetValue((string?)assignment.UserId, out var childAssignments)
+            var children = childrenLookup.TryGetValue(assignment.UserId, out var childAssignments)
                 ? childAssignments.Select(BuildNode).ToList()
                 : [];
 
@@ -278,6 +298,503 @@ public sealed class ProjectQueries(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return roots;
+    }
+
+    public async Task<ProjectEvidenceResponse?> GetProjectEvidenceAsync(Guid projectId, CancellationToken cancellationToken)
+    {
+        var project = await dbContext.Projects
+            .AsNoTracking()
+            .Where(x => x.Id == projectId && x.DeletedAt == null)
+            .Select(x => new { x.Id, x.Name })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (project is null)
+        {
+            return null;
+        }
+
+        var assignments = await dbContext.UserProjectAssignments
+            .AsNoTracking()
+            .Where(x => x.ProjectId == projectId)
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new
+            {
+                x.Id,
+                x.UserId,
+                UserEmail = dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
+                UserDisplayName = dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
+                ProjectRoleName = dbContext.ProjectRoles.Where(role => role.Id == x.ProjectRoleId).Select(role => role.Name).FirstOrDefault() ?? string.Empty,
+                x.Status,
+                x.ChangeReason,
+                x.ReportsToUserId,
+                ReportsToDisplayName = x.ReportsToUserId == null
+                    ? null
+                    : dbContext.Users.Where(user => user.Id == x.ReportsToUserId).Select(user => user.Id).FirstOrDefault(),
+                x.IsPrimary,
+                x.StartAt,
+                x.EndAt,
+                x.CreatedAt,
+                x.UpdatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var teamRegister = assignments
+            .Where(x => x.Status == "Active")
+            .OrderBy(x => x.UserDisplayName ?? x.UserEmail ?? x.UserId)
+            .Select(x => new ProjectTeamRegisterRowResponse(
+                x.Id,
+                x.UserId,
+                x.UserEmail,
+                x.UserDisplayName,
+                x.ProjectRoleName,
+                x.ReportsToDisplayName,
+                x.IsPrimary,
+                x.Status,
+                x.StartAt,
+                x.EndAt))
+            .ToList();
+
+        var roleResponsibilities = await dbContext.ProjectRoles
+            .AsNoTracking()
+            .Where(x => x.ProjectId == projectId && x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new ProjectRoleResponsibilityRowResponse(
+                x.Id,
+                x.Name,
+                x.Code,
+                x.Description,
+                x.Responsibilities,
+                x.AuthorityScope,
+                x.CanCreateDocuments,
+                x.CanReviewDocuments,
+                x.CanApproveDocuments,
+                x.CanReleaseDocuments,
+                x.IsReviewRole,
+                x.IsApprovalRole,
+                dbContext.UserProjectAssignments.Count(assignment => assignment.ProjectRoleId == x.Id && assignment.Status == "Active")))
+            .ToListAsync(cancellationToken);
+
+        var assignmentHistory = assignments
+            .Select(x => new ProjectAssignmentHistoryRowResponse(
+                x.Id,
+                x.UserId,
+                x.UserEmail,
+                x.UserDisplayName,
+                x.ProjectRoleName,
+                x.Status,
+                x.ChangeReason,
+                x.ReportsToDisplayName,
+                x.IsPrimary,
+                x.StartAt,
+                x.EndAt,
+                x.CreatedAt,
+                x.UpdatedAt))
+            .ToList();
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "view_evidence",
+            EntityType: "project",
+            EntityId: projectId.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new
+            {
+                projectId,
+                teamRegister = teamRegister.Count,
+                roleResponsibilities = roleResponsibilities.Count,
+                assignmentHistory = assignmentHistory.Count
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new ProjectEvidenceResponse(project.Id, project.Name, teamRegister, roleResponsibilities, assignmentHistory);
+    }
+
+    public async Task<ProjectEvidenceExportResult?> GetProjectEvidenceExportAsync(Guid projectId, CancellationToken cancellationToken)
+    {
+        var evidence = await GetProjectEvidenceAsync(projectId, cancellationToken);
+        if (evidence is null)
+        {
+            return null;
+        }
+
+        static string Csv(string? value)
+        {
+            var normalized = value ?? string.Empty;
+            return $"\"{normalized.Replace("\"", "\"\"")}\"";
+        }
+
+        var builder = new StringBuilder();
+        builder.AppendLine("Section,Member,Email,Role,Reports To,Primary,Status,Reason,Start At,End At,Created At,Updated At,Role Code,Description,Responsibilities,Authority Scope,Can Create,Can Review,Can Approve,Can Release,Is Review Role,Is Approval Role,Member Count");
+
+        foreach (var row in evidence.TeamRegister)
+        {
+            builder.AppendLine(string.Join(",",
+                Csv("Team Register"),
+                Csv(row.UserDisplayName ?? row.UserId),
+                Csv(row.UserEmail),
+                Csv(row.ProjectRoleName),
+                Csv(row.ReportsToDisplayName),
+                Csv(row.IsPrimary ? "Yes" : "No"),
+                Csv(row.Status),
+                Csv(null),
+                Csv(row.StartAt.ToString("O")),
+                Csv(row.EndAt?.ToString("O")),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null)));
+        }
+
+        foreach (var row in evidence.RoleResponsibilities)
+        {
+            builder.AppendLine(string.Join(",",
+                Csv("Role Responsibility"),
+                Csv(null),
+                Csv(null),
+                Csv(row.ProjectRoleName),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(row.Code),
+                Csv(row.Description),
+                Csv(row.Responsibilities),
+                Csv(row.AuthorityScope),
+                Csv(row.CanCreateDocuments ? "Yes" : "No"),
+                Csv(row.CanReviewDocuments ? "Yes" : "No"),
+                Csv(row.CanApproveDocuments ? "Yes" : "No"),
+                Csv(row.CanReleaseDocuments ? "Yes" : "No"),
+                Csv(row.IsReviewRole ? "Yes" : "No"),
+                Csv(row.IsApprovalRole ? "Yes" : "No"),
+                Csv(row.MemberCount.ToString())));
+        }
+
+        foreach (var row in evidence.AssignmentHistory)
+        {
+            builder.AppendLine(string.Join(",",
+                Csv("Assignment History"),
+                Csv(row.UserDisplayName ?? row.UserId),
+                Csv(row.UserEmail),
+                Csv(row.ProjectRoleName),
+                Csv(row.ReportsToDisplayName),
+                Csv(row.IsPrimary ? "Yes" : "No"),
+                Csv(row.Status),
+                Csv(row.ChangeReason),
+                Csv(row.StartAt.ToString("O")),
+                Csv(row.EndAt?.ToString("O")),
+                Csv(row.CreatedAt.ToString("O")),
+                Csv(row.UpdatedAt?.ToString("O")),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null),
+                Csv(null)));
+        }
+
+        var safeProjectName = string.Concat(evidence.ProjectName.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_')).Trim('_');
+        var fileName = $"project-evidence-{safeProjectName}-{projectId:N}.csv";
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "export_evidence",
+            EntityType: "project",
+            EntityId: projectId.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { projectId, fileName }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new ProjectEvidenceExportResult(fileName, "text/csv; charset=utf-8", Encoding.UTF8.GetBytes(builder.ToString()));
+    }
+
+    public async Task<ProjectComplianceResponse?> GetProjectComplianceAsync(Guid projectId, CancellationToken cancellationToken)
+    {
+        var project = await dbContext.Projects
+            .AsNoTracking()
+            .Where(x => x.Id == projectId && x.DeletedAt == null)
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                x.ProjectType,
+                x.Status,
+                x.OwnerUserId,
+                x.SponsorUserId,
+                x.PlannedStartAt,
+                x.PlannedEndAt,
+                x.StartAt,
+                x.EndAt
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (project is null)
+        {
+            return null;
+        }
+
+        var roleFacts = await dbContext.ProjectRoles
+            .AsNoTracking()
+            .Where(x => x.ProjectId == projectId && x.DeletedAt == null)
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                x.Code,
+                x.CanCreateDocuments,
+                x.CanReviewDocuments,
+                x.CanApproveDocuments,
+                x.CanReleaseDocuments,
+                x.IsReviewRole,
+                x.IsApprovalRole
+            })
+            .ToListAsync(cancellationToken);
+
+        var assignments = await dbContext.UserProjectAssignments
+            .AsNoTracking()
+            .Where(x => x.ProjectId == projectId && x.Status == "Active")
+            .Select(x => new
+            {
+                x.UserId,
+                x.ProjectRoleId,
+                x.ReportsToUserId,
+                x.IsPrimary
+            })
+            .ToListAsync(cancellationToken);
+
+        var template = await dbContext.ProjectTypeTemplates
+            .AsNoTracking()
+            .Where(x => x.ProjectType == project.ProjectType && x.DeletedAt == null)
+            .Select(x => new
+            {
+                x.Id,
+                x.RequireSponsor,
+                x.RequirePlannedPeriod,
+                x.RequireActiveTeam,
+                x.RequirePrimaryAssignment,
+                x.RequireReportingRoot,
+                x.RequireDocumentCreator,
+                x.RequireReviewer,
+                x.RequireApprover,
+                x.RequireReleaseRole
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var templateRoleRequirements = template is null
+            ? []
+            : await dbContext.ProjectTypeRoleRequirements
+                .AsNoTracking()
+                .Where(x => x.ProjectTypeTemplateId == template.Id && x.DeletedAt == null)
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.RoleName)
+                .Select(x => new
+                {
+                    x.RoleName,
+                    x.RoleCode,
+                    x.Description
+                })
+                .ToListAsync(cancellationToken);
+
+        var hasOwner = !string.IsNullOrWhiteSpace(project.OwnerUserId);
+        var requiresSponsor = template?.RequireSponsor ??
+            (string.Equals(project.ProjectType, "Customer", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(project.ProjectType, "Compliance", StringComparison.OrdinalIgnoreCase));
+        var hasSponsor = !string.IsNullOrWhiteSpace(project.SponsorUserId);
+        var requirePlannedPeriod = template?.RequirePlannedPeriod ?? true;
+        var requireActiveTeam = template?.RequireActiveTeam ?? true;
+        var requirePrimaryAssignment = template?.RequirePrimaryAssignment ?? true;
+        var requireReportingRoot = template?.RequireReportingRoot ?? true;
+        var requireDocumentCreator = template?.RequireDocumentCreator ?? true;
+        var requireReviewer = template?.RequireReviewer ?? true;
+        var requireApprover = template?.RequireApprover ?? true;
+        var requireReleaseRole = template?.RequireReleaseRole ?? false;
+        var hasPlannedPeriod = project.PlannedStartAt.HasValue && project.PlannedEndAt.HasValue && project.PlannedStartAt <= project.PlannedEndAt;
+        var hasActiveMembers = assignments.Count > 0;
+        var hasReportingRoot = assignments.Any(x => string.IsNullOrWhiteSpace(x.ReportsToUserId));
+        var assignedRoleIds = assignments.Select(x => x.ProjectRoleId).ToHashSet();
+        var assignedRoles = roleFacts.Where(x => assignedRoleIds.Contains(x.Id)).ToList();
+        var hasDocumentCreator = assignedRoles.Any(x => x.CanCreateDocuments);
+        var hasReviewer = assignedRoles.Any(x => x.CanReviewDocuments || x.IsReviewRole);
+        var hasApprover = assignedRoles.Any(x => x.CanApproveDocuments || x.IsApprovalRole);
+        var hasReleaseRole = assignedRoles.Any(x => x.CanReleaseDocuments);
+        var hasPrimaryAssignment = assignments.Any(x => x.IsPrimary);
+
+        List<ProjectComplianceCheckResponse> checks =
+        [
+            BuildComplianceCheck(
+                code: "owner_assigned",
+                title: "Project owner assigned",
+                description: "The project must have a named owner who is accountable for delivery.",
+                severity: "error",
+                isPassing: hasOwner,
+                passedDetail: $"Owner user id: {project.OwnerUserId}",
+                failedDetail: "Assign a project owner."),
+            BuildComplianceCheck(
+                code: "sponsor_assigned",
+                title: "Project sponsor assigned",
+                description: requiresSponsor
+                    ? "Customer and compliance projects must have a sponsor."
+                    : "Sponsor is optional for this project type.",
+                severity: requiresSponsor ? "warning" : "info",
+                isPassing: !requiresSponsor || hasSponsor,
+                passedDetail: hasSponsor ? $"Sponsor user id: {project.SponsorUserId}" : "Sponsor not required.",
+                failedDetail: "Assign a sponsor for this project type."),
+            BuildComplianceCheck(
+                code: "planned_period_defined",
+                title: "Planned period defined",
+                description: "Planned start and end dates should be set for schedule governance.",
+                severity: requirePlannedPeriod ? "warning" : "info",
+                isPassing: !requirePlannedPeriod || hasPlannedPeriod,
+                passedDetail: $"Planned: {project.PlannedStartAt:yyyy-MM-dd} to {project.PlannedEndAt:yyyy-MM-dd}",
+                failedDetail: requirePlannedPeriod ? "Set valid planned start and end dates." : "Planned period not required."),
+            BuildComplianceCheck(
+                code: "active_team_exists",
+                title: "Active project team exists",
+                description: "The project should have at least one active member assignment.",
+                severity: requireActiveTeam ? "error" : "info",
+                isPassing: !requireActiveTeam || hasActiveMembers,
+                passedDetail: $"Active members: {assignments.Count}",
+                failedDetail: requireActiveTeam ? "Assign active members to the project." : "Active team not required."),
+            BuildComplianceCheck(
+                code: "primary_assignment_exists",
+                title: "Primary assignment exists",
+                description: "At least one member should be marked as the primary project assignment.",
+                severity: requirePrimaryAssignment ? "warning" : "info",
+                isPassing: !requirePrimaryAssignment || hasPrimaryAssignment,
+                passedDetail: "Primary assignment found.",
+                failedDetail: requirePrimaryAssignment ? "Mark one active member as primary." : "Primary assignment not required."),
+            BuildComplianceCheck(
+                code: "reporting_root_exists",
+                title: "Reporting root exists",
+                description: "The project org chart should have at least one top-level reporting root.",
+                severity: requireReportingRoot ? "warning" : "info",
+                isPassing: !requireReportingRoot || !hasActiveMembers || hasReportingRoot,
+                passedDetail: "Reporting root found.",
+                failedDetail: requireReportingRoot ? "Set at least one project member without a reports-to reference." : "Reporting root not required."),
+            BuildComplianceCheck(
+                code: "document_creator_role",
+                title: "Document creator role assigned",
+                description: "An active role should be able to create project documents.",
+                severity: requireDocumentCreator ? "error" : "info",
+                isPassing: !requireDocumentCreator || hasDocumentCreator,
+                passedDetail: "Document creation capability covered.",
+                failedDetail: requireDocumentCreator ? "Assign a role with document creation permission to an active member." : "Document creator role not required."),
+            BuildComplianceCheck(
+                code: "review_role_assigned",
+                title: "Review role assigned",
+                description: "An active role should be able to review project deliverables.",
+                severity: requireReviewer ? "warning" : "info",
+                isPassing: !requireReviewer || hasReviewer,
+                passedDetail: "Review capability covered.",
+                failedDetail: requireReviewer ? "Assign a review-capable role to an active member." : "Review role not required."),
+            BuildComplianceCheck(
+                code: "approval_role_assigned",
+                title: "Approval role assigned",
+                description: "An active role should be able to approve project deliverables.",
+                severity: requireApprover ? "warning" : "info",
+                isPassing: !requireApprover || hasApprover,
+                passedDetail: "Approval capability covered.",
+                failedDetail: requireApprover ? "Assign an approval-capable role to an active member." : "Approval role not required."),
+            BuildComplianceCheck(
+                code: "release_role_assigned",
+                title: "Release role assigned",
+                description: "An active role should be able to release controlled documents when required.",
+                severity: requireReleaseRole ? "warning" : "info",
+                isPassing: !requireReleaseRole || hasReleaseRole,
+                passedDetail: "Release capability covered.",
+                failedDetail: requireReleaseRole ? "Assign a release-capable role for controlled releases." : "Release role not required.")
+        ];
+
+        foreach (var requirement in templateRoleRequirements)
+        {
+            var matched = assignedRoles.Any(role =>
+                (!string.IsNullOrWhiteSpace(requirement.RoleCode) && string.Equals(role.Code, requirement.RoleCode, StringComparison.OrdinalIgnoreCase)) ||
+                string.Equals(role.Name, requirement.RoleName, StringComparison.OrdinalIgnoreCase));
+
+            checks.Add(BuildComplianceCheck(
+                code: $"required_role_{SanitizeComplianceCode(requirement.RoleCode ?? requirement.RoleName)}",
+                title: $"Required role: {requirement.RoleName}",
+                description: requirement.Description ?? "A required project role should be actively assigned.",
+                severity: "error",
+                isPassing: matched,
+                passedDetail: $"Role '{requirement.RoleName}' is covered by an active assignment.",
+                failedDetail: $"Assign the required role '{requirement.RoleName}' to an active project member."));
+        }
+
+        var passedChecks = checks.Count(x => x.Status == "passed");
+        var warningChecks = checks.Count(x => x.Status == "warning");
+        var failedChecks = checks.Count(x => x.Status == "failed");
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "view_compliance",
+            EntityType: "project",
+            EntityId: projectId.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { projectId, passedChecks, warningChecks, failedChecks }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new ProjectComplianceResponse(
+            project.Id,
+            project.Name,
+            project.ProjectType,
+            project.Status,
+            passedChecks,
+            warningChecks,
+            failedChecks,
+            checks);
+    }
+
+    private static string SanitizeComplianceCode(string value)
+    {
+        Span<char> buffer = stackalloc char[value.Length];
+        var index = 0;
+        foreach (var character in value)
+        {
+            buffer[index++] = char.IsLetterOrDigit(character) ? char.ToLowerInvariant(character) : '_';
+        }
+
+        return new string(buffer[..index]);
+    }
+
+    private static ProjectComplianceCheckResponse BuildComplianceCheck(
+        string code,
+        string title,
+        string description,
+        string severity,
+        bool isPassing,
+        string passedDetail,
+        string failedDetail)
+    {
+        var status = isPassing ? "passed" : severity switch
+        {
+            "info" => "warning",
+            _ => severity == "warning" ? "warning" : "failed"
+        };
+
+        return new ProjectComplianceCheckResponse(
+            code,
+            title,
+            description,
+            severity,
+            status,
+            isPassing ? passedDetail : failedDetail);
     }
 
     private static IQueryable<ProjectEntity> ApplyProjectSorting(IQueryable<ProjectEntity> source, string? sortBy, string? sortOrder)

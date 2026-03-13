@@ -1,7 +1,9 @@
 using System.Reflection;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Operis_API.Modules.Audits;
 using Operis_API.Modules.Audits.Application;
+using Operis_API.Shared.Security;
 using Operis_API.Tests.Support;
 
 namespace Operis_API.Tests.Modules.Audits;
@@ -37,7 +39,22 @@ public sealed class AuditsModuleHandlerTests
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
     }
 
-    private static async Task<IResult> InvokeListAuditLogsAsync(IAuditLogQueries queries)
+    [Fact]
+    public async Task ListAuditLogsAsync_WithoutPermission_ReturnsForbidden()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var auditLogWriter = new FakeAuditLogWriter();
+        var queries = new AuditLogQueries(dbContext, auditLogWriter);
+
+        var result = await InvokeListAuditLogsAsync(queries, CreateUnprivilegedPrincipal());
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+    }
+
+    private static async Task<IResult> InvokeListAuditLogsAsync(IAuditLogQueries queries, ClaimsPrincipal? principal = null)
     {
         var method = typeof(AuditsModule).GetMethod(
             "ListAuditLogsAsync",
@@ -46,8 +63,14 @@ public sealed class AuditsModuleHandlerTests
 
         var task = (Task<IResult>)method.Invoke(
             null,
-            [queries, null, null, null, null, null, null, null, null, null, null, 1, 10, CancellationToken.None])!;
+            [principal ?? CreateAdminPrincipal(), new PermissionMatrix(), queries, null, null, null, null, null, null, null, null, null, null, 1, 10, CancellationToken.None])!;
 
         return await task;
     }
+
+    private static ClaimsPrincipal CreateAdminPrincipal() =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.Role, "operis:super_admin")], "TestAuth"));
+
+    private static ClaimsPrincipal CreateUnprivilegedPrincipal() =>
+        new(new ClaimsIdentity([], "TestAuth"));
 }

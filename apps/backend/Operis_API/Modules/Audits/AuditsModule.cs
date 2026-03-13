@@ -5,6 +5,8 @@ using Operis_API.Modules.Audits.Contracts;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
 using Operis_API.Shared.Modules;
+using Operis_API.Shared.Security;
+using System.Security.Claims;
 
 namespace Operis_API.Modules.Audits;
 
@@ -29,6 +31,8 @@ public sealed class AuditsModule : IModule
     }
 
     private static async Task<IResult> ListAuditLogsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         IAuditLogQueries queries,
         string? module,
         string? action,
@@ -44,6 +48,11 @@ public sealed class AuditsModule : IModule
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.AuditLogs.Read))
+        {
+            return Results.Forbid();
+        }
+
         var result = await queries.ListAuditLogsAsync(
             new AuditLogListQuery(module, action, entityType, entityId, actor, status, sortBy, sortOrder, from, to, page, pageSize),
             cancellationToken);

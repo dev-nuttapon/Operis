@@ -11,6 +11,11 @@ interface RequestOptions {
   auth?: boolean;
 }
 
+interface FileRequestResult {
+  blob: Blob;
+  fileName?: string;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly category: "network" | "bad_request" | "unauthorized" | "forbidden" | "not_found" | "conflict" | "server" | "unknown";
@@ -190,4 +195,53 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
 export async function publicApiRequest<T>(path: string, options: Omit<RequestOptions, "auth"> = {}): Promise<T> {
   return apiRequest<T>(path, { ...options, auth: false });
+}
+
+export async function apiFileRequest(path: string, options: RequestOptions = {}): Promise<FileRequestResult> {
+  if (options.auth !== false) {
+    await refreshToken(30);
+  }
+
+  const token = options.auth === false ? null : getAccessToken();
+  const headers = new Headers();
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${appEnv.apiBaseUrl}${path}`, {
+      method: options.method ?? "GET",
+      headers,
+      signal: options.signal,
+    });
+  } catch {
+    throw new ApiError(i18n.t("errors.network_unreachable"), 0, "network");
+  }
+
+  if (!response.ok) {
+    let message = i18n.t("errors.request_failed", { status: response.status });
+
+    try {
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        const payload = await response.json() as { detail?: string; title?: string };
+        message = payload.detail || payload.title || message;
+      } else {
+        const text = await response.text();
+        if (text) {
+          message = text;
+        }
+      }
+    } catch {
+      // Keep default message when parsing fails.
+    }
+
+    throw new ApiError(localizeApiMessage(message, response.status), response.status, getErrorCategory(response.status));
+  }
+
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+  return { blob: await response.blob(), fileName: match?.[1] };
 }

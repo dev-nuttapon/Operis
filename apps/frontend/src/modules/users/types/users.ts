@@ -301,6 +301,10 @@ export interface ProjectRole {
   description: string | null;
   responsibilities: string | null;
   authorityScope: string | null;
+  canCreateDocuments: boolean;
+  canReviewDocuments: boolean;
+  canApproveDocuments: boolean;
+  canReleaseDocuments: boolean;
   isReviewRole: boolean;
   isApprovalRole: boolean;
   displayOrder: number;
@@ -347,6 +351,113 @@ export interface ProjectOrgChartNode {
   children: ProjectOrgChartNode[];
 }
 
+export interface ProjectTeamRegisterRow {
+  assignmentId: string;
+  userId: string;
+  userEmail: string | null;
+  userDisplayName: string | null;
+  projectRoleName: string;
+  reportsToDisplayName: string | null;
+  isPrimary: boolean;
+  status: string;
+  startAt: string;
+  endAt: string | null;
+}
+
+export interface ProjectRoleResponsibilityRow {
+  projectRoleId: string;
+  projectRoleName: string;
+  code: string | null;
+  description: string | null;
+  responsibilities: string | null;
+  authorityScope: string | null;
+  canCreateDocuments: boolean;
+  canReviewDocuments: boolean;
+  canApproveDocuments: boolean;
+  canReleaseDocuments: boolean;
+  isReviewRole: boolean;
+  isApprovalRole: boolean;
+  memberCount: number;
+}
+
+export interface ProjectAssignmentHistoryRow {
+  assignmentId: string;
+  userId: string;
+  userEmail: string | null;
+  userDisplayName: string | null;
+  projectRoleName: string;
+  status: string;
+  changeReason: string | null;
+  reportsToDisplayName: string | null;
+  isPrimary: boolean;
+  startAt: string;
+  endAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface ProjectEvidence {
+  projectId: string;
+  projectName: string;
+  teamRegister: ProjectTeamRegisterRow[];
+  roleResponsibilities: ProjectRoleResponsibilityRow[];
+  assignmentHistory: ProjectAssignmentHistoryRow[];
+}
+
+export interface ProjectComplianceCheck {
+  code: string;
+  title: string;
+  description: string;
+  severity: string;
+  status: string;
+  detail: string | null;
+}
+
+export interface ProjectCompliance {
+  projectId: string;
+  projectName: string;
+  projectType: string;
+  status: string;
+  passedChecks: number;
+  warningChecks: number;
+  failedChecks: number;
+  checks: ProjectComplianceCheck[];
+}
+
+export interface ProjectTypeTemplate {
+  id: string;
+  projectType: string;
+  requireSponsor: boolean;
+  requirePlannedPeriod: boolean;
+  requireActiveTeam: boolean;
+  requirePrimaryAssignment: boolean;
+  requireReportingRoot: boolean;
+  requireDocumentCreator: boolean;
+  requireReviewer: boolean;
+  requireApprover: boolean;
+  requireReleaseRole: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+  deletedReason: string | null;
+  deletedBy: string | null;
+  deletedAt: string | null;
+}
+
+export interface ProjectTypeRoleRequirement {
+  id: string;
+  projectTypeTemplateId: string;
+  projectType: string;
+  roleName: string;
+  roleCode: string | null;
+  description: string | null;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string | null;
+  deletedReason: string | null;
+  deletedBy: string | null;
+  deletedAt: string | null;
+}
+
 export interface CreateProjectInput {
   code: string;
   name: string;
@@ -367,6 +478,35 @@ export interface UpdateProjectInput extends CreateProjectInput {
   id: string;
 }
 
+export interface CreateProjectTypeTemplateInput {
+  projectType: string;
+  requireSponsor: boolean;
+  requirePlannedPeriod: boolean;
+  requireActiveTeam: boolean;
+  requirePrimaryAssignment: boolean;
+  requireReportingRoot: boolean;
+  requireDocumentCreator: boolean;
+  requireReviewer: boolean;
+  requireApprover: boolean;
+  requireReleaseRole: boolean;
+}
+
+export interface UpdateProjectTypeTemplateInput extends CreateProjectTypeTemplateInput {
+  id: string;
+}
+
+export interface CreateProjectTypeRoleRequirementInput {
+  projectTypeTemplateId: string;
+  roleName: string;
+  roleCode?: string;
+  description?: string;
+  displayOrder: number;
+}
+
+export interface UpdateProjectTypeRoleRequirementInput extends CreateProjectTypeRoleRequirementInput {
+  id: string;
+}
+
 export interface CreateProjectRoleInput {
   projectId: string;
   name: string;
@@ -374,6 +514,10 @@ export interface CreateProjectRoleInput {
   description?: string;
   responsibilities?: string;
   authorityScope?: string;
+  canCreateDocuments: boolean;
+  canReviewDocuments: boolean;
+  canApproveDocuments: boolean;
+  canReleaseDocuments: boolean;
   isReviewRole: boolean;
   isApprovalRole: boolean;
   displayOrder: number;

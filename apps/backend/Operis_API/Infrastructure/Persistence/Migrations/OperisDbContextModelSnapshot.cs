@@ -398,6 +398,22 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("authority_scope");
 
+                    b.Property<bool>("CanApproveDocuments")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_approve_documents");
+
+                    b.Property<bool>("CanCreateDocuments")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_create_documents");
+
+                    b.Property<bool>("CanReleaseDocuments")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_release_documents");
+
+                    b.Property<bool>("CanReviewDocuments")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_review_documents");
+
                     b.Property<string>("Code")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)")
@@ -472,6 +488,151 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("DeletedAt", "DisplayOrder", "Name");
 
                     b.ToTable("project_roles", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ProjectTypeRoleRequirementEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<string>("DeletedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("deleted_reason");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<Guid>("ProjectTypeTemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_type_template_id");
+
+                    b.Property<string>("RoleCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("role_code");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("role_name");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectTypeTemplateId", "RoleCode")
+                        .HasFilter("\"deleted_at\" IS NULL AND \"role_code\" IS NOT NULL");
+
+                    b.HasIndex("ProjectTypeTemplateId", "RoleName")
+                        .HasDatabaseName("IX_project_type_role_requirements_project_type_template_id_ro~1")
+                        .HasFilter("\"deleted_at\" IS NULL");
+
+                    b.ToTable("project_type_role_requirements", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ProjectTypeTemplateEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<string>("DeletedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("deleted_reason");
+
+                    b.Property<string>("ProjectType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("project_type");
+
+                    b.Property<bool>("RequireActiveTeam")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_active_team");
+
+                    b.Property<bool>("RequireApprover")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_approver");
+
+                    b.Property<bool>("RequireDocumentCreator")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_document_creator");
+
+                    b.Property<bool>("RequirePlannedPeriod")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_planned_period");
+
+                    b.Property<bool>("RequirePrimaryAssignment")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_primary_assignment");
+
+                    b.Property<bool>("RequireReleaseRole")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_release_role");
+
+                    b.Property<bool>("RequireReportingRoot")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_reporting_root");
+
+                    b.Property<bool>("RequireReviewer")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_reviewer");
+
+                    b.Property<bool>("RequireSponsor")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_sponsor");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectType")
+                        .IsUnique()
+                        .HasFilter("\"deleted_at\" IS NULL");
+
+                    b.ToTable("project_type_templates", (string)null);
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ReportingLineEntity", b =>
@@ -1162,6 +1323,15 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ProjectTypeRoleRequirementEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectTypeTemplateEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectTypeTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ReportingLineEntity", b =>

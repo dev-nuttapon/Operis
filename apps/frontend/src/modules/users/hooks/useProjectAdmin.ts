@@ -5,6 +5,9 @@ import {
   createProjectRole,
   deleteProject,
   deleteProjectAssignment,
+  getProjectCompliance,
+  getProjectEvidence,
+  exportProjectEvidence,
   deleteProjectRole,
   getProjectOrgChart,
   listProjectAssignments,
@@ -37,6 +40,8 @@ export function useProjectAdmin(input: {
   projectRoles: { projectId?: string; search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number };
   projectAssignments: ListProjectAssignmentsInput | null;
   projectOrgChartProjectId?: string;
+  projectEvidenceProjectId?: string;
+  projectComplianceProjectId?: string;
 }) {
   const queryClient = useQueryClient();
 
@@ -75,6 +80,20 @@ export function useProjectAdmin(input: {
     queryKey: [...projectAssignmentsQueryKey, "org-chart", input.projectOrgChartProjectId],
     enabled: Boolean(input.projectOrgChartProjectId),
     queryFn: ({ signal }) => getProjectOrgChart(input.projectOrgChartProjectId!, signal),
+    staleTime: 15_000,
+  });
+
+  const projectEvidenceQuery = useQuery({
+    queryKey: [...projectAssignmentsQueryKey, "evidence", input.projectEvidenceProjectId],
+    enabled: Boolean(input.projectEvidenceProjectId),
+    queryFn: ({ signal }) => getProjectEvidence(input.projectEvidenceProjectId!, signal),
+    staleTime: 15_000,
+  });
+
+  const projectComplianceQuery = useQuery({
+    queryKey: [...projectAssignmentsQueryKey, "compliance", input.projectComplianceProjectId],
+    enabled: Boolean(input.projectComplianceProjectId),
+    queryFn: ({ signal }) => getProjectCompliance(input.projectComplianceProjectId!, signal),
     staleTime: 15_000,
   });
 
@@ -138,11 +157,15 @@ export function useProjectAdmin(input: {
     onSuccess: invalidateProjects,
   });
 
+  const exportProjectEvidenceCsv = (projectId: string, signal?: AbortSignal) => exportProjectEvidence(projectId, signal);
+
   return {
     projectsQuery,
     projectRolesQuery,
     projectAssignmentsQuery,
     projectOrgChartQuery,
+    projectEvidenceQuery,
+    projectComplianceQuery,
     projectMemberUsersQuery,
     createProjectMutation,
     updateProjectMutation,
@@ -153,5 +176,6 @@ export function useProjectAdmin(input: {
     createProjectAssignmentMutation,
     updateProjectAssignmentMutation,
     deleteProjectAssignmentMutation,
+    exportProjectEvidenceCsv,
   };
 }

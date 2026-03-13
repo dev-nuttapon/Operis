@@ -150,6 +150,10 @@
     "projects": "โครงการ",
     "master_project_roles": "ตำแหน่งโครงการ",
     "project_members": "สมาชิกโครงการ",
+    "project_org_chart": "ผังงานในโครงการ",
+    "project_evidence": "หลักฐานโครงการ",
+    "project_compliance": "ความพร้อมตามเกณฑ์โครงการ",
+    "project_type_templates": "แม่แบบประเภทโครงการ",
     "notifications": "การแจ้งเตือน",
     "mark_all_read": "อ่านทั้งหมด",
     "view_all_notifications": "ดูทั้งหมด (3)",
@@ -163,6 +167,8 @@
       "manage": "จัดการ",
       "edit": "แก้ไข",
       "delete": "ลบ",
+      "yes": "ใช่",
+      "no": "ไม่ใช่",
       "save": "บันทึก",
       "cancel": "ยกเลิก",
       "create": "สร้าง",
@@ -571,6 +577,11 @@
       "description": "คำอธิบายบทบาท",
       "responsibilities": "ความรับผิดชอบ",
       "authority_scope": "ขอบเขตอำนาจ",
+      "document_permissions": "สิทธิ์งานเอกสาร",
+      "can_create_documents": "สร้างเอกสารในโครงการได้",
+      "can_review_documents": "ทบทวนเอกสารในโครงการได้",
+      "can_approve_documents": "อนุมัติเอกสารในโครงการได้",
+      "can_release_documents": "ปล่อยใช้เอกสารในโครงการได้",
       "is_review_role": "ใช้เป็นบทบาททบทวน",
       "is_approval_role": "ใช้เป็นบทบาทอนุมัติ",
       "display_order": "ลำดับ"
@@ -588,7 +599,14 @@
       "code": "รหัส",
       "review_role": "ทบทวน",
       "approval_role": "อนุมัติ",
+      "document_permissions": "สิทธิ์เอกสาร",
       "display_order": "ลำดับ"
+    },
+    "permissions": {
+      "create": "Create",
+      "review": "Review",
+      "approve": "Approve",
+      "release": "Release"
     },
     "messages": {
       "created": "สร้างตำแหน่งในโครงการ {{name}} แล้ว",
@@ -617,18 +635,21 @@
       "project_role": "ตำแหน่งในโครงการ",
       "reports_to": "รายงานต่อ",
       "period": "ช่วงเวลาการมอบหมาย",
+      "change_reason": "เหตุผลการเปลี่ยนแปลง",
       "is_primary": "เป็นบทบาทหลักในโครงการนี้"
     },
     "placeholders": {
       "user": "เลือกผู้ใช้งาน",
       "project_role": "เลือกตำแหน่งในโครงการ",
-      "reports_to": "เลือกหัวหน้าในโครงการ"
+      "reports_to": "เลือกหัวหน้าในโครงการ",
+      "change_reason": "ระบุเหตุผลของการเปลี่ยนแปลงหรือการนำออกจากโครงการ"
     },
     "columns": {
       "member": "สมาชิก",
       "project_role": "ตำแหน่งในโครงการ",
       "reports_to": "รายงานต่อ",
       "primary": "หลัก",
+      "status": "สถานะ",
       "start_at": "เริ่มต้น",
       "end_at": "สิ้นสุด"
     },
@@ -639,6 +660,190 @@
       "create_failed": "ไม่สามารถเพิ่มสมาชิกเข้าโครงการได้",
       "update_failed": "ไม่สามารถแก้ไขสมาชิกโครงการได้",
       "delete_failed": "ไม่สามารถลบสมาชิกออกจากโครงการได้"
+    },
+    "validation": {
+      "change_reason_required": "กรุณาระบุเหตุผลการเปลี่ยนแปลง"
+    }
+  },
+  "project_org_chart": {
+    "page_title": "ผังงานในโครงการ",
+    "page_description": "ดูสายรายงานและโครงสร้างทีมของสมาชิกในแต่ละโครงการ",
+    "select_project_placeholder": "เลือกโครงการเพื่อดูผังงาน",
+    "select_project_message": "กรุณาเลือกโครงการก่อนเพื่อแสดงผังงาน",
+    "empty": "ยังไม่มีสมาชิกที่กำหนดผังงานในโครงการนี้",
+    "primary_member": "บทบาทหลัก",
+    "summary": "จำนวนโหนดเริ่มต้น {{count}} รายการ"
+  },
+  "project_evidence": {
+    "page_title": "หลักฐานโครงการ",
+    "page_description": "ดูข้อมูลโครงสร้างทีม ความรับผิดชอบของตำแหน่ง และประวัติการมอบหมายเพื่อใช้เป็นหลักฐานตรวจสอบ",
+    "select_project_placeholder": "เลือกโครงการเพื่อดูหลักฐาน",
+    "select_project_message": "กรุณาเลือกโครงการก่อนเพื่อดูหลักฐาน",
+    "empty": "ยังไม่มีข้อมูลหลักฐานสำหรับโครงการนี้",
+    "export": {
+      "action": "ส่งออก CSV",
+      "success": "ส่งออกหลักฐานโครงการแล้ว",
+      "failed": "ไม่สามารถส่งออกหลักฐานโครงการได้"
+    },
+    "team_register": {
+      "title": "ทะเบียนทีมโครงการ",
+      "columns": {
+        "member": "สมาชิก",
+        "role": "ตำแหน่ง",
+        "reports_to": "รายงานต่อ",
+        "primary": "หลัก",
+        "period": "ช่วงเวลา"
+      }
+    },
+    "role_responsibility": {
+      "title": "ความรับผิดชอบของตำแหน่ง",
+      "columns": {
+        "role": "ตำแหน่ง",
+        "code": "รหัส",
+        "permissions": "สิทธิ์เอกสาร",
+        "members": "จำนวนสมาชิก"
+      }
+    },
+    "assignment_history": {
+      "title": "ประวัติการมอบหมาย",
+      "columns": {
+        "member": "สมาชิก",
+        "role": "ตำแหน่ง",
+        "status": "สถานะ",
+        "reason": "เหตุผล",
+        "period": "ช่วงเวลา"
+      }
+    }
+  },
+  "project_compliance": {
+    "page_title": "ความพร้อมตามเกณฑ์โครงการ",
+    "page_description": "ตรวจความพร้อมของโครงการจากข้อมูลทีม บทบาท สิทธิ์ และข้อมูลกำกับโครงการเพื่อใช้ต่อกับงานกำกับดูแล",
+    "select_project_placeholder": "เลือกโครงการเพื่อตรวจความพร้อม",
+    "select_project_message": "กรุณาเลือกโครงการก่อนเพื่อตรวจความพร้อม",
+    "empty": "ยังไม่มีข้อมูลความพร้อมสำหรับโครงการนี้",
+    "checks_title": "รายการตรวจสอบ",
+    "summary": {
+      "readiness": "ระดับความพร้อม",
+      "passed": "ผ่าน {{count}} รายการ",
+      "warning": "เตือน {{count}} รายการ",
+      "failed": "ไม่ผ่าน {{count}} รายการ"
+    },
+    "status": {
+      "passed": "ผ่าน",
+      "warning": "เตือน",
+      "failed": "ไม่ผ่าน"
+    },
+    "severity": {
+      "info": "ข้อมูล",
+      "warning": "คำเตือน",
+      "error": "สำคัญ"
+    },
+    "checks": {
+      "owner_assigned": {
+        "title": "กำหนดเจ้าของโครงการแล้ว",
+        "description": "โครงการควรมีผู้รับผิดชอบหลักที่ชัดเจน",
+        "detail": { "passed": "มีการกำหนดเจ้าของโครงการแล้ว", "failed": "ควรกำหนดเจ้าของโครงการ" }
+      },
+      "sponsor_assigned": {
+        "title": "กำหนดผู้สนับสนุนโครงการแล้ว",
+        "description": "โครงการบางประเภทควรมีผู้สนับสนุนโครงการ",
+        "detail": { "passed": "สถานะผู้สนับสนุนโครงการครบตามเกณฑ์", "warning": "ควรกำหนดผู้สนับสนุนโครงการสำหรับประเภทนี้" }
+      },
+      "planned_period_defined": {
+        "title": "กำหนดช่วงเวลาแผนแล้ว",
+        "description": "ควรกำหนดวันเริ่มและวันสิ้นสุดตามแผนสำหรับการกำกับตารางเวลา",
+        "detail": { "passed": "มีช่วงเวลาแผนที่สมบูรณ์", "warning": "ควรกำหนดวันเริ่มและวันสิ้นสุดตามแผนให้ครบ" }
+      },
+      "active_team_exists": {
+        "title": "มีทีมโครงการที่ใช้งานอยู่",
+        "description": "โครงการควรมีสมาชิกที่ active อย่างน้อยหนึ่งคน",
+        "detail": { "passed": "มีสมาชิก active ในโครงการแล้ว", "failed": "ควรเพิ่มสมาชิก active เข้าโครงการ" }
+      },
+      "primary_assignment_exists": {
+        "title": "มีสมาชิกหลักของโครงการ",
+        "description": "ควรกำหนดอย่างน้อยหนึ่ง assignment ให้เป็น primary",
+        "detail": { "passed": "มี primary assignment แล้ว", "warning": "ควรกำหนด primary assignment อย่างน้อยหนึ่งรายการ" }
+      },
+      "reporting_root_exists": {
+        "title": "มีจุดเริ่มต้นของสายรายงาน",
+        "description": "ผังงานโครงการควรมีสมาชิกระดับบนสุดอย่างน้อยหนึ่งคน",
+        "detail": { "passed": "มี root node ในสายรายงานแล้ว", "warning": "ควรกำหนดสมาชิกระดับบนสุดที่ไม่มีผู้บังคับบัญชาในโครงการ" }
+      },
+      "document_creator_role": {
+        "title": "มีบทบาทสร้างเอกสาร",
+        "description": "ควรมีบทบาทที่สามารถสร้างเอกสารของโครงการได้",
+        "detail": { "passed": "มีบทบาทสร้างเอกสารที่ถูกใช้งานอยู่", "failed": "ควรมอบหมายบทบาทที่สร้างเอกสารได้ให้สมาชิกโครงการ" }
+      },
+      "review_role_assigned": {
+        "title": "มีบทบาททบทวน",
+        "description": "ควรมีบทบาทที่สามารถทบทวนงานส่งมอบของโครงการได้",
+        "detail": { "passed": "มีบทบาททบทวนที่ถูกใช้งานอยู่", "warning": "ควรมอบหมายบทบาททบทวนให้สมาชิกโครงการ" }
+      },
+      "approval_role_assigned": {
+        "title": "มีบทบาทอนุมัติ",
+        "description": "ควรมีบทบาทที่สามารถอนุมัติงานส่งมอบของโครงการได้",
+        "detail": { "passed": "มีบทบาทอนุมัติที่ถูกใช้งานอยู่", "warning": "ควรมอบหมายบทบาทอนุมัติให้สมาชิกโครงการ" }
+      },
+      "release_role_assigned": {
+        "title": "มีบทบาทปล่อยเอกสาร",
+        "description": "ควรมีบทบาทที่สามารถปล่อยเอกสารควบคุมได้เมื่อจำเป็น",
+        "detail": { "passed": "มีบทบาทปล่อยเอกสารที่ถูกใช้งานอยู่", "warning": "พิจารณามอบหมายบทบาทปล่อยเอกสารถ้าโครงการนี้ใช้เอกสารควบคุม" }
+      }
+      }
+  },
+  "project_type_templates": {
+    "page_title": "แม่แบบประเภทโครงการ",
+    "page_description": "กำหนดกติกา governance และตำแหน่งที่ต้องมีสำหรับแต่ละประเภทโครงการ",
+    "search_placeholder": "ค้นหาแม่แบบประเภทโครงการ",
+    "create_action": "สร้างแม่แบบประเภทโครงการ",
+    "columns": {
+      "project_type": "ประเภทโครงการ",
+      "sponsor": "ผู้สนับสนุน",
+      "review": "ทบทวน",
+      "approve": "อนุมัติ"
+    },
+    "fields": {
+      "project_type": "ประเภทโครงการ",
+      "require_sponsor": "ต้องมีผู้สนับสนุน",
+      "require_planned_period": "ต้องมีช่วงเวลาแผน",
+      "require_active_team": "ต้องมีทีมที่ใช้งานอยู่",
+      "require_primary_assignment": "ต้องมี assignment หลัก",
+      "require_reporting_root": "ต้องมีจุดเริ่มต้นของสายรายงาน",
+      "require_document_creator": "ต้องมีบทบาทสร้างเอกสาร",
+      "require_reviewer": "ต้องมีบทบาททบทวน",
+      "require_approver": "ต้องมีบทบาทอนุมัติ",
+      "require_release_role": "ต้องมีบทบาทปล่อยเอกสาร"
+    },
+    "messages": {
+      "created": "สร้างแม่แบบประเภทโครงการแล้ว",
+      "updated": "อัปเดตแม่แบบประเภทโครงการแล้ว",
+      "deleted": "ลบแม่แบบประเภทโครงการแล้ว",
+      "save_failed": "ไม่สามารถบันทึกแม่แบบประเภทโครงการได้",
+      "delete_failed": "ไม่สามารถลบแม่แบบประเภทโครงการได้"
+    },
+    "role_requirements": {
+      "title": "ตำแหน่งที่ต้องมี",
+      "create_action": "เพิ่มตำแหน่งที่ต้องมี",
+      "select_template": "เลือกแม่แบบประเภทโครงการ",
+      "columns": {
+        "role_name": "ชื่อตำแหน่ง",
+        "role_code": "รหัสตำแหน่ง",
+        "display_order": "ลำดับ"
+      },
+      "fields": {
+        "template": "แม่แบบประเภทโครงการ",
+        "role_name": "ชื่อตำแหน่ง",
+        "role_code": "รหัสตำแหน่ง",
+        "description": "คำอธิบาย",
+        "display_order": "ลำดับการแสดง"
+      },
+      "messages": {
+        "created": "เพิ่มตำแหน่งที่ต้องมีแล้ว",
+        "updated": "อัปเดตตำแหน่งที่ต้องมีแล้ว",
+        "deleted": "ลบตำแหน่งที่ต้องมีแล้ว",
+        "save_failed": "ไม่สามารถบันทึกตำแหน่งที่ต้องมีได้",
+        "delete_failed": "ไม่สามารถลบตำแหน่งที่ต้องมีได้"
+      }
     }
   },
   "documents": {

@@ -17,6 +17,10 @@ type ProjectRoleFormValues = {
   description?: string;
   responsibilities?: string;
   authorityScope?: string;
+  canCreateDocuments: boolean;
+  canReviewDocuments: boolean;
+  canApproveDocuments: boolean;
+  canReleaseDocuments: boolean;
   isReviewRole: boolean;
   isApprovalRole: boolean;
   displayOrder: number;
@@ -30,6 +34,10 @@ function toProjectRoleInitialValues(record: ProjectRole, projectId?: string): Pr
     description: record.description ?? undefined,
     responsibilities: record.responsibilities ?? undefined,
     authorityScope: record.authorityScope ?? undefined,
+    canCreateDocuments: record.canCreateDocuments,
+    canReviewDocuments: record.canReviewDocuments,
+    canApproveDocuments: record.canApproveDocuments,
+    canReleaseDocuments: record.canReleaseDocuments,
     isReviewRole: record.isReviewRole,
     isApprovalRole: record.isApprovalRole,
     displayOrder: record.displayOrder,
@@ -46,7 +54,18 @@ function ProjectRoleForm({
   projectOptions: { label: string; value: string }[];
 }) {
   return (
-    <Form form={form} layout="vertical" initialValues={{ isReviewRole: false, isApprovalRole: false }}>
+    <Form
+      form={form}
+      layout="vertical"
+      initialValues={{
+        isReviewRole: false,
+        isApprovalRole: false,
+        canCreateDocuments: false,
+        canReviewDocuments: false,
+        canApproveDocuments: false,
+        canReleaseDocuments: false,
+      }}
+    >
       <Form.Item name="projectId" label={t("project_roles.fields.project")} rules={[{ required: true }]}> 
         <Select options={projectOptions} />
       </Form.Item>
@@ -64,6 +83,22 @@ function ProjectRoleForm({
       </Form.Item>
       <Form.Item name="authorityScope" label={t("project_roles.fields.authority_scope")}> 
         <Input.TextArea rows={3} placeholder={t("project_roles.placeholders.authority_scope")} />
+      </Form.Item>
+      <Form.Item label={t("project_roles.fields.document_permissions")}>
+        <Space direction="vertical">
+          <Form.Item name="canCreateDocuments" valuePropName="checked" noStyle>
+            <Checkbox>{t("project_roles.fields.can_create_documents")}</Checkbox>
+          </Form.Item>
+          <Form.Item name="canReviewDocuments" valuePropName="checked" noStyle>
+            <Checkbox>{t("project_roles.fields.can_review_documents")}</Checkbox>
+          </Form.Item>
+          <Form.Item name="canApproveDocuments" valuePropName="checked" noStyle>
+            <Checkbox>{t("project_roles.fields.can_approve_documents")}</Checkbox>
+          </Form.Item>
+          <Form.Item name="canReleaseDocuments" valuePropName="checked" noStyle>
+            <Checkbox>{t("project_roles.fields.can_release_documents")}</Checkbox>
+          </Form.Item>
+        </Space>
       </Form.Item>
       <Form.Item name="displayOrder" label={t("project_roles.fields.display_order")} rules={[{ required: true }]}> 
         <InputNumber min={0} style={{ width: "100%" }} />
@@ -139,6 +174,20 @@ export function ProjectRolesPage() {
         render: (value: boolean) => (value ? t("common.actions.yes") : t("common.actions.no")),
       },
       {
+        title: t("project_roles.columns.document_permissions"),
+        key: "documentPermissions",
+        render: (_, record) => {
+          const labels = [
+            record.canCreateDocuments ? t("project_roles.permissions.create") : null,
+            record.canReviewDocuments ? t("project_roles.permissions.review") : null,
+            record.canApproveDocuments ? t("project_roles.permissions.approve") : null,
+            record.canReleaseDocuments ? t("project_roles.permissions.release") : null,
+          ].filter(Boolean) as string[];
+
+          return labels.length > 0 ? labels.join(", ") : "-";
+        },
+      },
+      {
         title: t("project_roles.columns.display_order"),
         dataIndex: "displayOrder",
         sorter: true,
@@ -182,6 +231,10 @@ export function ProjectRolesPage() {
       description: values.description,
       responsibilities: values.responsibilities,
       authorityScope: values.authorityScope,
+      canCreateDocuments: values.canCreateDocuments,
+      canReviewDocuments: values.canReviewDocuments,
+      canApproveDocuments: values.canApproveDocuments,
+      canReleaseDocuments: values.canReleaseDocuments,
       isReviewRole: values.isReviewRole,
       isApprovalRole: values.isApprovalRole,
       displayOrder: values.displayOrder,
@@ -210,6 +263,10 @@ export function ProjectRolesPage() {
       description: values.description,
       responsibilities: values.responsibilities,
       authorityScope: values.authorityScope,
+      canCreateDocuments: values.canCreateDocuments,
+      canReviewDocuments: values.canReviewDocuments,
+      canApproveDocuments: values.canApproveDocuments,
+      canReleaseDocuments: values.canReleaseDocuments,
       isReviewRole: values.isReviewRole,
       isApprovalRole: values.isApprovalRole,
       displayOrder: values.displayOrder,
@@ -273,7 +330,15 @@ export function ProjectRolesPage() {
                   icon={<PlusOutlined />}
                   size="large"
                   onClick={() => {
-                    createForm.setFieldsValue({ projectId: selectedProjectId, isReviewRole: false, isApprovalRole: false });
+                    createForm.setFieldsValue({
+                      projectId: selectedProjectId,
+                      isReviewRole: false,
+                      isApprovalRole: false,
+                      canCreateDocuments: false,
+                      canReviewDocuments: false,
+                      canApproveDocuments: false,
+                      canReleaseDocuments: false,
+                    });
                     setCreateOpen(true);
                   }}
                 >

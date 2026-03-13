@@ -34,6 +34,15 @@ const ProjectMembersPage = lazy(() =>
 const ProjectOrgChartPage = lazy(() =>
   import("../modules/users/pages/ProjectOrgChartPage").then((module) => ({ default: module.ProjectOrgChartPage }))
 );
+const ProjectEvidencePage = lazy(() =>
+  import("../modules/users/pages/ProjectEvidencePage").then((module) => ({ default: module.ProjectEvidencePage }))
+);
+const ProjectCompliancePage = lazy(() =>
+  import("../modules/users/pages/ProjectCompliancePage").then((module) => ({ default: module.ProjectCompliancePage }))
+);
+const ProjectTypeTemplatesPage = lazy(() =>
+  import("../modules/users/pages/ProjectTypeTemplatesPage").then((module) => ({ default: module.ProjectTypeTemplatesPage }))
+);
 const AuditLogsPage = lazy(() =>
   import("../modules/audits/pages/AuditLogsPage").then((module) => ({ default: module.AuditLogsPage }))
 );
@@ -74,6 +83,9 @@ export function AppRouter() {
               <Route path="admin/project-roles" element={<ProjectRolesPage />} />
               <Route path="admin/project-members" element={<ProjectMembersPage />} />
               <Route path="admin/project-org-chart" element={<ProjectOrgChartPage />} />
+              <Route path="admin/project-evidence" element={<ProjectEvidencePage />} />
+              <Route path="admin/project-compliance" element={<ProjectCompliancePage />} />
+              <Route path="admin/project-type-templates" element={<ProjectTypeTemplatesPage />} />
               <Route path="admin/invitations" element={<AdminUsersPage />} />
               <Route path="admin/registrations" element={<AdminUsersPage />} />
               <Route path="admin/audit-logs" element={<AuditLogsPage />} />

@@ -54,8 +54,46 @@ public sealed record CreateProjectRoleRequest(
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
+    bool CanCreateDocuments,
+    bool CanReviewDocuments,
+    bool CanApproveDocuments,
+    bool CanReleaseDocuments,
     bool IsReviewRole,
     bool IsApprovalRole,
+    int DisplayOrder);
+public sealed record CreateProjectTypeTemplateRequest(
+    string ProjectType,
+    bool RequireSponsor,
+    bool RequirePlannedPeriod,
+    bool RequireActiveTeam,
+    bool RequirePrimaryAssignment,
+    bool RequireReportingRoot,
+    bool RequireDocumentCreator,
+    bool RequireReviewer,
+    bool RequireApprover,
+    bool RequireReleaseRole);
+public sealed record UpdateProjectTypeTemplateRequest(
+    string ProjectType,
+    bool RequireSponsor,
+    bool RequirePlannedPeriod,
+    bool RequireActiveTeam,
+    bool RequirePrimaryAssignment,
+    bool RequireReportingRoot,
+    bool RequireDocumentCreator,
+    bool RequireReviewer,
+    bool RequireApprover,
+    bool RequireReleaseRole);
+public sealed record CreateProjectTypeRoleRequirementRequest(
+    Guid ProjectTypeTemplateId,
+    string RoleName,
+    string? RoleCode,
+    string? Description,
+    int DisplayOrder);
+public sealed record UpdateProjectTypeRoleRequirementRequest(
+    Guid ProjectTypeTemplateId,
+    string RoleName,
+    string? RoleCode,
+    string? Description,
     int DisplayOrder);
 public sealed record UpdateProjectRoleRequest(
     Guid ProjectId,
@@ -64,6 +102,10 @@ public sealed record UpdateProjectRoleRequest(
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
+    bool CanCreateDocuments,
+    bool CanReviewDocuments,
+    bool CanApproveDocuments,
+    bool CanReleaseDocuments,
     bool IsReviewRole,
     bool IsApprovalRole,
     int DisplayOrder);
@@ -207,6 +249,10 @@ public sealed record ProjectRoleResponse(
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
+    bool CanCreateDocuments,
+    bool CanReviewDocuments,
+    bool CanApproveDocuments,
+    bool CanReleaseDocuments,
     bool IsReviewRole,
     bool IsApprovalRole,
     int DisplayOrder,
@@ -235,6 +281,38 @@ public sealed record ProjectAssignmentResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt);
 
+public sealed record ProjectTypeTemplateResponse(
+    Guid Id,
+    string ProjectType,
+    bool RequireSponsor,
+    bool RequirePlannedPeriod,
+    bool RequireActiveTeam,
+    bool RequirePrimaryAssignment,
+    bool RequireReportingRoot,
+    bool RequireDocumentCreator,
+    bool RequireReviewer,
+    bool RequireApprover,
+    bool RequireReleaseRole,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    string? DeletedReason,
+    string? DeletedBy,
+    DateTimeOffset? DeletedAt);
+
+public sealed record ProjectTypeRoleRequirementResponse(
+    Guid Id,
+    Guid ProjectTypeTemplateId,
+    string ProjectType,
+    string RoleName,
+    string? RoleCode,
+    string? Description,
+    int DisplayOrder,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt,
+    string? DeletedReason,
+    string? DeletedBy,
+    DateTimeOffset? DeletedAt);
+
 public sealed record ProjectOrgChartNodeResponse(
     Guid AssignmentId,
     string UserId,
@@ -248,3 +326,75 @@ public sealed record ProjectOrgChartNodeResponse(
     DateTimeOffset StartAt,
     DateTimeOffset? EndAt,
     IReadOnlyList<ProjectOrgChartNodeResponse> Children);
+
+public sealed record ProjectTeamRegisterRowResponse(
+    Guid AssignmentId,
+    string UserId,
+    string? UserEmail,
+    string? UserDisplayName,
+    string ProjectRoleName,
+    string? ReportsToDisplayName,
+    bool IsPrimary,
+    string Status,
+    DateTimeOffset StartAt,
+    DateTimeOffset? EndAt);
+
+public sealed record ProjectRoleResponsibilityRowResponse(
+    Guid ProjectRoleId,
+    string ProjectRoleName,
+    string? Code,
+    string? Description,
+    string? Responsibilities,
+    string? AuthorityScope,
+    bool CanCreateDocuments,
+    bool CanReviewDocuments,
+    bool CanApproveDocuments,
+    bool CanReleaseDocuments,
+    bool IsReviewRole,
+    bool IsApprovalRole,
+    int MemberCount);
+
+public sealed record ProjectAssignmentHistoryRowResponse(
+    Guid AssignmentId,
+    string UserId,
+    string? UserEmail,
+    string? UserDisplayName,
+    string ProjectRoleName,
+    string Status,
+    string? ChangeReason,
+    string? ReportsToDisplayName,
+    bool IsPrimary,
+    DateTimeOffset StartAt,
+    DateTimeOffset? EndAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
+public sealed record ProjectEvidenceResponse(
+    Guid ProjectId,
+    string ProjectName,
+    IReadOnlyList<ProjectTeamRegisterRowResponse> TeamRegister,
+    IReadOnlyList<ProjectRoleResponsibilityRowResponse> RoleResponsibilities,
+    IReadOnlyList<ProjectAssignmentHistoryRowResponse> AssignmentHistory);
+
+public sealed record ProjectEvidenceExportResult(
+    string FileName,
+    string ContentType,
+    byte[] Content);
+
+public sealed record ProjectComplianceCheckResponse(
+    string Code,
+    string Title,
+    string Description,
+    string Severity,
+    string Status,
+    string? Detail);
+
+public sealed record ProjectComplianceResponse(
+    Guid ProjectId,
+    string ProjectName,
+    string ProjectType,
+    string Status,
+    int PassedChecks,
+    int WarningChecks,
+    int FailedChecks,
+    IReadOnlyList<ProjectComplianceCheckResponse> Checks);

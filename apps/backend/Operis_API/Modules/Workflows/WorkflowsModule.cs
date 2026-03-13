@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Operis_API.Shared.Modules;
+using Operis_API.Shared.Security;
+using System.Security.Claims;
 
 namespace Operis_API.Modules.Workflows;
 
@@ -33,18 +35,32 @@ public sealed class WorkflowsModule : IModule
     }
 
     private static async Task<IResult> ListWorkflowDefinitionsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         IWorkflowQueries queries,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.Read))
+        {
+            return Results.Forbid();
+        }
+
         var definitions = await queries.ListDefinitionsAsync(cancellationToken);
         return Results.Ok(definitions);
     }
 
     private static async Task<IResult> CreateWorkflowDefinitionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         CreateWorkflowDefinitionRequest request,
         IWorkflowCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.ManageDefinitions))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.CreateDefinitionAsync(request, cancellationToken);
 
         return result.Status switch
@@ -57,29 +73,50 @@ public sealed class WorkflowsModule : IModule
     }
 
     private static async Task<IResult> UpdateWorkflowDefinitionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid workflowDefinitionId,
         UpdateWorkflowDefinitionRequest request,
         IWorkflowCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.ManageDefinitions))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.UpdateDefinitionAsync(workflowDefinitionId, request, cancellationToken);
         return ToCommandResult(result);
     }
 
     private static async Task<IResult> ActivateWorkflowDefinitionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid workflowDefinitionId,
         IWorkflowCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.ManageDefinitions))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.ActivateDefinitionAsync(workflowDefinitionId, cancellationToken);
         return ToCommandResult(result);
     }
 
     private static async Task<IResult> ArchiveWorkflowDefinitionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         Guid workflowDefinitionId,
         IWorkflowCommands commands,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.ManageDefinitions))
+        {
+            return Results.Forbid();
+        }
+
         var result = await commands.ArchiveDefinitionAsync(workflowDefinitionId, cancellationToken);
         return ToCommandResult(result);
     }

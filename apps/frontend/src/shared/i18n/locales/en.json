@@ -150,6 +150,10 @@
     "projects": "Projects",
     "master_project_roles": "Project Roles",
     "project_members": "Project Members",
+    "project_org_chart": "Project Org Chart",
+    "project_evidence": "Project Evidence",
+    "project_compliance": "Project Compliance",
+    "project_type_templates": "Project Type Templates",
     "notifications": "Notifications",
     "mark_all_read": "Mark all as read",
     "view_all_notifications": "View all (3)",
@@ -163,6 +167,8 @@
       "manage": "Manage",
       "edit": "Edit",
       "delete": "Delete",
+      "yes": "Yes",
+      "no": "No",
       "save": "Save",
       "cancel": "Cancel",
       "create": "Create",
@@ -571,6 +577,11 @@
       "description": "Role description",
       "responsibilities": "Responsibilities",
       "authority_scope": "Authority scope",
+      "document_permissions": "Document permissions",
+      "can_create_documents": "Can create project documents",
+      "can_review_documents": "Can review project documents",
+      "can_approve_documents": "Can approve project documents",
+      "can_release_documents": "Can release project documents",
       "is_review_role": "Use as review role",
       "is_approval_role": "Use as approval role",
       "display_order": "Display order"
@@ -588,7 +599,14 @@
       "code": "Code",
       "review_role": "Review",
       "approval_role": "Approval",
+      "document_permissions": "Document Permissions",
       "display_order": "Display Order"
+    },
+    "permissions": {
+      "create": "Create",
+      "review": "Review",
+      "approve": "Approve",
+      "release": "Release"
     },
     "messages": {
       "created": "Created project role {{name}}",
@@ -617,18 +635,21 @@
       "project_role": "Project role",
       "reports_to": "Reports to",
       "period": "Assignment period",
+      "change_reason": "Change reason",
       "is_primary": "Set as the primary role in this project"
     },
     "placeholders": {
       "user": "Select user",
       "project_role": "Select project role",
-      "reports_to": "Select manager in the project"
+      "reports_to": "Select manager in the project",
+      "change_reason": "Explain why this assignment is changing or being removed"
     },
     "columns": {
       "member": "Member",
       "project_role": "Project Role",
       "reports_to": "Reports To",
       "primary": "Primary",
+      "status": "Status",
       "start_at": "Start",
       "end_at": "End"
     },
@@ -639,6 +660,190 @@
       "create_failed": "Unable to add the member to the project",
       "update_failed": "Unable to update the project member",
       "delete_failed": "Unable to remove the member from the project"
+    },
+    "validation": {
+      "change_reason_required": "Please provide the reason for this change"
+    }
+  },
+  "project_org_chart": {
+    "page_title": "Project Org Chart",
+    "page_description": "Review the reporting structure and team hierarchy for each project.",
+    "select_project_placeholder": "Select a project to view the org chart",
+    "select_project_message": "Select a project before viewing the org chart.",
+    "empty": "No project members are mapped into the org chart yet.",
+    "primary_member": "Primary role",
+    "summary": "{{count}} root node(s)"
+  },
+  "project_evidence": {
+    "page_title": "Project Evidence",
+    "page_description": "Review team structure, role responsibilities, and assignment history as auditable project evidence.",
+    "select_project_placeholder": "Select a project to view evidence",
+    "select_project_message": "Select a project before viewing evidence.",
+    "empty": "No project evidence is available for this project yet.",
+    "export": {
+      "action": "Export CSV",
+      "success": "Project evidence exported.",
+      "failed": "Unable to export project evidence."
+    },
+    "team_register": {
+      "title": "Project Team Register",
+      "columns": {
+        "member": "Member",
+        "role": "Role",
+        "reports_to": "Reports To",
+        "primary": "Primary",
+        "period": "Period"
+      }
+    },
+    "role_responsibility": {
+      "title": "Role Responsibilities",
+      "columns": {
+        "role": "Role",
+        "code": "Code",
+        "permissions": "Document Permissions",
+        "members": "Members"
+      }
+    },
+    "assignment_history": {
+      "title": "Assignment History",
+      "columns": {
+        "member": "Member",
+        "role": "Role",
+        "status": "Status",
+        "reason": "Reason",
+        "period": "Period"
+      }
+    }
+  },
+      "project_compliance": {
+    "page_title": "Project Compliance",
+    "page_description": "Assess project readiness from team structure, role permissions, and governance metadata for compliance use cases.",
+    "select_project_placeholder": "Select a project to assess readiness",
+    "select_project_message": "Select a project before viewing compliance readiness.",
+    "empty": "No compliance readiness data is available for this project yet.",
+    "checks_title": "Compliance Checks",
+    "summary": {
+      "readiness": "Readiness",
+      "passed": "{{count}} passed",
+      "warning": "{{count}} warning",
+      "failed": "{{count}} failed"
+    },
+    "status": {
+      "passed": "Passed",
+      "warning": "Warning",
+      "failed": "Failed"
+    },
+    "severity": {
+      "info": "Info",
+      "warning": "Warning",
+      "error": "Critical"
+    },
+    "checks": {
+      "owner_assigned": {
+        "title": "Project owner assigned",
+        "description": "The project should have a clearly assigned owner.",
+        "detail": { "passed": "A project owner is assigned.", "failed": "Assign a project owner." }
+      },
+      "sponsor_assigned": {
+        "title": "Project sponsor assigned",
+        "description": "Some project types should have a sponsor.",
+        "detail": { "passed": "Sponsor coverage is sufficient for this project type.", "warning": "Assign a sponsor for this project type." }
+      },
+      "planned_period_defined": {
+        "title": "Planned period defined",
+        "description": "Planned start and end dates should be defined for schedule governance.",
+        "detail": { "passed": "The planned period is defined.", "warning": "Set planned start and end dates." }
+      },
+      "active_team_exists": {
+        "title": "Active team exists",
+        "description": "The project should have at least one active member.",
+        "detail": { "passed": "Active members are assigned to the project.", "failed": "Add active members to the project." }
+      },
+      "primary_assignment_exists": {
+        "title": "Primary assignment exists",
+        "description": "At least one assignment should be marked as primary.",
+        "detail": { "passed": "A primary assignment exists.", "warning": "Mark at least one assignment as primary." }
+      },
+      "reporting_root_exists": {
+        "title": "Reporting root exists",
+        "description": "The project org chart should have at least one top-level member.",
+        "detail": { "passed": "A reporting root exists.", "warning": "Set at least one top-level member without a reports-to reference." }
+      },
+      "document_creator_role": {
+        "title": "Document creator role assigned",
+        "description": "A role with document creation rights should be actively assigned.",
+        "detail": { "passed": "Document creation capability is covered.", "failed": "Assign a member to a role that can create documents." }
+      },
+      "review_role_assigned": {
+        "title": "Review role assigned",
+        "description": "A role with review capability should be actively assigned.",
+        "detail": { "passed": "Review capability is covered.", "warning": "Assign a member to a review-capable role." }
+      },
+      "approval_role_assigned": {
+        "title": "Approval role assigned",
+        "description": "A role with approval capability should be actively assigned.",
+        "detail": { "passed": "Approval capability is covered.", "warning": "Assign a member to an approval-capable role." }
+      },
+      "release_role_assigned": {
+        "title": "Release role assigned",
+        "description": "A role with release capability should be actively assigned when controlled release is needed.",
+        "detail": { "passed": "Release capability is covered.", "warning": "Consider assigning a release-capable role if controlled release applies." }
+      }
+      }
+  },
+  "project_type_templates": {
+    "page_title": "Project Type Templates",
+    "page_description": "Define required governance rules and required roles for each project type.",
+    "search_placeholder": "Search project type templates",
+    "create_action": "Create Project Type Template",
+    "columns": {
+      "project_type": "Project Type",
+      "sponsor": "Sponsor",
+      "review": "Review",
+      "approve": "Approve"
+    },
+    "fields": {
+      "project_type": "Project Type",
+      "require_sponsor": "Require sponsor",
+      "require_planned_period": "Require planned period",
+      "require_active_team": "Require active team",
+      "require_primary_assignment": "Require primary assignment",
+      "require_reporting_root": "Require reporting root",
+      "require_document_creator": "Require document creator",
+      "require_reviewer": "Require reviewer",
+      "require_approver": "Require approver",
+      "require_release_role": "Require release role"
+    },
+    "messages": {
+      "created": "Project type template created.",
+      "updated": "Project type template updated.",
+      "deleted": "Project type template deleted.",
+      "save_failed": "Unable to save project type template.",
+      "delete_failed": "Unable to delete project type template."
+    },
+    "role_requirements": {
+      "title": "Required Roles",
+      "create_action": "Add Required Role",
+      "select_template": "Select a project type template",
+      "columns": {
+        "role_name": "Role Name",
+        "role_code": "Role Code",
+        "display_order": "Order"
+      },
+      "fields": {
+        "template": "Project Type Template",
+        "role_name": "Role Name",
+        "role_code": "Role Code",
+        "description": "Description",
+        "display_order": "Display Order"
+      },
+      "messages": {
+        "created": "Required role created.",
+        "updated": "Required role updated.",
+        "deleted": "Required role deleted.",
+        "save_failed": "Unable to save required role.",
+        "delete_failed": "Unable to delete required role."
+      }
     }
   },
   "documents": {

@@ -186,6 +186,10 @@ public sealed class ProjectCommands(
             Description = NormalizeOptional(request.Description, 500),
             Responsibilities = NormalizeOptional(request.Responsibilities, 2000),
             AuthorityScope = NormalizeOptional(request.AuthorityScope, 500),
+            CanCreateDocuments = request.CanCreateDocuments,
+            CanReviewDocuments = request.CanReviewDocuments,
+            CanApproveDocuments = request.CanApproveDocuments,
+            CanReleaseDocuments = request.CanReleaseDocuments,
             IsReviewRole = request.IsReviewRole,
             IsApprovalRole = request.IsApprovalRole,
             DisplayOrder = request.DisplayOrder,
@@ -241,6 +245,10 @@ public sealed class ProjectCommands(
         entity.Description = NormalizeOptional(request.Description, 500);
         entity.Responsibilities = NormalizeOptional(request.Responsibilities, 2000);
         entity.AuthorityScope = NormalizeOptional(request.AuthorityScope, 500);
+        entity.CanCreateDocuments = request.CanCreateDocuments;
+        entity.CanReviewDocuments = request.CanReviewDocuments;
+        entity.CanApproveDocuments = request.CanApproveDocuments;
+        entity.CanReleaseDocuments = request.CanReleaseDocuments;
         entity.IsReviewRole = request.IsReviewRole;
         entity.IsApprovalRole = request.IsApprovalRole;
         entity.DisplayOrder = request.DisplayOrder;
@@ -558,6 +566,10 @@ public sealed class ProjectCommands(
         entity.Description,
         entity.Responsibilities,
         entity.AuthorityScope,
+        entity.CanCreateDocuments,
+        entity.CanReviewDocuments,
+        entity.CanApproveDocuments,
+        entity.CanReleaseDocuments,
         entity.IsReviewRole,
         entity.IsApprovalRole,
         entity.DisplayOrder,
@@ -592,12 +604,16 @@ public sealed class ProjectCommands(
             projectName,
             entity.Name,
             entity.Code,
-            entity.Description,
-            entity.Responsibilities,
-            entity.AuthorityScope,
-            entity.IsReviewRole,
-            entity.IsApprovalRole,
-            entity.DisplayOrder,
+        entity.Description,
+        entity.Responsibilities,
+        entity.AuthorityScope,
+        entity.CanCreateDocuments,
+        entity.CanReviewDocuments,
+        entity.CanApproveDocuments,
+        entity.CanReleaseDocuments,
+        entity.IsReviewRole,
+        entity.IsApprovalRole,
+        entity.DisplayOrder,
             entity.CreatedAt,
             entity.UpdatedAt,
             entity.DeletedReason,

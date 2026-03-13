@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
+import { useProjectTemplates } from "../hooks/useProjectTemplates";
 import type { CreateProjectInput, Project, UpdateProjectInput, User } from "../types/users";
 
 type ProjectFormValues = {
@@ -73,10 +74,12 @@ function ProjectForm({
   form,
   t,
   userOptions,
+  projectTypeOptions,
 }: {
   form: FormInstance<ProjectFormValues>;
   t: ReturnType<typeof useTranslation>["t"];
   userOptions: { label: string; value: string }[];
+  projectTypeOptions: { label: string; value: string }[];
 }) {
   const projectStatusOptions = [
     { value: "planned", label: t("projects.options.status.planned") },
@@ -84,12 +87,6 @@ function ProjectForm({
     { value: "onhold", label: t("projects.options.status.on_hold") },
     { value: "completed", label: t("projects.options.status.completed") },
     { value: "cancelled", label: t("projects.options.status.cancelled") },
-  ];
-  const projectTypeOptions = [
-    { value: "Internal", label: t("projects.options.project_type.internal") },
-    { value: "Customer", label: t("projects.options.project_type.customer") },
-    { value: "Compliance", label: t("projects.options.project_type.compliance") },
-    { value: "Improvement", label: t("projects.options.project_type.improvement") },
   ];
   const methodologyOptions = [
     { value: "Agile", label: t("projects.options.methodology.agile") },
@@ -175,11 +172,33 @@ export function ProjectsPage() {
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
   });
+  const { templatesQuery } = useProjectTemplates({
+    templates: { page: 1, pageSize: 100, sortBy: "projectType", sortOrder: "asc" },
+    roleRequirements: {},
+  });
 
   const userOptions = useMemo(
     () => (projectMemberUsersQuery.data?.items ?? []).map((item) => ({ label: toUserLabel(item), value: item.id })),
     [projectMemberUsersQuery.data?.items],
   );
+  const projectTypeOptions = useMemo(() => {
+    const templateOptions =
+      templatesQuery.data?.items.map((item) => ({
+        label: item.projectType,
+        value: item.projectType,
+      })) ?? [];
+
+    if (templateOptions.length > 0) {
+      return templateOptions;
+    }
+
+    return [
+      { value: "Internal", label: t("projects.options.project_type.internal") },
+      { value: "Customer", label: t("projects.options.project_type.customer") },
+      { value: "Compliance", label: t("projects.options.project_type.compliance") },
+      { value: "Improvement", label: t("projects.options.project_type.improvement") },
+    ];
+  }, [t, templatesQuery.data?.items]);
 
   const handleError = (fallbackTitle: string, error: unknown) => {
     const presentation = getApiErrorPresentation(error, fallbackTitle);
@@ -345,7 +364,7 @@ export function ProjectsPage() {
         confirmLoading={createProjectMutation.isPending}
         width={720}
       >
-        <ProjectForm form={createForm} t={t} userOptions={userOptions} />
+        <ProjectForm form={createForm} t={t} userOptions={userOptions} projectTypeOptions={projectTypeOptions} />
       </Modal>
 
       <Modal
@@ -361,7 +380,7 @@ export function ProjectsPage() {
         confirmLoading={updateProjectMutation.isPending}
         width={720}
       >
-        <ProjectForm form={editForm} t={t} userOptions={userOptions} />
+        <ProjectForm form={editForm} t={t} userOptions={userOptions} projectTypeOptions={projectTypeOptions} />
       </Modal>
 
       <Modal

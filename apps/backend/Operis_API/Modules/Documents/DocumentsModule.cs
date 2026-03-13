@@ -4,6 +4,8 @@ using Operis_API.Modules.Documents.Application;
 using Operis_API.Modules.Documents.Contracts;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Modules;
+using Operis_API.Shared.Security;
+using System.Security.Claims;
 
 namespace Operis_API.Modules.Documents;
 
@@ -28,9 +30,16 @@ public sealed class DocumentsModule : IModule
     }
 
     private static async Task<IResult> ListDocumentsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
         IDocumentQueries queries,
         CancellationToken cancellationToken)
     {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
+        {
+            return Results.Forbid();
+        }
+
         var items = await queries.ListDocumentsAsync(cancellationToken);
         return Results.Ok(items);
     }

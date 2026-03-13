@@ -1,8 +1,10 @@
 using System.Reflection;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Modules.Workflows;
 using Operis_API.Modules.Workflows.Infrastructure;
+using Operis_API.Shared.Security;
 using Operis_API.Tests.Support;
 
 namespace Operis_API.Tests.Modules.Workflows;
@@ -34,6 +36,20 @@ public sealed class WorkflowsModuleHandlerTests
     }
 
     [Fact]
+    public async Task ListWorkflowDefinitionsAsync_WithoutPermission_ReturnsForbidden()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var queries = new WorkflowQueries(dbContext, new FakeAuditLogWriter());
+
+        var result = await InvokeListWorkflowDefinitionsAsync(queries, CreateUnprivilegedPrincipal());
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateWorkflowDefinitionAsync_WhenSuccessful_ReturnsCreatedResult()
     {
         await using var dbContext = TestDbContextFactory.Create();
@@ -47,6 +63,23 @@ public sealed class WorkflowsModuleHandlerTests
         await result.ExecuteAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status201Created, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateWorkflowDefinitionAsync_WithoutPermission_ReturnsForbidden()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter());
+
+        var result = await InvokeCreateWorkflowDefinitionAsync(
+            new CreateWorkflowDefinitionRequest("Document Review"),
+            commands,
+            CreateUnprivilegedPrincipal());
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
     }
 
     [Fact]
@@ -102,27 +135,28 @@ public sealed class WorkflowsModuleHandlerTests
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
     }
 
-    private static async Task<IResult> InvokeListWorkflowDefinitionsAsync(IWorkflowQueries queries)
+    private static async Task<IResult> InvokeListWorkflowDefinitionsAsync(IWorkflowQueries queries, ClaimsPrincipal? principal = null)
     {
         var method = typeof(WorkflowsModule).GetMethod(
             "ListWorkflowDefinitionsAsync",
             BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("WorkflowsModule.ListWorkflowDefinitionsAsync was not found.");
 
-        var task = (Task<IResult>)method.Invoke(null, [queries, CancellationToken.None])!;
+        var task = (Task<IResult>)method.Invoke(null, [principal ?? CreateAdminPrincipal(), new PermissionMatrix(), queries, CancellationToken.None])!;
         return await task;
     }
 
     private static async Task<IResult> InvokeCreateWorkflowDefinitionAsync(
         CreateWorkflowDefinitionRequest request,
-        IWorkflowCommands commands)
+        IWorkflowCommands commands,
+        ClaimsPrincipal? principal = null)
     {
         var method = typeof(WorkflowsModule).GetMethod(
             "CreateWorkflowDefinitionAsync",
             BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("WorkflowsModule.CreateWorkflowDefinitionAsync was not found.");
 
-        var task = (Task<IResult>)method.Invoke(null, [request, commands, CancellationToken.None])!;
+        var task = (Task<IResult>)method.Invoke(null, [principal ?? CreateAdminPrincipal(), new PermissionMatrix(), request, commands, CancellationToken.None])!;
         return await task;
     }
 
@@ -136,7 +170,7 @@ public sealed class WorkflowsModuleHandlerTests
             BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("WorkflowsModule.UpdateWorkflowDefinitionAsync was not found.");
 
-        var task = (Task<IResult>)method.Invoke(null, [workflowDefinitionId, request, commands, CancellationToken.None])!;
+        var task = (Task<IResult>)method.Invoke(null, [CreateAdminPrincipal(), new PermissionMatrix(), workflowDefinitionId, request, commands, CancellationToken.None])!;
         return await task;
     }
 
@@ -149,7 +183,13 @@ public sealed class WorkflowsModuleHandlerTests
             BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("WorkflowsModule.ActivateWorkflowDefinitionAsync was not found.");
 
-        var task = (Task<IResult>)method.Invoke(null, [workflowDefinitionId, commands, CancellationToken.None])!;
+        var task = (Task<IResult>)method.Invoke(null, [CreateAdminPrincipal(), new PermissionMatrix(), workflowDefinitionId, commands, CancellationToken.None])!;
         return await task;
     }
+
+    private static ClaimsPrincipal CreateAdminPrincipal() =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.Role, "operis:super_admin")], "TestAuth"));
+
+    private static ClaimsPrincipal CreateUnprivilegedPrincipal() =>
+        new(new ClaimsIdentity([], "TestAuth"));
 }
