@@ -22,7 +22,6 @@ import {
   listRegistrationRequests,
   listUsers,
   rejectRegistration,
-  upsertUserOrgAssignment,
   updateDivision,
   updateInvitation,
   updateDepartment,
@@ -47,7 +46,6 @@ import type {
   UpdateInvitationInput,
   UpdateUserInput,
   UpdateMasterDataInput,
-  UpsertUserOrgAssignmentInput,
 } from "../types/users";
 
 const usersQueryKey = ["admin", "users"];
@@ -180,11 +178,6 @@ export function useAdminUsers(paging: {
     onSuccess: invalidateAll,
   });
 
-  const upsertUserOrgAssignmentMutation = useMutation({
-    mutationFn: (input: UpsertUserOrgAssignmentInput) => upsertUserOrgAssignment(input),
-    onSuccess: invalidateAll,
-  });
-
   const deleteUserMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => deleteUser(id, { reason }),
     onSuccess: invalidateAll,
@@ -279,7 +272,6 @@ export function useAdminUsers(paging: {
     cancelInvitationMutation,
     createUserMutation,
     updateUserMutation,
-    upsertUserOrgAssignmentMutation,
     deleteUserMutation,
     approveRegistrationMutation,
     rejectRegistrationMutation,

@@ -100,7 +100,6 @@ export function useAdminUsersScreen(input: {
   const [editInvitationForm] = Form.useForm();
   const [createUserForm] = Form.useForm();
   const [editUserForm] = Form.useForm();
-  const [orgAssignmentForm] = Form.useForm();
   const [deleteUserForm] = Form.useForm();
   const [reviewRegistrationForm] = Form.useForm();
   const [createDivisionForm] = Form.useForm();
@@ -117,7 +116,6 @@ export function useAdminUsersScreen(input: {
   const [deleteProjectRoleForm] = Form.useForm();
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editingUserAffiliation, setEditingUserAffiliation] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [creatingInvitation, setCreatingInvitation] = useState(false);
   const [editingInvitation, setEditingInvitation] = useState<Invitation | null>(null);
@@ -240,14 +238,12 @@ export function useAdminUsersScreen(input: {
     editJobTitleForm,
     editProjectRoleForm,
     editUserForm,
-    orgAssignmentForm,
     editingDivision,
     editingDepartment,
     editingInvitation,
     editingJobTitle,
     editingProjectRole,
     editingUser,
-    editingUserAffiliation,
     handleError,
     handleSuccess,
     invitationPaging,
@@ -276,7 +272,6 @@ export function useAdminUsersScreen(input: {
     setEditingJobTitle,
     setEditingProjectRole,
     setEditingUser,
-    setEditingUserAffiliation,
     setInvitationPaging,
     setJobTitlePaging,
     setProjectRolePaging,

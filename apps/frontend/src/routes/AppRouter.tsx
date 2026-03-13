@@ -54,7 +54,6 @@ export function AppRouter() {
               <Route path="documents" element={<DocumentDashboardPage />} />
               <Route path="workflows" element={<WorkflowDefinitionsPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
-              <Route path="admin/user-affiliations" element={<AdminUsersPage />} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
               <Route path="admin/master/divisions" element={<AdminUsersPage />} />
               <Route path="admin/master/departments" element={<AdminUsersPage />} />

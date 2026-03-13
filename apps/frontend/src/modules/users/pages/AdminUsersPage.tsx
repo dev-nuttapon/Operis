@@ -38,12 +38,6 @@ const AdminUserModals = lazy(() =>
 const AdminUsersDirectorySection = lazy(() =>
   import("../components/adminUsers/AdminUsersDirectorySection").then((module) => ({ default: module.AdminUsersDirectorySection }))
 );
-const AdminUserAffiliationsSection = lazy(() =>
-  import("../components/adminUsers/AdminUserAffiliationsSection").then((module) => ({ default: module.AdminUserAffiliationsSection }))
-);
-const AdminUserAffiliationModal = lazy(() =>
-  import("../components/adminUsers/AdminUserAffiliationModal").then((module) => ({ default: module.AdminUserAffiliationModal }))
-);
 const AdminRegistrationModals = lazy(() =>
   import("../components/adminUsers/AdminRegistrationModals").then((module) => ({ default: module.AdminRegistrationModals }))
 );
@@ -106,20 +100,17 @@ export function AdminUsersPage() {
     editJobTitleForm,
     editProjectRoleForm,
     editUserForm,
-    orgAssignmentForm,
     editingDivision,
     editingDepartment,
     editingInvitation,
     editingJobTitle,
     editingProjectRole,
     editingUser,
-    editingUserAffiliation,
     handleError,
     handleSuccess,
     invitationPaging,
     invitationsQuery,
     inviteForm,
-    jobTitleOptionsQuery,
     jobTitlePaging,
     jobTitlesQuery,
     projectRolePaging,
@@ -149,7 +140,6 @@ export function AdminUsersPage() {
     setEditingJobTitle,
     setEditingProjectRole,
     setEditingUser,
-    setEditingUserAffiliation,
     setInvitationPaging,
     setJobTitlePaging,
     setProjectRolePaging,
@@ -163,7 +153,6 @@ export function AdminUsersPage() {
     updateInvitationMutation,
     updateJobTitleMutation,
     updateProjectRoleMutation,
-    upsertUserOrgAssignmentMutation,
     updateUserMutation,
     usersPaging,
     usersQuery,
@@ -186,13 +175,6 @@ export function AdminUsersPage() {
   }));
   const divisionOptions = (divisionOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
   const departmentOptions = (departmentOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id, divisionId: item.divisionId }));
-  const jobTitleOptions = (jobTitleOptionsQuery.data?.items ?? []).map((item) => ({
-    label: item.name,
-    value: item.id,
-    divisionId: item.divisionId,
-    departmentId: item.departmentId,
-  }));
-
   const invitationColumns: ColumnsType<Invitation> = [
     {
       title: t("admin_users.columns.email"),
@@ -323,34 +305,6 @@ export function AdminUsersPage() {
           setManagingRegistration={setManagingRegistration}
           setPaging={setRegistrationPaging}
           setViewingRegistrationLink={setViewingRegistrationLink}
-          t={t}
-        />
-      </Suspense>
-    );
-  } else if (currentSection === "org-assignments") {
-    pageTitle = t("admin_users.affiliations.page_title");
-    pageDescription = t("admin_users.affiliations.page_description");
-    pageContent = (
-      <Suspense fallback={null}>
-        <AdminUserAffiliationsSection
-          currentLanguage={currentLanguage}
-          data={usersQuery.data?.items ?? []}
-          loading={usersQuery.isLoading}
-          paging={usersPaging}
-          pagination={usersQuery.data}
-          setEditingUser={(record) => {
-            setEditingUserAffiliation(record);
-            if (!record) {
-              orgAssignmentForm.resetFields();
-              return;
-            }
-            orgAssignmentForm.setFieldsValue({
-              divisionId: record.divisionId ?? undefined,
-              departmentId: record.departmentId ?? undefined,
-              positionId: record.jobTitleId ?? undefined,
-            });
-          }}
-          setPaging={setUsersPaging}
           t={t}
         />
       </Suspense>
@@ -660,11 +614,9 @@ export function AdminUsersPage() {
             createLoading={createInvitationMutation.isPending}
             creatingInvitation={creatingInvitation}
             divisionOptions={divisionOptions}
-            departmentOptions={departmentOptions}
             editForm={editInvitationForm}
             editingInvitation={editingInvitation}
             invitationForm={inviteForm}
-            jobTitleOptions={jobTitleOptions}
             onCloseEdit={() => {
               setEditingInvitation(null);
               editInvitationForm.resetFields();
@@ -755,13 +707,9 @@ export function AdminUsersPage() {
             deleteLoading={deleteUserMutation.isPending}
             deletingUser={deletingUser}
             divisionOptions={divisionOptions}
-            departmentOptions={departmentOptions}
-            departmentsLoading={departmentsQuery.isLoading}
             editForm={editUserForm}
             editLoading={updateUserMutation.isPending}
             editingUser={editingUser}
-            jobTitleOptions={jobTitleOptions}
-            jobTitlesLoading={jobTitlesQuery.isLoading}
             onCloseCreate={() => {
               setCreatingUser(false);
               createUserForm.resetFields();
@@ -876,51 +824,6 @@ export function AdminUsersPage() {
             }}
             roleOptions={userRoleOptions}
             rolesLoading={rolesQuery.isLoading}
-            t={t}
-          />
-        </Suspense>
-      ) : null}
-
-      {editingUserAffiliation !== null ? (
-        <Suspense fallback={null}>
-          <AdminUserAffiliationModal
-            departmentOptions={departmentOptions}
-            divisionOptions={divisionOptions}
-            form={orgAssignmentForm}
-            jobTitleOptions={jobTitleOptions}
-            loading={upsertUserOrgAssignmentMutation.isPending}
-            onClose={() => {
-              setEditingUserAffiliation(null);
-              orgAssignmentForm.resetFields();
-            }}
-            onSubmit={() => {
-              if (!editingUserAffiliation) {
-                return;
-              }
-
-              orgAssignmentForm
-                .validateFields()
-                .then((values: { divisionId?: string; departmentId?: string; positionId?: string }) => {
-                  upsertUserOrgAssignmentMutation.mutate(
-                    {
-                      userId: editingUserAffiliation.id,
-                      divisionId: values.divisionId,
-                      departmentId: values.departmentId,
-                      positionId: values.positionId,
-                    },
-                    {
-                      onSuccess: () => {
-                        handleSuccess(t("admin_users.messages.user_affiliation_saved", { email: editingUserAffiliation.keycloak?.email || editingUserAffiliation.id }));
-                        setEditingUserAffiliation(null);
-                        orgAssignmentForm.resetFields();
-                      },
-                      onError: (error) => handleError(t("errors.update_user_affiliation_failed"), error),
-                    }
-                  );
-                })
-                .catch(() => undefined);
-            }}
-            openUser={editingUserAffiliation}
             t={t}
           />
         </Suspense>

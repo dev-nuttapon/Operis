@@ -37,6 +37,8 @@ type ListQueryInput = PaginationInput & {
   sortOrder?: "asc" | "desc";
   from?: string;
   to?: string;
+  divisionId?: string;
+  departmentId?: string;
 };
 
 function toListQuery(input?: ListQueryInput) {
@@ -48,6 +50,8 @@ function toListQuery(input?: ListQueryInput) {
   if (input?.sortOrder) params.set("sortOrder", input.sortOrder);
   if (input?.from) params.set("from", input.from);
   if (input?.to) params.set("to", input.to);
+  if (input?.divisionId) params.set("divisionId", input.divisionId);
+  if (input?.departmentId) params.set("departmentId", input.departmentId);
   const query = params.toString();
   return query ? `?${query}` : "";
 }
@@ -201,6 +205,10 @@ export function listPublicDepartments(signal?: AbortSignal) {
   return publicApiRequest<PaginatedResult<MasterDataItem>>("/api/v1/users/departments?page=1&pageSize=100", { signal });
 }
 
+export function listPublicDepartmentsByDivision(divisionId: string, signal?: AbortSignal) {
+  return publicApiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/departments?page=1&pageSize=100&divisionId=${encodeURIComponent(divisionId)}`, { signal });
+}
+
 export function listPublicDivisions(signal?: AbortSignal) {
   return publicApiRequest<PaginatedResult<MasterDataItem>>("/api/v1/users/divisions?page=1&pageSize=100", { signal });
 }
@@ -253,6 +261,10 @@ export function deleteDivision(id: string, input: SoftDeleteInput) {
 
 export function listJobTitles(input?: ListQueryInput, signal?: AbortSignal) {
   return apiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/job-titles${toListQuery(input)}`, { signal });
+}
+
+export function listPublicJobTitlesByDepartment(departmentId: string, signal?: AbortSignal) {
+  return publicApiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/job-titles?page=1&pageSize=100&departmentId=${encodeURIComponent(departmentId)}`, { signal });
 }
 
 export function listProjectRoles(input?: ListQueryInput, signal?: AbortSignal) {

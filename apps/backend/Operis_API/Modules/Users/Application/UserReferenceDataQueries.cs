@@ -64,6 +64,11 @@ public sealed class UserReferenceDataQueries(
         var items = (await referenceDataCache.GetDepartmentsAsync(dbContext, cancellationToken))
             .AsEnumerable();
 
+        if (query.DivisionId.HasValue)
+        {
+            items = items.Where(x => x.DivisionId == query.DivisionId);
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var normalizedSearch = query.Search.Trim().ToLowerInvariant();
@@ -124,6 +129,11 @@ public sealed class UserReferenceDataQueries(
         var (normalizedPage, normalizedPageSize, skip) = NormalizePaging(query.Page, query.PageSize);
         var items = (await referenceDataCache.GetJobTitlesAsync(dbContext, cancellationToken))
             .AsEnumerable();
+
+        if (query.DepartmentId.HasValue)
+        {
+            items = items.Where(x => x.DepartmentId == query.DepartmentId);
+        }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {

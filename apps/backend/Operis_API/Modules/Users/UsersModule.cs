@@ -196,7 +196,7 @@ public sealed class UsersModule : IModule
         CancellationToken cancellationToken = default)
     {
         var result = await queries.ListDivisionsAsync(
-            new ReferenceDataQuery(search, sortBy, sortOrder, page, pageSize),
+            new ReferenceDataQuery(search, sortBy, sortOrder, null, null, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
     }
@@ -251,12 +251,13 @@ public sealed class UsersModule : IModule
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
+        Guid? divisionId = null,
         int page = 1,
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
         var result = await queries.ListDepartmentsAsync(
-            new ReferenceDataQuery(search, sortBy, sortOrder, page, pageSize),
+            new ReferenceDataQuery(search, sortBy, sortOrder, divisionId, null, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
     }
@@ -311,12 +312,13 @@ public sealed class UsersModule : IModule
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
+        Guid? departmentId = null,
         int page = 1,
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
         var result = await queries.ListJobTitlesAsync(
-            new ReferenceDataQuery(search, sortBy, sortOrder, page, pageSize),
+            new ReferenceDataQuery(search, sortBy, sortOrder, null, departmentId, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
     }
@@ -376,7 +378,7 @@ public sealed class UsersModule : IModule
         CancellationToken cancellationToken = default)
     {
         var result = await queries.ListProjectRolesAsync(
-            new ReferenceDataQuery(search, sortBy, sortOrder, page, pageSize),
+            new ReferenceDataQuery(search, sortBy, sortOrder, null, null, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
     }

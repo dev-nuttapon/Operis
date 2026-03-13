@@ -54,10 +54,6 @@ export function getCurrentAdminUsersSection(pathname: string) {
     return "invitations" as const;
   }
 
-  if (pathname.includes("/admin/user-affiliations")) {
-    return "org-assignments" as const;
-  }
-
   if (pathname.includes("/admin/master/departments")) {
     return "master-departments" as const;
   }

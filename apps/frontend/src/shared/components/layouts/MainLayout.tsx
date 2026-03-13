@@ -131,10 +131,6 @@ export function MainLayout() {
                   label: tr('common.user_management'),
                 },
                 {
-                  key: '/app/admin/user-affiliations',
-                  label: tr('common.user_affiliations'),
-                },
-                {
                   key: '/app/admin/invitations',
                   label: tr('common.user_invitations'),
                 },

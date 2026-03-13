@@ -35,6 +35,16 @@ export interface ListInvitationsInput {
   pageSize?: number;
 }
 
+export interface ReferenceDataListInput {
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+  divisionId?: string;
+  departmentId?: string;
+}
+
 export interface KeycloakUserSummary {
   id: string;
   email: string;

@@ -1,24 +1,21 @@
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Button, DatePicker, Form, Input, Modal, Select, Space, Typography } from "antd";
 import { MailOutlined } from "@ant-design/icons";
+import { useOrgStructureOptions } from "../../hooks/useOrgStructureOptions";
 import type { Invitation } from "../../types/users";
 
 interface OptionItem {
   label: ReactNode;
   value: string;
-  divisionId?: string | null;
-  departmentId?: string | null;
 }
 
 interface AdminInvitationModalsProps {
   createLoading: boolean;
   creatingInvitation: boolean;
   divisionOptions: OptionItem[];
-  departmentOptions: OptionItem[];
   editForm: any;
   editingInvitation: Invitation | null;
   invitationForm: any;
-  jobTitleOptions: OptionItem[];
   onCloseEdit: () => void;
   onCloseView: () => void;
   onCopyViewLink: () => void;
@@ -34,11 +31,9 @@ export function AdminInvitationModals({
   createLoading,
   creatingInvitation,
   divisionOptions,
-  departmentOptions,
   editForm,
   editingInvitation,
   invitationForm,
-  jobTitleOptions,
   onCloseEdit,
   onCloseView,
   onCopyViewLink,
@@ -53,22 +48,12 @@ export function AdminInvitationModals({
   const createDepartmentId = Form.useWatch("departmentId", invitationForm) as string | undefined;
   const editDivisionId = Form.useWatch("divisionId", editForm) as string | undefined;
   const editDepartmentId = Form.useWatch("departmentId", editForm) as string | undefined;
-  const createDepartmentOptions = useMemo(
-    () => departmentOptions.filter((item) => !createDivisionId || item.divisionId === createDivisionId),
-    [createDivisionId, departmentOptions]
-  );
-  const editDepartmentOptions = useMemo(
-    () => departmentOptions.filter((item) => !editDivisionId || item.divisionId === editDivisionId),
-    [departmentOptions, editDivisionId]
-  );
-  const createJobTitleOptions = useMemo(
-    () => jobTitleOptions.filter((item) => !createDepartmentId || item.departmentId === createDepartmentId),
-    [createDepartmentId, jobTitleOptions]
-  );
-  const editJobTitleOptions = useMemo(
-    () => jobTitleOptions.filter((item) => !editDepartmentId || item.departmentId === editDepartmentId),
-    [editDepartmentId, jobTitleOptions]
-  );
+  const createCascade = useOrgStructureOptions({ divisionId: createDivisionId, departmentId: createDepartmentId });
+  const editCascade = useOrgStructureOptions({ divisionId: editDivisionId, departmentId: editDepartmentId });
+  const createDepartmentItems = (createCascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const editDepartmentItems = (editCascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const createJobTitleItems = (createCascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const editJobTitleItems = (editCascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
   return (
     <>
       <Modal
@@ -127,17 +112,25 @@ export function AdminInvitationModals({
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.department")} name="departmentId">
-            <Select
-              allowClear
-              placeholder={t("admin_users.placeholders.select_department")}
-              options={createDepartmentOptions}
+                <Select
+                  allowClear
+                  disabled={!createDivisionId}
+                  placeholder={t("admin_users.placeholders.select_department")}
+                  loading={createCascade.departmentsQuery.isLoading}
+              options={createDepartmentItems}
               onChange={() => {
                 invitationForm.setFieldValue("jobTitleId", undefined);
               }}
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
-            <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} options={createJobTitleOptions} />
+            <Select
+              allowClear
+              disabled={!createDepartmentId}
+              placeholder={t("admin_users.placeholders.select_job_title")}
+              loading={createCascade.jobTitlesQuery.isLoading}
+              options={createJobTitleItems}
+            />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.expires_at")} name="expiresAt">
             <DatePicker
@@ -176,17 +169,25 @@ export function AdminInvitationModals({
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.department")} name="departmentId">
-            <Select
-              allowClear
-              placeholder={t("admin_users.placeholders.select_department")}
-              options={editDepartmentOptions}
+                <Select
+                  allowClear
+                  disabled={!editDivisionId}
+                  placeholder={t("admin_users.placeholders.select_department")}
+                  loading={editCascade.departmentsQuery.isLoading}
+              options={editDepartmentItems}
               onChange={() => {
                 editForm.setFieldValue("jobTitleId", undefined);
               }}
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
-            <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} options={editJobTitleOptions} />
+            <Select
+              allowClear
+              disabled={!editDepartmentId}
+              placeholder={t("admin_users.placeholders.select_job_title")}
+              loading={editCascade.jobTitlesQuery.isLoading}
+              options={editJobTitleItems}
+            />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.expires_at")} name="expiresAt">
             <DatePicker

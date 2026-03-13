@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePublicRegistration } from "../hooks/usePublicRegistration";
+import { useOrgStructureOptions } from "../hooks/useOrgStructureOptions";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { useThemeStore, type ThemeMode } from "../../../shared/store/useThemeStore";
 
@@ -19,10 +20,11 @@ export function PublicRegistrationPage() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const { registerMutation, divisionsQuery, departmentsQuery, jobTitlesQuery } = usePublicRegistration();
+  const { registerMutation, divisionsQuery } = usePublicRegistration();
   const currentLanguage = i18n.language.startsWith("th") ? "th" : "en";
   const selectedDivisionId = Form.useWatch("divisionId", form) as string | undefined;
   const selectedDepartmentId = Form.useWatch("departmentId", form) as string | undefined;
+  const cascade = useOrgStructureOptions({ divisionId: selectedDivisionId, departmentId: selectedDepartmentId, publicAccess: true });
   const isDarkMode = designToken.colorBgBase.toLowerCase() === "#020617";
   const pageBackground = isDarkMode
     ? "radial-gradient(circle at top, rgba(14, 165, 233, 0.16) 0%, rgba(15, 23, 42, 0.98) 42%, rgba(2, 6, 23, 1) 100%)"
@@ -132,14 +134,12 @@ export function PublicRegistrationPage() {
 
   const divisionOptions = useMemo(() => (divisionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })), [divisionsQuery.data?.items]);
   const departmentOptions = useMemo(
-    () => (departmentsQuery.data?.items ?? []).filter((item) => !selectedDivisionId || item.divisionId === selectedDivisionId).map((item) => ({ label: item.name, value: item.id })),
-    [departmentsQuery.data?.items, selectedDivisionId]
+    () => (cascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })),
+    [cascade.departmentsQuery.data?.items]
   );
   const jobTitleOptions = useMemo(
-    () => (jobTitlesQuery.data?.items ?? [])
-      .filter((item) => !selectedDepartmentId || item.departmentId === selectedDepartmentId)
-      .map((item) => ({ label: item.name, value: item.id })),
-    [jobTitlesQuery.data?.items, selectedDepartmentId]
+    () => (cascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })),
+    [cascade.jobTitlesQuery.data?.items]
   );
 
   return (
@@ -272,8 +272,9 @@ export function PublicRegistrationPage() {
               <Form.Item label={t("admin_users.fields.department")} name="departmentId">
                 <Select
                   allowClear
+                  disabled={!selectedDivisionId}
                   placeholder={t("admin_users.placeholders.select_department")}
-                  loading={departmentsQuery.isLoading}
+                  loading={cascade.departmentsQuery.isLoading}
                   options={departmentOptions}
                   onChange={() => {
                     form.setFieldValue("jobTitleId", undefined);
@@ -283,8 +284,9 @@ export function PublicRegistrationPage() {
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
                 <Select
                   allowClear
+                  disabled={!selectedDepartmentId}
                   placeholder={t("admin_users.placeholders.select_job_title")}
-                  loading={jobTitlesQuery.isLoading}
+                  loading={cascade.jobTitlesQuery.isLoading}
                   options={jobTitleOptions}
                 />
               </Form.Item>

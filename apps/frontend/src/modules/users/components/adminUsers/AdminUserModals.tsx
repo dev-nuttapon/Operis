@@ -1,12 +1,11 @@
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Card, Form, Input, Modal, Select, Space, Typography } from "antd";
+import { useOrgStructureOptions } from "../../hooks/useOrgStructureOptions";
 import type { User } from "../../types/users";
 
 interface OptionItem {
   label: ReactNode;
   value: string;
-  divisionId?: string | null;
-  departmentId?: string | null;
 }
 
 interface AdminUserModalsProps {
@@ -17,13 +16,9 @@ interface AdminUserModalsProps {
   deleteLoading: boolean;
   deletingUser: User | null;
   divisionOptions: OptionItem[];
-  departmentOptions: OptionItem[];
-  departmentsLoading: boolean;
   editForm: any;
   editLoading: boolean;
   editingUser: User | null;
-  jobTitleOptions: OptionItem[];
-  jobTitlesLoading: boolean;
   onCloseCreate: () => void;
   onCloseDelete: () => void;
   onCloseEdit: () => void;
@@ -43,13 +38,9 @@ export function AdminUserModals({
   deleteLoading,
   deletingUser,
   divisionOptions,
-  departmentOptions,
-  departmentsLoading,
   editForm,
   editLoading,
   editingUser,
-  jobTitleOptions,
-  jobTitlesLoading,
   onCloseCreate,
   onCloseDelete,
   onCloseEdit,
@@ -64,22 +55,12 @@ export function AdminUserModals({
   const createDepartmentId = Form.useWatch("departmentId", createForm) as string | undefined;
   const editDivisionId = Form.useWatch("divisionId", editForm) as string | undefined;
   const editDepartmentId = Form.useWatch("departmentId", editForm) as string | undefined;
-  const createDepartmentOptions = useMemo(
-    () => departmentOptions.filter((item) => !createDivisionId || item.divisionId === createDivisionId),
-    [createDivisionId, departmentOptions]
-  );
-  const editDepartmentOptions = useMemo(
-    () => departmentOptions.filter((item) => !editDivisionId || item.divisionId === editDivisionId),
-    [departmentOptions, editDivisionId]
-  );
-  const createJobTitleOptions = useMemo(
-    () => jobTitleOptions.filter((item) => !createDepartmentId || item.departmentId === createDepartmentId),
-    [createDepartmentId, jobTitleOptions]
-  );
-  const editJobTitleOptions = useMemo(
-    () => jobTitleOptions.filter((item) => !editDepartmentId || item.departmentId === editDepartmentId),
-    [editDepartmentId, jobTitleOptions]
-  );
+  const createCascade = useOrgStructureOptions({ divisionId: createDivisionId, departmentId: createDepartmentId });
+  const editCascade = useOrgStructureOptions({ divisionId: editDivisionId, departmentId: editDepartmentId });
+  const createDepartmentItems = (createCascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const editDepartmentItems = (editCascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const createJobTitleItems = (createCascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const editJobTitleItems = (editCascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
 
   return (
     <>
@@ -159,15 +140,22 @@ export function AdminUserModals({
                 <Select
                   allowClear
                   placeholder={t("admin_users.placeholders.select_department")}
-                  loading={departmentsLoading}
-                  options={createDepartmentOptions}
+                  disabled={!createDivisionId}
+                  loading={createCascade.departmentsQuery.isLoading}
+                  options={createDepartmentItems}
                   onChange={() => {
                     createForm.setFieldValue("jobTitleId", undefined);
                   }}
                 />
               </Form.Item>
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
-                <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} loading={jobTitlesLoading} options={createJobTitleOptions} />
+                <Select
+                  allowClear
+                  disabled={!createDepartmentId}
+                  placeholder={t("admin_users.placeholders.select_job_title")}
+                  loading={createCascade.jobTitlesQuery.isLoading}
+                  options={createJobTitleItems}
+                />
               </Form.Item>
             </Card>
 
@@ -230,15 +218,22 @@ export function AdminUserModals({
                 <Select
                   allowClear
                   placeholder={t("admin_users.placeholders.select_department")}
-                  loading={departmentsLoading}
-                  options={editDepartmentOptions}
+                  disabled={!editDivisionId}
+                  loading={editCascade.departmentsQuery.isLoading}
+                  options={editDepartmentItems}
                   onChange={() => {
                     editForm.setFieldValue("jobTitleId", undefined);
                   }}
                 />
               </Form.Item>
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
-                <Select allowClear placeholder={t("admin_users.placeholders.select_job_title")} loading={jobTitlesLoading} options={editJobTitleOptions} />
+                <Select
+                  allowClear
+                  disabled={!editDepartmentId}
+                  placeholder={t("admin_users.placeholders.select_job_title")}
+                  loading={editCascade.jobTitlesQuery.isLoading}
+                  options={editJobTitleItems}
+                />
               </Form.Item>
             </Card>
 
