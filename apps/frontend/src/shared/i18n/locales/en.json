@@ -210,8 +210,6 @@
       "confirm": "Confirm",
       "confirm_delete": "Confirm Deletion",
       "copy_link": "Copy link",
-      "yes": "Yes",
-      "no": "No",
       "send_invitation": "Send Invitation",
       "approve": "Approve",
       "reject": "Reject"
@@ -740,6 +738,15 @@
     "select_project_placeholder": "Select a project workspace",
     "select_template_placeholder": "Select a workspace template",
     "select_scenario_placeholder": "Select a prototype scenario",
+    "project_size": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "modes": {
+      "standard": "Standard",
+      "auditor": "Auditor"
+    },
     "back_to_projects": "Back to Projects",
     "templates": {
       "software_delivery": {
@@ -832,7 +839,8 @@
       "workspace_prompts_title": "Questions to Validate in This Scenario",
       "quick_actions_title": "Quick actions",
       "callout_title": "Prototype focus",
-      "callout_description": "This workspace is intentionally driven by template and scenario presets so the team can validate navigation, terminology, and governance flow before committing to live section behavior."
+      "callout_description": "This workspace is intentionally driven by template and scenario presets so the team can validate navigation, terminology, and governance flow before committing to live section behavior.",
+      "workflow_preview_title": "Workflow Preview"
     },
     "team": {
       "title": "Project Team Register",
@@ -846,7 +854,14 @@
       }
     },
     "org_chart": {
-      "title": "Project Reporting Structure"
+      "title": "Project Reporting Structure",
+      "description": "Switch between hierarchy view and role-grouped view to validate which perspective is easier to use.",
+      "tree_title": "Hierarchy View",
+      "views": {
+        "tree": "Tree",
+        "role_groups": "Role Groups"
+      },
+      "role_group_meta": "Reports to: {{reportsTo}} · Primary: {{primary}}"
     },
     "roles": {
       "title": "Project Role Matrix",
@@ -868,7 +883,8 @@
         "responsibility": "Responsibility",
         "authority": "Authority Scope",
         "members": "Assigned Members"
-      }
+      },
+      "dependencies_title": "Role Dependency Map"
     },
     "compliance": {
       "title": "Compliance Readiness Checklist",
@@ -888,6 +904,15 @@
       "evidence": {
         "title": "Evidence package is not complete",
         "detail": "The release evidence and milestone snapshot are still pending and should be prepared before audit review."
+      },
+      "required_documents_title": "Required Document Set",
+      "approval_flow_title": "Approval Flow Preview",
+      "document_meta": "Owner role: {{owner}} · Stage: {{stage}}",
+      "synthetic_docs": {
+        "traceability": "Traceability Matrix",
+        "milestone_snapshot": "Milestone Snapshot Pack",
+        "stage_verify": "Verify",
+        "stage_release": "Release"
       }
     },
     "evidence": {
@@ -968,6 +993,15 @@
         "2": "Is the path from evidence to audit trail clear enough for corrective-action follow-up?",
         "3": "Does the role model reflect how process changes move from action to controlled release?"
       }
+    },
+    "project_size": {
+      "small": "Small Project",
+      "medium": "Medium Project",
+      "large": "Large Project"
+    },
+    "modes": {
+      "standard": "Standard Mode",
+      "auditor": "Auditor Mode"
     }
   },
   "project_evidence": {
@@ -1011,7 +1045,7 @@
       }
     }
   },
-      "project_compliance": {
+  "project_compliance": {
     "page_title": "Project Compliance",
     "page_description": "Assess project readiness from team structure, role permissions, and governance metadata for compliance use cases.",
     "select_project_placeholder": "Select a project to assess readiness",
@@ -1038,54 +1072,84 @@
       "owner_assigned": {
         "title": "Project owner assigned",
         "description": "The project should have a clearly assigned owner.",
-        "detail": { "passed": "A project owner is assigned.", "failed": "Assign a project owner." }
+        "detail": {
+          "passed": "A project owner is assigned.",
+          "failed": "Assign a project owner."
+        }
       },
       "sponsor_assigned": {
         "title": "Project sponsor assigned",
         "description": "Some project types should have a sponsor.",
-        "detail": { "passed": "Sponsor coverage is sufficient for this project type.", "warning": "Assign a sponsor for this project type." }
+        "detail": {
+          "passed": "Sponsor coverage is sufficient for this project type.",
+          "warning": "Assign a sponsor for this project type."
+        }
       },
       "planned_period_defined": {
         "title": "Planned period defined",
         "description": "Planned start and end dates should be defined for schedule governance.",
-        "detail": { "passed": "The planned period is defined.", "warning": "Set planned start and end dates." }
+        "detail": {
+          "passed": "The planned period is defined.",
+          "warning": "Set planned start and end dates."
+        }
       },
       "active_team_exists": {
         "title": "Active team exists",
         "description": "The project should have at least one active member.",
-        "detail": { "passed": "Active members are assigned to the project.", "failed": "Add active members to the project." }
+        "detail": {
+          "passed": "Active members are assigned to the project.",
+          "failed": "Add active members to the project."
+        }
       },
       "primary_assignment_exists": {
         "title": "Primary assignment exists",
         "description": "At least one assignment should be marked as primary.",
-        "detail": { "passed": "A primary assignment exists.", "warning": "Mark at least one assignment as primary." }
+        "detail": {
+          "passed": "A primary assignment exists.",
+          "warning": "Mark at least one assignment as primary."
+        }
       },
       "reporting_root_exists": {
         "title": "Reporting root exists",
         "description": "The project org chart should have at least one top-level member.",
-        "detail": { "passed": "A reporting root exists.", "warning": "Set at least one top-level member without a reports-to reference." }
+        "detail": {
+          "passed": "A reporting root exists.",
+          "warning": "Set at least one top-level member without a reports-to reference."
+        }
       },
       "document_creator_role": {
         "title": "Document creator role assigned",
         "description": "A role with document creation rights should be actively assigned.",
-        "detail": { "passed": "Document creation capability is covered.", "failed": "Assign a member to a role that can create documents." }
+        "detail": {
+          "passed": "Document creation capability is covered.",
+          "failed": "Assign a member to a role that can create documents."
+        }
       },
       "review_role_assigned": {
         "title": "Review role assigned",
         "description": "A role with review capability should be actively assigned.",
-        "detail": { "passed": "Review capability is covered.", "warning": "Assign a member to a review-capable role." }
+        "detail": {
+          "passed": "Review capability is covered.",
+          "warning": "Assign a member to a review-capable role."
+        }
       },
       "approval_role_assigned": {
         "title": "Approval role assigned",
         "description": "A role with approval capability should be actively assigned.",
-        "detail": { "passed": "Approval capability is covered.", "warning": "Assign a member to an approval-capable role." }
+        "detail": {
+          "passed": "Approval capability is covered.",
+          "warning": "Assign a member to an approval-capable role."
+        }
       },
       "release_role_assigned": {
         "title": "Release role assigned",
         "description": "A role with release capability should be actively assigned when controlled release is needed.",
-        "detail": { "passed": "Release capability is covered.", "warning": "Consider assigning a release-capable role if controlled release applies." }
+        "detail": {
+          "passed": "Release capability is covered.",
+          "warning": "Consider assigning a release-capable role if controlled release applies."
+        }
       }
-      }
+    }
   },
   "project_type_templates": {
     "page_title": "Project Type Templates",

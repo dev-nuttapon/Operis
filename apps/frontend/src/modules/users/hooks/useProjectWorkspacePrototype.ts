@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
   ProjectWorkspacePrototypeAuditEvent,
+  ProjectWorkspacePrototypeApprovalStep,
   ProjectWorkspacePrototypeComplianceCheck,
   ProjectWorkspacePrototypeDataset,
   ProjectWorkspacePrototypeEvidenceItem,
@@ -8,6 +9,8 @@ import type {
   ProjectWorkspacePrototypeOption,
   ProjectWorkspacePrototypeOrgNode,
   ProjectWorkspacePrototypeQuickAction,
+  ProjectWorkspacePrototypeRoleDependency,
+  ProjectWorkspacePrototypeRequiredDocument,
   ProjectWorkspacePrototypeRole,
   ProjectWorkspacePrototypeSection,
   ProjectWorkspacePrototypeSummaryCard,
@@ -171,6 +174,38 @@ function node(id: string, label: string, subtitle: string, children?: ProjectWor
   return { id, label, subtitle, children };
 }
 
+function requiredDocument(
+  id: string,
+  code: string,
+  name: string,
+  ownerRoleCode: string,
+  stage: string,
+  status: ProjectWorkspacePrototypeRequiredDocument["status"],
+): ProjectWorkspacePrototypeRequiredDocument {
+  return { id, code, name, ownerRoleCode, stage, status };
+}
+
+function approvalStep(
+  id: string,
+  order: number,
+  roleCode: string,
+  roleName: string,
+  action: string,
+  output: string,
+): ProjectWorkspacePrototypeApprovalStep {
+  return { id, order, roleCode, roleName, action, output };
+}
+
+function roleDependency(
+  id: string,
+  fromRoleCode: string,
+  toRoleCode: string,
+  relation: string,
+  rationale: string,
+): ProjectWorkspacePrototypeRoleDependency {
+  return { id, fromRoleCode, toRoleCode, relation, rationale };
+}
+
 const datasets: Record<string, Record<string, ProjectWorkspacePrototypeDataset>> = {
   software_delivery: {
     compact_team: {
@@ -304,6 +339,12 @@ const datasets: Record<string, Record<string, ProjectWorkspacePrototypeDataset>>
         evidence("1", "Release Gate Pack", "Gate checklist, role sign-offs, and controlled release note.", "13 Mar 2026 12:15", "PDF / XLSX"),
         evidence("2", "Baseline Snapshot", "Frozen release baseline with traceability notes.", "13 Mar 2026 11:00", "ZIP"),
       ],
+      requiredDocuments: [
+        requiredDocument("1", "RGP", "Release Gate Pack", "PM", "Release", "Ready"),
+        requiredDocument("2", "BLS", "Baseline Snapshot", "CM", "Release", "Ready"),
+        requiredDocument("3", "TEX", "Test Exit Summary", "SWT", "Verify", "Missing"),
+        requiredDocument("4", "FAM", "Final Approval Memo", "APR", "Release", "Draft"),
+      ],
       auditTrail: [
         audit("1", "13 Mar 2026 12:20", "Nattawat Sila", "Requested missing test role coverage", "Release Gate Pack", "Flagged absence of an active SWT assignment before final release."),
         audit("2", "13 Mar 2026 11:10", "Tanan Kijprasert", "Published baseline snapshot", "Baseline B4", "Locked current baseline for release review."),
@@ -349,6 +390,12 @@ const datasets: Record<string, Record<string, ProjectWorkspacePrototypeDataset>>
         evidence("1", "Audit Readiness Checklist", "Role-based readiness checklist for audit cycle.", "14 Mar 2026 09:20", "XLSX / PDF"),
         evidence("2", "Controlled Evidence Index", "Controlled document index for audit pack.", "14 Mar 2026 10:40", "CSV"),
       ],
+      requiredDocuments: [
+        requiredDocument("1", "ARP", "Audit Readiness Plan", "PM", "Prepare", "Ready"),
+        requiredDocument("2", "CEI", "Controlled Evidence Index", "CM", "Collect Evidence", "Ready"),
+        requiredDocument("3", "SOM", "Sign-off Matrix", "APR", "Review", "Draft"),
+        requiredDocument("4", "FND", "Open Findings Register", "QA", "Close Findings", "Missing"),
+      ],
       auditTrail: [
         audit("1", "14 Mar 2026 11:15", "Mali Sutham", "Requested missing sign-off", "Audit Readiness Checklist", "Raised action for missing approval sign-off before audit package freeze."),
         audit("2", "14 Mar 2026 10:45", "Tanan Kijprasert", "Updated evidence index", "Controlled Evidence Index", "Added revised controlled records for latest process update."),
@@ -391,6 +438,12 @@ const datasets: Record<string, Record<string, ProjectWorkspacePrototypeDataset>>
       evidenceItems: [
         evidence("1", "Corrective Action Register", "Action owners, dates, and closure evidence.", "14 Mar 2026 15:20", "CSV / PDF"),
         evidence("2", "Updated Process Asset Pack", "Revised SOP, checklist, and implementation notes.", "14 Mar 2026 16:10", "ZIP / PDF"),
+      ],
+      requiredDocuments: [
+        requiredDocument("1", "CAR", "Corrective Action Register", "PM", "Close Findings", "Ready"),
+        requiredDocument("2", "GAP", "Gap Analysis Summary", "BA", "Prepare", "Ready"),
+        requiredDocument("3", "VER", "Verification Closure Record", "QA", "Review", "Draft"),
+        requiredDocument("4", "RPA", "Released Process Assets", "CM", "Close Findings", "Missing"),
       ],
       auditTrail: [
         audit("1", "14 Mar 2026 15:40", "Mali Sutham", "Approved action plan update", "Corrective Action Register", "Accepted revised target dates and remediation owners."),
@@ -500,6 +553,73 @@ const datasets: Record<string, Record<string, ProjectWorkspacePrototypeDataset>>
 
 const defaultTemplateId = templateOptions[0]!.id;
 
+const governanceByTemplate: Record<
+  string,
+  {
+    requiredDocuments: ProjectWorkspacePrototypeRequiredDocument[];
+    approvalSteps: ProjectWorkspacePrototypeApprovalStep[];
+    roleDependencies: ProjectWorkspacePrototypeRoleDependency[];
+  }
+> = {
+  software_delivery: {
+    requiredDocuments: [
+      requiredDocument("1", "SDP", "Software Development Plan", "PM", "Plan", "Ready"),
+      requiredDocument("2", "SAD", "Software Architecture Description", "SWA", "Build", "Draft"),
+      requiredDocument("3", "SVR", "Software Verification Report", "SWT", "Verify", "Ready"),
+      requiredDocument("4", "REL", "Release Package", "CM", "Release", "Missing"),
+    ],
+    approvalSteps: [
+      approvalStep("1", 1, "SWA", "Software Architect", "Technical Review", "Reviewed architecture baseline"),
+      approvalStep("2", 2, "SWT", "Software Tester", "Verification Review", "Validated quality evidence"),
+      approvalStep("3", 3, "APR", "Approver", "Final Approval", "Approved release decision"),
+      approvalStep("4", 4, "CM", "Configuration Manager", "Controlled Release", "Released controlled package"),
+    ],
+    roleDependencies: [
+      roleDependency("1", "SWA", "DEV", "Design direction", "Implementation should align with the architecture baseline set by SWA."),
+      roleDependency("2", "SWT", "SWA", "Feedback loop", "Verification findings should feed back into architecture and technical decisions."),
+      roleDependency("3", "CM", "APR", "Release gate", "CM should release only after APR has approved the package."),
+    ],
+  },
+  compliance_audit: {
+    requiredDocuments: [
+      requiredDocument("1", "ARP", "Audit Readiness Plan", "PM", "Prepare", "Ready"),
+      requiredDocument("2", "CEI", "Controlled Evidence Index", "CM", "Collect Evidence", "Ready"),
+      requiredDocument("3", "QAR", "Quality Assurance Review Record", "QA", "Review", "Draft"),
+      requiredDocument("4", "CAR", "Corrective Action Register", "PM", "Close Findings", "Missing"),
+    ],
+    approvalSteps: [
+      approvalStep("1", 1, "QA", "Quality Assurance", "Evidence Review", "Reviewed conformance evidence"),
+      approvalStep("2", 2, "RVW", "Reviewer", "Readiness Review", "Confirmed audit pack readiness"),
+      approvalStep("3", 3, "APR", "Approver", "Formal Approval", "Approved audit submission pack"),
+      approvalStep("4", 4, "CM", "Configuration Manager", "Controlled Publish", "Published controlled audit package"),
+    ],
+    roleDependencies: [
+      roleDependency("1", "QA", "CM", "Controlled evidence", "QA review depends on CM maintaining controlled evidence records."),
+      roleDependency("2", "RVW", "QA", "Challenge review", "Reviewer should challenge QA readiness before formal approval."),
+      roleDependency("3", "APR", "RVW", "Formal sign-off", "APR should approve only after reviewer confirmation is complete."),
+    ],
+  },
+  process_improvement: {
+    requiredDocuments: [
+      requiredDocument("1", "PAP", "Process Assessment Pack", "BA", "Assess", "Ready"),
+      requiredDocument("2", "PID", "Process Improvement Design", "PM", "Design", "Draft"),
+      requiredDocument("3", "PIL", "Pilot Findings Register", "QA", "Pilot", "Ready"),
+      requiredDocument("4", "RLP", "Rollout Package", "CM", "Rollout", "Missing"),
+    ],
+    approvalSteps: [
+      approvalStep("1", 1, "BA", "Business Analyst", "Impact Review", "Reviewed improvement scope"),
+      approvalStep("2", 2, "QA", "Quality Assurance", "Process Review", "Reviewed pilot evidence"),
+      approvalStep("3", 3, "APR", "Approver", "Rollout Approval", "Approved process rollout"),
+      approvalStep("4", 4, "CM", "Configuration Manager", "Controlled Release", "Released updated process assets"),
+    ],
+    roleDependencies: [
+      roleDependency("1", "BA", "PM", "Scope shaping", "BA findings should shape PM rollout decisions."),
+      roleDependency("2", "QA", "BA", "Validation loop", "QA validates whether the designed process solves the identified gap."),
+      roleDependency("3", "CM", "APR", "Controlled rollout", "CM should release revised assets only after APR approves rollout."),
+    ],
+  },
+};
+
 function getScenarioOptions(templateId: string) {
   return scenarioOptionsByTemplate[templateId] ?? [];
 }
@@ -527,6 +647,11 @@ export function useProjectWorkspacePrototype(initialTemplateId?: string) {
     return templateDatasets?.[scenarioId] ?? templateDatasets?.[getDefaultScenarioId(templateId)] ?? datasets[defaultTemplateId]![getDefaultScenarioId(defaultTemplateId)]!;
   }, [scenarioId, templateId]);
 
+  const governance = useMemo(
+    () => governanceByTemplate[templateId] ?? governanceByTemplate[defaultTemplateId]!,
+    [templateId],
+  );
+
   return {
     section,
     setSection,
@@ -544,5 +669,8 @@ export function useProjectWorkspacePrototype(initialTemplateId?: string) {
     evidenceItems: dataset.evidenceItems,
     auditTrail: dataset.auditTrail,
     orgChart: dataset.orgChart,
+    requiredDocuments: dataset.requiredDocuments ?? governance.requiredDocuments,
+    approvalSteps: dataset.approvalSteps ?? governance.approvalSteps,
+    roleDependencies: dataset.roleDependencies ?? governance.roleDependencies,
   };
 }

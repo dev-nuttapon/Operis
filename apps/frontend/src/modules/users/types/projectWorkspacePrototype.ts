@@ -83,6 +83,32 @@ export interface ProjectWorkspacePrototypeOrgNode {
   children?: ProjectWorkspacePrototypeOrgNode[];
 }
 
+export interface ProjectWorkspacePrototypeRequiredDocument {
+  id: string;
+  code: string;
+  name: string;
+  ownerRoleCode: string;
+  stage: string;
+  status: "Ready" | "Missing" | "Draft";
+}
+
+export interface ProjectWorkspacePrototypeApprovalStep {
+  id: string;
+  order: number;
+  roleCode: string;
+  roleName: string;
+  action: string;
+  output: string;
+}
+
+export interface ProjectWorkspacePrototypeRoleDependency {
+  id: string;
+  fromRoleCode: string;
+  toRoleCode: string;
+  relation: string;
+  rationale: string;
+}
+
 export interface ProjectWorkspacePrototypeDataset {
   summaryCards: ProjectWorkspacePrototypeSummaryCard[];
   teamMembers: ProjectWorkspacePrototypeMember[];
@@ -91,4 +117,7 @@ export interface ProjectWorkspacePrototypeDataset {
   evidenceItems: ProjectWorkspacePrototypeEvidenceItem[];
   auditTrail: ProjectWorkspacePrototypeAuditEvent[];
   orgChart: ProjectWorkspacePrototypeOrgNode[];
+  requiredDocuments?: ProjectWorkspacePrototypeRequiredDocument[];
+  approvalSteps?: ProjectWorkspacePrototypeApprovalStep[];
+  roleDependencies?: ProjectWorkspacePrototypeRoleDependency[];
 }

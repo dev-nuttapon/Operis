@@ -89,6 +89,9 @@ export function ProjectWorkspacePrototypePage() {
   const { projectId } = useParams<{ projectId: string }>();
   const [selectedRole, setSelectedRole] = useState<ProjectWorkspacePrototypeRole | null>(null);
   const [selectedEvidenceItem, setSelectedEvidenceItem] = useState<ProjectWorkspacePrototypeEvidenceItem | null>(null);
+  const [orgChartView, setOrgChartView] = useState<"tree" | "roleGroups">("tree");
+  const [projectSize, setProjectSize] = useState<"small" | "medium" | "large">("medium");
+  const [auditorMode, setAuditorMode] = useState(false);
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const {
@@ -108,6 +111,9 @@ export function ProjectWorkspacePrototypePage() {
     evidenceItems,
     auditTrail,
     orgChart,
+    requiredDocuments,
+    approvalSteps,
+    roleDependencies,
   } = useProjectWorkspacePrototype();
 
   const { projectsQuery } = useProjectAdmin({
@@ -152,6 +158,56 @@ export function ProjectWorkspacePrototypePage() {
   const selectedTemplate = templateOptions.find((option) => option.id === templateId) ?? null;
   const selectedScenario = scenarioOptions.find((option) => option.id === scenarioId) ?? null;
   const orgChartTree = useMemo(() => buildOrgChartTree(orgChart), [orgChart]);
+  const membersByRole = useMemo(() => {
+    const groups = new Map<string, ProjectWorkspacePrototypeMember[]>();
+    for (const member of teamMembers) {
+      const key = `${member.roleCode} · ${member.roleName}`;
+      const current = groups.get(key) ?? [];
+      current.push(member);
+      groups.set(key, current);
+    }
+    return Array.from(groups.entries()).map(([roleKey, members]) => ({ roleKey, members }));
+  }, [teamMembers]);
+  const sizedRequiredDocuments = useMemo(() => {
+    if (projectSize === "small") {
+      return requiredDocuments.slice(0, Math.max(2, requiredDocuments.length - 1));
+    }
+    if (projectSize === "large") {
+      return [
+        ...requiredDocuments,
+        {
+          id: "extended-traceability",
+          code: "TRC",
+          name: t("project_workspace_prototype.compliance.synthetic_docs.traceability"),
+          ownerRoleCode: "QA",
+          stage: t("project_workspace_prototype.compliance.synthetic_docs.stage_verify"),
+          status: "Draft" as const,
+        },
+        {
+          id: "extended-milestone",
+          code: "MLS",
+          name: t("project_workspace_prototype.compliance.synthetic_docs.milestone_snapshot"),
+          ownerRoleCode: "PM",
+          stage: t("project_workspace_prototype.compliance.synthetic_docs.stage_release"),
+          status: "Missing" as const,
+        },
+      ];
+    }
+    return requiredDocuments;
+  }, [projectSize, requiredDocuments, t]);
+  const workflowPreviewSteps = useMemo(
+    () =>
+      approvalSteps.map((step, index) => ({
+        title: `${step.order}. ${step.roleCode}`,
+        description: `${step.action} · ${step.output}`,
+        status: (index === approvalSteps.length - 1 ? "wait" : index === 0 ? "process" : "finish") as
+          | "wait"
+          | "process"
+          | "finish"
+          | "error",
+      })),
+    [approvalSteps],
+  );
   const processStages = useMemo(() => {
     switch (templateId) {
       case "compliance_audit":
@@ -293,9 +349,51 @@ export function ProjectWorkspacePrototypePage() {
         );
       case "orgChart":
         return (
-          <Card size="small" title={t("project_workspace_prototype.org_chart.title")}>
-            <Tree defaultExpandAll showLine selectable={false} treeData={orgChartTree} />
-          </Card>
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Card size="small" title={t("project_workspace_prototype.org_chart.title")}>
+              <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
+                <Typography.Text type="secondary">{t("project_workspace_prototype.org_chart.description")}</Typography.Text>
+                <Segmented
+                  options={[
+                    { label: t("project_workspace_prototype.org_chart.views.tree"), value: "tree" },
+                    { label: t("project_workspace_prototype.org_chart.views.role_groups"), value: "roleGroups" },
+                  ]}
+                  value={orgChartView}
+                  onChange={(value) => setOrgChartView(value as "tree" | "roleGroups")}
+                />
+              </Flex>
+            </Card>
+            {orgChartView === "tree" ? (
+              <Card size="small" title={t("project_workspace_prototype.org_chart.tree_title")}>
+                <Tree defaultExpandAll showLine selectable={false} treeData={orgChartTree} />
+              </Card>
+            ) : (
+              <Row gutter={[16, 16]}>
+                {membersByRole.map((group) => (
+                  <Col key={group.roleKey} xs={24} lg={12}>
+                    <Card size="small" title={group.roleKey}>
+                      <List
+                        dataSource={group.members}
+                        renderItem={(member) => (
+                          <List.Item>
+                            <Space direction="vertical" size={2}>
+                              <Typography.Text strong>{member.name}</Typography.Text>
+                              <Typography.Text type="secondary">
+                                {t("project_workspace_prototype.org_chart.role_group_meta", {
+                                  reportsTo: member.reportsTo ?? "-",
+                                  primary: member.primary ? t("common.actions.yes") : t("common.actions.no"),
+                                })}
+                              </Typography.Text>
+                            </Space>
+                          </List.Item>
+                        )}
+                      />
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            )}
+          </Space>
         );
       case "roles":
         return (
@@ -323,30 +421,90 @@ export function ProjectWorkspacePrototypePage() {
                 </Col>
               ))}
             </Row>
+            <Card size="small" title={t("project_workspace_prototype.roles.dependencies_title")}>
+              <Timeline
+                items={roleDependencies.map((dependency) => ({
+                  color: "blue",
+                  children: (
+                    <Space direction="vertical" size={2}>
+                      <Typography.Text strong>{`${dependency.fromRoleCode} → ${dependency.toRoleCode}`}</Typography.Text>
+                      <Typography.Text>{dependency.relation}</Typography.Text>
+                      <Typography.Text type="secondary">{dependency.rationale}</Typography.Text>
+                    </Space>
+                  ),
+                }))}
+              />
+            </Card>
           </Space>
         );
       case "compliance":
         return (
-          <Card size="small" title={t("project_workspace_prototype.compliance.title")}>
-            <Space direction="vertical" size={12} style={{ width: "100%" }}>
-              {complianceChecks.map((check) => (
-                <Alert
-                  key={check.id}
-                  type={complianceColor(check.severity)}
-                  showIcon
-                  message={t(check.titleKey)}
-                  description={
-                    <Space direction="vertical" size={8}>
-                      <Typography.Text>{t(check.detailKey)}</Typography.Text>
-                      <Button type="link" style={{ paddingInline: 0 }} onClick={() => setSection(check.targetSection)}>
-                        {t("project_workspace_prototype.compliance.drill_down")}
-                      </Button>
-                    </Space>
-                  }
-                />
-              ))}
-            </Space>
-          </Card>
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Card size="small" title={t("project_workspace_prototype.compliance.title")}>
+              <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                {complianceChecks.map((check) => (
+                  <Alert
+                    key={check.id}
+                    type={complianceColor(check.severity)}
+                    showIcon
+                    message={t(check.titleKey)}
+                    description={
+                      <Space direction="vertical" size={8}>
+                        <Typography.Text>{t(check.detailKey)}</Typography.Text>
+                        <Button type="link" style={{ paddingInline: 0 }} onClick={() => setSection(check.targetSection)}>
+                          {t("project_workspace_prototype.compliance.drill_down")}
+                        </Button>
+                      </Space>
+                    }
+                  />
+                ))}
+              </Space>
+            </Card>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} xl={12}>
+                <Card size="small" title={t("project_workspace_prototype.compliance.required_documents_title")}>
+                  <List
+                    dataSource={sizedRequiredDocuments}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <Space direction="vertical" size={2} style={{ width: "100%" }}>
+                          <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+                            <Space>
+                              <Tag>{item.code}</Tag>
+                              <Typography.Text strong>{item.name}</Typography.Text>
+                            </Space>
+                            <Tag color={item.status === "Ready" ? "green" : item.status === "Draft" ? "gold" : "red"}>{item.status}</Tag>
+                          </Flex>
+                          <Typography.Text type="secondary">
+                            {t("project_workspace_prototype.compliance.document_meta", {
+                              owner: item.ownerRoleCode,
+                              stage: item.stage,
+                            })}
+                          </Typography.Text>
+                        </Space>
+                      </List.Item>
+                    )}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} xl={12}>
+                <Card size="small" title={t("project_workspace_prototype.compliance.approval_flow_title")}>
+                  <Timeline
+                    items={approvalSteps.map((step) => ({
+                      color: "blue",
+                      children: (
+                        <Space direction="vertical" size={2}>
+                          <Typography.Text strong>{`${step.order}. ${step.roleCode} · ${step.roleName}`}</Typography.Text>
+                          <Typography.Text>{step.action}</Typography.Text>
+                          <Typography.Text type="secondary">{step.output}</Typography.Text>
+                        </Space>
+                      ),
+                    }))}
+                  />
+                </Card>
+              </Col>
+            </Row>
+          </Space>
         );
       case "evidence":
         return (
@@ -463,6 +621,9 @@ export function ProjectWorkspacePrototypePage() {
                 )}
               />
             </Card>
+            <Card size="small" title={t("project_workspace_prototype.overview.workflow_preview_title")}>
+              <Steps direction="vertical" size="small" current={0} items={workflowPreviewSteps} />
+            </Card>
             <Card size="small" title={t("project_workspace_prototype.overview.quick_actions_title")}>
               <Flex gap={12} wrap="wrap">
                 {quickActions.map((action) => (
@@ -542,6 +703,23 @@ export function ProjectWorkspacePrototypePage() {
                     onChange={(value: string) => setScenarioId(value)}
                     placeholder={t("project_workspace_prototype.select_scenario_placeholder")}
                   />
+                  <Segmented
+                    options={[
+                      { label: t("project_workspace_prototype.project_size.small"), value: "small" },
+                      { label: t("project_workspace_prototype.project_size.medium"), value: "medium" },
+                      { label: t("project_workspace_prototype.project_size.large"), value: "large" },
+                    ]}
+                    value={projectSize}
+                    onChange={(value) => setProjectSize(value as "small" | "medium" | "large")}
+                  />
+                  <Segmented
+                    options={[
+                      { label: t("project_workspace_prototype.modes.standard"), value: "standard" },
+                      { label: t("project_workspace_prototype.modes.auditor"), value: "auditor" },
+                    ]}
+                    value={auditorMode ? "auditor" : "standard"}
+                    onChange={(value) => setAuditorMode(value === "auditor")}
+                  />
                 </Space>
                 <Button onClick={() => navigate("/app/admin/projects")}>{t("project_workspace_prototype.back_to_projects")}</Button>
               </Flex>
@@ -583,49 +761,51 @@ export function ProjectWorkspacePrototypePage() {
             </Card>
 
             <Row gutter={[16, 16]}>
-              <Col xs={24} xl={17}>
+              <Col xs={24} xl={auditorMode ? 24 : 17}>
                 {renderSection(section)}
               </Col>
-              <Col xs={24} xl={7}>
-                <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                  <Card size="small" title={t("project_workspace_prototype.side_panels.project_controls")}>
-                    <List
-                      dataSource={[
-                        { icon: <TeamOutlined />, label: t("project_workspace_prototype.side_panels.team_register") },
-                        { icon: <ClusterOutlined />, label: t("project_workspace_prototype.side_panels.org_chart") },
-                        { icon: <ProfileOutlined />, label: t("project_workspace_prototype.side_panels.role_matrix") },
-                        { icon: <SafetyCertificateOutlined />, label: t("project_workspace_prototype.side_panels.compliance") },
-                        { icon: <FileSearchOutlined />, label: t("project_workspace_prototype.side_panels.evidence") },
-                        { icon: <AuditOutlined />, label: t("project_workspace_prototype.side_panels.audit") },
-                      ]}
-                      renderItem={(item) => (
-                        <List.Item>
-                          <Space>
-                            {item.icon}
-                            <Typography.Text>{item.label}</Typography.Text>
-                          </Space>
-                        </List.Item>
-                      )}
-                    />
-                  </Card>
+              {auditorMode ? null : (
+                <Col xs={24} xl={7}>
+                  <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                    <Card size="small" title={t("project_workspace_prototype.side_panels.project_controls")}>
+                      <List
+                        dataSource={[
+                          { icon: <TeamOutlined />, label: t("project_workspace_prototype.side_panels.team_register") },
+                          { icon: <ClusterOutlined />, label: t("project_workspace_prototype.side_panels.org_chart") },
+                          { icon: <ProfileOutlined />, label: t("project_workspace_prototype.side_panels.role_matrix") },
+                          { icon: <SafetyCertificateOutlined />, label: t("project_workspace_prototype.side_panels.compliance") },
+                          { icon: <FileSearchOutlined />, label: t("project_workspace_prototype.side_panels.evidence") },
+                          { icon: <AuditOutlined />, label: t("project_workspace_prototype.side_panels.audit") },
+                        ]}
+                        renderItem={(item) => (
+                          <List.Item>
+                            <Space>
+                              {item.icon}
+                              <Typography.Text>{item.label}</Typography.Text>
+                            </Space>
+                          </List.Item>
+                        )}
+                      />
+                    </Card>
 
-                  <Card size="small" title={t("project_workspace_prototype.side_panels.prototype_notes_title")}>
-                    <Space direction="vertical" size={10}>
-                      <Typography.Text type="secondary">
-                        {t("project_workspace_prototype.side_panels.selected_project_meta", {
-                          owner: selectedProject?.ownerDisplayName ?? "-",
-                          phase: selectedProject?.phase ?? "-",
-                        })}
-                      </Typography.Text>
-                      {selectedTemplate ? <Typography.Paragraph style={{ margin: 0 }}>{t(selectedTemplate.descriptionKey)}</Typography.Paragraph> : null}
-                      {selectedScenario ? <Typography.Paragraph style={{ margin: 0 }}>{t(selectedScenario.descriptionKey)}</Typography.Paragraph> : null}
-                      <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_1")}</Typography.Paragraph>
-                      <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_2")}</Typography.Paragraph>
-                      <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_3")}</Typography.Paragraph>
-                    </Space>
-                  </Card>
-                </Space>
-              </Col>
+                    <Card size="small" title={t("project_workspace_prototype.side_panels.prototype_notes_title")}>
+                      <Space direction="vertical" size={10}>
+                        <Typography.Text type="secondary">
+                          {t("project_workspace_prototype.side_panels.selected_project_meta", {
+                            owner: selectedProject?.ownerDisplayName ?? "-",
+                            phase: selectedProject?.phase ?? "-",
+                          })}
+                        </Typography.Text>
+                        {selectedTemplate ? <Typography.Paragraph style={{ margin: 0 }}>{t(selectedTemplate.descriptionKey)}</Typography.Paragraph> : null}
+                        {selectedScenario ? <Typography.Paragraph style={{ margin: 0 }}>{t(selectedScenario.descriptionKey)}</Typography.Paragraph> : null}
+                        <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_1")}</Typography.Paragraph>
+                        <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_2")}</Typography.Paragraph>
+                        <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_3")}</Typography.Paragraph>
+                      </Space>
+                    </Card>
+                  </Space>
+                </Col>
+              )}
             </Row>
           </Space>
         )}
