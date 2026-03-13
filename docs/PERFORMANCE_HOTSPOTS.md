@@ -156,6 +156,7 @@ Current state:
 
 * vendor splitting exists
 * low-risk reductions have already removed some unnecessary Ant Design usage
+* CI now enforces bundle budgets for the main shell and key route chunks
 
 Do not regress:
 
@@ -166,6 +167,18 @@ Future options:
 
 * replace high-cost decorative components in public paths first
 * continue route-, section-, and modal-level lazy loading where it reduces initial load
+
+Current bundle budgets:
+
+* `antd-core-vendor`: `<= 1050 kB`
+* `react-vendor`: `<= 240 kB`
+* `index`: `<= 90 kB`
+* `AdminUsersPage`: `<= 26 kB`
+* `AuditLogsPage`: `<= 10 kB`
+* `DocumentDashboardPage`: `<= 6 kB`
+* `PublicRegistrationPage`: `<= 8 kB`
+* `InvitationAcceptPage`: `<= 8 kB`
+* `RegistrationPasswordSetupPage`: `<= 7 kB`
 
 ## admin users screen
 
@@ -239,6 +252,7 @@ Frontend:
 
 * `npm run build:local`
 * `npm run perf:bundle-report`
+* `npm run perf:bundle-budget`
 
 Backend:
 

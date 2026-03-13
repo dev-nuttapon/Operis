@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 const repoRoot = process.cwd();
@@ -19,8 +19,28 @@ async function walk(dir) {
   return files.flat();
 }
 
+async function fileExists(targetPath) {
+  try {
+    const info = await stat(targetPath);
+    return info.isFile();
+  } catch {
+    return false;
+  }
+}
+
+function hasManifestSections(manifestContent, sectionTitles) {
+  return sectionTitles.every((sectionTitle) => manifestContent.includes(`${sectionTitle}:`));
+}
+
 const files = await walk(modulesRoot);
 const violations = [];
+const forbiddenHandlerDependencies = [
+  "OperisDbContext",
+  "DbContext",
+  "IAuditLogWriter",
+  "IKeycloakAdminClient",
+  "IReferenceDataCache",
+];
 
 for (const file of files) {
   if (!file.endsWith("Module.cs")) {
@@ -43,6 +63,16 @@ for (const file of files) {
   if (mapsEndpoints && !hasContractsFolder) {
     violations.push(`${relPath}: module exposes endpoints but has no Contracts layer folder.`);
   }
+  const manifestPath = path.join(path.dirname(file), "README.md");
+  if (mapsEndpoints && !await fileExists(manifestPath)) {
+    violations.push(`${relPath}: module exposes endpoints but has no README.md module manifest.`);
+  } else if (mapsEndpoints) {
+    const manifestContent = await readFile(manifestPath, "utf8");
+    const requiredSections = ["Purpose", "Public surface", "Owned data", "Notes"];
+    if (!hasManifestSections(manifestContent, requiredSections)) {
+      violations.push(`${relPath}: README.md module manifest must include sections: ${requiredSections.join(", ")}.`);
+    }
+  }
 
   if (/OperisDbContext\s+\w+/.test(source) || /DbContext\s+\w+/.test(source)) {
     violations.push(`${relPath}: module composition layer must not depend on DbContext directly. Move persistence orchestration into Application or Infrastructure services.`);
@@ -50,6 +80,17 @@ for (const file of files) {
 
   if (source.includes("SaveChangesAsync(")) {
     violations.push(`${relPath}: module composition layer must not call SaveChangesAsync directly.`);
+  }
+
+  const mapEndpointsIndex = source.indexOf("public IEndpointRouteBuilder MapEndpoints");
+  if (mapEndpointsIndex >= 0) {
+    const endpointSection = source.slice(mapEndpointsIndex);
+    for (const dependency of forbiddenHandlerDependencies) {
+      const pattern = new RegExp(`\\b${dependency}\\s+\\w+`, "g");
+      if (pattern.test(endpointSection)) {
+        violations.push(`${relPath}: endpoint composition must not depend on ${dependency} directly. Delegate through Application services.`);
+      }
+    }
   }
 }
 

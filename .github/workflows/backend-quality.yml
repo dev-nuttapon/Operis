@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "apps/backend/**"
+      - "docs/MODULE_CONTRACTS.md"
+      - "scripts/check-module-contracts.mjs"
       - "scripts/check-backend-architecture.mjs"
       - ".github/workflows/backend-quality.yml"
   push:
@@ -12,6 +14,8 @@ on:
       - master
     paths:
       - "apps/backend/**"
+      - "docs/MODULE_CONTRACTS.md"
+      - "scripts/check-module-contracts.mjs"
       - "scripts/check-backend-architecture.mjs"
       - ".github/workflows/backend-quality.yml"
 
@@ -31,5 +35,11 @@ jobs:
       - name: Check backend architecture
         run: node scripts/check-backend-architecture.mjs
 
+      - name: Check module contracts
+        run: node scripts/check-module-contracts.mjs
+
       - name: Build backend
         run: dotnet build apps/backend/Operis_API/Operis_API.csproj
+
+      - name: Run backend tests
+        run: dotnet test apps/backend/Operis_API.Tests/Operis_API.Tests.csproj --no-restore

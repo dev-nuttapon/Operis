@@ -70,6 +70,10 @@ function directoryExists(candidate) {
   }
 }
 
+function hasManifestSections(manifestContent, sectionTitles) {
+  return sectionTitles.every((sectionTitle) => manifestContent.includes(`${sectionTitle}:`));
+}
+
 function resolveImport(fromFile, specifier) {
   if (!specifier.startsWith(".")) {
     return null;
@@ -132,6 +136,17 @@ for (const entry of moduleEntries) {
   }
 
   const modulePath = path.join(modulesRoot, entry.name);
+  const manifestPath = path.join(modulePath, "README.md");
+  if (!fileExists(manifestPath)) {
+    violations.push(`src/modules/${entry.name}: missing README.md module manifest.`);
+  } else {
+    const manifestContent = fs.readFileSync(manifestPath, "utf8");
+    const requiredSections = ["Purpose", "Public surface", "Dependencies", "Notes"];
+    if (!hasManifestSections(manifestContent, requiredSections)) {
+      violations.push(`src/modules/${entry.name}: README.md module manifest must include sections: ${requiredSections.join(", ")}.`);
+    }
+  }
+
   const hasPublicEntry = [...allowedPublicEntries].some((entryName) => fileExists(path.join(modulePath, entryName)));
   if (!hasPublicEntry) {
     violations.push(`src/modules/${entry.name}: missing public entry file. Add index.ts or public.ts.`);

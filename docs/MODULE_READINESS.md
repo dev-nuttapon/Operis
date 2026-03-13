@@ -13,6 +13,7 @@ Use it to:
 * assess a module before refactoring
 * decide what to improve next
 * prevent regressions while staying in a modular monolith
+* understand whether the current baseline phase is already complete through `docs/BASELINE_STATUS.md`
 
 ---
 
@@ -101,10 +102,10 @@ Current module status based on the repository state on `2026-03-13`:
 
 | Module | Frontend | Backend | Overall | Notes |
 | --- | --- | --- | --- | --- |
-| `users` | `8/10` | `8/10` | `8/10` | Backend now has application-level queries and commands for user, registration, invitation, and reference-data flows. |
+| `users` | `8/10` | `8.5/10` | `8.5/10` | Backend now has application-level queries and commands, plus command/query and handler-level tests for key flows. |
 | `auth` | `7/10` | `n/a` | `7/10` | Public API is clearer now, but this is still a cross-cutting module with high app-shell coupling. |
-| `audits` | `6.5/10` | `7/10` | `6.5/10` | Backend query layer now exists, giving the module a real extraction boundary even though the surface area is still small. |
-| `documents` | `6/10` | `6.5/10` | `6/10` | Backend now follows `Module -> Application -> Contracts`, but the module still has a small feature surface. |
+| `audits` | `6.5/10` | `7.5/10` | `7/10` | Backend query layer exists and now has both application tests and handler-level composition coverage. |
+| `documents` | `6/10` | `7/10` | `6.5/10` | Backend follows `Module -> Application -> Contracts` and now has query plus handler-level composition tests. |
 
 ---
 
@@ -146,6 +147,7 @@ Needs before future extraction:
 
 * clearer data ownership notes
 * more complete module-level tests
+* endpoint-level composition coverage if write flows expand further
 
 ## auth
 
@@ -169,6 +171,7 @@ Strengths:
 Needs before future extraction:
 
 * stronger frontend module shape if the UI expands
+* write-flow coverage when the module grows beyond read-only listing
 
 ## documents
 
@@ -182,6 +185,7 @@ Needs before future extraction:
 * mature `api/` and `hooks/`
 * stronger separation between page, form, and data flow
 * more complete contracts if write flows expand
+* handler coverage for future write paths, not only list queries
 
 ---
 
@@ -197,6 +201,7 @@ Before a module is marked as "ready to move later", verify:
 
 Related docs:
 
+* `docs/BASELINE_STATUS.md`
 * `docs/DATA_OWNERSHIP.md`
 * `docs/MODULE_CONTRACTS.md`
 * `docs/MODULE_TEMPLATE.md`

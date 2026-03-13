@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "apps/frontend/**"
+      - "docs/MODULE_CONTRACTS.md"
+      - "scripts/check-module-contracts.mjs"
       - ".github/workflows/frontend-quality.yml"
   push:
     branches:
@@ -11,6 +13,8 @@ on:
       - master
     paths:
       - "apps/frontend/**"
+      - "docs/MODULE_CONTRACTS.md"
+      - "scripts/check-module-contracts.mjs"
       - ".github/workflows/frontend-quality.yml"
 
 jobs:
@@ -37,6 +41,9 @@ jobs:
       - name: Check architecture boundaries
         run: npm run check:architecture
 
+      - name: Check module contracts
+        run: node ../../scripts/check-module-contracts.mjs
+
       - name: Run tests
         run: npm test
 
@@ -45,3 +52,6 @@ jobs:
 
       - name: Report bundle sizes
         run: npm run perf:bundle-report
+
+      - name: Check bundle budgets
+        run: npm run perf:bundle-budget

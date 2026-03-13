@@ -13,6 +13,7 @@ Use this document to keep extraction boundaries explicit while the codebase is s
 Public entry:
 
 * [apps/frontend/src/modules/auth/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/auth/index.ts)
+* [apps/frontend/src/modules/auth/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/auth/README.md)
 
 Notes:
 
@@ -25,6 +26,7 @@ Public entries:
 
 * [apps/frontend/src/modules/users/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/users/index.ts)
 * [apps/frontend/src/modules/users/public.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/users/public.ts)
+* [apps/frontend/src/modules/users/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/users/README.md)
 
 Notes:
 
@@ -36,12 +38,14 @@ Notes:
 Public entry:
 
 * [apps/frontend/src/modules/documents/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/documents/index.ts)
+* [apps/frontend/src/modules/documents/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/documents/README.md)
 
 ## audits
 
 Public entry:
 
 * [apps/frontend/src/modules/audits/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/audits/index.ts)
+* [apps/frontend/src/modules/audits/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/audits/README.md)
 
 ---
 
@@ -52,6 +56,7 @@ Public entry:
 Module entry:
 
 * [apps/backend/Operis_API/Modules/Users/UsersModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Users/UsersModule.cs)
+* [apps/backend/Operis_API/Modules/Users/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Users/README.md)
 
 Application surfaces:
 
@@ -69,6 +74,7 @@ Rule:
 Module entry:
 
 * [apps/backend/Operis_API/Modules/Audits/AuditsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Audits/AuditsModule.cs)
+* [apps/backend/Operis_API/Modules/Audits/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Audits/README.md)
 
 Application surfaces:
 
@@ -79,6 +85,7 @@ Application surfaces:
 Module entry:
 
 * [apps/backend/Operis_API/Modules/Documents/DocumentsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Documents/DocumentsModule.cs)
+* [apps/backend/Operis_API/Modules/Documents/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Documents/README.md)
 
 Application surfaces:
 
@@ -91,10 +98,12 @@ Application surfaces:
 Frontend:
 
 * `npm run check:architecture`
+* `node scripts/check-module-contracts.mjs`
 
 Backend:
 
 * `node scripts/check-backend-architecture.mjs`
+* `node scripts/check-module-contracts.mjs`
 
 CI:
 

@@ -262,6 +262,12 @@ Backend changes must keep these checks passing:
 
 AI should prefer adding or updating guardrails when a rule is important enough to preserve across future modules.
 
+Additional backend enforcement:
+
+* `*Module.cs` must not depend on `OperisDbContext` in endpoint composition
+* `*Module.cs` must not depend on `IAuditLogWriter`, `IKeycloakAdminClient`, or `IReferenceDataCache` in endpoint composition
+* those dependencies belong in `Application/` or `Infrastructure/` services, not endpoint handlers
+
 ---
 
 # Preferred Review Checklist
