@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.IO;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +19,11 @@ internal static class TestHttpContextFactory
 
         return new DefaultHttpContext
         {
-            RequestServices = services
+            RequestServices = services,
+            Response =
+            {
+                Body = new MemoryStream()
+            }
         };
     }
 }

@@ -1,9 +1,11 @@
 using System.Reflection;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Modules.Workflows;
 using Operis_API.Modules.Workflows.Infrastructure;
+using Operis_API.Shared.Contracts;
 using Operis_API.Shared.Security;
 using Operis_API.Tests.Support;
 
@@ -80,6 +82,23 @@ public sealed class WorkflowsModuleHandlerTests
         await result.ExecuteAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateWorkflowDefinitionAsync_WhenNameMissing_ReturnsValidationCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter());
+
+        var result = await InvokeCreateWorkflowDefinitionAsync(
+            new CreateWorkflowDefinitionRequest(string.Empty),
+            commands);
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+        Assert.Equal(ApiErrorCodes.WorkflowDefinitionNameRequired, await ReadProblemCodeAsync(httpContext));
     }
 
     [Fact]
@@ -192,4 +211,11 @@ public sealed class WorkflowsModuleHandlerTests
 
     private static ClaimsPrincipal CreateUnprivilegedPrincipal() =>
         new(new ClaimsIdentity([], "TestAuth"));
+
+    private static async Task<string?> ReadProblemCodeAsync(HttpContext httpContext)
+    {
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var document = await JsonDocument.ParseAsync(httpContext.Response.Body);
+        return document.RootElement.TryGetProperty("code", out var codeElement) ? codeElement.GetString() : null;
+    }
 }
