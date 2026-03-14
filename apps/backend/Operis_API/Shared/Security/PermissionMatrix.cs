@@ -30,7 +30,10 @@ public sealed class PermissionMatrix : IPermissionMatrix
                 Permissions.Projects.ExportEvidence,
                 Permissions.Projects.ReadCompliance,
                 Permissions.Projects.ManageTemplates,
+                Permissions.ActivityLogs.Read,
+                Permissions.ActivityLogs.Export,
                 Permissions.AuditLogs.Read,
+                Permissions.AuditLogs.Export,
                 Permissions.Documents.Read,
                 Permissions.Workflows.Read,
                 Permissions.Workflows.ManageDefinitions
@@ -54,13 +57,18 @@ public sealed class PermissionMatrix : IPermissionMatrix
                 Permissions.Projects.ExportEvidence,
                 Permissions.Projects.ReadCompliance,
                 Permissions.Projects.ManageTemplates,
+                Permissions.ActivityLogs.Read,
+                Permissions.ActivityLogs.Export,
                 Permissions.AuditLogs.Read,
+                Permissions.AuditLogs.Export,
                 Permissions.Documents.Read,
                 Permissions.Workflows.Read,
                 Permissions.Workflows.ManageDefinitions
             ],
             ["operis:audit_auditor"] =
             [
+                Permissions.ActivityLogs.Read,
+                Permissions.ActivityLogs.Export,
                 Permissions.AuditLogs.Read,
                 Permissions.AuditLogs.Export,
                 Permissions.Projects.ReadEvidence,
@@ -73,7 +81,7 @@ public sealed class PermissionMatrix : IPermissionMatrix
             ["operis:workflows_approver"] = [Permissions.Workflows.Read],
             ["operis:workflows_department_manager"] = [Permissions.Workflows.Read],
             ["operis:employee_viewer"] = [Permissions.Documents.Read, Permissions.Workflows.Read],
-            ["operis:ops_support"] = [Permissions.AuditLogs.Read]
+            ["operis:ops_support"] = [Permissions.ActivityLogs.Read]
         };
 
     public IReadOnlyList<string> GetPermissions(IEnumerable<string> roles)

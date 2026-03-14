@@ -36,6 +36,8 @@ const projectAssignmentsQueryKey = ["admin", "project-assignments"];
 const projectMemberUsersQueryKey = ["admin", "project-member-users"];
 
 export function useProjectAdmin(input: {
+  projectsEnabled?: boolean;
+  projectMemberUsersEnabled?: boolean;
   projects: ListProjectsInput;
   projectRoles: { projectId?: string; search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number };
   projectAssignments: ListProjectAssignmentsInput | null;
@@ -47,6 +49,7 @@ export function useProjectAdmin(input: {
 
   const projectsQuery = useQuery({
     queryKey: [...projectsQueryKey, input.projects],
+    enabled: input.projectsEnabled ?? true,
     queryFn: ({ signal }) => listProjects(input.projects, signal),
     staleTime: 15_000,
   });
@@ -99,6 +102,7 @@ export function useProjectAdmin(input: {
 
   const projectMemberUsersQuery = useQuery({
     queryKey: projectMemberUsersQueryKey,
+    enabled: input.projectMemberUsersEnabled ?? false,
     queryFn: ({ signal }) => listUsers({ page: 1, pageSize: 100, sortBy: "createdAt", sortOrder: "desc" }, signal),
     staleTime: 5 * 60_000,
   });

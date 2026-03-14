@@ -95,6 +95,7 @@ export function ProjectWorkspacePrototypePage() {
   const [auditorMode, setAuditorMode] = useState(false);
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
+  const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
   const {
     section,
     setSection,
@@ -118,7 +119,7 @@ export function ProjectWorkspacePrototypePage() {
   } = useProjectWorkspacePrototype();
 
   const { projectsQuery } = useProjectAdmin({
-    projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
+    projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc", assignedOnly: !canReadProjects },
     projectRoles: { page: 1, pageSize: 100, sortBy: "displayOrder", sortOrder: "asc" },
     projectAssignments: null,
   });
@@ -136,12 +137,19 @@ export function ProjectWorkspacePrototypePage() {
     () => (projectsQuery.data?.items ?? []).find((item) => item.id === projectId) ?? null,
     [projectId, projectsQuery.data?.items],
   );
+  const hasWorkspaceAccess = canReadProjects || selectedProject !== null;
 
   useEffect(() => {
     if (!projectId && (projectsQuery.data?.items?.length ?? 0) > 0) {
       navigate(`/app/projects/${projectsQuery.data!.items[0]!.id}/workspace`, { replace: true });
     }
   }, [navigate, projectId, projectsQuery.data?.items]);
+
+  useEffect(() => {
+    if (auditorMode && !["compliance", "evidence", "auditTrail", "workflow"].includes(section)) {
+      setSection("compliance");
+    }
+  }, [auditorMode, section, setSection]);
 
   const sectionOptions = useMemo(
     () => [
@@ -197,19 +205,198 @@ export function ProjectWorkspacePrototypePage() {
     }
     return requiredDocuments;
   }, [projectSize, requiredDocuments, t]);
+  const sizedApprovalSteps = useMemo(() => {
+    if (projectSize === "small") {
+      return approvalSteps.slice(0, Math.max(2, approvalSteps.length - 1));
+    }
+    if (projectSize === "large") {
+      return [
+        ...approvalSteps,
+        {
+          id: "release-board",
+          order: approvalSteps.length + 1,
+          roleCode: "CCB",
+          roleName: t("project_workspace_prototype.workflow.synthetic_roles.ccb"),
+          action: t("project_workspace_prototype.workflow.synthetic_actions.board_review"),
+          output: t("project_workspace_prototype.workflow.synthetic_outputs.board_release_note"),
+        },
+      ];
+    }
+    return approvalSteps;
+  }, [approvalSteps, projectSize, t]);
+  const sizedEvidenceItems = useMemo(() => {
+    const base = [...evidenceItems];
+    if (scenarioId === "audit_preparation") {
+      base.unshift({
+        id: "audit-pack",
+        title: t("project_workspace_prototype.evidence.synthetic.audit_pack_title"),
+        description: t("project_workspace_prototype.evidence.synthetic.audit_pack_description"),
+        lastUpdated: "13 Mar 2026 16:45",
+        format: "ZIP / PDF",
+      });
+    }
+    if (projectSize === "large") {
+      base.push({
+        id: "governance-register",
+        title: t("project_workspace_prototype.evidence.synthetic.governance_register_title"),
+        description: t("project_workspace_prototype.evidence.synthetic.governance_register_description"),
+        lastUpdated: "13 Mar 2026 17:10",
+        format: "XLSX / PDF",
+      });
+    }
+    return base;
+  }, [evidenceItems, projectSize, scenarioId, t]);
+  const sizedComplianceChecks = useMemo(() => {
+    const base = [...complianceChecks];
+    if (projectSize === "large") {
+      base.push({
+        id: "governance-register",
+        titleKey: "project_workspace_prototype.compliance.synthetic.governance_register.title",
+        detailKey: "project_workspace_prototype.compliance.synthetic.governance_register.detail",
+        severity: "warning",
+        targetSection: "evidence",
+      });
+      base.push({
+        id: "large-project-snapshot",
+        titleKey: "project_workspace_prototype.compliance.synthetic.large_project_snapshot.title",
+        detailKey: "project_workspace_prototype.compliance.synthetic.large_project_snapshot.detail",
+        severity: "warning",
+        targetSection: "evidence",
+      });
+    }
+    if (scenarioId === "audit_preparation") {
+      base.push({
+        id: "audit-pack",
+        titleKey: "project_workspace_prototype.compliance.synthetic.audit_pack.title",
+        detailKey: "project_workspace_prototype.compliance.synthetic.audit_pack.detail",
+        severity: "warning",
+        targetSection: "evidence",
+      });
+      base.push({
+        id: "audit-preparation-snapshot",
+        titleKey: "project_workspace_prototype.compliance.synthetic.audit_preparation_snapshot.title",
+        detailKey: "project_workspace_prototype.compliance.synthetic.audit_preparation_snapshot.detail",
+        severity: "warning",
+        targetSection: "auditTrail",
+      });
+    }
+    if (scenarioId === "release_readiness") {
+      base.push({
+        id: "release-readiness-snapshot",
+        titleKey: "project_workspace_prototype.compliance.synthetic.release_readiness_gate.title",
+        detailKey: "project_workspace_prototype.compliance.synthetic.release_readiness_gate.detail",
+        severity: "warning",
+        targetSection: "workflow",
+      });
+    }
+    return base;
+  }, [complianceChecks, projectSize, scenarioId]);
   const workflowPreviewSteps = useMemo(
     () =>
-      approvalSteps.map((step, index) => ({
+      sizedApprovalSteps.map((step, index) => ({
         title: `${step.order}. ${step.roleCode}`,
         description: `${step.action} · ${step.output}`,
-        status: (index === approvalSteps.length - 1 ? "wait" : index === 0 ? "process" : "finish") as
+        status: (index === sizedApprovalSteps.length - 1 ? "wait" : index === 0 ? "process" : "finish") as
           | "wait"
           | "process"
           | "finish"
           | "error",
       })),
-    [approvalSteps],
+    [sizedApprovalSteps],
   );
+  const workflowStateSteps = useMemo(() => {
+    const base =
+      projectSize === "small"
+        ? [
+            t("project_workspace_prototype.workflow.states.draft"),
+            t("project_workspace_prototype.workflow.states.review"),
+            t("project_workspace_prototype.workflow.states.approve"),
+            t("project_workspace_prototype.workflow.states.release"),
+          ]
+        : projectSize === "large"
+          ? [
+              t("project_workspace_prototype.workflow.states.draft"),
+              t("project_workspace_prototype.workflow.states.internal_review"),
+              t("project_workspace_prototype.workflow.states.quality_gate"),
+              t("project_workspace_prototype.workflow.states.board_review"),
+              t("project_workspace_prototype.workflow.states.approve"),
+              t("project_workspace_prototype.workflow.states.release"),
+            ]
+          : [
+              t("project_workspace_prototype.workflow.states.draft"),
+              t("project_workspace_prototype.workflow.states.review"),
+              t("project_workspace_prototype.workflow.states.quality_gate"),
+              t("project_workspace_prototype.workflow.states.approve"),
+              t("project_workspace_prototype.workflow.states.release"),
+            ];
+    return base.map((title) => ({ title }));
+  }, [projectSize, t]);
+  const blockedFlowAlerts = useMemo(() => {
+    if (scenarioId === "release_readiness") {
+      return [
+        t("project_workspace_prototype.workflow.blockers.release_readiness.1"),
+        t("project_workspace_prototype.workflow.blockers.release_readiness.2"),
+      ];
+    }
+    if (scenarioId === "audit_preparation") {
+      return [
+        t("project_workspace_prototype.workflow.blockers.audit_preparation.1"),
+        t("project_workspace_prototype.workflow.blockers.audit_preparation.2"),
+      ];
+    }
+    if (projectSize === "large") {
+      return [
+        t("project_workspace_prototype.workflow.blockers.large_project.1"),
+        t("project_workspace_prototype.workflow.blockers.large_project.2"),
+      ];
+    }
+    return [t("project_workspace_prototype.workflow.blockers.default.1")];
+  }, [projectSize, scenarioId, t]);
+  const evidenceSnapshots = useMemo(() => {
+    const base = [
+      {
+        id: "milestone-m1",
+        title: t("project_workspace_prototype.evidence.snapshots.m1_title"),
+        detail: t("project_workspace_prototype.evidence.snapshots.m1_detail"),
+        meta: t("project_workspace_prototype.evidence.snapshot_meta", {
+          date: "2026-03-10",
+          owner: "PM",
+        }),
+      },
+      {
+        id: "milestone-m2",
+        title: t("project_workspace_prototype.evidence.snapshots.m2_title"),
+        detail: t("project_workspace_prototype.evidence.snapshots.m2_detail"),
+        meta: t("project_workspace_prototype.evidence.snapshot_meta", {
+          date: "2026-03-12",
+          owner: "QA",
+        }),
+      },
+    ];
+    if (projectSize !== "small") {
+      base.push({
+        id: "release-readiness",
+        title: t("project_workspace_prototype.evidence.snapshots.release_title"),
+        detail: t("project_workspace_prototype.evidence.snapshots.release_detail"),
+        meta: t("project_workspace_prototype.evidence.snapshot_meta", {
+          date: "2026-03-13",
+          owner: "CM",
+        }),
+      });
+    }
+    if (scenarioId === "audit_preparation") {
+      base.push({
+        id: "audit-cut",
+        title: t("project_workspace_prototype.evidence.snapshots.audit_title"),
+        detail: t("project_workspace_prototype.evidence.snapshots.audit_detail"),
+        meta: t("project_workspace_prototype.evidence.snapshot_meta", {
+          date: "2026-03-14",
+          owner: "QA",
+        }),
+      });
+    }
+    return base;
+  }, [projectSize, scenarioId, t]);
   const processStages = useMemo(() => {
     switch (templateId) {
       case "compliance_audit":
@@ -279,11 +466,11 @@ export function ProjectWorkspacePrototypePage() {
     {
       title: t("project_workspace_prototype.team.columns.role"),
       dataIndex: "roleName",
-                  render: (_, record) => (
-                    <Space>
-                      <Tag>{record.roleCode}</Tag>
-                      <Typography.Text>{record.roleName}</Typography.Text>
-                    </Space>
+      render: (_, record) => (
+        <Space>
+          <Tag>{record.roleCode}</Tag>
+          <Typography.Text>{record.roleName}</Typography.Text>
+        </Space>
       ),
     },
     {
@@ -418,6 +605,17 @@ export function ProjectWorkspacePrototypePage() {
                           {role.authority}
                         </Descriptions.Item>
                       </Descriptions>
+                      <Flex gap={8} wrap>
+                        <Button size="small" type="link" onClick={() => setSection("workflow")}>
+                          {t("project_workspace_prototype.roles.open_workflow")}
+                        </Button>
+                        <Button size="small" type="link" onClick={() => setSection("evidence")}>
+                          {t("project_workspace_prototype.roles.open_evidence")}
+                        </Button>
+                        <Button size="small" type="link" onClick={() => setSection("compliance")}>
+                          {t("project_workspace_prototype.roles.open_compliance")}
+                        </Button>
+                      </Flex>
                     </Space>
                   </Card>
                 </Col>
@@ -451,6 +649,16 @@ export function ProjectWorkspacePrototypePage() {
               </Space>
             </Card>
             <Row gutter={[16, 16]}>
+              <Col xs={24}>
+                <Card size="small" title={t("project_workspace_prototype.workflow.state_flow_title")}>
+                  <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                    <Typography.Text type="secondary">
+                      {t("project_workspace_prototype.workflow.state_flow_description")}
+                    </Typography.Text>
+                    <Steps current={Math.max(0, workflowStateSteps.length - 2)} responsive items={workflowStateSteps} />
+                  </Space>
+                </Card>
+              </Col>
               <Col xs={24} xl={12}>
                 <Card size="small" title={t("project_workspace_prototype.workflow.required_evidence_title")}>
                   <List
@@ -477,13 +685,18 @@ export function ProjectWorkspacePrototypePage() {
                       </List.Item>
                     )}
                   />
+                  <Flex justify="flex-end" style={{ marginTop: 12 }}>
+                    <Button type="link" onClick={() => setSection("evidence")}>
+                      {t("project_workspace_prototype.workflow.open_evidence")}
+                    </Button>
+                  </Flex>
                 </Card>
               </Col>
               <Col xs={24} xl={12}>
                 <Card size="small" title={t("project_workspace_prototype.workflow.gates_title")}>
                   <Timeline
-                    items={approvalSteps.map((step, index) => ({
-                      color: index === approvalSteps.length - 1 ? "green" : "blue",
+                    items={sizedApprovalSteps.map((step, index) => ({
+                      color: index === sizedApprovalSteps.length - 1 ? "green" : "blue",
                       children: (
                         <Space direction="vertical" size={2}>
                           <Typography.Text strong>{`${step.roleCode} · ${step.roleName}`}</Typography.Text>
@@ -493,6 +706,11 @@ export function ProjectWorkspacePrototypePage() {
                       ),
                     }))}
                   />
+                  <Flex justify="flex-end" style={{ marginTop: 12 }}>
+                    <Button type="link" onClick={() => setSection("compliance")}>
+                      {t("project_workspace_prototype.workflow.open_compliance")}
+                    </Button>
+                  </Flex>
                 </Card>
               </Col>
             </Row>
@@ -510,6 +728,13 @@ export function ProjectWorkspacePrototypePage() {
                 )}
               />
             </Card>
+            <Card size="small" title={t("project_workspace_prototype.workflow.blocked_states_title")}>
+              <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                {blockedFlowAlerts.map((item) => (
+                  <Alert key={item} type="warning" showIcon message={item} />
+                ))}
+              </Space>
+            </Card>
           </Space>
         );
       case "compliance":
@@ -517,7 +742,7 @@ export function ProjectWorkspacePrototypePage() {
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <Card size="small" title={t("project_workspace_prototype.compliance.title")}>
               <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                {complianceChecks.map((check) => (
+                {sizedComplianceChecks.map((check) => (
                   <Alert
                     key={check.id}
                     type={complianceColor(check.severity)}
@@ -584,36 +809,71 @@ export function ProjectWorkspacePrototypePage() {
       case "evidence":
         return (
           <Card size="small" title={t("project_workspace_prototype.evidence.title")}>
-            <List
-              dataSource={evidenceItems}
-              renderItem={(item) => (
-                <List.Item
-                  actions={[
-                    <Button key={`${item.id}-preview`} onClick={() => setSelectedEvidenceItem(item)}>
-                      {t("project_workspace_prototype.evidence.preview")}
-                    </Button>,
-                    <Button key={`${item.id}-history`} onClick={() => setSection("auditTrail")}>
-                      {t("project_workspace_prototype.evidence.view_history")}
-                    </Button>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={item.title}
-                    description={
-                      <Space direction="vertical" size={2}>
-                        <Typography.Text>{item.description}</Typography.Text>
-                        <Typography.Text type="secondary">
-                          {t("project_workspace_prototype.evidence.meta", {
-                            updated: item.lastUpdated,
-                            format: item.format,
-                          })}
-                        </Typography.Text>
-                      </Space>
-                    }
+            <Space direction="vertical" size={16} style={{ width: "100%" }}>
+              <Card size="small" title={t("project_workspace_prototype.evidence.snapshot_preview_title")}>
+                <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                  <Typography.Text type="secondary">
+                    {t("project_workspace_prototype.evidence.snapshot_preview_description")}
+                  </Typography.Text>
+                  <List
+                    dataSource={evidenceSnapshots}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <Space direction="vertical" size={2}>
+                          <Typography.Text strong>{item.title}</Typography.Text>
+                          <Typography.Text>{item.detail}</Typography.Text>
+                          <Typography.Text type="secondary">{item.meta}</Typography.Text>
+                        </Space>
+                      </List.Item>
+                    )}
                   />
-                </List.Item>
-              )}
-            />
+                </Space>
+              </Card>
+              <List
+                dataSource={sizedEvidenceItems}
+                renderItem={(item) => (
+                  <List.Item
+                    actions={[
+                      <Button key={`${item.id}-preview`} onClick={() => setSelectedEvidenceItem(item)}>
+                        {t("project_workspace_prototype.evidence.preview")}
+                      </Button>,
+                      <Button key={`${item.id}-history`} onClick={() => setSection("auditTrail")}>
+                        {t("project_workspace_prototype.evidence.view_history")}
+                      </Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      title={item.title}
+                      description={
+                        <Space direction="vertical" size={2}>
+                          <Typography.Text>{item.description}</Typography.Text>
+                          <Typography.Text type="secondary">
+                            {t("project_workspace_prototype.evidence.meta", {
+                              updated: item.lastUpdated,
+                              format: item.format,
+                            })}
+                          </Typography.Text>
+                        </Space>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+              <Card size="small" title={t("project_workspace_prototype.evidence.snapshots.title")}>
+                <List
+                  dataSource={evidenceSnapshots}
+                  renderItem={(item) => (
+                    <List.Item>
+                      <Space direction="vertical" size={2}>
+                        <Typography.Text strong>{item.title}</Typography.Text>
+                        <Typography.Text>{item.detail}</Typography.Text>
+                        <Typography.Text type="secondary">{item.meta}</Typography.Text>
+                      </Space>
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            </Space>
           </Card>
         );
       case "auditTrail":
@@ -748,10 +1008,31 @@ export function ProjectWorkspacePrototypePage() {
       </Card>
 
       <Card variant="borderless">
-        {!canReadProjects ? (
+        {!hasWorkspaceAccess ? (
           <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
         ) : (
           <Space direction="vertical" size={20} style={{ width: "100%" }}>
+            {auditorMode ? (
+              <Alert
+                type="info"
+                showIcon
+                message={t("project_workspace_prototype.auditor_mode.title")}
+                description={t("project_workspace_prototype.auditor_mode.description")}
+                action={
+                  <Space wrap>
+                    <Button size="small" onClick={() => setSection("compliance")}>
+                      {t("project_workspace_prototype.sections.compliance")}
+                    </Button>
+                    <Button size="small" onClick={() => setSection("evidence")}>
+                      {t("project_workspace_prototype.sections.evidence")}
+                    </Button>
+                    <Button size="small" onClick={() => setSection("auditTrail")}>
+                      {t("project_workspace_prototype.sections.audit_trail")}
+                    </Button>
+                  </Space>
+                }
+              />
+            ) : null}
             <Card size="small">
               <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
                 <Space wrap size={12}>
@@ -796,7 +1077,9 @@ export function ProjectWorkspacePrototypePage() {
                     onChange={(value) => setAuditorMode(value === "auditor")}
                   />
                 </Space>
-                <Button onClick={() => navigate("/app/admin/projects")}>{t("project_workspace_prototype.back_to_projects")}</Button>
+                <Button onClick={() => navigate(canManageProjects ? "/app/admin/projects" : "/app/projects")}>
+                  {t(canManageProjects ? "project_workspace_prototype.back_to_projects" : "projects.back_to_my_projects")}
+                </Button>
               </Flex>
             </Card>
 
@@ -911,6 +1194,20 @@ export function ProjectWorkspacePrototypePage() {
               {selectedRole.approval ? <Tag color="success">{t("project_workspace_prototype.roles.permissions.approval")}</Tag> : null}
               {selectedRole.release ? <Tag color="purple">{t("project_workspace_prototype.roles.permissions.release")}</Tag> : null}
             </Space>
+            <Flex gap={8} wrap>
+              <Button type="link" onClick={() => {
+                setSelectedRole(null);
+                setSection("workflow");
+              }}>
+                {t("project_workspace_prototype.roles.open_workflow")}
+              </Button>
+              <Button type="link" onClick={() => {
+                setSelectedRole(null);
+                setSection("evidence");
+              }}>
+                {t("project_workspace_prototype.roles.open_evidence")}
+              </Button>
+            </Flex>
           </Space>
         ) : null}
       </Modal>

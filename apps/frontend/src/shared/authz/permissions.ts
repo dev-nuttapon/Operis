@@ -16,6 +16,8 @@ const allPermissions = [
   "projects.evidence.export",
   "projects.compliance.read",
   "projects.templates.manage",
+  "activity_logs.read",
+  "activity_logs.export",
   "audit_logs.read",
   "audit_logs.export",
   "documents.read",
@@ -46,6 +48,10 @@ export const permissions = {
     exportEvidence: "projects.evidence.export",
     readCompliance: "projects.compliance.read",
     manageTemplates: "projects.templates.manage",
+  },
+  activityLogs: {
+    read: "activity_logs.read",
+    export: "activity_logs.export",
   },
   auditLogs: {
     read: "audit_logs.read",
@@ -83,7 +89,10 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.projects.exportEvidence,
     permissions.projects.readCompliance,
     permissions.projects.manageTemplates,
+    permissions.activityLogs.read,
+    permissions.activityLogs.export,
     permissions.auditLogs.read,
+    permissions.auditLogs.export,
     permissions.documents.read,
     permissions.workflows.read,
     permissions.workflows.manageDefinitions,
@@ -106,12 +115,17 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.projects.exportEvidence,
     permissions.projects.readCompliance,
     permissions.projects.manageTemplates,
+    permissions.activityLogs.read,
+    permissions.activityLogs.export,
     permissions.auditLogs.read,
+    permissions.auditLogs.export,
     permissions.documents.read,
     permissions.workflows.read,
     permissions.workflows.manageDefinitions,
   ],
   "operis:audit_auditor": [
+    permissions.activityLogs.read,
+    permissions.activityLogs.export,
     permissions.auditLogs.read,
     permissions.auditLogs.export,
     permissions.projects.readEvidence,
@@ -124,7 +138,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
   "operis:workflows_approver": [permissions.workflows.read],
   "operis:workflows_department_manager": [permissions.workflows.read],
   "operis:employee_viewer": [permissions.documents.read, permissions.workflows.read],
-  "operis:ops_support": [permissions.auditLogs.read],
+  "operis:ops_support": [permissions.activityLogs.read],
 };
 
 export function getPermissionsForRoles(roles: string[]): Permission[] {

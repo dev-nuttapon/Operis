@@ -527,6 +527,7 @@ public sealed class UsersModule : IModule
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
         IProjectQueries queries,
+        bool assignedOnly = false,
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
@@ -534,12 +535,19 @@ public sealed class UsersModule : IModule
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.Read))
+        var canReadAllProjects = permissionMatrix.HasPermission(principal, Permissions.Projects.Read);
+        if (!canReadAllProjects && !assignedOnly)
         {
             return Results.Forbid();
         }
 
-        var result = await queries.ListProjectsAsync(new ProjectListQuery(search, sortBy, sortOrder, page, pageSize), cancellationToken);
+        var assignedUserId = assignedOnly || !canReadAllProjects ? ResolveCurrentUserId(principal) : null;
+        if ((assignedOnly || !canReadAllProjects) && string.IsNullOrWhiteSpace(assignedUserId))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListProjectsAsync(new ProjectListQuery(search, sortBy, sortOrder, assignedUserId, page, pageSize), cancellationToken);
         return Results.Ok(result);
     }
 
@@ -559,7 +567,9 @@ public sealed class UsersModule : IModule
             return Results.Forbid();
         }
 
-        var result = await queries.ListProjectTypeTemplatesAsync(new ProjectListQuery(search, sortBy, sortOrder, page, pageSize), cancellationToken);
+        var result = await queries.ListProjectTypeTemplatesAsync(
+            new ProjectListQuery(search, sortBy, sortOrder, Page: page, PageSize: pageSize),
+            cancellationToken);
         return Results.Ok(result);
     }
 
@@ -832,7 +842,7 @@ public sealed class UsersModule : IModule
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.Read))
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, projectId, cancellationToken))
         {
             return Results.Forbid();
         }
@@ -866,7 +876,7 @@ public sealed class UsersModule : IModule
         IProjectQueries queries,
         CancellationToken cancellationToken)
     {
-        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.Read))
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, projectId, cancellationToken))
         {
             return Results.Forbid();
         }
@@ -882,7 +892,7 @@ public sealed class UsersModule : IModule
         IProjectQueries queries,
         CancellationToken cancellationToken)
     {
-        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ReadEvidence))
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, projectId, cancellationToken))
         {
             return Results.Forbid();
         }
@@ -898,7 +908,7 @@ public sealed class UsersModule : IModule
         IProjectQueries queries,
         CancellationToken cancellationToken)
     {
-        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ReadCompliance))
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, projectId, cancellationToken))
         {
             return Results.Forbid();
         }
@@ -1320,8 +1330,37 @@ public sealed class UsersModule : IModule
         ?? principal.FindFirstValue("sub")
         ?? "system";
 
+    private static string? ResolveCurrentUserId(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("sub")
+        ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
     private static bool LacksPermission(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission) =>
         !permissionMatrix.HasPermission(principal, permission);
+
+    private static async Task<bool> HasProjectReadAccessAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IProjectQueries queries,
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        if (permissionMatrix.HasAnyPermission(
+                principal,
+                Permissions.Projects.Read,
+                Permissions.Projects.Manage,
+                Permissions.Projects.ManageRoles,
+                Permissions.Projects.ManageMembers,
+                Permissions.Projects.ReadEvidence,
+                Permissions.Projects.ReadCompliance,
+                Permissions.Projects.ExportEvidence))
+        {
+            return true;
+        }
+
+        var currentUserId = ResolveCurrentUserId(principal);
+        return !string.IsNullOrWhiteSpace(currentUserId)
+               && await queries.HasProjectAccessAsync(projectId, currentUserId, cancellationToken);
+    }
 
     private static IResult BadRequestWithCode(string? detail, string? code = null) =>
         Results.BadRequest(ApiProblemDetailsFactory.Create(

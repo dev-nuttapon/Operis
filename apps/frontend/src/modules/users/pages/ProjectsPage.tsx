@@ -6,7 +6,7 @@ import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
@@ -147,9 +147,12 @@ export function ProjectsPage() {
   const { t, i18n } = useTranslation();
   const { notification } = App.useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
+  const isMyProjectsPage = location.pathname === "/app/projects";
+  const canViewProjectList = canReadProjects || isMyProjectsPage;
   const projectStatusLabel = useMemo<Record<string, string>>(
     () => ({
       planned: t("projects.options.status.planned"),
@@ -175,7 +178,9 @@ export function ProjectsPage() {
   const [deleteForm] = Form.useForm();
 
   const { projectsQuery, projectMemberUsersQuery, createProjectMutation, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
-    projects: paging,
+    projectsEnabled: canViewProjectList,
+    projectMemberUsersEnabled: canManageProjects,
+    projects: { ...paging, assignedOnly: isMyProjectsPage && !canReadProjects },
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
   });
@@ -279,7 +284,7 @@ export function ProjectsPage() {
                 </Button>
               </>
             ) : null}
-            {!canManageProjects && canReadProjects ? (
+            {!canManageProjects && canViewProjectList ? (
               <Button
                 icon={<FolderOpenOutlined />}
                 onClick={(event) => {
@@ -294,7 +299,7 @@ export function ProjectsPage() {
         ),
       },
     ],
-    [canManageProjects, canReadProjects, deleteForm, editForm, i18n.language, navigate, projectStatusLabel, t],
+    [canManageProjects, canViewProjectList, deleteForm, editForm, i18n.language, navigate, projectStatusLabel, t],
   );
 
   const submitCreate = (values: ProjectFormValues) => {
@@ -337,62 +342,64 @@ export function ProjectsPage() {
           </div>
           <div>
             <Typography.Title level={3} style={{ margin: 0 }}>
-              {t("projects.page_title")}
+              {isMyProjectsPage ? t("projects.my_page_title") : t("projects.page_title")}
             </Typography.Title>
             <Typography.Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
-              {t("projects.page_description")}
+              {isMyProjectsPage ? t("projects.my_page_description") : t("projects.page_description")}
             </Typography.Paragraph>
           </div>
         </Space>
       </Card>
 
       <Card variant="borderless">
-        <Space wrap style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }} size={[12, 12]}>
-          <Input.Search
-            allowClear
-            placeholder={t("projects.search_placeholder")}
-            style={{ width: 360, maxWidth: "100%" }}
-            onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
-          />
-          {canManageProjects ? (
-            <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
-              {t("projects.create_action")}
-            </Button>
-          ) : null}
-        </Space>
+        {!canViewProjectList ? (
+          <Typography.Text type="secondary">{t("errors.title_forbidden")}</Typography.Text>
+        ) : (
+          <>
+            <Space wrap style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }} size={[12, 12]}>
+              <Input.Search
+                allowClear
+                placeholder={t("projects.search_placeholder")}
+                style={{ width: 360, maxWidth: "100%" }}
+                onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
+              />
+              {canManageProjects ? (
+                <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
+                  {t("projects.create_action")}
+                </Button>
+              ) : null}
+            </Space>
 
-        <Table
-          rowKey="id"
-          columns={columns}
-          dataSource={canReadProjects ? (projectsQuery.data?.items ?? []) : []}
-          loading={canReadProjects ? (projectsQuery.isLoading || projectMemberUsersQuery.isLoading) : false}
-          rowClassName={() => (canReadProjects ? "clickable-project-row" : "")}
-          onRow={(record) =>
-            canReadProjects
-              ? {
-                  onClick: () => navigate(`/app/projects/${record.id}/workspace`),
-                  style: { cursor: "pointer" },
-                }
-              : {}
-          }
-          pagination={{
-            current: projectsQuery.data?.page ?? paging.page,
-            pageSize: projectsQuery.data?.pageSize ?? paging.pageSize,
-            total: projectsQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 25, 50, 100],
-          }}
-          onChange={(nextPagination, _, sorter) => {
-            const resolvedSorter = sorter as SorterResult<Project>;
-            setPaging((current) => ({
-              ...current,
-              page: nextPagination.current ?? current.page,
-              pageSize: nextPagination.pageSize ?? current.pageSize,
-              sortBy: typeof resolvedSorter.field === "string" ? resolvedSorter.field : current.sortBy,
-              sortOrder: toApiSortOrder(resolvedSorter.order) ?? current.sortOrder,
-            }));
-          }}
-        />
+            <Table
+              rowKey="id"
+              columns={columns}
+              dataSource={projectsQuery.data?.items ?? []}
+              loading={projectsQuery.isLoading || (canManageProjects && projectMemberUsersQuery.isLoading)}
+              rowClassName={() => "clickable-project-row"}
+              onRow={(record) => ({
+                onClick: () => navigate(`/app/projects/${record.id}/workspace`),
+                style: { cursor: "pointer" },
+              })}
+              pagination={{
+                current: projectsQuery.data?.page ?? paging.page,
+                pageSize: projectsQuery.data?.pageSize ?? paging.pageSize,
+                total: projectsQuery.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 25, 50, 100],
+              }}
+              onChange={(nextPagination, _, sorter) => {
+                const resolvedSorter = sorter as SorterResult<Project>;
+                setPaging((current) => ({
+                  ...current,
+                  page: nextPagination.current ?? current.page,
+                  pageSize: nextPagination.pageSize ?? current.pageSize,
+                  sortBy: typeof resolvedSorter.field === "string" ? resolvedSorter.field : current.sortBy,
+                  sortOrder: toApiSortOrder(resolvedSorter.order) ?? current.sortOrder,
+                }));
+              }}
+            />
+          </>
+        )}
       </Card>
 
       <Modal

@@ -37,6 +37,12 @@ public static class Permissions
         public const string Export = "audit_logs.export";
     }
 
+    public static class ActivityLogs
+    {
+        public const string Read = "activity_logs.read";
+        public const string Export = "activity_logs.export";
+    }
+
     public static class Documents
     {
         public const string Read = "documents.read";
@@ -67,6 +73,8 @@ public static class Permissions
         Projects.ExportEvidence,
         Projects.ReadCompliance,
         Projects.ManageTemplates,
+        ActivityLogs.Read,
+        ActivityLogs.Export,
         AuditLogs.Read,
         AuditLogs.Export,
         Documents.Read,

@@ -46,6 +46,9 @@ const ProjectTypeTemplatesPage = lazy(() =>
 const ProjectWorkspacePrototypePage = lazy(() =>
   import("../modules/users/pages/ProjectWorkspacePrototypePage").then((module) => ({ default: module.ProjectWorkspacePrototypePage }))
 );
+const ActivityLogsPage = lazy(() =>
+  import("../modules/activities/pages/ActivityLogsPage").then((module) => ({ default: module.ActivityLogsPage }))
+);
 const AuditLogsPage = lazy(() =>
   import("../modules/audits/pages/AuditLogsPage").then((module) => ({ default: module.AuditLogsPage }))
 );
@@ -76,6 +79,7 @@ export function AppRouter() {
             <Route element={<MainLayout />}>
               <Route index element={<Navigate to="documents" replace />} />
               <Route path="documents" element={<DocumentDashboardPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
               <Route path="workflows" element={<WorkflowDefinitionsPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
@@ -92,6 +96,7 @@ export function AppRouter() {
               <Route path="admin/project-type-templates" element={<ProjectTypeTemplatesPage />} />
               <Route path="admin/invitations" element={<AdminUsersPage />} />
               <Route path="admin/registrations" element={<AdminUsersPage />} />
+              <Route path="admin/activity-logs" element={<ActivityLogsPage />} />
               <Route path="admin/audit-logs" element={<AuditLogsPage />} />
             </Route>
           </Route>

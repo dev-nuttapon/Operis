@@ -57,6 +57,7 @@ type ListQueryInput = PaginationInput & {
   sortOrder?: "asc" | "desc";
   from?: string;
   to?: string;
+  assignedOnly?: boolean;
   divisionId?: string;
   departmentId?: string;
 };
@@ -70,6 +71,7 @@ function toListQuery(input?: ListQueryInput) {
   if (input?.sortOrder) params.set("sortOrder", input.sortOrder);
   if (input?.from) params.set("from", input.from);
   if (input?.to) params.set("to", input.to);
+  if (input?.assignedOnly) params.set("assignedOnly", "true");
   if (input?.divisionId) params.set("divisionId", input.divisionId);
   if (input?.departmentId) params.set("departmentId", input.departmentId);
   const query = params.toString();

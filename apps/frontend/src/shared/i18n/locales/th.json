@@ -166,13 +166,14 @@
     "workflows": "เวิร์กโฟลว์",
     "admin": "ผู้ดูแลระบบ",
     "user_admin_group": "จัดการผู้ใช้งาน",
-    "audit_group": "บันทึกการใช้งาน",
+    "audit_group": "บันทึก",
     "user_management": "รายการผู้ใช้งาน",
     "user_admin": "จัดการผู้ใช้งาน",
     "admin_created_users": "จัดการผู้ใช้งาน",
     "user_invitations": "เชิญผู้ใช้งาน",
     "registration_approvals": "อนุมัติการลงทะเบียน",
-    "audit_logs": "บันทึกการใช้งาน",
+    "activity_logs": "Activity Logs",
+    "audit_logs": "Audit Logs",
     "master_data_management": "จัดการข้อมูล Master",
     "master_permanent_structure": "โครงสร้างถาวร",
     "master_project_structure": "โครงสร้างโครงการ",
@@ -181,6 +182,7 @@
     "master_job_titles": "ตำแหน่ง",
     "master_positions": "ตำแหน่ง",
     "projects": "โครงการ",
+    "my_projects": "โครงการของฉัน",
     "master_project_roles": "ตำแหน่งโครงการ",
     "project_members": "สมาชิกโครงการ",
     "project_org_chart": "ผังงานในโครงการ",
@@ -537,6 +539,9 @@
   "projects": {
     "page_title": "โครงการ",
     "page_description": "สร้างและจัดการโครงการ เพื่อใช้เป็นฐานสำหรับตำแหน่งและสมาชิกในแต่ละโครงการ",
+    "my_page_title": "โครงการของฉัน",
+    "my_page_description": "เปิดดูเฉพาะโครงการที่คุณถูกกำหนดเข้าไป และทำงานต่อจากพื้นที่ทำงานของโครงการนั้น",
+    "back_to_my_projects": "กลับไปหน้าโครงการของฉัน",
     "search_placeholder": "ค้นหาด้วยรหัสหรือชื่อโครงการ",
     "create_action": "เพิ่มโครงการ",
     "create_modal_title": "เพิ่มโครงการ",
@@ -886,15 +891,58 @@
         "authority": "ขอบเขตอำนาจ",
         "members": "จำนวนสมาชิกที่รับบทบาท"
       },
-      "dependencies_title": "แผนภาพความเชื่อมโยงของบทบาท"
+      "dependencies_title": "แผนภาพความเชื่อมโยงของบทบาท",
+      "open_workflow": "เปิดมุมมอง workflow",
+      "open_evidence": "เปิดมุมมองหลักฐาน",
+      "open_compliance": "เปิดมุมมองความพร้อม"
     },
     "workflow": {
       "title": "ตัวอย่างลำดับงาน",
       "description": "ใช้ส่วนนี้เพื่อทดลองว่าบทบาทในโครงการ จุดอนุมัติ และหลักฐานที่ต้องใช้ควรไหลอย่างไร ก่อนเชื่อม workflow จริง",
+      "state_flow_title": "ลำดับสถานะงาน",
+      "state_flow_description": "ใช้มุมมองนี้เพื่อตรวจว่างานหรือเอกสารควรไหลผ่านสถานะ governance ที่เหมาะสมกับขนาดโครงการหรือไม่",
       "required_evidence_title": "หลักฐานที่ต้องมีในแต่ละช่วง",
       "required_evidence_meta": "บทบาทเจ้าของ: {{owner}} · ระยะ: {{stage}}",
       "gates_title": "จุดอนุมัติ",
+      "open_compliance": "เปิดมุมมองความพร้อม",
+      "open_evidence": "เปิดมุมมองหลักฐาน",
       "live_questions_title": "คำถามที่ใช้ตรวจสอบ",
+      "blocked_states_title": "สภาวะที่ควรถูกบล็อก",
+      "states": {
+        "draft": "ฉบับร่าง",
+        "review": "ทบทวน",
+        "internal_review": "ทบทวนภายใน",
+        "quality_gate": "จุดควบคุมคุณภาพ",
+        "board_review": "ทบทวนโดยคณะกรรมการ",
+        "approve": "อนุมัติ",
+        "release": "ปล่อยใช้งาน"
+      },
+      "synthetic_roles": {
+        "ccb": "คณะกรรมการควบคุมการเปลี่ยนแปลง"
+      },
+      "synthetic_actions": {
+        "board_review": "ทบทวนก่อนปล่อยโดยคณะกรรมการ"
+      },
+      "synthetic_outputs": {
+        "board_release_note": "มติอนุมัติสำหรับการปล่อยใช้งาน"
+      },
+      "blockers": {
+        "default": {
+          "1": "gate ถัดไปควรถูกบล็อกเมื่อการทบทวนที่จำเป็นหรือชุดหลักฐานยังไม่ครบ"
+        },
+        "large_project": {
+          "1": "โครงการขนาดใหญ่ไม่ควรผ่านไปสู่การปล่อยใช้งานจนกว่าจะผ่าน quality gate และการทบทวนโดยคณะกรรมการ",
+          "2": "ถ้ายังไม่มี governance register ควรถูกบล็อกก่อนถึงจุดปล่อยใช้งานสุดท้าย"
+        },
+        "release_readiness": {
+          "1": "ไม่ควรปล่อยใช้งานเมื่อบทบาท reviewer หรือ approver ยังไม่ครบ",
+          "2": "release package ควรถูกบล็อกไว้จนกว่าจะมี milestone snapshot ครบ"
+        },
+        "audit_preparation": {
+          "1": "การเตรียม audit ควรหยุดไว้เมื่อ audit pack ยังไม่ครบหรือ controlled records ยังขาด",
+          "2": "สายการอนุมัติไม่ควรปิดได้จนกว่าจะระบุเจ้าของหลักฐานครบทุกช่วง"
+        }
+      },
       "questions": {
         "1": "เห็นชัดหรือไม่ว่าแต่ละขั้นควรเป็นบทบาทใดที่ทบทวน อนุมัติ หรือปล่อยใช้งาน",
         "2": "ทีมเข้าใจหรือไม่ว่าต้องมีหลักฐานอะไร ก่อนจะผ่านไปยัง gate ถัดไป",
@@ -923,6 +971,28 @@
       "required_documents_title": "ชุดเอกสารที่ควรมี",
       "approval_flow_title": "ตัวอย่างลำดับการอนุมัติ",
       "document_meta": "บทบาทเจ้าของ: {{owner}} · ระยะ: {{stage}}",
+      "synthetic": {
+        "governance_register": {
+          "title": "ทะเบียนกำกับดูแลยังไม่ครบ",
+          "detail": "โครงการขนาดใหญ่ควรรวมเจ้าของบทบาท การลงนามรับรอง และหมายเหตุความพร้อมไว้ในทะเบียนกำกับดูแล"
+        },
+        "audit_pack": {
+          "title": "ชุดเตรียมพร้อมสำหรับ audit ยังไม่ครบ",
+          "detail": "สถานการณ์นี้ควรแสดงชุดหลักฐานที่พร้อมตรวจได้ก่อนส่งต่อให้ผู้ตรวจ"
+        },
+        "large_project_snapshot": {
+          "title": "ยังไม่มี governance snapshot ของโครงการขนาดใหญ่",
+          "detail": "โครงการขนาดใหญ่ควรมี snapshot ของ governance ก่อนเข้าสู่การทบทวนขั้นสุดท้าย"
+        },
+        "audit_preparation_snapshot": {
+          "title": "ยังไม่ freeze audit snapshot",
+          "detail": "การเตรียม audit ควรมี snapshot ตามวันตัดข้อมูลของเจ้าของหลักฐานและสถานะการอนุมัติ"
+        },
+        "release_readiness_gate": {
+          "title": "release gate ยังรอการอนุมัติ snapshot สุดท้าย",
+          "detail": "การทบทวนความพร้อมก่อนปล่อยใช้งานไม่ควรปิดได้จนกว่า release candidate snapshot จะได้รับการยอมรับ"
+        }
+      },
       "synthetic_docs": {
         "traceability": "เมทริกซ์การสืบย้อน",
         "milestone_snapshot": "ชุดหลักฐานตามจุดสำคัญ",
@@ -935,12 +1005,36 @@
       "preview": "ดูตัวอย่าง",
       "view_history": "เปิดดูประวัติ",
       "meta": "อัปเดต {{updated}} · {{format}}",
+      "snapshot_preview_title": "ตัวอย่าง snapshot",
+      "snapshot_preview_description": "ใช้ส่วนนี้เพื่อตรวจว่าผู้ตรวจหรือผู้จัดการโครงการควรเห็นข้อมูล ณ ช่วงเวลาที่ถูกตรึงไว้อย่างไร",
+      "snapshot_meta": "วันตัดข้อมูล: {{date}} · เจ้าของ: {{owner}}",
+      "snapshots": {
+        "title": "ตัวอย่าง snapshot",
+        "m1_title": "Snapshot จุดสำคัญ M1",
+        "m1_detail": "baseline ระยะแรกของการวางแผน พร้อมเจ้าของบทบาทที่อนุมัติแล้วและแผนที่หลักฐานเริ่มต้น",
+        "m2_title": "Snapshot จุดสำคัญ M2",
+        "m2_detail": "จุดตรวจช่วงทวนสอบพร้อม approval ล่าสุด action ที่ยังเปิดอยู่ และช่องว่างของหลักฐาน",
+        "release_title": "Snapshot ความพร้อมก่อนปล่อยใช้งาน",
+        "release_detail": "จุดตัดข้อมูลสุดท้ายก่อนเข้าคณะอนุมัติหรือ gate สำหรับการปล่อยใช้งาน",
+        "audit_title": "Snapshot สำหรับการเตรียม Audit",
+        "audit_detail": "snapshot ที่ควบคุมไว้สำหรับใช้ในการ walkthrough กับผู้ตรวจและการทบทวนหลักฐาน"
+      },
+      "synthetic": {
+        "audit_pack_title": "ชุดเตรียมพร้อมสำหรับ audit",
+        "audit_pack_description": "ชุดหลักฐานควบคุมสำหรับใช้เตรียม internal และ external audit",
+        "governance_register_title": "ทะเบียนกำกับดูแล",
+        "governance_register_description": "ทะเบียนรวมเจ้าของแต่ละช่วง การ sign-off และหมายเหตุความพร้อมของแต่ละบทบาท"
+      },
       "modal": {
         "updated": "อัปเดตล่าสุด",
         "format": "รูปแบบไฟล์",
         "usage": "การใช้ในต้นแบบ",
         "usage_text": "ใช้หน้าต่างนี้เพื่อทดลองว่าชุดหลักฐานควรแสดงอะไรบ้าง ก่อนเชื่อมการส่งออกและ snapshot จริง"
       }
+    },
+    "auditor_mode": {
+      "title": "โหมดผู้ตรวจประเมิน",
+      "description": "มุมมองนี้จะเน้น compliance, หลักฐาน, จุดควบคุมใน workflow และ audit trail เพื่อใช้คุยงานตรวจประเมินได้เร็วขึ้น"
     },
     "audit": {
       "timeline_title": "ลำดับเหตุการณ์ล่าสุด",
@@ -1247,11 +1341,65 @@
       "note": "นี่คือฟอร์มทดสอบในโมดูลเอกสาร (ยังไม่มีการเรียก API)"
     }
   },
+  "activity_logs": {
+    "title": "Activity Logs",
+    "description": "ตรวจสอบกิจกรรมของผู้ใช้และระบบย้อนหลังตามโมดูล ผู้กระทำ รายการที่ได้รับผลกระทบ และผลลัพธ์ของคำขอ",
+    "empty": "ยังไม่มีข้อมูล Activity Logs",
+    "empty_error": "ไม่สามารถโหลดข้อมูล Activity Logs ได้",
+    "columns": {
+      "occurred_at": "วันเวลา",
+      "module": "โมดูล",
+      "action": "การกระทำ",
+      "entity": "รายการที่เกี่ยวข้อง",
+      "actor": "ผู้ดำเนินการ",
+      "status": "ผลลัพธ์",
+      "request": "บริบทคำขอ",
+      "actions": "การจัดการ"
+    },
+    "filters": {
+      "module": "โมดูล",
+      "action": "การกระทำ",
+      "entity_type": "ประเภทข้อมูล",
+      "entity_id": "รหัสข้อมูล",
+      "actor": "ผู้ดำเนินการ",
+      "status": "ผลลัพธ์",
+      "date_range": "ช่วงเวลา"
+    },
+    "placeholders": {
+      "module": "เช่น users",
+      "action": "เช่น update",
+      "entity_type": "เช่น user",
+      "entity_id": "ค้นหาด้วยรหัสอ้างอิง",
+      "actor": "อีเมลหรือชื่อที่แสดงของผู้ใช้"
+    },
+    "actions": {
+      "search": "ค้นหา",
+      "reset": "ล้างค่า",
+      "view": "ดู",
+      "close": "ปิด"
+    },
+    "detail": {
+      "title": "รายละเอียดกิจกรรม",
+      "summary": "สรุปกิจกรรม",
+      "before": "ข้อมูลก่อนเปลี่ยน",
+      "after": "ข้อมูลหลังเปลี่ยน",
+      "changes": "รายการเปลี่ยนแปลง",
+      "metadata": "ข้อมูลเพิ่มเติม"
+    },
+    "status": {
+      "success": "สำเร็จ",
+      "failed": "ล้มเหลว",
+      "denied": "ถูกปฏิเสธ"
+    },
+    "notifications": {
+      "load_failed_title": "ไม่สามารถโหลด Activity Logs ได้"
+    }
+  },
   "audit_logs": {
-    "title": "บันทึกการใช้งาน",
-    "description": "ตรวจสอบกิจกรรมที่เกิดขึ้นในระบบย้อนหลังตามโมดูล ผู้กระทำ และผลลัพธ์ของคำขอ",
-    "empty": "ยังไม่มีข้อมูลบันทึกการใช้งาน",
-    "empty_error": "ไม่สามารถโหลดข้อมูลบันทึกการใช้งานได้",
+    "title": "Audit Logs",
+    "description": "ตรวจสอบบันทึกสำหรับการตรวจประเมินย้อนหลัง พร้อม snapshot การเปลี่ยนแปลง บริบทคำขอ และรายละเอียดเพื่อการกำกับดูแล",
+    "empty": "ยังไม่มีข้อมูล Audit Logs",
+    "empty_error": "ไม่สามารถโหลดข้อมูล Audit Logs ได้",
     "columns": {
       "occurred_at": "วันเวลา",
       "module": "โมดูล",
@@ -1259,7 +1407,7 @@
       "entity": "รายการที่เกี่ยวข้อง",
       "actor": "ผู้กระทำ",
       "status": "ผลลัพธ์",
-      "request": "คำขอ",
+      "request": "บริบทคำขอ",
       "actions": "การจัดการ"
     },
     "filters": {
@@ -1276,7 +1424,7 @@
       "action": "เช่น update",
       "entity_type": "เช่น user",
       "entity_id": "ค้นหาด้วยรหัสอ้างอิง",
-      "actor": "อีเมล หรือชื่อผู้กระทำ"
+      "actor": "อีเมลหรือชื่อที่แสดงของผู้ใช้"
     },
     "actions": {
       "search": "ค้นหา",
@@ -1285,20 +1433,20 @@
       "close": "ปิด"
     },
     "detail": {
-      "title": "รายละเอียดบันทึกการใช้งาน",
-      "summary": "สรุปรายการ",
+      "title": "รายละเอียดการตรวจสอบ",
+      "summary": "สรุปการตรวจสอบ",
       "before": "ข้อมูลก่อนเปลี่ยน",
       "after": "ข้อมูลหลังเปลี่ยน",
       "changes": "รายการเปลี่ยนแปลง",
       "metadata": "ข้อมูลเพิ่มเติม"
     },
     "status": {
-      "success": "success",
-      "failed": "failed",
-      "denied": "denied"
+      "success": "สำเร็จ",
+      "failed": "ล้มเหลว",
+      "denied": "ถูกปฏิเสธ"
     },
     "notifications": {
-      "load_failed_title": "ไม่สามารถโหลดบันทึกการใช้งานได้"
+      "load_failed_title": "ไม่สามารถโหลด Audit Logs ได้"
     }
   }
 }

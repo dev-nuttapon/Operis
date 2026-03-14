@@ -11,6 +11,7 @@ import {
   RightOutlined,
   DashboardOutlined,
   GlobalOutlined,
+  ProjectOutlined,
   TeamOutlined,
   ApartmentOutlined,
 } from '@ant-design/icons';
@@ -45,6 +46,7 @@ export function MainLayout() {
     permissions.users.read,
     permissions.masterData.read,
     permissions.projects.read,
+    permissions.activityLogs.read,
     permissions.auditLogs.read,
   );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
@@ -110,6 +112,11 @@ export function MainLayout() {
       key: '/app/documents',
       icon: <FileTextOutlined />,
       label: tr('common.documents'),
+    },
+    {
+      key: '/app/projects',
+      icon: <ProjectOutlined />,
+      label: tr('common.my_projects'),
     },
     {
       key: '/app/workflows',
@@ -199,6 +206,10 @@ export function MainLayout() {
               ],
             },
             {
+              key: '/app/admin/activity-logs',
+              label: tr('common.activity_logs'),
+            },
+            {
               key: '/app/admin/audit-logs',
               label: tr('common.audit_logs'),
             },
@@ -271,6 +282,7 @@ export function MainLayout() {
   const getPageTitle = (path: string) => {
     if (path.includes('dashboard')) return tr('common.dashboard');
     if (path.includes('documents')) return tr('common.documents');
+    if (path === '/app/projects') return tr('common.my_projects');
     if (path.includes('workflows')) return tr('common.workflows');
     if (path.includes('admin/users')) return tr('common.user_management');
     if (path.includes('admin/master/divisions')) return tr('common.master_divisions');
@@ -287,6 +299,7 @@ export function MainLayout() {
     if (path.includes('admin/master')) return tr('common.master_data_management');
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
     if (path.includes('admin/registrations')) return tr('common.registration_approvals');
+    if (path.includes('admin/activity-logs')) return tr('common.activity_logs');
     if (path.includes('admin/audit-logs')) return tr('common.audit_logs');
     return tr('common.dashboard');
   };
@@ -344,7 +357,7 @@ export function MainLayout() {
             <Menu
               theme={isDarkMode ? 'dark' : 'light'}
               mode="inline"
-              selectedKeys={[location.pathname]}
+              selectedKeys={[getSelectedMenuKey(location.pathname)]}
               openKeys={openKeys}
               onOpenChange={handleMenuOpenChange}
               onClick={({ key }) => navigate(key)}
@@ -531,8 +544,8 @@ function getOpenKeys(path: string) {
     return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
   }
 
-  if (path.startsWith('/app/projects/') && path.endsWith('/workspace')) {
-    return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
+  if (path === '/app/projects' || (path.startsWith('/app/projects/') && path.endsWith('/workspace'))) {
+    return [];
   }
 
   if (path.startsWith('/app/admin/master/')) {
@@ -556,4 +569,12 @@ function getOpenKeys(path: string) {
   }
 
   return [];
+}
+
+function getSelectedMenuKey(path: string) {
+  if (path.startsWith('/app/projects/')) {
+    return '/app/projects';
+  }
+
+  return path;
 }

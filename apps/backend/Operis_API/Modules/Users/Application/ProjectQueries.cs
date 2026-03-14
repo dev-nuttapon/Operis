@@ -12,6 +12,7 @@ public sealed record ProjectListQuery(
     string? Search,
     string? SortBy,
     string? SortOrder,
+    string? AssignedUserId = null,
     int Page = 1,
     int PageSize = 10);
 
@@ -41,6 +42,7 @@ public interface IProjectQueries
     Task<PagedResult<ProjectResponse>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ReferenceDataQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken);
+    Task<bool> HasProjectAccessAsync(Guid projectId, string userId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ProjectOrgChartNodeResponse>> GetProjectOrgChartAsync(Guid projectId, CancellationToken cancellationToken);
     Task<ProjectEvidenceResponse?> GetProjectEvidenceAsync(Guid projectId, CancellationToken cancellationToken);
     Task<ProjectEvidenceExportResult?> GetProjectEvidenceExportAsync(Guid projectId, CancellationToken cancellationToken);
@@ -55,6 +57,15 @@ public sealed class ProjectQueries(
     {
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
         IQueryable<ProjectEntity> source = dbContext.Projects.AsNoTracking().Where(x => x.DeletedAt == null);
+
+        if (!string.IsNullOrWhiteSpace(query.AssignedUserId))
+        {
+            source = source.Where(project =>
+                dbContext.UserProjectAssignments.Any(assignment =>
+                    assignment.ProjectId == project.Id &&
+                    assignment.UserId == query.AssignedUserId &&
+                    assignment.Status == "Active"));
+        }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -113,6 +124,15 @@ public sealed class ProjectQueries(
 
         return new PagedResult<ProjectResponse>(items, total, page, pageSize);
     }
+
+    public Task<bool> HasProjectAccessAsync(Guid projectId, string userId, CancellationToken cancellationToken) =>
+        dbContext.UserProjectAssignments
+            .AsNoTracking()
+            .AnyAsync(
+                assignment => assignment.ProjectId == projectId &&
+                              assignment.UserId == userId &&
+                              assignment.Status == "Active",
+                cancellationToken);
 
     public async Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ReferenceDataQuery query, CancellationToken cancellationToken)
     {

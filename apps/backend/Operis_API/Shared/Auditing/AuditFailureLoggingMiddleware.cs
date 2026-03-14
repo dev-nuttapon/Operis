@@ -84,6 +84,7 @@ public sealed class AuditFailureLoggingMiddleware(RequestDelegate next)
             "users" when segments.Length >= 4 && segments[3] == "registration-requests" => ("users", "registration_request"),
             "users" => ("users", "user"),
             "documents" => ("documents", "document"),
+            "activity-logs" => ("activities", "activity_log"),
             "audit-logs" => ("audits", "audit_log"),
             _ => (segments[2], "request")
         };

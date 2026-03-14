@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SortOrder, SorterResult } from "antd/es/table/interface";
-import { EyeOutlined, SearchOutlined, TeamOutlined } from "@ant-design/icons";
+import { EyeOutlined, SearchOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -190,7 +190,7 @@ export function AuditLogsPage() {
               color: "#fff",
             }}
           >
-            <TeamOutlined />
+            <SafetyCertificateOutlined />
           </div>
           <div>
             <Typography.Title level={3} style={{ margin: 0 }}>

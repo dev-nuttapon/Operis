@@ -166,12 +166,13 @@
     "workflows": "Workflows",
     "admin": "Admin",
     "user_admin_group": "User Management",
-    "audit_group": "Audit Logs",
+    "audit_group": "Logs",
     "user_management": "User List",
     "user_admin": "User Administration",
     "admin_created_users": "Admin Created Users",
     "user_invitations": "Invitations",
     "registration_approvals": "Registration Approvals",
+    "activity_logs": "Activity Logs",
     "audit_logs": "Audit Logs",
     "master_data_management": "Master Data Management",
     "master_permanent_structure": "Permanent Structure",
@@ -181,6 +182,7 @@
     "master_job_titles": "Job Titles",
     "master_positions": "Positions",
     "projects": "Projects",
+    "my_projects": "My Projects",
     "master_project_roles": "Project Roles",
     "project_members": "Project Members",
     "project_org_chart": "Project Org Chart",
@@ -537,6 +539,9 @@
   "projects": {
     "page_title": "Projects",
     "page_description": "Create and manage projects before assigning project roles and members.",
+    "my_page_title": "My Projects",
+    "my_page_description": "Open only the projects where you are assigned and continue work from their workspace.",
+    "back_to_my_projects": "Back to My Projects",
     "search_placeholder": "Search by project code or name",
     "create_action": "Add Project",
     "create_modal_title": "Add Project",
@@ -886,15 +891,58 @@
         "authority": "Authority Scope",
         "members": "Assigned Members"
       },
-      "dependencies_title": "Role Dependency Map"
+      "dependencies_title": "Role Dependency Map",
+      "open_workflow": "Open workflow",
+      "open_evidence": "Open evidence",
+      "open_compliance": "Open compliance"
     },
     "workflow": {
       "title": "Workflow Preview",
       "description": "Use this section to validate how project roles, approval gates, and required evidence should flow before wiring live workflow behavior.",
+      "state_flow_title": "State Flow",
+      "state_flow_description": "Use this view to validate whether the item should move through the right governance states for the selected project size.",
       "required_evidence_title": "Required Evidence by Stage",
       "required_evidence_meta": "Owner role: {{owner}} · Stage: {{stage}}",
       "gates_title": "Approval Gates",
+      "open_compliance": "Open compliance view",
+      "open_evidence": "Open evidence view",
       "live_questions_title": "Questions to Validate",
+      "blocked_states_title": "Blocked Flow States",
+      "states": {
+        "draft": "Draft",
+        "review": "Review",
+        "internal_review": "Internal Review",
+        "quality_gate": "Quality Gate",
+        "board_review": "Board Review",
+        "approve": "Approve",
+        "release": "Release"
+      },
+      "synthetic_roles": {
+        "ccb": "Change Control Board"
+      },
+      "synthetic_actions": {
+        "board_review": "Perform release board review"
+      },
+      "synthetic_outputs": {
+        "board_release_note": "Approved release board decision"
+      },
+      "blockers": {
+        "default": {
+          "1": "The next gate should stop when a required review or evidence pack is still incomplete."
+        },
+        "large_project": {
+          "1": "Large projects should not proceed to release until the quality gate and board review are both complete.",
+          "2": "A missing governance register should block the final release gate for large projects."
+        },
+        "release_readiness": {
+          "1": "Release cannot proceed while reviewer or approver coverage is still incomplete.",
+          "2": "The release package should remain blocked until the milestone snapshot is available."
+        },
+        "audit_preparation": {
+          "1": "Audit preparation should stop when the audit pack is not complete or controlled records are missing.",
+          "2": "The approval chain should not close until evidence ownership is explicit for every stage."
+        }
+      },
       "questions": {
         "1": "Is it obvious which role is expected to review, approve, or release at each step?",
         "2": "Can the team understand which evidence must exist before the next gate opens?",
@@ -923,6 +971,28 @@
       "required_documents_title": "Required Document Set",
       "approval_flow_title": "Approval Flow Preview",
       "document_meta": "Owner role: {{owner}} · Stage: {{stage}}",
+      "synthetic": {
+        "governance_register": {
+          "title": "Governance register is still incomplete",
+          "detail": "Large projects should consolidate role ownership, sign-offs, and readiness notes in a governance register."
+        },
+        "audit_pack": {
+          "title": "Audit preparation pack is still incomplete",
+          "detail": "This scenario should surface an audit-ready bundle before the audit trail is handed over."
+        },
+        "large_project_snapshot": {
+          "title": "Large project governance snapshot is still incomplete",
+          "detail": "A large project should freeze a governance snapshot before final release review."
+        },
+        "audit_preparation_snapshot": {
+          "title": "Audit snapshot has not been frozen",
+          "detail": "Audit preparation should include a dated snapshot of evidence ownership and approval state."
+        },
+        "release_readiness_gate": {
+          "title": "Release gate still depends on final snapshot approval",
+          "detail": "The release readiness review should not close until the release candidate snapshot is accepted."
+        }
+      },
       "synthetic_docs": {
         "traceability": "Traceability Matrix",
         "milestone_snapshot": "Milestone Snapshot Pack",
@@ -935,12 +1005,36 @@
       "preview": "Preview",
       "view_history": "Open audit view",
       "meta": "Updated {{updated}} · {{format}}",
+      "snapshot_preview_title": "Snapshot Preview",
+      "snapshot_preview_description": "Use snapshots to validate what the auditor or project lead should see at a fixed point in time.",
+      "snapshot_meta": "Cut-off: {{date}} · Owner: {{owner}}",
+      "snapshots": {
+        "title": "Snapshot Preview",
+        "m1_title": "Milestone M1 Snapshot",
+        "m1_detail": "Early planning baseline, approved role ownership, and initial evidence map.",
+        "m2_title": "Milestone M2 Snapshot",
+        "m2_detail": "Verification checkpoint with updated approvals, open actions, and evidence gaps.",
+        "release_title": "Release Readiness Snapshot",
+        "release_detail": "Final readiness cut used before release board or approval gate.",
+        "audit_title": "Audit Preparation Snapshot",
+        "audit_detail": "Controlled snapshot prepared specifically for auditor walkthrough and evidence review."
+      },
+      "synthetic": {
+        "audit_pack_title": "Audit Preparation Pack",
+        "audit_pack_description": "Controlled evidence package for internal and external audit preparation.",
+        "governance_register_title": "Governance Register",
+        "governance_register_description": "Cross-role register that consolidates stage owners, sign-offs, and readiness notes."
+      },
       "modal": {
         "updated": "Last Updated",
         "format": "Format",
         "usage": "Prototype Usage",
         "usage_text": "Use this preview to validate what an evidence package should show before wiring live export and snapshot behavior."
       }
+    },
+    "auditor_mode": {
+      "title": "Auditor Mode",
+      "description": "This view prioritizes compliance, evidence, workflow controls, and audit trail so audit discussions can move faster."
     },
     "audit": {
       "timeline_title": "Recent Timeline",
@@ -1247,9 +1341,63 @@
       "note": "This is a local test form in documents module (no API call yet)."
     }
   },
+  "activity_logs": {
+    "title": "Activity Logs",
+    "description": "Review user and system activity by module, actor, affected record, and request outcome.",
+    "empty": "No activity logs found.",
+    "empty_error": "Unable to load activity logs.",
+    "columns": {
+      "occurred_at": "Occurred At",
+      "module": "Module",
+      "action": "Action",
+      "entity": "Entity",
+      "actor": "Performed By",
+      "status": "Status",
+      "request": "Request Context",
+      "actions": "Actions"
+    },
+    "filters": {
+      "module": "Module",
+      "action": "Action",
+      "entity_type": "Entity Type",
+      "entity_id": "Entity ID",
+      "actor": "Performed By",
+      "status": "Status",
+      "date_range": "Date Range"
+    },
+    "placeholders": {
+      "module": "e.g. users",
+      "action": "e.g. update",
+      "entity_type": "e.g. user",
+      "entity_id": "Search by entity reference",
+      "actor": "User email or display name"
+    },
+    "actions": {
+      "search": "Search",
+      "reset": "Reset",
+      "view": "View",
+      "close": "Close"
+    },
+    "detail": {
+      "title": "Activity Details",
+      "summary": "Activity Summary",
+      "before": "Before",
+      "after": "After",
+      "changes": "Changes",
+      "metadata": "Metadata"
+    },
+    "status": {
+      "success": "Success",
+      "failed": "Failed",
+      "denied": "Denied"
+    },
+    "notifications": {
+      "load_failed_title": "Unable to load activity logs"
+    }
+  },
   "audit_logs": {
     "title": "Audit Logs",
-    "description": "Review system activity by module, actor, entity, and request outcome.",
+    "description": "Review audit evidence with change snapshots, request context, and compliance-grade trace details.",
     "empty": "No audit logs found.",
     "empty_error": "Unable to load audit logs.",
     "columns": {
@@ -1259,7 +1407,7 @@
       "entity": "Entity",
       "actor": "Actor",
       "status": "Status",
-      "request": "Request",
+      "request": "Request Context",
       "actions": "Actions"
     },
     "filters": {
@@ -1276,7 +1424,7 @@
       "action": "e.g. update",
       "entity_type": "e.g. user",
       "entity_id": "Search by entity reference",
-      "actor": "Actor email or name"
+      "actor": "User email or display name"
     },
     "actions": {
       "search": "Search",
@@ -1285,17 +1433,17 @@
       "close": "Close"
     },
     "detail": {
-      "title": "Audit Log Details",
-      "summary": "Summary",
+      "title": "Audit Details",
+      "summary": "Audit Summary",
       "before": "Before",
       "after": "After",
       "changes": "Changes",
       "metadata": "Metadata"
     },
     "status": {
-      "success": "success",
-      "failed": "failed",
-      "denied": "denied"
+      "success": "Success",
+      "failed": "Failed",
+      "denied": "Denied"
     },
     "notifications": {
       "load_failed_title": "Unable to load audit logs"

@@ -39,6 +39,7 @@ export interface ListProjectsInput {
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  assignedOnly?: boolean;
   page?: number;
   pageSize?: number;
 }

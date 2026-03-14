@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Operis_API.Infrastructure.Persistence;
+using Operis_API.Shared.ActivityLogging;
 
 namespace Operis_API.Shared.Auditing;
 
@@ -27,7 +28,7 @@ public sealed class AuditLogWriter(
             ?? actorEmail
             ?? actorUserId;
 
-        var entity = new AuditLogEntity
+        var activityEntity = new ActivityLogEntity
         {
             Id = Guid.NewGuid(),
             OccurredAt = DateTimeOffset.UtcNow,
@@ -63,7 +64,44 @@ public sealed class AuditLogWriter(
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        dbContext.Set<AuditLogEntity>().Add(entity);
+        var auditEntity = new AuditLogEntity
+        {
+            Id = activityEntity.Id,
+            OccurredAt = activityEntity.OccurredAt,
+            Module = activityEntity.Module,
+            Action = activityEntity.Action,
+            EntityType = activityEntity.EntityType,
+            EntityId = activityEntity.EntityId,
+            ActorType = activityEntity.ActorType,
+            ActorUserId = activityEntity.ActorUserId,
+            ActorEmail = activityEntity.ActorEmail,
+            ActorDisplayName = activityEntity.ActorDisplayName,
+            DepartmentId = activityEntity.DepartmentId,
+            TenantId = activityEntity.TenantId,
+            RequestId = activityEntity.RequestId,
+            TraceId = activityEntity.TraceId,
+            CorrelationId = activityEntity.CorrelationId,
+            HttpMethod = activityEntity.HttpMethod,
+            RequestPath = activityEntity.RequestPath,
+            IpAddress = activityEntity.IpAddress,
+            UserAgent = activityEntity.UserAgent,
+            Status = activityEntity.Status,
+            StatusCode = activityEntity.StatusCode,
+            ErrorCode = activityEntity.ErrorCode,
+            ErrorMessage = activityEntity.ErrorMessage,
+            Reason = activityEntity.Reason,
+            Source = activityEntity.Source,
+            BeforeJson = activityEntity.BeforeJson,
+            AfterJson = activityEntity.AfterJson,
+            ChangesJson = activityEntity.ChangesJson,
+            MetadataJson = activityEntity.MetadataJson,
+            IsSensitive = activityEntity.IsSensitive,
+            RetentionClass = activityEntity.RetentionClass,
+            CreatedAt = activityEntity.CreatedAt
+        };
+
+        dbContext.Set<ActivityLogEntity>().Add(activityEntity);
+        dbContext.Set<AuditLogEntity>().Add(auditEntity);
     }
 
     private static string? Serialize(object? value)
