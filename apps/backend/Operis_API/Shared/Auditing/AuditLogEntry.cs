@@ -1,5 +1,13 @@
 namespace Operis_API.Shared.Auditing;
 
+public enum LogAudience
+{
+    Auto = 0,
+    ActivityOnly = 1,
+    AuditOnly = 2,
+    Both = 3
+}
+
 public sealed record AuditLogEntry(
     string Module,
     string Action,
@@ -22,4 +30,5 @@ public sealed record AuditLogEntry(
     object? Changes = null,
     object? Metadata = null,
     bool IsSensitive = false,
-    string? RetentionClass = null);
+    string? RetentionClass = null,
+    LogAudience Audience = LogAudience.Auto);

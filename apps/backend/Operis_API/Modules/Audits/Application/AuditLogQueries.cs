@@ -107,6 +107,7 @@ public sealed class AuditLogQueries(
             Action: "list",
             EntityType: "audit_log",
             StatusCode: StatusCodes.Status200OK,
+            Audience: LogAudience.AuditOnly,
             Metadata: new
             {
                 count = items.Count,

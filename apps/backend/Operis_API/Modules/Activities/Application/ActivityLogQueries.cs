@@ -109,6 +109,7 @@ public sealed class ActivityLogQueries(
             Action: "list",
             EntityType: "activity_log",
             StatusCode: StatusCodes.Status200OK,
+            Audience: LogAudience.ActivityOnly,
             Metadata: new
             {
                 count = items.Count,
