@@ -744,15 +744,6 @@
     "select_project_placeholder": "เลือกพื้นที่ทำงานของโครงการ",
     "select_template_placeholder": "เลือกแม่แบบของพื้นที่ทำงาน",
     "select_scenario_placeholder": "เลือกสถานการณ์ต้นแบบ",
-    "project_size": {
-      "small": "เล็ก",
-      "medium": "กลาง",
-      "large": "ใหญ่"
-    },
-    "modes": {
-      "standard": "มาตรฐาน",
-      "auditor": "ผู้ตรวจประเมิน"
-    },
     "back_to_projects": "กลับไปหน้าโครงการ",
     "templates": {
       "software_delivery": {
@@ -1429,7 +1420,15 @@
       "before": "ข้อมูลก่อนเปลี่ยน",
       "after": "ข้อมูลหลังเปลี่ยน",
       "changes": "รายการเปลี่ยนแปลง",
-      "metadata": "ข้อมูลเพิ่มเติม"
+      "metadata": "ข้อมูลเพิ่มเติม",
+      "error_code": "รหัสข้อผิดพลาด",
+      "error_message": "ข้อความแสดงข้อผิดพลาด",
+      "request_id": "รหัสคำขอ (Request ID)",
+      "trace_id": "รหัสติดตาม (Trace ID)",
+      "ip_address": "ที่อยู่ IP",
+      "user_agent": "User Agent",
+      "http_method": "วิธีการ HTTP",
+      "status_code": "รหัสสถานะ"
     },
     "status": {
       "success": "สำเร็จ",
@@ -1483,7 +1482,15 @@
       "before": "ข้อมูลก่อนเปลี่ยน",
       "after": "ข้อมูลหลังเปลี่ยน",
       "changes": "รายการเปลี่ยนแปลง",
-      "metadata": "ข้อมูลเพิ่มเติม"
+      "metadata": "ข้อมูลเพิ่มเติม",
+      "error_code": "รหัสข้อผิดพลาด",
+      "error_message": "ข้อความแสดงข้อผิดพลาด",
+      "request_id": "รหัสคำขอ (Request ID)",
+      "trace_id": "รหัสติดตาม (Trace ID)",
+      "ip_address": "ที่อยู่ IP",
+      "user_agent": "User Agent",
+      "http_method": "วิธีการ HTTP",
+      "status_code": "รหัสสถานะ"
     },
     "status": {
       "success": "สำเร็จ",

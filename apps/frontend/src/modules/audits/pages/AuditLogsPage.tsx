@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
+import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SortOrder, SorterResult } from "antd/es/table/interface";
-import { EyeOutlined, SearchOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
+import { EyeOutlined, SearchOutlined, SafetyCertificateOutlined, HistoryOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -57,6 +57,7 @@ function toApiSortOrder(order?: SortOrder): "asc" | "desc" | undefined {
 
 export function AuditLogsPage() {
   const { t, i18n } = useTranslation();
+  const { token } = theme.useToken();
   const { notification } = App.useApp();
   const permissionState = usePermissions();
   const canReadAuditLogs = permissionState.hasPermission(permissions.auditLogs.read);
@@ -186,8 +187,8 @@ export function AuditLogsPage() {
               borderRadius: 14,
               display: "grid",
               placeItems: "center",
-              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
-              color: "#fff",
+              background: `linear-gradient(135deg, ${token.colorPrimary}, ${token.colorPrimaryActive})`,
+              color: token.colorWhite,
             }}
           >
             <SafetyCertificateOutlined />
@@ -291,43 +292,134 @@ export function AuditLogsPage() {
             {t("audit_logs.actions.close")}
           </Button>,
         ]}
-        width={960}
+        width={1000}
+        styles={{ body: { padding: "20px 0" } }}
       >
         {selectedLog ? (
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            <Card size="small" title={t("audit_logs.detail.summary")}>
-              <Space direction="vertical" size={8}>
-                <Text>{`${t("audit_logs.columns.module")}: ${selectedLog.module}`}</Text>
-                <Text>{`${t("audit_logs.columns.action")}: ${selectedLog.action}`}</Text>
-                <Text>{`${t("audit_logs.columns.entity")}: ${selectedLog.entityType} / ${selectedLog.entityId || "-"}`}</Text>
-                <Text>{`${t("audit_logs.columns.actor")}: ${selectedLog.actorEmail || selectedLog.actorDisplayName || selectedLog.actorUserId || "-"}`}</Text>
-                <Text>{`${t("audit_logs.columns.status")}: ${t(`audit_logs.status.${selectedLog.status}`, { defaultValue: selectedLog.status })}`}</Text>
-              </Space>
-            </Card>
+          <Space direction="vertical" size={24} style={{ width: "100%" }}>
+            {/* Error Message Alert if failed */}
+            {selectedLog.status !== "success" && (selectedLog.errorCode || selectedLog.errorMessage) && (
+              <Alert
+                type="error"
+                showIcon
+                message={selectedLog.errorCode || t("audit_logs.status.failed")}
+                description={selectedLog.errorMessage}
+                style={{ margin: "0 24px" }}
+              />
+            )}
 
-            <Card size="small" title={t("audit_logs.detail.before")}>
-              <Paragraph>
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{prettyJson(selectedLog.beforeJson)}</pre>
-              </Paragraph>
-            </Card>
+            <div style={{ padding: "0 24px" }}>
+              <Typography.Title level={5} style={{ marginBottom: 16 }}>
+                <HistoryOutlined style={{ marginRight: 8 }} />
+                {t("audit_logs.detail.summary")}
+              </Typography.Title>
+              <Card size="small" variant="outlined" style={{ background: token.colorFillAlter }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 32px" }}>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.occurred_at")}</Text>
+                    <Text strong>{formatDate(selectedLog.occurredAt, i18n.language)}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.status")}</Text>
+                    <Tag color={getStatusColor(selectedLog.status)} style={{ margin: 0 }}>
+                      {t(`audit_logs.status.${selectedLog.status}`, { defaultValue: selectedLog.status })}
+                    </Tag>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.module")}</Text>
+                    <Text>{selectedLog.module}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.action")}</Text>
+                    <Tag>{selectedLog.action.toUpperCase()}</Tag>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.entity")}</Text>
+                    <Text>{`${selectedLog.entityType} (${selectedLog.entityId || "-"})`}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.actor")}</Text>
+                    <Text>{selectedLog.actorEmail || selectedLog.actorDisplayName || selectedLog.actorUserId || "-"}</Text>
+                  </Space>
+                </div>
+              </Card>
+            </div>
 
-            <Card size="small" title={t("audit_logs.detail.after")}>
-              <Paragraph>
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{prettyJson(selectedLog.afterJson)}</pre>
-              </Paragraph>
-            </Card>
+            <div style={{ padding: "0 24px" }}>
+              <Typography.Title level={5} style={{ marginBottom: 16 }}>
+                <SearchOutlined style={{ marginRight: 8 }} />
+                {t("audit_logs.detail.metadata")}
+              </Typography.Title>
+              <Card size="small" variant="outlined">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.http_method")}</Text>
+                    <Text style={{ fontSize: 13 }}>{selectedLog.httpMethod || "-"}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.status_code")}</Text>
+                    <Text style={{ fontSize: 13 }}>{selectedLog.statusCode || "-"}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.ip_address")}</Text>
+                    <Text style={{ fontSize: 13 }}>{selectedLog.ipAddress || "-"}</Text>
+                  </Space>
+                  <div style={{ gridColumn: "span 3" }}>
+                    <Space direction="vertical" size={0} style={{ width: "100%" }}>
+                      <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.request_id")}</Text>
+                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{selectedLog.requestId || "-"}</Text>
+                    </Space>
+                  </div>
+                  <div style={{ gridColumn: "span 3" }}>
+                    <Space direction="vertical" size={0} style={{ width: "100%" }}>
+                      <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.trace_id")}</Text>
+                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{selectedLog.traceId || "-"}</Text>
+                    </Space>
+                  </div>
+                  <div style={{ gridColumn: "span 3" }}>
+                    <Space direction="vertical" size={0} style={{ width: "100%" }}>
+                      <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.user_agent")}</Text>
+                      <Text style={{ fontSize: 12 }}>{selectedLog.userAgent || "-"}</Text>
+                    </Space>
+                  </div>
+                </div>
+              </Card>
+            </div>
 
-            <Card size="small" title={t("audit_logs.detail.changes")}>
-              <Paragraph>
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{prettyJson(selectedLog.changesJson)}</pre>
-              </Paragraph>
-            </Card>
+            <div style={{ padding: "0 24px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+                <div>
+                  <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.before")}</Typography.Title>
+                  <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
+                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedLog.beforeJson)}</pre>
+                  </Card>
+                </div>
+                <div>
+                  <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.after")}</Typography.Title>
+                  <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
+                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedLog.afterJson)}</pre>
+                  </Card>
+                </div>
+              </div>
+            </div>
 
-            <Card size="small" title={t("audit_logs.detail.metadata")}>
-              <Paragraph>
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{prettyJson(selectedLog.metadataJson)}</pre>
-              </Paragraph>
-            </Card>
+            {selectedLog.changesJson && selectedLog.changesJson !== "{}" && (
+              <div style={{ padding: "0 24px" }}>
+                <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.changes")}</Typography.Title>
+                <Card size="small" style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarningBorder}` }}>
+                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedLog.changesJson)}</pre>
+                </Card>
+              </div>
+            )}
+
+            {selectedLog.metadataJson && selectedLog.metadataJson !== "{}" && (
+              <div style={{ padding: "0 24px" }}>
+                <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.metadata")}</Typography.Title>
+                <Card size="small" style={{ background: token.colorInfoBg, border: `1px solid ${token.colorInfoBorder}` }}>
+                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedLog.metadataJson)}</pre>
+                </Card>
+              </div>
+            )}
           </Space>
         ) : null}
       </Modal>

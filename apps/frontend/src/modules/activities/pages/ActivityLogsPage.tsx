@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
+import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SortOrder, SorterResult } from "antd/es/table/interface";
 import { EyeOutlined, SearchOutlined, HistoryOutlined } from "@ant-design/icons";
@@ -57,6 +57,7 @@ function toApiSortOrder(order?: SortOrder): "asc" | "desc" | undefined {
 
 export function ActivityLogsPage() {
   const { t, i18n } = useTranslation();
+  const { token } = theme.useToken();
   const { notification } = App.useApp();
   const permissionState = usePermissions();
   const canReadActivityLogs = permissionState.hasPermission(permissions.activityLogs.read);
@@ -186,8 +187,8 @@ export function ActivityLogsPage() {
               borderRadius: 14,
               display: "grid",
               placeItems: "center",
-              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
-              color: "#fff",
+              background: `linear-gradient(135deg, ${token.colorPrimary}, ${token.colorPrimaryActive})`,
+              color: token.colorWhite,
             }}
           >
             <HistoryOutlined />
@@ -291,43 +292,134 @@ export function ActivityLogsPage() {
             {t("activity_logs.actions.close")}
           </Button>,
         ]}
-        width={960}
+        width={1000}
+        styles={{ body: { padding: "20px 0" } }}
       >
         {selectedActivity ? (
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            <Card size="small" title={t("activity_logs.detail.summary")}>
-              <Space direction="vertical" size={8}>
-                <Text>{`${t("activity_logs.columns.module")}: ${selectedActivity.module}`}</Text>
-                <Text>{`${t("activity_logs.columns.action")}: ${selectedActivity.action}`}</Text>
-                <Text>{`${t("activity_logs.columns.entity")}: ${selectedActivity.entityType} / ${selectedActivity.entityId || "-"}`}</Text>
-                <Text>{`${t("activity_logs.columns.actor")}: ${selectedActivity.actorEmail || selectedActivity.actorDisplayName || selectedActivity.actorUserId || "-"}`}</Text>
-                <Text>{`${t("activity_logs.columns.status")}: ${t(`activity_logs.status.${selectedActivity.status}`, { defaultValue: selectedActivity.status })}`}</Text>
-              </Space>
-            </Card>
+          <Space direction="vertical" size={24} style={{ width: "100%" }}>
+            {/* Error Message Alert if failed */}
+            {selectedActivity.status !== "success" && (selectedActivity.errorCode || selectedActivity.errorMessage) && (
+              <Alert
+                type="error"
+                showIcon
+                message={selectedActivity.errorCode || t("activity_logs.status.failed")}
+                description={selectedActivity.errorMessage}
+                style={{ margin: "0 24px" }}
+              />
+            )}
 
-            <Card size="small" title={t("activity_logs.detail.before")}>
-              <Paragraph>
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{prettyJson(selectedActivity.beforeJson)}</pre>
-              </Paragraph>
-            </Card>
+            <div style={{ padding: "0 24px" }}>
+              <Typography.Title level={5} style={{ marginBottom: 16 }}>
+                <HistoryOutlined style={{ marginRight: 8 }} />
+                {t("activity_logs.detail.summary")}
+              </Typography.Title>
+              <Card size="small" variant="outlined" style={{ background: token.colorFillAlter }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 32px" }}>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.occurred_at")}</Text>
+                    <Text strong>{formatDate(selectedActivity.occurredAt, i18n.language)}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.status")}</Text>
+                    <Tag color={getStatusColor(selectedActivity.status)} style={{ margin: 0 }}>
+                      {t(`activity_logs.status.${selectedActivity.status}`, { defaultValue: selectedActivity.status })}
+                    </Tag>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.module")}</Text>
+                    <Text>{selectedActivity.module}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.action")}</Text>
+                    <Tag>{selectedActivity.action.toUpperCase()}</Tag>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.entity")}</Text>
+                    <Text>{`${selectedActivity.entityType} (${selectedActivity.entityId || "-"})`}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.actor")}</Text>
+                    <Text>{selectedActivity.actorEmail || selectedActivity.actorDisplayName || selectedActivity.actorUserId || "-"}</Text>
+                  </Space>
+                </div>
+              </Card>
+            </div>
 
-            <Card size="small" title={t("activity_logs.detail.after")}>
-              <Paragraph>
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{prettyJson(selectedActivity.afterJson)}</pre>
-              </Paragraph>
-            </Card>
+            <div style={{ padding: "0 24px" }}>
+              <Typography.Title level={5} style={{ marginBottom: 16 }}>
+                <SearchOutlined style={{ marginRight: 8 }} />
+                {t("activity_logs.detail.metadata")}
+              </Typography.Title>
+              <Card size="small" variant="outlined">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.http_method")}</Text>
+                    <Text style={{ fontSize: 13 }}>{selectedActivity.httpMethod || "-"}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.status_code")}</Text>
+                    <Text style={{ fontSize: 13 }}>{selectedActivity.statusCode || "-"}</Text>
+                  </Space>
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.ip_address")}</Text>
+                    <Text style={{ fontSize: 13 }}>{selectedActivity.ipAddress || "-"}</Text>
+                  </Space>
+                  <div style={{ gridColumn: "span 3" }}>
+                    <Space direction="vertical" size={0} style={{ width: "100%" }}>
+                      <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.request_id")}</Text>
+                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{selectedActivity.requestId || "-"}</Text>
+                    </Space>
+                  </div>
+                  <div style={{ gridColumn: "span 3" }}>
+                    <Space direction="vertical" size={0} style={{ width: "100%" }}>
+                      <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.trace_id")}</Text>
+                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{selectedActivity.traceId || "-"}</Text>
+                    </Space>
+                  </div>
+                  <div style={{ gridColumn: "span 3" }}>
+                    <Space direction="vertical" size={0} style={{ width: "100%" }}>
+                      <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.user_agent")}</Text>
+                      <Text style={{ fontSize: 12 }}>{selectedActivity.userAgent || "-"}</Text>
+                    </Space>
+                  </div>
+                </div>
+              </Card>
+            </div>
 
-            <Card size="small" title={t("activity_logs.detail.changes")}>
-              <Paragraph>
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{prettyJson(selectedActivity.changesJson)}</pre>
-              </Paragraph>
-            </Card>
+            <div style={{ padding: "0 24px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+                <div>
+                  <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("activity_logs.detail.before")}</Typography.Title>
+                  <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
+                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedActivity.beforeJson)}</pre>
+                  </Card>
+                </div>
+                <div>
+                  <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("activity_logs.detail.after")}</Typography.Title>
+                  <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
+                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedActivity.afterJson)}</pre>
+                  </Card>
+                </div>
+              </div>
+            </div>
 
-            <Card size="small" title={t("activity_logs.detail.metadata")}>
-              <Paragraph>
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{prettyJson(selectedActivity.metadataJson)}</pre>
-              </Paragraph>
-            </Card>
+            {selectedActivity.changesJson && selectedActivity.changesJson !== "{}" && (
+              <div style={{ padding: "0 24px" }}>
+                <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("activity_logs.detail.changes")}</Typography.Title>
+                <Card size="small" style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarningBorder}` }}>
+                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedActivity.changesJson)}</pre>
+                </Card>
+              </div>
+            )}
+
+            {selectedActivity.metadataJson && selectedActivity.metadataJson !== "{}" && (
+              <div style={{ padding: "0 24px" }}>
+                <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("activity_logs.detail.metadata")}</Typography.Title>
+                <Card size="small" style={{ background: token.colorInfoBg, border: `1px solid ${token.colorInfoBorder}` }}>
+                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedActivity.metadataJson)}</pre>
+                </Card>
+              </div>
+            )}
           </Space>
         ) : null}
       </Modal>

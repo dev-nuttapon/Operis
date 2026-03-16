@@ -744,15 +744,6 @@
     "select_project_placeholder": "Select a project workspace",
     "select_template_placeholder": "Select a workspace template",
     "select_scenario_placeholder": "Select a prototype scenario",
-    "project_size": {
-      "small": "Small",
-      "medium": "Medium",
-      "large": "Large"
-    },
-    "modes": {
-      "standard": "Standard",
-      "auditor": "Auditor"
-    },
     "back_to_projects": "Back to Projects",
     "templates": {
       "software_delivery": {
@@ -1429,7 +1420,15 @@
       "before": "Before",
       "after": "After",
       "changes": "Changes",
-      "metadata": "Metadata"
+      "metadata": "Metadata",
+      "error_code": "Error Code",
+      "error_message": "Error Message",
+      "request_id": "Request ID",
+      "trace_id": "Trace ID",
+      "ip_address": "IP Address",
+      "user_agent": "User Agent",
+      "http_method": "HTTP Method",
+      "status_code": "Status Code"
     },
     "status": {
       "success": "Success",
@@ -1483,7 +1482,15 @@
       "before": "Before",
       "after": "After",
       "changes": "Changes",
-      "metadata": "Metadata"
+      "metadata": "Metadata",
+      "error_code": "Error Code",
+      "error_message": "Error Message",
+      "request_id": "Request ID",
+      "trace_id": "Trace ID",
+      "ip_address": "IP Address",
+      "user_agent": "User Agent",
+      "http_method": "HTTP Method",
+      "status_code": "Status Code"
     },
     "status": {
       "success": "Success",

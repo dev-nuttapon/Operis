@@ -57,13 +57,21 @@ public sealed class DocumentsModule : IModule
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
         IDocumentCommands commands,
-        IFormFile? file,
+        HttpRequest request,
         CancellationToken cancellationToken)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload))
         {
             return Results.Forbid();
         }
+
+        if (!request.HasFormContentType)
+        {
+            return BadRequestWithCode("Request must be multipart/form-data.", ApiErrorCodes.RequestValidationFailed);
+        }
+
+        var form = await request.ReadFormAsync(cancellationToken);
+        var file = form.Files.GetFile("file");
 
         if (file is null)
         {

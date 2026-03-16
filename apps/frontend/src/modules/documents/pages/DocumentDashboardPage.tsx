@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { Typography, Card, Button, Space, Divider, List, Tag, App, Alert } from "antd";
-import { LogoutOutlined, UploadOutlined, DownloadOutlined, CheckCircleOutlined, DeleteOutlined, RollbackOutlined, BranchesOutlined } from "@ant-design/icons";
-import { useAuth } from "../../../modules/auth";
+import { UploadOutlined, DownloadOutlined, CheckCircleOutlined, DeleteOutlined, RollbackOutlined, BranchesOutlined } from "@ant-design/icons";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
 import { useDocumentDashboard } from "../hooks/useDocumentDashboard";
@@ -14,7 +13,6 @@ const allowedDocumentExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx"] as 
 
 export function DocumentDashboardPage() {
   const { notification } = App.useApp();
-  const { logout, isAuthenticated } = useAuth();
   const language = useI18nLanguage();
   const permissionState = usePermissions();
   const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
