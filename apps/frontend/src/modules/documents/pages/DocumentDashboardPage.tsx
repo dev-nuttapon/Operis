@@ -75,21 +75,11 @@ export function DocumentDashboardPage() {
     <Card bordered={false} style={{ borderRadius: 16 }}>
       <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
         <Title level={2} style={{ margin: 0 }}>{tr("documents.page_title")}</Title>
-        <Space>
-          {canUploadDocuments ? (
-            <>
-              <input ref={fileInputRef} type="file" accept={acceptedFileTypes} style={{ display: "none" }} onChange={(event) => void handleFileSelected(event)} />
-              <Button type="primary" icon={<UploadOutlined />} onClick={handleUploadClick} loading={uploadDocumentMutation.isPending}>
-                {tr("documents.upload.action")}
-              </Button>
-            </>
-          ) : null}
-          {isAuthenticated ? (
-            <Button danger icon={<LogoutOutlined />} onClick={() => void logout()}>
-              {tr("auth.logout_button")}
-            </Button>
-          ) : null}
-        </Space>
+        <div style={{ display: "none" }}>
+          {canUploadDocuments && (
+            <input ref={fileInputRef} type="file" accept={acceptedFileTypes} style={{ display: "none" }} onChange={(event) => void handleFileSelected(event)} />
+          )}
+        </div>
       </Space>
       <Paragraph>
         {tr("documents.welcome")}
