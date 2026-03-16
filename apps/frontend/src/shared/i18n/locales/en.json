@@ -328,6 +328,7 @@
     "registration_not_approved": "This registration request has not been approved yet.",
     "invitation_not_found": "Invitation not found.",
     "keycloak_user_exists": "This user already exists in the identity provider.",
+    "document_file_type_not_allowed": "Only PDF, Word, and Excel documents can be uploaded.",
     "update_user_affiliation_failed": "Unable to save the user affiliation"
   },
   "admin_users": {
@@ -1356,6 +1357,9 @@
     },
     "upload": {
       "action": "Upload Document",
+      "allowed_file_types": "Allowed file types: PDF, DOC, DOCX, XLS, XLSX",
+      "invalid_type_title": "Unsupported file type",
+      "invalid_type_description": "Only PDF, Word, and Excel documents can be uploaded.",
       "success_title": "Document uploaded",
       "success_description": "{{fileName}} uploaded successfully.",
       "failed_title": "Unable to upload document"

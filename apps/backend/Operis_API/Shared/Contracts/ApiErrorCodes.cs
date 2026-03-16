@@ -72,5 +72,6 @@ namespace Operis_API.Shared.Contracts;
         public const string FileRequired = "document_file_required";
         public const string FileEmpty = "document_file_empty";
         public const string FileTooLarge = "document_file_too_large";
+        public const string FileTypeNotAllowed = "document_file_type_not_allowed";
     }
 }

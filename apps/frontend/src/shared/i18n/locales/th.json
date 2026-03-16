@@ -328,6 +328,7 @@
     "registration_not_approved": "คำขอลงทะเบียนนี้ยังไม่ได้รับการอนุมัติ",
     "invitation_not_found": "ไม่พบคำเชิญนี้",
     "keycloak_user_exists": "มีผู้ใช้งานนี้ในระบบยืนยันตัวตนแล้ว",
+    "document_file_type_not_allowed": "อนุญาตให้อัปโหลดเฉพาะเอกสาร PDF, Word และ Excel เท่านั้น",
     "update_user_affiliation_failed": "ไม่สามารถบันทึกสังกัดผู้ใช้งานได้"
   },
   "admin_users": {
@@ -1356,6 +1357,9 @@
     },
     "upload": {
       "action": "อัปโหลดเอกสาร",
+      "allowed_file_types": "ประเภทไฟล์ที่อนุญาต: PDF, DOC, DOCX, XLS, XLSX",
+      "invalid_type_title": "ประเภทไฟล์ไม่รองรับ",
+      "invalid_type_description": "อนุญาตให้อัปโหลดเฉพาะเอกสาร PDF, Word และ Excel เท่านั้น",
       "success_title": "อัปโหลดเอกสารแล้ว",
       "success_description": "อัปโหลด {{fileName}} สำเร็จ",
       "failed_title": "ไม่สามารถอัปโหลดเอกสารได้"

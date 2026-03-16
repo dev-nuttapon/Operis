@@ -10,6 +10,7 @@ import { permissions } from "../../../shared/authz/permissions";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
 
 const { Title, Paragraph } = Typography;
+const allowedDocumentExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx"] as const;
 
 export function DocumentDashboardPage() {
   const { notification } = App.useApp();
@@ -26,6 +27,7 @@ export function DocumentDashboardPage() {
   const canDeleteDrafts = permissionState.hasPermission(permissions.documents.deleteDraft);
   const canDeactivateDocuments = permissionState.hasPermission(permissions.documents.deactivate);
   const canOperateDocuments = canUploadDocuments || canManageVersions || canPublishDocuments || canDeleteDrafts || canDeactivateDocuments;
+  const acceptedFileTypes = allowedDocumentExtensions.join(",");
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -34,6 +36,17 @@ export function DocumentDashboardPage() {
   const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
+      return;
+    }
+
+    const normalizedFileName = file.name.trim().toLowerCase();
+    const isAllowedFileType = allowedDocumentExtensions.some((extension) => normalizedFileName.endsWith(extension));
+    if (!isAllowedFileType) {
+      notification.error({
+        message: tr("documents.upload.invalid_type_title"),
+        description: tr("documents.upload.invalid_type_description"),
+      });
+      event.target.value = "";
       return;
     }
 
@@ -65,7 +78,7 @@ export function DocumentDashboardPage() {
         <Space>
           {canUploadDocuments ? (
             <>
-              <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={(event) => void handleFileSelected(event)} />
+              <input ref={fileInputRef} type="file" accept={acceptedFileTypes} style={{ display: "none" }} onChange={(event) => void handleFileSelected(event)} />
               <Button type="primary" icon={<UploadOutlined />} onClick={handleUploadClick} loading={uploadDocumentMutation.isPending}>
                 {tr("documents.upload.action")}
               </Button>
@@ -89,6 +102,9 @@ export function DocumentDashboardPage() {
       </Title>
       <Paragraph type="secondary">
         {tr("documents.operations_description")}
+      </Paragraph>
+      <Paragraph type="secondary" style={{ marginTop: -8 }}>
+        {tr("documents.upload.allowed_file_types")}
       </Paragraph>
       {!canOperateDocuments ? (
         <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />

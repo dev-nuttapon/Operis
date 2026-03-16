@@ -15,6 +15,15 @@ public sealed class DocumentCommands(
     IAuditLogWriter auditLogWriter,
     IOptions<DocumentStorageOptions> optionsAccessor) : IDocumentCommands
 {
+    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx"
+    };
+
     public async Task<DocumentUploadResult> UploadDocumentAsync(DocumentUploadRequest request, Stream content, CancellationToken cancellationToken)
     {
         var options = optionsAccessor.Value;
@@ -35,6 +44,14 @@ public sealed class DocumentCommands(
         }
 
         var normalizedFileName = Path.GetFileName(request.FileName.Trim());
+        var fileExtension = Path.GetExtension(normalizedFileName);
+        if (string.IsNullOrWhiteSpace(fileExtension) || !AllowedExtensions.Contains(fileExtension))
+        {
+            return DocumentUploadResult.Fail(
+                ApiErrorCodes.Documents.FileTypeNotAllowed,
+                "Only PDF, Word, and Excel documents are allowed.");
+        }
+
         var objectKey = $"documents/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid():N}-{normalizedFileName}";
         var contentType = string.IsNullOrWhiteSpace(request.ContentType) ? "application/octet-stream" : request.ContentType.Trim();
 
