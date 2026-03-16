@@ -29,17 +29,46 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("BucketName")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("bucket_name");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("content_type");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("file_name");
 
+                    b.Property<string>("ObjectKey")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("object_key");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
                     b.Property<DateTimeOffset>("UploadedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("uploaded_at");
 
+                    b.Property<string>("UploadedByUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("uploaded_by_user_id");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ObjectKey")
+                        .IsUnique()
+                        .HasFilter("\"object_key\" IS NOT NULL");
 
                     b.HasIndex("UploadedAt");
 

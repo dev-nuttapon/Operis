@@ -127,3 +127,7 @@
 /Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API.Tests/obj/Debug/net10.0/Operis_API.Tests.pdb
 /Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API.Tests/obj/Debug/net10.0/Operis_API.Tests.genruntimeconfig.cache
 /Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API.Tests/obj/Debug/net10.0/ref/Operis_API.Tests.dll
+/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API.Tests/bin/Debug/net10.0/CommunityToolkit.HighPerformance.dll
+/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API.Tests/bin/Debug/net10.0/Minio.dll
+/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API.Tests/bin/Debug/net10.0/System.IO.Hashing.dll
+/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API.Tests/bin/Debug/net10.0/System.Reactive.dll

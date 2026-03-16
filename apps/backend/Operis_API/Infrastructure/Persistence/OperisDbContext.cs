@@ -36,8 +36,14 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.FileName).HasColumnName("file_name").HasMaxLength(256);
+            entity.Property(x => x.ObjectKey).HasColumnName("object_key").HasMaxLength(512);
+            entity.Property(x => x.BucketName).HasColumnName("bucket_name").HasMaxLength(128);
+            entity.Property(x => x.ContentType).HasColumnName("content_type").HasMaxLength(256);
+            entity.Property(x => x.SizeBytes).HasColumnName("size_bytes");
+            entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id").HasMaxLength(64);
             entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at");
             entity.HasIndex(x => x.UploadedAt);
+            entity.HasIndex(x => x.ObjectKey).IsUnique().HasFilter("\"object_key\" IS NOT NULL");
         });
 
         modelBuilder.Entity<UserEntity>(entity =>

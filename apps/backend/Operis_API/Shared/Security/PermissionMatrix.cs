@@ -35,6 +35,11 @@ public sealed class PermissionMatrix : IPermissionMatrix
                 Permissions.AuditLogs.Read,
                 Permissions.AuditLogs.Export,
                 Permissions.Documents.Read,
+                Permissions.Documents.Upload,
+                Permissions.Documents.ManageVersions,
+                Permissions.Documents.Publish,
+                Permissions.Documents.DeleteDraft,
+                Permissions.Documents.Deactivate,
                 Permissions.Workflows.Read,
                 Permissions.Workflows.ManageDefinitions
             ],
@@ -76,11 +81,19 @@ public sealed class PermissionMatrix : IPermissionMatrix
                 Permissions.Documents.Read,
                 Permissions.Workflows.Read
             ],
-            ["operis:documents_owner"] = [Permissions.Documents.Read],
+            ["operis:documents_owner"] =
+            [
+                Permissions.Documents.Read,
+                Permissions.Documents.Upload,
+                Permissions.Documents.ManageVersions,
+                Permissions.Documents.Publish,
+                Permissions.Documents.DeleteDraft,
+                Permissions.Documents.Deactivate
+            ],
             ["operis:documents_reviewer"] = [Permissions.Documents.Read],
             ["operis:workflows_approver"] = [Permissions.Workflows.Read],
             ["operis:workflows_department_manager"] = [Permissions.Workflows.Read],
-            ["operis:employee_viewer"] = [Permissions.Documents.Read, Permissions.Workflows.Read],
+            ["operis:employee_viewer"] = [Permissions.Workflows.Read],
             ["operis:ops_support"] = [Permissions.ActivityLogs.Read]
         };
 

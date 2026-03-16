@@ -1,10 +1,9 @@
-import { useMemo, useState } from "react";
-import { useDocuments } from "./useDocuments";
-import type { DocumentFormValues } from "../types/documentForm";
+import { useMemo } from "react";
+import { useDocuments, useUploadDocument } from "./useDocuments";
 
-export function useDocumentDashboard() {
-  const documentsQuery = useDocuments();
-  const [submittedData, setSubmittedData] = useState<DocumentFormValues | null>(null);
+export function useDocumentDashboard(canReadDocuments = true) {
+  const documentsQuery = useDocuments(canReadDocuments);
+  const uploadDocumentMutation = useUploadDocument();
 
   const latestDocuments = useMemo(
     () => (documentsQuery.data ?? []).slice(0, 5),
@@ -13,8 +12,7 @@ export function useDocumentDashboard() {
 
   return {
     documentsQuery,
+    uploadDocumentMutation,
     latestDocuments,
-    submittedData,
-    setSubmittedData,
   };
 }

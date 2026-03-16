@@ -49,6 +49,14 @@ export function MainLayout() {
     permissions.activityLogs.read,
     permissions.auditLogs.read,
   );
+  const hasDocumentAccess = permissionState.hasAnyPermission(
+    permissions.documents.read,
+    permissions.documents.upload,
+    permissions.documents.manageVersions,
+    permissions.documents.publish,
+    permissions.documents.deleteDraft,
+    permissions.documents.deactivate,
+  );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
   const isDarkMode = token.colorBgBase.toLowerCase() === '#020617';
@@ -108,11 +116,13 @@ export function MainLayout() {
       icon: <DashboardOutlined />,
       label: tr('common.dashboard'),
     },
-    {
-      key: '/app/documents',
-      icon: <FileTextOutlined />,
-      label: tr('common.documents'),
-    },
+    ...(hasDocumentAccess
+      ? [{
+          key: '/app/documents',
+          icon: <FileTextOutlined />,
+          label: tr('common.documents'),
+        }]
+      : []),
     {
       key: '/app/projects',
       icon: <ProjectOutlined />,

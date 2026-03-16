@@ -46,6 +46,11 @@ public static class Permissions
     public static class Documents
     {
         public const string Read = "documents.read";
+        public const string Upload = "documents.upload";
+        public const string ManageVersions = "documents.versions.manage";
+        public const string Publish = "documents.publish";
+        public const string DeleteDraft = "documents.draft.delete";
+        public const string Deactivate = "documents.deactivate";
     }
 
     public static class Workflows
@@ -78,6 +83,11 @@ public static class Permissions
         AuditLogs.Read,
         AuditLogs.Export,
         Documents.Read,
+        Documents.Upload,
+        Documents.ManageVersions,
+        Documents.Publish,
+        Documents.DeleteDraft,
+        Documents.Deactivate,
         Workflows.Read,
         Workflows.ManageDefinitions
     ];

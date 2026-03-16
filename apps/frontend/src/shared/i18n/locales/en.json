@@ -1318,7 +1318,48 @@
   },
   "documents": {
     "page_title": "Document Dashboard",
-    "welcome": "Welcome to the Paperless Document System.",
+    "welcome": "Document operations are reserved for assigned document roles only.",
+    "latest_documents": "Latest Documents",
+    "load_failed": "Unable to load documents.",
+    "empty": "No documents yet.",
+    "download_action": "Download",
+    "operations_title": "Document Responsibilities",
+    "operations_description": "Only users with document-specific roles should upload files, manage versions, publish documents, delete drafts, or deactivate active documents.",
+    "read_only_title": "Read-only access",
+    "read_only_description": "You can review document records, but lifecycle actions are restricted to document roles.",
+    "actions": {
+      "upload": {
+        "title": "Upload Draft",
+        "description": "Upload a new draft file through the backend storage flow.",
+        "button": "Upload Draft"
+      },
+      "version": {
+        "title": "Change Version",
+        "description": "Create or replace a document version when versioning flow is enabled.",
+        "button": "Manage Version"
+      },
+      "publish": {
+        "title": "Publish",
+        "description": "Declare a reviewed document as active for controlled use.",
+        "button": "Publish Document"
+      },
+      "delete_draft": {
+        "title": "Delete Draft",
+        "description": "Remove draft documents before they are released.",
+        "button": "Delete Draft"
+      },
+      "deactivate": {
+        "title": "Deactivate",
+        "description": "Cancel active use when a document is obsolete or superseded.",
+        "button": "Deactivate Document"
+      }
+    },
+    "upload": {
+      "action": "Upload Document",
+      "success_title": "Document uploaded",
+      "success_description": "{{fileName}} uploaded successfully.",
+      "failed_title": "Unable to upload document"
+    },
     "test_form_title": "Documents Test Form",
     "last_payload": "Last Submitted Payload",
     "form": {

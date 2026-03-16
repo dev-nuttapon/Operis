@@ -1,6 +1,6 @@
 namespace Operis_API.Shared.Contracts;
 
-public static class ApiErrorCodes
+    public static class ApiErrorCodes
 {
     public const string RequestValidationFailed = "request_validation_failed";
     public const string ResourceNotFound = "resource_not_found";
@@ -66,4 +66,11 @@ public static class ApiErrorCodes
     public const string WorkflowDefinitionAlreadyExists = "workflow_definition_already_exists";
     public const string WorkflowDefinitionAlreadyActive = "workflow_definition_already_active";
     public const string WorkflowDefinitionAlreadyArchived = "workflow_definition_already_archived";
+
+    public static class Documents
+    {
+        public const string FileRequired = "document_file_required";
+        public const string FileEmpty = "document_file_empty";
+        public const string FileTooLarge = "document_file_too_large";
+    }
 }

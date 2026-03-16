@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Documents.Application;
 using Operis_API.Modules.Documents.Contracts;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 using Operis_API.Shared.Modules;
 using Operis_API.Shared.Security;
 using System.Security.Claims;
@@ -13,7 +13,11 @@ public sealed class DocumentsModule : IModule
 {
     public IServiceCollection RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<Infrastructure.DocumentStorageOptions>(configuration.GetSection(Infrastructure.DocumentStorageOptions.SectionName));
+        services.AddScoped<Infrastructure.IDocumentObjectStorage, Infrastructure.MinioDocumentObjectStorage>();
         services.AddScoped<IDocumentQueries, DocumentQueries>();
+        services.AddScoped<IDocumentCommands, DocumentCommands>();
+        services.AddScoped<IDocumentDownloads, DocumentDownloads>();
         return services;
     }
 
@@ -25,6 +29,11 @@ public sealed class DocumentsModule : IModule
 
         group.MapGet("/", ListDocumentsAsync)
             .WithName("Documents_List");
+        group.MapPost("/", UploadDocumentAsync)
+            .DisableAntiforgery()
+            .WithName("Documents_Upload");
+        group.MapGet("/{documentId:guid}/download", DownloadDocumentAsync)
+            .WithName("Documents_Download");
 
         return endpoints;
     }
@@ -43,4 +52,71 @@ public sealed class DocumentsModule : IModule
         var items = await queries.ListDocumentsAsync(cancellationToken);
         return Results.Ok(items);
     }
+
+    private static async Task<IResult> UploadDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        IFormFile? file,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload))
+        {
+            return Results.Forbid();
+        }
+
+        if (file is null)
+        {
+            return BadRequestWithCode("A file is required.", ApiErrorCodes.Documents.FileRequired);
+        }
+
+        await using var stream = file.OpenReadStream();
+        var result = await commands.UploadDocumentAsync(
+            new DocumentUploadRequest(
+                file.FileName,
+                file.ContentType,
+                file.Length,
+                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
+            stream,
+            cancellationToken);
+
+        return result.Succeeded
+            ? Results.Created($"/api/v1/documents/{result.Document!.Id}", result.Document)
+            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> DownloadDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentDownloads downloads,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await downloads.GetDownloadAsync(documentId, cancellationToken);
+        if (result is null)
+        {
+            return NotFoundWithCode();
+        }
+
+        return Results.File(result.Content, result.ContentType, result.FileName);
+    }
+
+    private static IResult BadRequestWithCode(string? detail, string? code = null) =>
+        Results.BadRequest(ApiProblemDetailsFactory.Create(
+            StatusCodes.Status400BadRequest,
+            code ?? ApiErrorCodes.RequestValidationFailed,
+            "Bad Request",
+            detail));
+
+    private static IResult NotFoundWithCode(string? detail = null) =>
+        Results.NotFound(ApiProblemDetailsFactory.Create(
+            StatusCodes.Status404NotFound,
+            ApiErrorCodes.ResourceNotFound,
+            "Not Found",
+            detail));
 }
