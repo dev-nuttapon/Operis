@@ -21,8 +21,6 @@ public sealed class MinioDocumentObjectStorage : IDocumentObjectStorage
 
     public async Task StoreAsync(string objectKey, Stream content, long size, string contentType, CancellationToken cancellationToken)
     {
-        await EnsureBucketExistsAsync(cancellationToken);
-
         await client.PutObjectAsync(
             new PutObjectArgs()
                 .WithBucket(options.BucketName)
@@ -35,8 +33,6 @@ public sealed class MinioDocumentObjectStorage : IDocumentObjectStorage
 
     public async Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken)
     {
-        await EnsureBucketExistsAsync(cancellationToken);
-
         var memory = new MemoryStream();
         await client.GetObjectAsync(
             new GetObjectArgs()
@@ -46,14 +42,5 @@ public sealed class MinioDocumentObjectStorage : IDocumentObjectStorage
             cancellationToken);
         memory.Position = 0;
         return memory;
-    }
-
-    private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)
-    {
-        var exists = await client.BucketExistsAsync(new BucketExistsArgs().WithBucket(options.BucketName), cancellationToken);
-        if (!exists)
-        {
-            await client.MakeBucketAsync(new MakeBucketArgs().WithBucket(options.BucketName), cancellationToken);
-        }
     }
 }
