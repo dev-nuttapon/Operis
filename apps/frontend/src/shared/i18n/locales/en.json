@@ -1419,6 +1419,9 @@
       "publish_list": {
         "label": "Publish"
       },
+      "history": {
+        "label": "History"
+      },
       "upload": {
         "title": "Create Document",
         "description": "Create a document record before uploading files and versions.",

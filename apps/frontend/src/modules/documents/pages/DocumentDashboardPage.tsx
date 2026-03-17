@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Typography, Card, Button, Space, Divider, Table, Alert, Dropdown, Modal, Form, Input } from "antd";
-import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, MoreOutlined } from "@ant-design/icons";
+import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, MoreOutlined, FileTextOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
@@ -125,6 +125,13 @@ export function DocumentDashboardPage() {
             icon: <BranchesOutlined />,
             disabled: !canPublishDocuments,
             onClick: () => navigate(`/app/documents/${item.id}/versions`, { state: { documentName: item.documentName } }),
+          },
+          {
+            key: "history",
+            label: tr("documents.actions.history.label"),
+            icon: <FileTextOutlined />,
+            disabled: !canReadDocuments,
+            onClick: () => navigate(`/app/documents/${item.id}/history`, { state: { documentName: item.documentName } }),
           },
         ];
         return (
