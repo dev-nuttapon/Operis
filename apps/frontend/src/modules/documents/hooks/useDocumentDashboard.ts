@@ -1,9 +1,8 @@
 import { useMemo } from "react";
-import { useDocuments, useUploadDocument } from "./useDocuments";
+import { useDocuments } from "./useDocuments";
 
 export function useDocumentDashboard(canReadDocuments = true) {
   const documentsQuery = useDocuments(canReadDocuments);
-  const uploadDocumentMutation = useUploadDocument();
 
   const latestDocuments = useMemo(
     () => (documentsQuery.data ?? []).slice(0, 5),
@@ -12,7 +11,6 @@ export function useDocumentDashboard(canReadDocuments = true) {
 
   return {
     documentsQuery,
-    uploadDocumentMutation,
     latestDocuments,
   };
 }

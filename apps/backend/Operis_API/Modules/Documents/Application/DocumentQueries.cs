@@ -15,7 +15,7 @@ public sealed class DocumentQueries(
             .AsNoTracking()
             .OrderByDescending(x => x.UploadedAt)
             .Take(50)
-            .Select(x => new DocumentListItem(x.Id, x.FileName, x.ContentType ?? "application/octet-stream", x.SizeBytes, x.UploadedByUserId, x.UploadedAt))
+            .Select(x => new DocumentListItem(x.Id, x.DocumentName, x.FileName, x.ContentType ?? "application/octet-stream", x.SizeBytes, x.UploadedByUserId, x.UploadedAt))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(

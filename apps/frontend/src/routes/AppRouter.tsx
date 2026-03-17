@@ -7,6 +7,9 @@ import { MainLayout } from "../shared/components/layouts/MainLayout";
 const DocumentDashboardPage = lazy(() =>
   import("../modules/documents/pages/DocumentDashboardPage").then((module) => ({ default: module.DocumentDashboardPage }))
 );
+const DocumentUploadPage = lazy(() =>
+  import("../modules/documents/pages/DocumentUploadPage").then((module) => ({ default: module.DocumentUploadPage }))
+);
 const LoginPage = lazy(() =>
   import("../modules/auth/pages/LoginPage").then((module) => ({ default: module.LoginPage }))
 );
@@ -79,6 +82,7 @@ export function AppRouter() {
             <Route element={<MainLayout />}>
               <Route index element={<Navigate to="documents" replace />} />
               <Route path="documents" element={<DocumentDashboardPage />} />
+              <Route path="documents/upload" element={<DocumentUploadPage />} />
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="workflows" element={<WorkflowDefinitionsPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />

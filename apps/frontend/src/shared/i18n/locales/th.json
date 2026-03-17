@@ -1312,6 +1312,14 @@
     "page_title": "แดชบอร์ดเอกสาร",
     "welcome": "งานเอกสารถูกจำกัดไว้สำหรับผู้ที่ได้รับบทบาทด้านเอกสารเท่านั้น",
     "latest_documents": "เอกสารล่าสุด",
+    "columns": {
+      "document_name": "ชื่อเอกสาร",
+      "file_name": "ชื่อไฟล์",
+      "content_type": "ประเภทไฟล์",
+      "size": "ขนาด",
+      "uploaded_at": "วันที่อัปโหลด",
+      "actions": "การทำงาน"
+    },
     "load_failed": "ไม่สามารถโหลดรายการเอกสารได้",
     "empty": "ยังไม่มีเอกสาร",
     "download_action": "ดาวน์โหลด",
@@ -1351,9 +1359,28 @@
       "allowed_file_types": "ประเภทไฟล์ที่อนุญาต: PDF, DOC, DOCX, XLS, XLSX",
       "invalid_type_title": "ประเภทไฟล์ไม่รองรับ",
       "invalid_type_description": "อนุญาตให้อัปโหลดเฉพาะเอกสาร PDF, Word และ Excel เท่านั้น",
+      "file_required_title": "ยังไม่ได้เลือกไฟล์",
+      "file_required_description": "กรุณาเลือกไฟล์เอกสารก่อนบันทึก",
       "success_title": "อัปโหลดเอกสารแล้ว",
-      "success_description": "อัปโหลด {{fileName}} สำเร็จ",
+      "success_description": "ระบบบันทึกเอกสารเรียบร้อยแล้ว",
       "failed_title": "ไม่สามารถอัปโหลดเอกสารได้"
+    },
+    "upload_page": {
+      "title": "อัปโหลดเอกสารใหม่",
+      "description": "ระบุชื่อเอกสารและเลือกไฟล์ที่ต้องการอัปโหลดผ่านระบบ",
+      "back_action": "กลับ",
+      "fields": {
+        "document_name": "ชื่อเอกสาร",
+        "document_name_required": "กรุณาระบุชื่อเอกสาร",
+        "document_name_placeholder": "ระบุชื่อเอกสารที่ต้องการแสดง",
+        "file": "ไฟล์เอกสาร",
+        "file_placeholder": "ยังไม่ได้เลือกไฟล์เอกสาร"
+      },
+      "actions": {
+        "pick_file": "เลือกไฟล์เอกสาร",
+        "submit": "บันทึกเอกสาร",
+        "cancel": "ยกเลิก"
+      }
     },
     "test_form_title": "ฟอร์มทดสอบเอกสาร",
     "last_payload": "ข้อมูลที่ส่งล่าสุด",

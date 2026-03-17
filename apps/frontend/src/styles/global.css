@@ -65,3 +65,16 @@ html[data-theme='light'] .glass-panel {
 ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(150, 150, 150, 0.8);
 }
+
+/* Responsive tables */
+@media (max-width: 768px) {
+  .ant-table-wrapper,
+  .ant-table-container,
+  .ant-table-content {
+    overflow-x: auto;
+  }
+
+  .ant-table {
+    min-width: 720px;
+  }
+}

@@ -14,7 +14,7 @@ export function useUploadDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file }: { file: File }) => uploadDocument(file),
+    mutationFn: ({ file, documentName }: { file: File; documentName: string }) => uploadDocument(file, documentName),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["documents", "list"] });
     },

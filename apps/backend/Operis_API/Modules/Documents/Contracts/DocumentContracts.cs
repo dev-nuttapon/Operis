@@ -2,6 +2,7 @@ namespace Operis_API.Modules.Documents.Contracts;
 
 public sealed record DocumentListItem(
     Guid Id,
+    string DocumentName,
     string FileName,
     string ContentType,
     long SizeBytes,

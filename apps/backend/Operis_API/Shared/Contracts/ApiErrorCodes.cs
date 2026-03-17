@@ -69,6 +69,7 @@ namespace Operis_API.Shared.Contracts;
 
     public static class Documents
     {
+        public const string NameRequired = "document_name_required";
         public const string FileRequired = "document_file_required";
         public const string FileEmpty = "document_file_empty";
         public const string FileTooLarge = "document_file_too_large";

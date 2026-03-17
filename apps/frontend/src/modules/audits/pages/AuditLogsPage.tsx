@@ -254,6 +254,7 @@ export function AuditLogsPage() {
           columns={columns}
           dataSource={canReadAuditLogs ? (auditLogsQuery.data?.items ?? []) : []}
           loading={canReadAuditLogs ? auditLogsQuery.isLoading : false}
+          scroll={{ x: "max-content" }}
           pagination={{
             current: auditLogsQuery.data?.page ?? filters.page ?? 1,
             pageSize: auditLogsQuery.data?.pageSize ?? filters.pageSize ?? 10,

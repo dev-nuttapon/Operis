@@ -3,6 +3,7 @@ using Operis_API.Modules.Documents.Contracts;
 namespace Operis_API.Modules.Documents.Application;
 
 public sealed record DocumentUploadRequest(
+    string DocumentName,
     string FileName,
     string ContentType,
     long Size,

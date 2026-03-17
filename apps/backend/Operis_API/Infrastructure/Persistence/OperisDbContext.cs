@@ -35,6 +35,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.ToTable("documents");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.DocumentName).HasColumnName("document_name").HasMaxLength(256);
             entity.Property(x => x.FileName).HasColumnName("file_name").HasMaxLength(256);
             entity.Property(x => x.ObjectKey).HasColumnName("object_key").HasMaxLength(512);
             entity.Property(x => x.BucketName).HasColumnName("bucket_name").HasMaxLength(128);

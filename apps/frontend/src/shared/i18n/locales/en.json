@@ -1312,6 +1312,14 @@
     "page_title": "Document Dashboard",
     "welcome": "Document operations are reserved for assigned document roles only.",
     "latest_documents": "Latest Documents",
+    "columns": {
+      "document_name": "Document name",
+      "file_name": "File name",
+      "content_type": "File type",
+      "size": "Size",
+      "uploaded_at": "Uploaded date",
+      "actions": "Actions"
+    },
     "load_failed": "Unable to load documents.",
     "empty": "No documents yet.",
     "download_action": "Download",
@@ -1351,9 +1359,28 @@
       "allowed_file_types": "Allowed file types: PDF, DOC, DOCX, XLS, XLSX",
       "invalid_type_title": "Unsupported file type",
       "invalid_type_description": "Only PDF, Word, and Excel documents can be uploaded.",
+      "file_required_title": "File required",
+      "file_required_description": "Please choose a document file before saving.",
       "success_title": "Document uploaded",
-      "success_description": "{{fileName}} uploaded successfully.",
+      "success_description": "Document saved successfully.",
       "failed_title": "Unable to upload document"
+    },
+    "upload_page": {
+      "title": "Upload New Document",
+      "description": "Provide a document name and select the file to upload.",
+      "back_action": "Back",
+      "fields": {
+        "document_name": "Document name",
+        "document_name_required": "Please enter a document name",
+        "document_name_placeholder": "Enter a display name",
+        "file": "Document file",
+        "file_placeholder": "No file selected"
+      },
+      "actions": {
+        "pick_file": "Choose file",
+        "submit": "Save document",
+        "cancel": "Cancel"
+      }
     },
     "test_form_title": "Documents Test Form",
     "last_payload": "Last Submitted Payload",

@@ -28,6 +28,11 @@ public sealed class DocumentCommands(
     {
         var options = optionsAccessor.Value;
 
+        if (string.IsNullOrWhiteSpace(request.DocumentName))
+        {
+            return DocumentUploadResult.Fail(ApiErrorCodes.Documents.NameRequired, "A document name is required.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.FileName))
         {
             return DocumentUploadResult.Fail(ApiErrorCodes.Documents.FileRequired, "A file is required.");
@@ -43,6 +48,7 @@ public sealed class DocumentCommands(
             return DocumentUploadResult.Fail(ApiErrorCodes.Documents.FileTooLarge, "The uploaded file exceeds the configured size limit.");
         }
 
+        var normalizedDocumentName = request.DocumentName.Trim();
         var normalizedFileName = Path.GetFileName(request.FileName.Trim());
         var fileExtension = Path.GetExtension(normalizedFileName);
         if (string.IsNullOrWhiteSpace(fileExtension) || !AllowedExtensions.Contains(fileExtension))
@@ -60,6 +66,7 @@ public sealed class DocumentCommands(
         var entity = new DocumentEntity
         {
             Id = Guid.NewGuid(),
+            DocumentName = normalizedDocumentName,
             FileName = normalizedFileName,
             ObjectKey = objectKey,
             BucketName = options.BucketName,
@@ -72,7 +79,7 @@ public sealed class DocumentCommands(
         dbContext.Documents.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var response = new DocumentListItem(entity.Id, entity.FileName, entity.ContentType, entity.SizeBytes, entity.UploadedByUserId, entity.UploadedAt);
+        var response = new DocumentListItem(entity.Id, entity.DocumentName, entity.FileName, entity.ContentType, entity.SizeBytes, entity.UploadedByUserId, entity.UploadedAt);
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "documents",
@@ -83,6 +90,7 @@ public sealed class DocumentCommands(
             After: new
             {
                 entity.Id,
+                entity.DocumentName,
                 entity.FileName,
                 entity.ContentType,
                 entity.SizeBytes,

@@ -72,6 +72,7 @@ public sealed class DocumentsModule : IModule
 
         var form = await request.ReadFormAsync(cancellationToken);
         var file = form.Files.GetFile("file");
+        var documentName = form.TryGetValue("documentName", out var nameValues) ? nameValues.ToString() : null;
 
         if (file is null)
         {
@@ -81,6 +82,7 @@ public sealed class DocumentsModule : IModule
         await using var stream = file.OpenReadStream();
         var result = await commands.UploadDocumentAsync(
             new DocumentUploadRequest(
+                documentName ?? string.Empty,
                 file.FileName,
                 file.ContentType,
                 file.Length,
