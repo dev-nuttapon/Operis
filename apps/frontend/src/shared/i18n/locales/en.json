@@ -1311,7 +1311,7 @@
   "documents": {
     "page_title": "Document Dashboard",
     "welcome": "Document operations are reserved for assigned document roles only.",
-    "latest_documents": "Document List",
+    "list_title": "Document List",
     "columns": {
       "document_name": "Document name",
       "file_name": "File name",
