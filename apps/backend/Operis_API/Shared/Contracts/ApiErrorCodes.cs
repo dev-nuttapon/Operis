@@ -77,5 +77,7 @@ namespace Operis_API.Shared.Contracts;
         public const string VersionCodeRequired = "document_version_code_required";
         public const string VersionCodeExists = "document_version_code_exists";
         public const string DocumentNotFound = "document_not_found";
+        public const string DocumentNameExists = "document_name_exists";
+        public const string DeleteReasonRequired = "document_delete_reason_required";
     }
 }

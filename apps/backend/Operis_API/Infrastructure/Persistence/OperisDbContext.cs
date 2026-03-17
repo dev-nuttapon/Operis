@@ -39,7 +39,12 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.DocumentName).HasColumnName("document_name").HasMaxLength(256);
             entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id").HasMaxLength(64);
             entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at");
+            entity.Property(x => x.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(x => x.DeletedByUserId).HasColumnName("deleted_by_user_id").HasMaxLength(64);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(512);
             entity.HasIndex(x => x.UploadedAt);
+            entity.HasIndex(x => x.IsDeleted);
         });
 
         modelBuilder.Entity<DocumentVersionEntity>(entity =>
@@ -57,10 +62,15 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.SizeBytes).HasColumnName("size_bytes");
             entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id").HasMaxLength(64);
             entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at");
+            entity.Property(x => x.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(x => x.DeletedByUserId).HasColumnName("deleted_by_user_id").HasMaxLength(64);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(512);
             entity.HasIndex(x => x.DocumentId);
             entity.HasIndex(x => new { x.DocumentId, x.Revision }).IsUnique();
             entity.HasIndex(x => new { x.DocumentId, x.VersionCode }).IsUnique();
             entity.HasIndex(x => x.ObjectKey).IsUnique().HasFilter("\"object_key\" IS NOT NULL");
+            entity.HasIndex(x => x.IsDeleted);
         });
 
         modelBuilder.Entity<UserEntity>(entity =>

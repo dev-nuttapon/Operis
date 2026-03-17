@@ -1,10 +1,12 @@
-import { Typography, Card, Button, Space, Divider, Table, Tag, Alert } from "antd";
-import { UploadOutlined, DownloadOutlined, CheckCircleOutlined, DeleteOutlined, RollbackOutlined, BranchesOutlined } from "@ant-design/icons";
+import { useState } from "react";
+import { Typography, Card, Button, Space, Divider, Table, Tag, Alert, Dropdown, Modal, Form, Input } from "antd";
+import { UploadOutlined, BranchesOutlined, CheckCircleOutlined, DeleteOutlined, RollbackOutlined, MoreOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
 import { useDocumentDashboard } from "../hooks/useDocumentDashboard";
+import { useDeleteDocument, useUpdateDocument } from "../hooks/useDocuments";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import type { DocumentListItemView } from "../types/documents";
@@ -15,8 +17,15 @@ export function DocumentDashboardPage() {
   const navigate = useNavigate();
   const permissionState = usePermissions();
   const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
-  const { documentsQuery, latestDocuments } = useDocumentDashboard(canReadDocuments);
+  const { documentsQuery } = useDocumentDashboard(canReadDocuments);
   const tr = (key: string) => i18n.t(key, { lng: language });
+  const [editForm] = Form.useForm();
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteForm] = Form.useForm();
+  const [editingDocument, setEditingDocument] = useState<DocumentListItemView | null>(null);
+  const updateDocumentMutation = useUpdateDocument();
+  const deleteDocumentMutation = useDeleteDocument();
   const canUploadDocuments = permissionState.hasPermission(permissions.documents.upload);
   const canManageVersions = permissionState.hasPermission(permissions.documents.manageVersions);
   const canPublishDocuments = permissionState.hasPermission(permissions.documents.publish);
@@ -84,35 +93,79 @@ export function DocumentDashboardPage() {
       align: "center",
       render: (_, item) => {
         const hasFile = Boolean(item.fileName?.trim()) && item.sizeBytes > 0;
+        const menuItems = [
+          {
+            key: "edit",
+            label: tr("documents.actions.edit.label"),
+            disabled: !canUploadDocuments,
+            onClick: () => {
+              setEditingDocument(item);
+              editForm.setFieldsValue({ documentName: item.documentName });
+              setEditModalOpen(true);
+            },
+          },
+          {
+            key: "delete",
+            label: tr("documents.actions.delete.label"),
+            disabled: !canDeleteDrafts,
+            onClick: () => {
+              setEditingDocument(item);
+              deleteForm.resetFields();
+              setDeleteModalOpen(true);
+            },
+          },
+          {
+            key: "download",
+            label: tr("documents.actions.download.label"),
+            disabled: !hasFile,
+            onClick: () => {
+              if (!hasFile) {
+                return;
+              }
+              window.open(`/api/v1/documents/${item.id}/download`, "_blank", "noopener,noreferrer");
+            },
+          },
+          {
+            key: "upload",
+            label: tr("documents.actions.upload_file.label"),
+            disabled: !canManageVersions,
+            onClick: () => navigate(`/app/documents/${item.id}/versions/new`, { state: { documentName: item.documentName } }),
+          },
+          {
+            key: "publish",
+            label: tr("documents.actions.publish_list.label"),
+            disabled: !canPublishDocuments,
+            onClick: () => navigate(`/app/documents/${item.id}/versions`, { state: { documentName: item.documentName } }),
+          },
+        ];
         return (
-          <Space>
-            <Button
-              size="small"
-              icon={<DownloadOutlined />}
-              disabled={!hasFile}
-              onClick={() => {
-                if (!hasFile) {
-                  return;
-                }
-                window.open(`/api/v1/documents/${item.id}/download`, "_blank", "noopener,noreferrer");
-              }}
-            >
-              {tr("documents.download_action")}
-            </Button>
-            {canManageVersions ? (
-              <Button
-                size="small"
-                icon={<BranchesOutlined />}
-                onClick={() => navigate(`/app/documents/${item.id}/versions/new`, { state: { documentName: item.documentName } })}
-              >
-                {tr("documents.actions.version.button")}
-              </Button>
-            ) : null}
-          </Space>
+          <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+            <Button size="small" icon={<MoreOutlined />} />
+          </Dropdown>
         );
       },
     },
   ];
+
+  const handleEditSubmit = async () => {
+    const values = await editForm.validateFields();
+    if (!editingDocument) {
+      return;
+    }
+    await updateDocumentMutation.mutateAsync({ documentId: editingDocument.id, documentName: values.documentName });
+    setEditModalOpen(false);
+    setEditingDocument(null);
+  };
+
+  const handleDeleteSubmit = async () => {
+    const values = await deleteForm.validateFields();
+    if (!editingDocument) {
+      return;
+    }
+    await deleteDocumentMutation.mutateAsync({ documentId: editingDocument.id, reason: values.reason });
+    setDeleteModalOpen(false);
+    setEditingDocument(null);
+  };
 
   return (
     <Card bordered={false} style={{ borderRadius: 16 }}>
@@ -187,12 +240,60 @@ export function DocumentDashboardPage() {
         rowKey="id"
         loading={documentsQuery.isLoading}
         columns={latestDocumentColumns}
-        dataSource={canReadDocuments ? latestDocuments : []}
+        dataSource={canReadDocuments ? (documentsQuery.data ?? []) : []}
         pagination={false}
         scroll={{ x: "max-content" }}
         locale={{ emptyText: !canReadDocuments ? tr("documents.read_only_title") : documentsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
         style={{ marginBottom: 24 }}
       />
+
+      <Modal
+        open={editModalOpen}
+        title={tr("documents.actions.edit.title")}
+        onCancel={() => {
+          setEditModalOpen(false);
+          setEditingDocument(null);
+        }}
+        onOk={() => void handleEditSubmit()}
+        okText={tr("documents.actions.edit.submit")}
+        cancelText={tr("documents.actions.edit.cancel")}
+        confirmLoading={updateDocumentMutation.isPending}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item
+            name="documentName"
+            label={tr("documents.actions.edit.field")}
+            rules={[{ required: true, message: tr("documents.actions.edit.required") }]}
+          >
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        open={deleteModalOpen}
+        title={tr("documents.actions.delete.confirm_title")}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setEditingDocument(null);
+        }}
+        onOk={() => void handleDeleteSubmit()}
+        okText={tr("documents.actions.delete.confirm_ok")}
+        cancelText={tr("documents.actions.delete.confirm_cancel")}
+        okButtonProps={{ danger: true }}
+        confirmLoading={deleteDocumentMutation.isPending}
+      >
+        <Form form={deleteForm} layout="vertical">
+          <Form.Item
+            name="reason"
+            label={tr("documents.actions.delete.reason_label")}
+            rules={[{ required: true, message: tr("documents.actions.delete.reason_required") }]}
+          >
+            <Input.TextArea rows={3} />
+          </Form.Item>
+          <Alert type="warning" message={tr("documents.actions.delete.confirm_description")} showIcon />
+        </Form>
+      </Modal>
     </Card>
   );
 }

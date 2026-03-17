@@ -8,7 +8,7 @@ vi.mock("./useDocuments", () => ({
 }));
 
 describe("useDocumentDashboard", () => {
-  it("returns only the latest five documents from the query result", () => {
+  it("returns the documents query result", () => {
     vi.mocked(useDocuments).mockReturnValue({
       data: [
         { id: "1", documentName: "Doc 1", fileName: "doc-1.pdf", contentType: "application/pdf", sizeBytes: 1024, uploadedByUserId: "u1", uploadedAt: "2026-03-01T00:00:00Z", versionCode: "1.0", revision: 1 },
@@ -25,7 +25,6 @@ describe("useDocumentDashboard", () => {
 
     const { result } = renderHook(() => useDocumentDashboard());
 
-    expect(result.current.latestDocuments).toHaveLength(5);
-    expect(result.current.latestDocuments.map((item) => item.id)).toEqual(["1", "2", "3", "4", "5"]);
+    expect(result.current.documentsQuery.data).toHaveLength(6);
   });
 });

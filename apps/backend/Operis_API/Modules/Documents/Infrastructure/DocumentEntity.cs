@@ -1,14 +1,18 @@
 namespace Operis_API.Modules.Documents.Infrastructure;
 
-public sealed class DocumentEntity
+public sealed record DocumentEntity
 {
     public Guid Id { get; init; }
     public string DocumentName { get; init; } = string.Empty;
     public string? UploadedByUserId { get; init; }
     public DateTimeOffset UploadedAt { get; init; }
+    public bool IsDeleted { get; init; }
+    public string? DeletedByUserId { get; init; }
+    public DateTimeOffset? DeletedAt { get; init; }
+    public string? DeletedReason { get; init; }
 }
 
-public sealed class DocumentVersionEntity
+public sealed record DocumentVersionEntity
 {
     public Guid Id { get; init; }
     public Guid DocumentId { get; init; }
@@ -21,4 +25,8 @@ public sealed class DocumentVersionEntity
     public long SizeBytes { get; init; }
     public string? UploadedByUserId { get; init; }
     public DateTimeOffset UploadedAt { get; init; }
+    public bool IsDeleted { get; init; }
+    public string? DeletedByUserId { get; init; }
+    public DateTimeOffset? DeletedAt { get; init; }
+    public string? DeletedReason { get; init; }
 }

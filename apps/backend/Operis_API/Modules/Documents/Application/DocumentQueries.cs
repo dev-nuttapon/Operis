@@ -13,10 +13,11 @@ public sealed class DocumentQueries(
     {
         var items = await dbContext.Documents
             .AsNoTracking()
+            .Where(x => !x.IsDeleted)
             .OrderByDescending(x => x.UploadedAt)
             .Take(50)
             .GroupJoin(
-                dbContext.DocumentVersions.AsNoTracking(),
+                dbContext.DocumentVersions.AsNoTracking().Where(x => !x.IsDeleted),
                 document => document.Id,
                 version => version.DocumentId,
                 (document, versions) => new
@@ -48,5 +49,35 @@ public sealed class DocumentQueries(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return items;
+    }
+
+    public async Task<IReadOnlyList<DocumentVersionListItem>> ListDocumentVersionsAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        var versions = await dbContext.DocumentVersions
+            .AsNoTracking()
+            .Where(x => x.DocumentId == documentId && !x.IsDeleted)
+            .OrderByDescending(x => x.Revision)
+            .ThenByDescending(x => x.UploadedAt)
+            .Select(x => new DocumentVersionListItem(
+                x.Id,
+                x.DocumentId,
+                x.Revision,
+                x.VersionCode,
+                x.FileName,
+                x.ContentType ?? "application/octet-stream",
+                x.SizeBytes,
+                x.UploadedByUserId,
+                x.UploadedAt))
+            .ToListAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "documents",
+            Action: "list_versions",
+            EntityType: "document_version",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { documentId, count = versions.Count }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return versions;
     }
 }

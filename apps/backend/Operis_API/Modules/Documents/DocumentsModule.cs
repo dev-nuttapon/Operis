@@ -5,6 +5,7 @@ using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
 using Operis_API.Shared.Modules;
 using Operis_API.Shared.Security;
+using System.Text.Json;
 using System.Security.Claims;
 
 namespace Operis_API.Modules.Documents;
@@ -31,9 +32,15 @@ public sealed class DocumentsModule : IModule
             .WithName("Documents_List");
         group.MapPost("/", CreateDocumentAsync)
             .WithName("Documents_Upload");
+        group.MapGet("/{documentId:guid}/versions", ListDocumentVersionsAsync)
+            .WithName("Documents_ListVersions");
         group.MapPost("/{documentId:guid}/versions", CreateDocumentVersionAsync)
             .DisableAntiforgery()
             .WithName("Documents_CreateVersion");
+        group.MapPut("/{documentId:guid}", UpdateDocumentAsync)
+            .WithName("Documents_Update");
+        group.MapDelete("/{documentId:guid}", DeleteDocumentAsync)
+            .WithName("Documents_Delete");
         group.MapGet("/{documentId:guid}/download", DownloadDocumentAsync)
             .WithName("Documents_Download");
 
@@ -67,15 +74,15 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var payload = await request.ReadFromJsonAsync<DocumentCreateRequest>(cancellationToken: cancellationToken);
-        if (payload is null)
+        var documentName = await ExtractDocumentNameAsync(request, cancellationToken);
+        if (string.IsNullOrWhiteSpace(documentName))
         {
             return BadRequestWithCode("A document name is required.", ApiErrorCodes.Documents.NameRequired);
         }
 
         var result = await commands.CreateDocumentAsync(
             new DocumentCreateCommand(
-                payload.DocumentName,
+                documentName,
                 principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
             cancellationToken);
 
@@ -128,6 +135,84 @@ public sealed class DocumentsModule : IModule
             : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
     }
 
+    private static async Task<IResult> UpdateDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        HttpRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload))
+        {
+            return Results.Forbid();
+        }
+
+        var documentName = await ExtractDocumentNameAsync(request, cancellationToken);
+        if (string.IsNullOrWhiteSpace(documentName))
+        {
+            return BadRequestWithCode("A document name is required.", ApiErrorCodes.Documents.NameRequired);
+        }
+
+        var result = await commands.UpdateDocumentAsync(
+            new DocumentUpdateCommand(
+                documentId,
+                documentName,
+                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
+            cancellationToken);
+
+        return result.Succeeded
+            ? Results.Ok(result.Document)
+            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> DeleteDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        HttpRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.DeleteDraft))
+        {
+            return Results.Forbid();
+        }
+
+        var reason = await ExtractDeleteReasonAsync(request, cancellationToken);
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return BadRequestWithCode("A delete reason is required.", ApiErrorCodes.Documents.DeleteReasonRequired);
+        }
+
+        var result = await commands.DeleteDocumentAsync(
+            new DocumentDeleteCommand(
+                documentId,
+                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier),
+                reason),
+            cancellationToken);
+
+        return result.Succeeded
+            ? Results.NoContent()
+            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> ListDocumentVersionsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentQueries queries,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var versions = await queries.ListDocumentVersionsAsync(documentId, cancellationToken);
+        return Results.Ok(versions);
+    }
+
     private static async Task<IResult> DownloadDocumentAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
@@ -162,4 +247,103 @@ public sealed class DocumentsModule : IModule
             ApiErrorCodes.ResourceNotFound,
             "Not Found",
             detail));
+
+    private static async Task<string?> ExtractDocumentNameAsync(HttpRequest request, CancellationToken cancellationToken)
+    {
+        var rawBody = await ReadRawBodyAsync(request, cancellationToken);
+        return ExtractStringFromBody(rawBody, "documentName", "document_name");
+    }
+
+    private static async Task<string?> ExtractDeleteReasonAsync(HttpRequest request, CancellationToken cancellationToken)
+    {
+        var rawBody = await ReadRawBodyAsync(request, cancellationToken);
+        var reason = ExtractStringFromBody(rawBody, "reason");
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            return reason;
+        }
+
+        if (request.Query.TryGetValue("reason", out var reasonValues))
+        {
+            return reasonValues.ToString();
+        }
+
+        return null;
+    }
+
+    private static async Task<string?> ReadRawBodyAsync(HttpRequest request, CancellationToken cancellationToken)
+    {
+        request.EnableBuffering();
+        request.Body.Position = 0;
+        using var reader = new StreamReader(request.Body, leaveOpen: true);
+        var rawBody = await reader.ReadToEndAsync(cancellationToken);
+        request.Body.Position = 0;
+        return rawBody;
+    }
+
+    private static string? ExtractStringFromBody(string? rawBody, params string[] propertyNames)
+    {
+        if (string.IsNullOrWhiteSpace(rawBody))
+        {
+            return null;
+        }
+
+        if (TryExtractStringFromJson(rawBody, propertyNames, out var value))
+        {
+            return value;
+        }
+
+        var trimmed = rawBody.Trim();
+        return trimmed.Length > 0 ? trimmed : null;
+    }
+
+    private static bool TryExtractStringFromJson(string rawBody, string[] propertyNames, out string? value)
+    {
+        value = null;
+        try
+        {
+            using var document = JsonDocument.Parse(rawBody);
+            var root = document.RootElement;
+            if (root.ValueKind == JsonValueKind.String)
+            {
+                var stringValue = root.GetString();
+                if (!string.IsNullOrWhiteSpace(stringValue) && LooksLikeJson(stringValue))
+                {
+                    return TryExtractStringFromJson(stringValue, propertyNames, out value);
+                }
+
+                value = stringValue;
+                return true;
+            }
+
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var propertyName in propertyNames)
+                {
+                    if (root.TryGetProperty(propertyName, out var propValue))
+                    {
+                        value = propValue.GetString();
+                        return true;
+                    }
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            value = null;
+        }
+
+        return false;
+    }
+
+    private static bool LooksLikeJson(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        return trimmed.StartsWith("{") && trimmed.EndsWith("}");
+    }
 }

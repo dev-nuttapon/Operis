@@ -35,3 +35,34 @@ public sealed record DocumentVersionCreateResult(
 
     public static DocumentVersionCreateResult Fail(string errorCode, string errorMessage) => new(false, null, errorCode, errorMessage);
 }
+
+public sealed record DocumentUpdateCommand(
+    Guid DocumentId,
+    string DocumentName,
+    string? UpdatedByUserId);
+
+public sealed record DocumentUpdateResult(
+    bool Succeeded,
+    DocumentListItem? Document,
+    string? ErrorCode,
+    string? ErrorMessage)
+{
+    public static DocumentUpdateResult Success(DocumentListItem document) => new(true, document, null, null);
+
+    public static DocumentUpdateResult Fail(string errorCode, string errorMessage) => new(false, null, errorCode, errorMessage);
+}
+
+public sealed record DocumentDeleteCommand(
+    Guid DocumentId,
+    string? DeletedByUserId,
+    string? DeletedReason);
+
+public sealed record DocumentDeleteResult(
+    bool Succeeded,
+    string? ErrorCode,
+    string? ErrorMessage)
+{
+    public static DocumentDeleteResult Success() => new(true, null, null);
+
+    public static DocumentDeleteResult Fail(string errorCode, string errorMessage) => new(false, errorCode, errorMessage);
+}

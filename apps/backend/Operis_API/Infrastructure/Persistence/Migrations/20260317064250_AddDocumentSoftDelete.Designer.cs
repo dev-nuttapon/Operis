@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operis_API.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Operis_API.Infrastructure.Persistence;
 namespace Operis_API.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(OperisDbContext))]
-    partial class OperisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260317064250_AddDocumentSoftDelete")]
+    partial class AddDocumentSoftDelete
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -37,11 +40,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("deleted_by_user_id");
-
-                    b.Property<string>("DeletedReason")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("deleted_reason");
 
                     b.Property<string>("DocumentName")
                         .IsRequired()
@@ -97,11 +95,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("deleted_by_user_id");
-
-                    b.Property<string>("DeletedReason")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("deleted_reason");
 
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uuid")

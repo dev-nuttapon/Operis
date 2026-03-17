@@ -16,7 +16,7 @@ public sealed class DocumentDownloads(
     {
         var entity = await dbContext.Documents
             .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == documentId, cancellationToken);
+            .SingleOrDefaultAsync(x => x.Id == documentId && !x.IsDeleted, cancellationToken);
 
         if (entity is null)
         {
@@ -25,7 +25,7 @@ public sealed class DocumentDownloads(
 
         var latestVersion = await dbContext.DocumentVersions
             .AsNoTracking()
-            .Where(x => x.DocumentId == documentId)
+            .Where(x => x.DocumentId == documentId && !x.IsDeleted)
             .OrderByDescending(x => x.Revision)
             .ThenByDescending(x => x.UploadedAt)
             .FirstOrDefaultAsync(cancellationToken);

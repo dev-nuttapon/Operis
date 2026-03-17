@@ -28,6 +28,7 @@ public sealed class AuditFailureLoggingMiddleware(RequestDelegate next)
             }
             catch (Exception ex)
             {
+                dbContext.ChangeTracker.Clear();
                 auditLogWriter.Append(BuildEntry(
                     context,
                     StatusCodes.Status500InternalServerError,
@@ -39,6 +40,7 @@ public sealed class AuditFailureLoggingMiddleware(RequestDelegate next)
 
             if (context.Response.StatusCode >= StatusCodes.Status400BadRequest)
             {
+                dbContext.ChangeTracker.Clear();
                 responseBody.Seek(0, SeekOrigin.Begin);
                 using var reader = new StreamReader(responseBody, leaveOpen: true);
                 var bodyText = await reader.ReadToEndAsync();

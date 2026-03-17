@@ -23,8 +23,7 @@ export function listDocuments(signal?: AbortSignal) {
 export function createDocument(payload: DocumentCreateRequest, signal?: AbortSignal) {
   return apiRequest<DocumentListItem>("/api/v1/documents", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: payload,
     signal,
   });
 }
@@ -43,6 +42,38 @@ export function createDocumentVersion(payload: DocumentVersionCreateRequest, sig
   return apiRequest(`/api/v1/documents/${payload.documentId}/versions`, {
     method: "POST",
     body: formData,
+    signal,
+  });
+}
+
+export interface DocumentVersionListItem {
+  id: string;
+  documentId: string;
+  revision: number;
+  versionCode: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedByUserId: string | null;
+  uploadedAt: string;
+}
+
+export function listDocumentVersions(documentId: string, signal?: AbortSignal) {
+  return apiRequest<DocumentVersionListItem[]>(`/api/v1/documents/${documentId}/versions`, { signal });
+}
+
+export function updateDocument(documentId: string, documentName: string, signal?: AbortSignal) {
+  return apiRequest<DocumentListItem>(`/api/v1/documents/${documentId}`, {
+    method: "PUT",
+    body: { documentName },
+    signal,
+  });
+}
+
+export function deleteDocument(documentId: string, reason: string, signal?: AbortSignal) {
+  return apiRequest<void>(`/api/v1/documents/${documentId}`, {
+    method: "DELETE",
+    body: { reason },
     signal,
   });
 }

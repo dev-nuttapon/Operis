@@ -1311,7 +1311,7 @@
   "documents": {
     "page_title": "Document Dashboard",
     "welcome": "Document operations are reserved for assigned document roles only.",
-    "latest_documents": "Latest Documents",
+    "latest_documents": "Document List",
     "columns": {
       "document_name": "Document name",
       "file_name": "File name",
@@ -1331,6 +1331,32 @@
     "read_only_title": "Read-only access",
     "read_only_description": "You can review document records, but lifecycle actions are restricted to document roles.",
     "actions": {
+      "edit": {
+        "label": "Edit name",
+        "title": "Edit document name",
+        "field": "Document name",
+        "required": "Please enter a document name",
+        "submit": "Save",
+        "cancel": "Cancel"
+      },
+      "delete": {
+        "label": "Delete",
+        "confirm_title": "Delete document",
+        "confirm_description": "This will delete the document and all versions.",
+        "confirm_ok": "Delete document",
+        "confirm_cancel": "Cancel",
+        "reason_label": "Delete reason",
+        "reason_required": "Please enter a delete reason"
+      },
+      "download": {
+        "label": "Download"
+      },
+      "upload_file": {
+        "label": "Upload file"
+      },
+      "publish_list": {
+        "label": "Publish"
+      },
       "upload": {
         "title": "Create Document",
         "description": "Create a document record before uploading files and versions.",
@@ -1400,6 +1426,14 @@
         "pick_file": "Choose file",
         "submit": "Save version",
         "cancel": "Cancel"
+      }
+    },
+    "versions_page": {
+      "title": "All Document Files",
+      "description": "Review every uploaded file version for this document.",
+      "back_action": "Back",
+      "actions": {
+        "add_version": "Upload file"
       }
     },
     "test_form_title": "Documents Test Form",

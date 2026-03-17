@@ -13,6 +13,9 @@ public sealed record DocumentListItem(
 
 public sealed record DocumentCreateRequest(string DocumentName);
 
+public sealed record DocumentUpdateRequest(string DocumentName);
+public sealed record DocumentDeleteRequest(string Reason);
+
 public sealed record DocumentVersionListItem(
     Guid Id,
     Guid DocumentId,

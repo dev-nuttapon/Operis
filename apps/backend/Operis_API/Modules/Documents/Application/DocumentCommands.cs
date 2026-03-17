@@ -40,7 +40,8 @@ public sealed class DocumentCommands(
             Id = Guid.NewGuid(),
             DocumentName = normalizedDocumentName,
             UploadedByUserId = request.CreatedByUserId,
-            UploadedAt = DateTimeOffset.UtcNow
+            UploadedAt = DateTimeOffset.UtcNow,
+            IsDeleted = false
         };
 
         dbContext.Documents.Add(entity);
@@ -109,7 +110,7 @@ public sealed class DocumentCommands(
 
         var documentExists = await dbContext.Documents
             .AsNoTracking()
-            .AnyAsync(x => x.Id == request.DocumentId, cancellationToken);
+            .AnyAsync(x => x.Id == request.DocumentId && !x.IsDeleted, cancellationToken);
 
         if (!documentExists)
         {
@@ -128,7 +129,7 @@ public sealed class DocumentCommands(
 
         var versionCodeExists = await dbContext.DocumentVersions
             .AsNoTracking()
-            .AnyAsync(x => x.DocumentId == request.DocumentId && x.VersionCode == normalizedVersionCode, cancellationToken);
+            .AnyAsync(x => x.DocumentId == request.DocumentId && x.VersionCode == normalizedVersionCode && !x.IsDeleted, cancellationToken);
 
         if (versionCodeExists)
         {
@@ -136,7 +137,7 @@ public sealed class DocumentCommands(
         }
 
         var currentRevision = await dbContext.DocumentVersions
-            .Where(x => x.DocumentId == request.DocumentId)
+            .Where(x => x.DocumentId == request.DocumentId && !x.IsDeleted)
             .Select(x => (int?)x.Revision)
             .MaxAsync(cancellationToken);
 
@@ -158,7 +159,8 @@ public sealed class DocumentCommands(
             ContentType = contentType,
             SizeBytes = request.Size,
             UploadedByUserId = request.UploadedByUserId,
-            UploadedAt = DateTimeOffset.UtcNow
+            UploadedAt = DateTimeOffset.UtcNow,
+            IsDeleted = false
         };
 
         dbContext.DocumentVersions.Add(versionEntity);
@@ -196,5 +198,127 @@ public sealed class DocumentCommands(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return DocumentVersionCreateResult.Success(response);
+    }
+
+    public async Task<DocumentUpdateResult> UpdateDocumentAsync(DocumentUpdateCommand request, CancellationToken cancellationToken)
+    {
+        if (request.DocumentId == Guid.Empty)
+        {
+            return DocumentUpdateResult.Fail(ApiErrorCodes.Documents.DocumentNotFound, "Document not found.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DocumentName))
+        {
+            return DocumentUpdateResult.Fail(ApiErrorCodes.Documents.NameRequired, "A document name is required.");
+        }
+
+        var normalizedName = request.DocumentName.Trim();
+        var exists = await dbContext.Documents
+            .AsNoTracking()
+            .AnyAsync(x => x.DocumentName == normalizedName && x.Id != request.DocumentId, cancellationToken);
+
+        if (exists)
+        {
+            return DocumentUpdateResult.Fail(ApiErrorCodes.Documents.DocumentNameExists, "Document name already exists.");
+        }
+
+        var entity = await dbContext.Documents
+            .SingleOrDefaultAsync(x => x.Id == request.DocumentId && !x.IsDeleted, cancellationToken);
+
+        if (entity is null)
+        {
+            return DocumentUpdateResult.Fail(ApiErrorCodes.Documents.DocumentNotFound, "Document not found.");
+        }
+
+        var updated = entity with { DocumentName = normalizedName };
+        dbContext.Entry(entity).CurrentValues.SetValues(updated);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var response = new DocumentListItem(
+            updated.Id,
+            updated.DocumentName,
+            string.Empty,
+            "application/octet-stream",
+            0,
+            updated.UploadedByUserId,
+            updated.UploadedAt,
+            null,
+            null);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "documents",
+            Action: "update",
+            EntityType: "document",
+            EntityId: updated.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            After: new
+            {
+                updated.Id,
+                updated.DocumentName,
+                updated.UploadedByUserId,
+                updated.UploadedAt
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return DocumentUpdateResult.Success(response);
+    }
+
+    public async Task<DocumentDeleteResult> DeleteDocumentAsync(DocumentDeleteCommand request, CancellationToken cancellationToken)
+    {
+        if (request.DocumentId == Guid.Empty)
+        {
+            return DocumentDeleteResult.Fail(ApiErrorCodes.Documents.DocumentNotFound, "Document not found.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DeletedReason))
+        {
+            return DocumentDeleteResult.Fail(ApiErrorCodes.Documents.DeleteReasonRequired, "A delete reason is required.");
+        }
+
+        var document = await dbContext.Documents
+            .SingleOrDefaultAsync(x => x.Id == request.DocumentId && !x.IsDeleted, cancellationToken);
+
+        if (document is null)
+        {
+            return DocumentDeleteResult.Fail(ApiErrorCodes.Documents.DocumentNotFound, "Document not found.");
+        }
+
+        var versions = await dbContext.DocumentVersions
+            .Where(x => x.DocumentId == request.DocumentId && !x.IsDeleted)
+            .ToListAsync(cancellationToken);
+        var deletedAt = DateTimeOffset.UtcNow;
+        var normalizedReason = request.DeletedReason.Trim();
+        foreach (var version in versions)
+        {
+            dbContext.Entry(version).CurrentValues.SetValues(version with
+            {
+                IsDeleted = true,
+                DeletedAt = deletedAt,
+                DeletedByUserId = request.DeletedByUserId,
+                DeletedReason = normalizedReason
+            });
+        }
+
+        var deletedDocument = document with
+        {
+            IsDeleted = true,
+            DeletedAt = deletedAt,
+            DeletedByUserId = request.DeletedByUserId,
+            DeletedReason = normalizedReason
+        };
+
+        dbContext.Entry(document).CurrentValues.SetValues(deletedDocument);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "documents",
+            Action: "delete",
+            EntityType: "document",
+            EntityId: request.DocumentId.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Reason: normalizedReason));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return DocumentDeleteResult.Success();
     }
 }
