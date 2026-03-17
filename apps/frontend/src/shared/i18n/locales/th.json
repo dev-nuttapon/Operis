@@ -1331,7 +1331,7 @@
     "download_action": "ดาวน์โหลด",
     "version_status": {
       "published": "ประกาศใช้งาน",
-      "draft": "ฉบับร่าง"
+      "draft": "พร้อม"
     },
     "version_actions": {
       "delete": {

@@ -59,6 +59,7 @@ export function DocumentDashboardPage() {
       align: "center",
       render: (_, item) => {
         const hasFile = Boolean(item.fileName?.trim()) && item.sizeBytes > 0;
+        const hasPublished = Boolean(item.publishedVersionCode);
         const menuItems = [
           {
             key: "edit",
@@ -86,9 +87,9 @@ export function DocumentDashboardPage() {
             key: "download",
             label: tr("documents.actions.download.label"),
             icon: <DownloadOutlined />,
-            disabled: !hasFile,
+            disabled: !hasFile || !hasPublished,
             onClick: () => {
-              if (!hasFile) {
+              if (!hasFile || !hasPublished) {
                 return;
               }
               window.open(`/api/v1/documents/${item.id}/download`, "_blank", "noopener,noreferrer");
