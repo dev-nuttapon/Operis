@@ -11,11 +11,116 @@ using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Modules;
 using Operis_API.Shared.Security;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Ensure AWS SigV4 date formatting uses Gregorian calendar (avoid Thai Buddhist year in local culture).
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
 builder.Configuration.ApplyDatabaseUrlOverride();
 builder.Configuration.ApplyRedisUrlOverride();
+
+if (builder.Environment.IsEnvironment("Local"))
+{
+    var endpoint = builder.Configuration["Minio:Endpoint"];
+    var accessKey = builder.Configuration["Minio:AccessKey"];
+    var secretKey = builder.Configuration["Minio:SecretKey"];
+
+    var endpointMissingHost = !string.IsNullOrWhiteSpace(endpoint) && endpoint.StartsWith(":", StringComparison.Ordinal);
+    if (string.IsNullOrWhiteSpace(endpoint) || endpointMissingHost ||
+        string.IsNullOrWhiteSpace(accessKey) || string.IsNullOrWhiteSpace(secretKey))
+    {
+        var localConfig = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.Local.json", optional: true)
+            .Build();
+
+        var fallbackEndpoint = localConfig["Minio:Endpoint"];
+        var fallbackAccessKey = localConfig["Minio:AccessKey"];
+        var fallbackSecretKey = localConfig["Minio:SecretKey"];
+        var fallbackBucket = localConfig["Minio:BucketName"];
+        var fallbackUseSsl = localConfig["Minio:UseSsl"];
+        var fallbackMaxSize = localConfig["Minio:MaxFileSizeBytes"];
+
+        var overrides = new Dictionary<string, string?>();
+        if ((string.IsNullOrWhiteSpace(endpoint) || endpointMissingHost) && !string.IsNullOrWhiteSpace(fallbackEndpoint))
+        {
+            overrides["Minio:Endpoint"] = fallbackEndpoint;
+        }
+        if (string.IsNullOrWhiteSpace(accessKey) && !string.IsNullOrWhiteSpace(fallbackAccessKey))
+        {
+            overrides["Minio:AccessKey"] = fallbackAccessKey;
+        }
+        if (string.IsNullOrWhiteSpace(secretKey) && !string.IsNullOrWhiteSpace(fallbackSecretKey))
+        {
+            overrides["Minio:SecretKey"] = fallbackSecretKey;
+        }
+        if (!string.IsNullOrWhiteSpace(fallbackBucket))
+        {
+            overrides["Minio:BucketName"] = fallbackBucket;
+        }
+        if (!string.IsNullOrWhiteSpace(fallbackUseSsl))
+        {
+            overrides["Minio:UseSsl"] = fallbackUseSsl;
+        }
+        if (!string.IsNullOrWhiteSpace(fallbackMaxSize))
+        {
+            overrides["Minio:MaxFileSizeBytes"] = fallbackMaxSize;
+        }
+
+        if (overrides.Count > 0)
+        {
+            builder.Configuration.AddInMemoryCollection(overrides);
+        }
+    }
+
+    var resolvedEndpoint = builder.Configuration["Minio:Endpoint"];
+    var resolvedAccessKey = builder.Configuration["Minio:AccessKey"];
+    var resolvedSecretKey = builder.Configuration["Minio:SecretKey"];
+    var resolvedBucket = builder.Configuration["Minio:BucketName"];
+    var resolvedUseSsl = builder.Configuration["Minio:UseSsl"];
+    var resolvedMaxSize = builder.Configuration["Minio:MaxFileSizeBytes"];
+
+    Console.WriteLine("[Local] Minio config loaded:");
+    Console.WriteLine($"Endpoint={resolvedEndpoint ?? "<null>"}");
+    Console.WriteLine($"AccessKey={resolvedAccessKey ?? "<null>"}");
+    if (string.IsNullOrWhiteSpace(resolvedSecretKey))
+    {
+        Console.WriteLine("SecretKey=<null/empty>");
+    }
+    else
+    {
+        var tail = resolvedSecretKey.Length >= 4 ? resolvedSecretKey[^4..] : resolvedSecretKey;
+        Console.WriteLine($"SecretKey=<set,len={resolvedSecretKey.Length},tail={tail}>");
+    }
+    Console.WriteLine($"BucketName={resolvedBucket ?? "<null>"}");
+    Console.WriteLine($"UseSsl={resolvedUseSsl ?? "<null>"}");
+    Console.WriteLine($"MaxFileSizeBytes={resolvedMaxSize ?? "<null>"}");
+
+    var envEndpoint = Environment.GetEnvironmentVariable("Minio__Endpoint");
+    var envAccessKey = Environment.GetEnvironmentVariable("Minio__AccessKey");
+    var envSecretKey = Environment.GetEnvironmentVariable("Minio__SecretKey");
+    if (envEndpoint is not null || envAccessKey is not null || envSecretKey is not null)
+    {
+        Console.WriteLine("[Local] Minio env overrides detected:");
+        Console.WriteLine($"Minio__Endpoint={(envEndpoint is null ? "<not set>" : (string.IsNullOrWhiteSpace(envEndpoint) ? "<empty>" : envEndpoint))}");
+        Console.WriteLine($"Minio__AccessKey={(envAccessKey is null ? "<not set>" : (string.IsNullOrWhiteSpace(envAccessKey) ? "<empty>" : envAccessKey))}");
+        if (envSecretKey is null)
+        {
+            Console.WriteLine("Minio__SecretKey=<not set>");
+        }
+        else if (string.IsNullOrWhiteSpace(envSecretKey))
+        {
+            Console.WriteLine("Minio__SecretKey=<empty>");
+        }
+        else
+        {
+            var envTail = envSecretKey.Length >= 4 ? envSecretKey[^4..] : envSecretKey;
+            Console.WriteLine($"Minio__SecretKey=<set,len={envSecretKey.Length},tail={envTail}>");
+        }
+    }
+}
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
