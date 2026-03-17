@@ -1356,6 +1356,7 @@
     "history": {
       "title": "Document History",
       "description": "Track key document events for audit and review.",
+      "loading": "Loading history...",
       "empty": "No history yet.",
       "columns": {
         "occurred_at": "Time",

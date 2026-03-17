@@ -37,6 +37,11 @@ export function DocumentHistoryPage() {
 
   const documentLabel = useMemo(() => locationState?.documentName ?? documentId ?? "-", [locationState?.documentName, documentId]);
 
+  const historyItems = useMemo(() => {
+    const items = historyQuery.data?.items ?? [];
+    return [...items].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+  }, [historyQuery.data?.items]);
+
   const historyColumns: ColumnsType<ActivityLogItem> = [
     {
       title: tr("documents.history.columns.occurred_at"),
@@ -105,7 +110,7 @@ export function DocumentHistoryPage() {
           rowKey="id"
           loading={historyQuery.isLoading}
           columns={historyColumns}
-          dataSource={historyQuery.data?.items ?? []}
+          dataSource={historyItems}
           pagination={false}
           scroll={{ x: "max-content" }}
           locale={{ emptyText: historyQuery.isError ? tr("documents.load_failed") : tr("documents.history.empty") }}
