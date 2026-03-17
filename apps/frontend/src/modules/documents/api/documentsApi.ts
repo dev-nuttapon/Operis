@@ -61,8 +61,30 @@ export interface DocumentVersionListItem {
   isPublished: boolean;
 }
 
+export interface DocumentHistoryItem {
+  id: string;
+  documentId: string;
+  eventType: string;
+  summary: string | null;
+  reason: string | null;
+  actorUserId: string | null;
+  actorEmail: string | null;
+  actorDisplayName: string | null;
+  status: string | null;
+  statusCode: number | null;
+  source: string | null;
+  beforeJson: string | null;
+  afterJson: string | null;
+  metadataJson: string | null;
+  occurredAt: string;
+}
+
 export function listDocumentVersions(documentId: string, signal?: AbortSignal) {
   return apiRequest<DocumentVersionListItem[]>(`/api/v1/documents/${documentId}/versions`, { signal });
+}
+
+export function listDocumentHistory(documentId: string, signal?: AbortSignal) {
+  return apiRequest<DocumentHistoryItem[]>(`/api/v1/documents/${documentId}/history`, { signal });
 }
 
 export function deleteDocumentVersion(documentId: string, versionId: string, signal?: AbortSignal) {

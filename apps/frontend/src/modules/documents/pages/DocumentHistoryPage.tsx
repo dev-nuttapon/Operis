@@ -7,8 +7,8 @@ import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
-import { useActivityLogs } from "../../activities";
-import type { ActivityLogItem } from "../../activities";
+import { useDocumentHistory } from "../hooks/useDocuments";
+import type { DocumentHistoryItem } from "../api/documentsApi";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -26,23 +26,16 @@ export function DocumentHistoryPage() {
   const canReadHistory = permissionState.hasPermission(permissions.activityLogs.read);
   const tr = (key: string) => i18n.t(key, { lng: language });
 
-  const historyQuery = useActivityLogs({
-    module: "documents",
-    entityType: "document",
-    entityId: documentId,
-    sortOrder: "desc",
-    page: 1,
-    pageSize: 50,
-  });
+  const historyQuery = useDocumentHistory(documentId ?? null, canReadHistory);
 
   const documentLabel = useMemo(() => locationState?.documentName ?? documentId ?? "-", [locationState?.documentName, documentId]);
 
   const historyItems = useMemo(() => {
-    const items = historyQuery.data?.items ?? [];
+    const items = historyQuery.data ?? [];
     return [...items].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
-  }, [historyQuery.data?.items]);
+  }, [historyQuery.data]);
 
-  const historyColumns: ColumnsType<ActivityLogItem> = [
+  const historyColumns: ColumnsType<DocumentHistoryItem> = [
     {
       title: tr("documents.history.columns.occurred_at"),
       dataIndex: "occurredAt",
@@ -51,8 +44,8 @@ export function DocumentHistoryPage() {
     },
     {
       title: tr("documents.history.columns.action"),
-      dataIndex: "action",
-      key: "action",
+      dataIndex: "eventType",
+      key: "eventType",
       render: (value: string) => {
         const key = `documents.history.actions.${value}`;
         return i18n.exists(key) ? tr(key) : value;

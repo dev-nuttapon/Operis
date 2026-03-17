@@ -19,6 +19,8 @@ public sealed class DocumentsModule : IModule
         services.AddScoped<IDocumentQueries, DocumentQueries>();
         services.AddScoped<IDocumentCommands, DocumentCommands>();
         services.AddScoped<IDocumentDownloads, DocumentDownloads>();
+        services.AddScoped<IDocumentHistoryQueries, DocumentHistoryQueries>();
+        services.AddScoped<DocumentHistoryWriter>();
         return services;
     }
 
@@ -49,6 +51,8 @@ public sealed class DocumentsModule : IModule
             .WithName("Documents_Delete");
         group.MapGet("/{documentId:guid}/download", DownloadDocumentAsync)
             .WithName("Documents_Download");
+        group.MapGet("/{documentId:guid}/history", ListDocumentHistoryAsync)
+            .WithName("Documents_History");
 
         return endpoints;
     }
@@ -311,6 +315,22 @@ public sealed class DocumentsModule : IModule
         }
 
         return Results.File(result.Content, result.ContentType, result.FileName);
+    }
+
+    private static async Task<IResult> ListDocumentHistoryAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentHistoryQueries queries,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.ActivityLogs.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var items = await queries.ListAsync(documentId, cancellationToken);
+        return Results.Ok(items);
     }
 
     private static IResult BadRequestWithCode(string? detail, string? code = null) =>

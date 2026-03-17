@@ -13,6 +13,7 @@ public sealed class DocumentCommands(
     OperisDbContext dbContext,
     IDocumentObjectStorage documentObjectStorage,
     IAuditLogWriter auditLogWriter,
+    DocumentHistoryWriter historyWriter,
     IOptions<DocumentStorageOptions> optionsAccessor) : IDocumentCommands
 {
     private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -74,6 +75,18 @@ public sealed class DocumentCommands(
             entity.UploadedAt
         }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendHistoryAsync(
+            entity.Id,
+            "create",
+            null,
+            new { entity.DocumentName },
+            "Created document",
+            null,
+            "success",
+            StatusCodes.Status201Created,
+            "documents",
+            null,
+            cancellationToken);
 
         return DocumentUploadResult.Success(response);
     }
@@ -204,6 +217,18 @@ public sealed class DocumentCommands(
                 versionEntity.UploadedAt
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendHistoryAsync(
+            versionEntity.DocumentId,
+            "create_version",
+            null,
+            new { versionEntity.VersionCode, versionEntity.FileName, versionEntity.Revision },
+            "Added document file",
+            null,
+            "success",
+            StatusCodes.Status201Created,
+            "documents",
+            null,
+            cancellationToken);
 
         return DocumentVersionCreateResult.Success(response);
     }
@@ -248,6 +273,18 @@ public sealed class DocumentCommands(
             EntityId: version.DocumentId.ToString(),
             StatusCode: StatusCodes.Status200OK));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendHistoryAsync(
+            version.DocumentId,
+            "delete_version",
+            new { version.VersionCode, version.FileName, version.Revision },
+            null,
+            "Removed document file",
+            null,
+            "success",
+            StatusCodes.Status200OK,
+            "documents",
+            null,
+            cancellationToken);
 
         return DocumentVersionDeleteResult.Success();
     }
@@ -285,6 +322,18 @@ public sealed class DocumentCommands(
             EntityId: version.DocumentId.ToString(),
             StatusCode: StatusCodes.Status200OK));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendHistoryAsync(
+            version.DocumentId,
+            "publish_version",
+            null,
+            new { version.VersionCode, version.Revision },
+            "Published document version",
+            null,
+            "success",
+            StatusCodes.Status200OK,
+            "documents",
+            null,
+            cancellationToken);
 
         return DocumentVersionPublishResult.Success();
     }
@@ -319,6 +368,18 @@ public sealed class DocumentCommands(
             EntityId: document.Id.ToString(),
             StatusCode: StatusCodes.Status200OK));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendHistoryAsync(
+            document.Id,
+            "unpublish_version",
+            null,
+            null,
+            "Unpublished document",
+            null,
+            "success",
+            StatusCodes.Status200OK,
+            "documents",
+            null,
+            cancellationToken);
 
         return DocumentVersionUnpublishResult.Success();
     }
@@ -384,6 +445,18 @@ public sealed class DocumentCommands(
                 updated.UploadedAt
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendHistoryAsync(
+            updated.Id,
+            "update",
+            new { entity.DocumentName },
+            new { updated.DocumentName },
+            "Renamed document",
+            null,
+            "success",
+            StatusCodes.Status200OK,
+            "documents",
+            null,
+            cancellationToken);
 
         return DocumentUpdateResult.Success(response);
     }
@@ -443,7 +516,53 @@ public sealed class DocumentCommands(
             StatusCode: StatusCodes.Status200OK,
             Reason: normalizedReason));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendHistoryAsync(
+            request.DocumentId,
+            "delete",
+            new { document.DocumentName },
+            null,
+            "Deleted document",
+            normalizedReason,
+            "success",
+            StatusCodes.Status200OK,
+            "documents",
+            null,
+            cancellationToken);
 
         return DocumentDeleteResult.Success();
+    }
+
+    private async Task TryAppendHistoryAsync(
+        Guid documentId,
+        string eventType,
+        object? before,
+        object? after,
+        string? summary,
+        string? reason,
+        string? status,
+        int? statusCode,
+        string? source,
+        object? metadata,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await historyWriter.AppendAsync(
+                documentId,
+                eventType,
+                before,
+                after,
+                summary,
+                reason,
+                status,
+                statusCode,
+                source,
+                metadata,
+                cancellationToken);
+        }
+        catch
+        {
+            // Best-effort history; avoid failing business flow on history write errors.
+        }
     }
 }

@@ -1320,6 +1320,8 @@
       "uploaded_at": "Uploaded date",
       "document_count": "Total files",
       "published_version": "Published version",
+      "created_at": "Created date",
+      "published_revision": "Published revision",
       "status": "Status",
       "actions": "Actions",
       "no_file": "No file yet",

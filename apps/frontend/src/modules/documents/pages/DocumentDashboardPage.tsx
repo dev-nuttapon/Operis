@@ -42,6 +42,12 @@ export function DocumentDashboardPage() {
       render: (value: string) => <span title={value}>{value}</span>,
     },
     {
+      title: tr("documents.columns.created_at"),
+      dataIndex: "uploadedAt",
+      key: "createdAt",
+      render: (value: string) => new Date(value).toLocaleDateString(language.startsWith("th") ? "th-TH" : "en-US"),
+    },
+    {
       title: tr("documents.columns.document_count"),
       dataIndex: "revision",
       key: "documentCount",
@@ -54,6 +60,13 @@ export function DocumentDashboardPage() {
       key: "publishedVersion",
       align: "center",
       render: (value: string | null) => value ?? "-",
+    },
+    {
+      title: tr("documents.columns.published_revision"),
+      dataIndex: "publishedRevision",
+      key: "publishedRevision",
+      align: "center",
+      render: (value: number | null) => (value ? `r${value}` : "-"),
     },
     {
       title: tr("documents.columns.actions"),

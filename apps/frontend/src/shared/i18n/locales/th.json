@@ -1320,6 +1320,8 @@
       "uploaded_at": "วันที่อัปโหลด",
       "document_count": "จำนวนเอกสาร",
       "published_version": "เวอร์ชันที่ประกาศใช้",
+      "created_at": "วันที่สร้าง",
+      "published_revision": "Revisionที่ประกาศใช้",
       "status": "สถานะ",
       "actions": "การทำงาน",
       "no_file": "ยังไม่มีไฟล์",
