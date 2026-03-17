@@ -39,11 +39,6 @@ public sealed class DocumentCommands(
         {
             Id = Guid.NewGuid(),
             DocumentName = normalizedDocumentName,
-            FileName = string.Empty,
-            ObjectKey = null,
-            BucketName = options.BucketName,
-            ContentType = "application/octet-stream",
-            SizeBytes = 0,
             UploadedByUserId = request.CreatedByUserId,
             UploadedAt = DateTimeOffset.UtcNow
         };
@@ -54,9 +49,9 @@ public sealed class DocumentCommands(
         var response = new DocumentListItem(
             entity.Id,
             entity.DocumentName,
-            entity.FileName,
-            entity.ContentType,
-            entity.SizeBytes,
+            string.Empty,
+            "application/octet-stream",
+            0,
             entity.UploadedByUserId,
             entity.UploadedAt,
             null,
@@ -71,13 +66,10 @@ public sealed class DocumentCommands(
             After: new
             {
                 entity.Id,
-                entity.DocumentName,
-                entity.FileName,
-                entity.ContentType,
-                entity.SizeBytes,
-                entity.UploadedByUserId,
-                entity.UploadedAt
-            }));
+            entity.DocumentName,
+            entity.UploadedByUserId,
+            entity.UploadedAt
+        }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return DocumentUploadResult.Success(response);
