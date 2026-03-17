@@ -5,10 +5,12 @@ import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, Uplo
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
+import { downloadDocument } from "../api/documentsApi";
 import { useDeleteDocumentVersion, useDocumentVersions, usePublishDocumentVersion, useUnpublishDocumentVersion } from "../hooks/useDocuments";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import type { DocumentVersionListItem } from "../api/documentsApi";
+import { saveBlobAsFile } from "../utils/download";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -87,7 +89,9 @@ export function DocumentVersionsPage() {
             label: tr("documents.download_action"),
             icon: <DownloadOutlined />,
             onClick: () => {
-              window.open(`/api/v1/documents/${item.documentId}/download`, "_blank", "noopener,noreferrer");
+              void downloadDocument(item.documentId)
+                .then(({ blob, fileName }) => saveBlobAsFile(blob, fileName ?? item.fileName ?? "document"))
+                .catch(() => null);
             },
           },
           {

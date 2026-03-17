@@ -215,6 +215,65 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   return await response.json() as T;
 }
 
+export async function apiDownload(path: string, options: RequestOptions = {}): Promise<FileRequestResult> {
+  if (options.auth !== false) {
+    await refreshToken(30);
+  }
+
+  const token = options.auth === false ? null : getAccessToken();
+  const headers = new Headers();
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${appEnv.apiBaseUrl}${path}`, {
+      method: options.method ?? "GET",
+      headers,
+      signal: options.signal,
+    });
+  } catch {
+    throw new ApiError(
+      i18n.t("errors.network_unreachable"),
+      0,
+      "network"
+    );
+  }
+
+  if (!response.ok) {
+    let message = i18n.t("errors.request_failed", { status: response.status });
+    let code: string | undefined;
+
+    try {
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        const payload = await response.json() as { detail?: string; title?: string; code?: string };
+        message = payload.detail || payload.title || message;
+        code = payload.code;
+      } else {
+        const text = await response.text();
+        if (text) {
+          message = text;
+        }
+      }
+    } catch {
+      // Keep default message when parsing fails.
+    }
+
+    throw new ApiError(localizeApiMessage(message, response.status, code), response.status, getErrorCategory(response.status), code);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const fileNameMatch = disposition.match(/filename\\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i);
+  const encodedName = fileNameMatch?.[1] || fileNameMatch?.[2];
+  const fileName = encodedName ? decodeURIComponent(encodedName) : undefined;
+
+  return { blob, fileName };
+}
+
 export async function publicApiRequest<T>(path: string, options: Omit<RequestOptions, "auth"> = {}): Promise<T> {
   return apiRequest<T>(path, { ...options, auth: false });
 }

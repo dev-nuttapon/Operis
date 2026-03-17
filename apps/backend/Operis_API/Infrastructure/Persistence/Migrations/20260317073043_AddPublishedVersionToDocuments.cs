@@ -29,6 +29,20 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                 principalTable: "document_versions",
                 principalColumn: "id",
                 onDelete: ReferentialAction.SetNull);
+
+            migrationBuilder.Sql("""
+                UPDATE documents AS d
+                SET published_version_id = v.id
+                FROM (
+                    SELECT DISTINCT ON (document_id) id, document_id
+                    FROM document_versions
+                    WHERE is_deleted = false
+                    ORDER BY document_id, revision DESC, uploaded_at DESC
+                ) AS v
+                WHERE d.id = v.document_id
+                  AND d.published_version_id IS NULL
+                  AND d.is_deleted = false;
+                """);
         }
 
         /// <inheritdoc />

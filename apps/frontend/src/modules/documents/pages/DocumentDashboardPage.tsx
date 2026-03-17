@@ -7,9 +7,11 @@ import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
 import { useDocumentDashboard } from "../hooks/useDocumentDashboard";
 import { useDeleteDocument, useUpdateDocument } from "../hooks/useDocuments";
+import { downloadDocument } from "../api/documentsApi";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import type { DocumentListItemView } from "../types/documents";
+import { saveBlobAsFile } from "../utils/download";
 
 const { Title, Paragraph } = Typography;
 export function DocumentDashboardPage() {
@@ -92,7 +94,9 @@ export function DocumentDashboardPage() {
               if (!hasFile || !hasPublished) {
                 return;
               }
-              window.open(`/api/v1/documents/${item.id}/download`, "_blank", "noopener,noreferrer");
+              void downloadDocument(item.id)
+                .then(({ blob, fileName }) => saveBlobAsFile(blob, fileName ?? item.fileName ?? "document"))
+                .catch(() => null);
             },
           },
           {

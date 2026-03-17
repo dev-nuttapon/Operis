@@ -1,4 +1,4 @@
-import { apiRequest } from "../../../shared/lib/apiClient";
+import { apiDownload, apiRequest } from "../../../shared/lib/apiClient";
 
 export interface DocumentListItem {
   id: string;
@@ -100,4 +100,8 @@ export function deleteDocument(documentId: string, reason: string, signal?: Abor
     body: { reason },
     signal,
   });
+}
+
+export function downloadDocument(documentId: string, signal?: AbortSignal) {
+  return apiDownload(`/api/v1/documents/${documentId}/download`, { signal });
 }
