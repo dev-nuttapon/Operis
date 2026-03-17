@@ -188,8 +188,8 @@ public sealed class DocumentCommands(
         auditLogWriter.Append(new AuditLogEntry(
             Module: "documents",
             Action: "create_version",
-            EntityType: "document_version",
-            EntityId: versionEntity.Id.ToString(),
+            EntityType: "document",
+            EntityId: versionEntity.DocumentId.ToString(),
             StatusCode: StatusCodes.Status201Created,
             After: new
             {
@@ -244,8 +244,8 @@ public sealed class DocumentCommands(
         auditLogWriter.Append(new AuditLogEntry(
             Module: "documents",
             Action: "delete_version",
-            EntityType: "document_version",
-            EntityId: version.Id.ToString(),
+            EntityType: "document",
+            EntityId: version.DocumentId.ToString(),
             StatusCode: StatusCodes.Status200OK));
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -281,8 +281,8 @@ public sealed class DocumentCommands(
         auditLogWriter.Append(new AuditLogEntry(
             Module: "documents",
             Action: "publish_version",
-            EntityType: "document_version",
-            EntityId: version.Id.ToString(),
+            EntityType: "document",
+            EntityId: version.DocumentId.ToString(),
             StatusCode: StatusCodes.Status200OK));
         await dbContext.SaveChangesAsync(cancellationToken);
 

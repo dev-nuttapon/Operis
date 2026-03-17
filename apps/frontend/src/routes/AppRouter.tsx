@@ -16,6 +16,9 @@ const DocumentVersionUploadPage = lazy(() =>
 const DocumentVersionsPage = lazy(() =>
   import("../modules/documents/pages/DocumentVersionsPage").then((module) => ({ default: module.DocumentVersionsPage }))
 );
+const DocumentHistoryPage = lazy(() =>
+  import("../modules/documents/pages/DocumentHistoryPage").then((module) => ({ default: module.DocumentHistoryPage }))
+);
 const LoginPage = lazy(() =>
   import("../modules/auth/pages/LoginPage").then((module) => ({ default: module.LoginPage }))
 );
@@ -90,6 +93,7 @@ export function AppRouter() {
               <Route path="documents" element={<DocumentDashboardPage />} />
               <Route path="documents/upload" element={<DocumentUploadPage />} />
               <Route path="documents/:documentId/versions" element={<DocumentVersionsPage />} />
+              <Route path="documents/:documentId/history" element={<DocumentHistoryPage />} />
               <Route path="documents/:documentId/versions/new" element={<DocumentVersionUploadPage />} />
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="workflows" element={<WorkflowDefinitionsPage />} />

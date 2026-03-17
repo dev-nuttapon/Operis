@@ -1353,6 +1353,38 @@
         "confirm_cancel": "Cancel"
       }
     },
+    "history": {
+      "title": "Document History",
+      "description": "Track key document events for audit and review.",
+      "empty": "No history yet.",
+      "columns": {
+        "occurred_at": "Time",
+        "action": "Action",
+        "actor": "Actor",
+        "status": "Status",
+        "reason": "Reason"
+      },
+      "status": {
+        "success": "Success",
+        "failed": "Failed",
+        "denied": "Denied"
+      },
+      "actions": {
+        "create": "Created",
+        "update": "Renamed",
+        "create_version": "Added file",
+        "delete_version": "Removed file",
+        "publish_version": "Published",
+        "unpublish_version": "Unpublished",
+        "delete": "Deleted"
+      }
+    },
+    "history_page": {
+      "title": "Document History",
+      "description": "Track document events for audit and review.",
+      "back_action": "Back to versions",
+      "open_action": "History"
+    },
     "operations_title": "Document Responsibilities",
     "operations_description": "Only users with document-specific roles should upload files, manage versions, publish documents, delete drafts, or deactivate active documents.",
     "read_only_title": "Read-only access",

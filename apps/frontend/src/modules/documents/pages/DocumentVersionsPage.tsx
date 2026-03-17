@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Alert, Button, Card, Divider, Dropdown, Modal, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
@@ -156,6 +156,7 @@ export function DocumentVersionsPage() {
     },
   ];
 
+
   return (
     <Card bordered={false} style={{ borderRadius: 16 }}>
       <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
@@ -169,6 +170,9 @@ export function DocumentVersionsPage() {
               {tr("documents.versions_page.actions.add_version")}
             </Button>
           ) : null}
+          <Button icon={<FileTextOutlined />} onClick={() => navigate(`/app/documents/${documentId}/history`, { state: { documentName: documentLabel } })}>
+            {tr("documents.history_page.open_action")}
+          </Button>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")}>
             {tr("documents.versions_page.back_action")}
           </Button>
@@ -192,6 +196,7 @@ export function DocumentVersionsPage() {
         scroll={{ x: "max-content" }}
         locale={{ emptyText: versionsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
       />
+
     </Card>
   );
 }
