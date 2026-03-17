@@ -36,21 +36,27 @@ export function DocumentDashboardPage() {
       dataIndex: "fileName",
       key: "fileName",
       ellipsis: true,
-      render: (value: string) => <span title={value}>{value}</span>,
+      render: (value: string) => {
+        const label = value?.trim() ? value : tr("documents.columns.no_file");
+        return <span title={label}>{label}</span>;
+      },
     },
     {
       title: tr("documents.columns.content_type"),
       dataIndex: "contentType",
       key: "contentType",
       ellipsis: true,
-      render: (value: string) => <Tag>{value}</Tag>,
+      render: (value: string, record) => {
+        const hasFile = Boolean(record.fileName?.trim()) && record.sizeBytes > 0;
+        return hasFile ? <Tag>{value}</Tag> : "-";
+      },
     },
     {
       title: tr("documents.columns.size"),
       dataIndex: "sizeBytes",
       key: "sizeBytes",
       align: "right",
-      render: (value: number) => `${Math.ceil(value / 1024)} KB`,
+      render: (value: number) => (value > 0 ? `${Math.ceil(value / 1024)} KB` : "-"),
     },
     {
       title: tr("documents.columns.uploaded_at"),
@@ -62,17 +68,24 @@ export function DocumentDashboardPage() {
       title: tr("documents.columns.actions"),
       key: "actions",
       align: "center",
-      render: (_, item) => (
-        <Button
-          size="small"
-          icon={<DownloadOutlined />}
-          onClick={() => {
-            window.open(`/api/v1/documents/${item.id}/download`, "_blank", "noopener,noreferrer");
-          }}
-        >
-          {tr("documents.download_action")}
-        </Button>
-      ),
+      render: (_, item) => {
+        const hasFile = Boolean(item.fileName?.trim()) && item.sizeBytes > 0;
+        return (
+          <Button
+            size="small"
+            icon={<DownloadOutlined />}
+            disabled={!hasFile}
+            onClick={() => {
+              if (!hasFile) {
+                return;
+              }
+              window.open(`/api/v1/documents/${item.id}/download`, "_blank", "noopener,noreferrer");
+            }}
+          >
+            {tr("documents.download_action")}
+          </Button>
+        );
+      },
     },
   ];
 

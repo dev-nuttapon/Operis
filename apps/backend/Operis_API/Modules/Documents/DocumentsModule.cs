@@ -29,8 +29,7 @@ public sealed class DocumentsModule : IModule
 
         group.MapGet("/", ListDocumentsAsync)
             .WithName("Documents_List");
-        group.MapPost("/", UploadDocumentAsync)
-            .DisableAntiforgery()
+        group.MapPost("/", CreateDocumentAsync)
             .WithName("Documents_Upload");
         group.MapGet("/{documentId:guid}/download", DownloadDocumentAsync)
             .WithName("Documents_Download");
@@ -53,7 +52,7 @@ public sealed class DocumentsModule : IModule
         return Results.Ok(items);
     }
 
-    private static async Task<IResult> UploadDocumentAsync(
+    private static async Task<IResult> CreateDocumentAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
         IDocumentCommands commands,
@@ -65,29 +64,16 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        if (!request.HasFormContentType)
+        var payload = await request.ReadFromJsonAsync<DocumentCreateRequest>(cancellationToken: cancellationToken);
+        if (payload is null)
         {
-            return BadRequestWithCode("Request must be multipart/form-data.", ApiErrorCodes.RequestValidationFailed);
+            return BadRequestWithCode("A document name is required.", ApiErrorCodes.Documents.NameRequired);
         }
 
-        var form = await request.ReadFormAsync(cancellationToken);
-        var file = form.Files.GetFile("file");
-        var documentName = form.TryGetValue("documentName", out var nameValues) ? nameValues.ToString() : null;
-
-        if (file is null)
-        {
-            return BadRequestWithCode("A file is required.", ApiErrorCodes.Documents.FileRequired);
-        }
-
-        await using var stream = file.OpenReadStream();
-        var result = await commands.UploadDocumentAsync(
-            new DocumentUploadRequest(
-                documentName ?? string.Empty,
-                file.FileName,
-                file.ContentType,
-                file.Length,
+        var result = await commands.CreateDocumentAsync(
+            new DocumentCreateCommand(
+                payload.DocumentName,
                 principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
-            stream,
             cancellationToken);
 
         return result.Succeeded

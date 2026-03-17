@@ -2,12 +2,9 @@ using Operis_API.Modules.Documents.Contracts;
 
 namespace Operis_API.Modules.Documents.Application;
 
-public sealed record DocumentUploadRequest(
+public sealed record DocumentCreateCommand(
     string DocumentName,
-    string FileName,
-    string ContentType,
-    long Size,
-    string? UploadedByUserId);
+    string? CreatedByUserId);
 
 public sealed record DocumentUploadResult(
     bool Succeeded,

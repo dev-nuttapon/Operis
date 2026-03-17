@@ -1318,7 +1318,8 @@
       "content_type": "File type",
       "size": "Size",
       "uploaded_at": "Uploaded date",
-      "actions": "Actions"
+      "actions": "Actions",
+      "no_file": "No file yet"
     },
     "load_failed": "Unable to load documents.",
     "empty": "No documents yet.",
@@ -1329,9 +1330,9 @@
     "read_only_description": "You can review document records, but lifecycle actions are restricted to document roles.",
     "actions": {
       "upload": {
-        "title": "Upload Draft",
-        "description": "Upload a new draft file through the backend storage flow.",
-        "button": "Upload Draft"
+        "title": "Create Document",
+        "description": "Create a document record before uploading files and versions.",
+        "button": "Create Document"
       },
       "version": {
         "title": "Change Version",
@@ -1355,19 +1356,19 @@
       }
     },
     "upload": {
-      "action": "Upload Document",
+      "action": "Create Document",
       "allowed_file_types": "Allowed file types: PDF, DOC, DOCX, XLS, XLSX",
       "invalid_type_title": "Unsupported file type",
       "invalid_type_description": "Only PDF, Word, and Excel documents can be uploaded.",
       "file_required_title": "File required",
       "file_required_description": "Please choose a document file before saving.",
-      "success_title": "Document uploaded",
+      "success_title": "Document created",
       "success_description": "Document saved successfully.",
-      "failed_title": "Unable to upload document"
+      "failed_title": "Unable to create document"
     },
     "upload_page": {
-      "title": "Upload New Document",
-      "description": "Provide a document name and select the file to upload.",
+      "title": "Create New Document",
+      "description": "Provide a document name to create a record before uploading files.",
       "back_action": "Back",
       "fields": {
         "document_name": "Document name",

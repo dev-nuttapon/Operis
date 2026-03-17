@@ -9,6 +9,8 @@ public sealed record DocumentListItem(
     string? UploadedByUserId,
     DateTimeOffset UploadedAt);
 
+public sealed record DocumentCreateRequest(string DocumentName);
+
 public sealed record DocumentDownloadResult(
     string FileName,
     string ContentType,

@@ -10,18 +10,19 @@ export interface DocumentListItem {
   uploadedAt: string;
 }
 
+export interface DocumentCreateRequest {
+  documentName: string;
+}
+
 export function listDocuments(signal?: AbortSignal) {
   return apiRequest<DocumentListItem[]>("/api/v1/documents", { signal });
 }
 
-export function uploadDocument(file: File, documentName: string, signal?: AbortSignal) {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("documentName", documentName);
-
+export function createDocument(payload: DocumentCreateRequest, signal?: AbortSignal) {
   return apiRequest<DocumentListItem>("/api/v1/documents", {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
     signal,
   });
 }

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listDocuments, uploadDocument } from "../api/documentsApi";
+import { createDocument, listDocuments } from "../api/documentsApi";
 
 export function useDocuments(enabled = true) {
   return useQuery({
@@ -10,11 +10,11 @@ export function useDocuments(enabled = true) {
   });
 }
 
-export function useUploadDocument() {
+export function useCreateDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, documentName }: { file: File; documentName: string }) => uploadDocument(file, documentName),
+    mutationFn: ({ documentName }: { documentName: string }) => createDocument({ documentName }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["documents", "list"] });
     },

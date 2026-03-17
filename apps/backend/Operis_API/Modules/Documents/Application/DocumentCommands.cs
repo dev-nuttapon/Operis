@@ -11,20 +11,10 @@ namespace Operis_API.Modules.Documents.Application;
 
 public sealed class DocumentCommands(
     OperisDbContext dbContext,
-    IDocumentObjectStorage documentObjectStorage,
     IAuditLogWriter auditLogWriter,
     IOptions<DocumentStorageOptions> optionsAccessor) : IDocumentCommands
 {
-    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".pdf",
-        ".doc",
-        ".docx",
-        ".xls",
-        ".xlsx"
-    };
-
-    public async Task<DocumentUploadResult> UploadDocumentAsync(DocumentUploadRequest request, Stream content, CancellationToken cancellationToken)
+    public async Task<DocumentUploadResult> CreateDocumentAsync(DocumentCreateCommand request, CancellationToken cancellationToken)
     {
         var options = optionsAccessor.Value;
 
@@ -33,46 +23,18 @@ public sealed class DocumentCommands(
             return DocumentUploadResult.Fail(ApiErrorCodes.Documents.NameRequired, "A document name is required.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.FileName))
-        {
-            return DocumentUploadResult.Fail(ApiErrorCodes.Documents.FileRequired, "A file is required.");
-        }
-
-        if (request.Size <= 0)
-        {
-            return DocumentUploadResult.Fail(ApiErrorCodes.Documents.FileEmpty, "The uploaded file is empty.");
-        }
-
-        if (request.Size > options.MaxFileSizeBytes)
-        {
-            return DocumentUploadResult.Fail(ApiErrorCodes.Documents.FileTooLarge, "The uploaded file exceeds the configured size limit.");
-        }
-
         var normalizedDocumentName = request.DocumentName.Trim();
-        var normalizedFileName = Path.GetFileName(request.FileName.Trim());
-        var fileExtension = Path.GetExtension(normalizedFileName);
-        if (string.IsNullOrWhiteSpace(fileExtension) || !AllowedExtensions.Contains(fileExtension))
-        {
-            return DocumentUploadResult.Fail(
-                ApiErrorCodes.Documents.FileTypeNotAllowed,
-                "Only PDF, Word, and Excel documents are allowed.");
-        }
-
-        var objectKey = $"documents/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid():N}-{normalizedFileName}";
-        var contentType = string.IsNullOrWhiteSpace(request.ContentType) ? "application/octet-stream" : request.ContentType.Trim();
-
-        await documentObjectStorage.StoreAsync(objectKey, content, request.Size, contentType, cancellationToken);
 
         var entity = new DocumentEntity
         {
             Id = Guid.NewGuid(),
             DocumentName = normalizedDocumentName,
-            FileName = normalizedFileName,
-            ObjectKey = objectKey,
+            FileName = string.Empty,
+            ObjectKey = null,
             BucketName = options.BucketName,
-            ContentType = contentType,
-            SizeBytes = request.Size,
-            UploadedByUserId = request.UploadedByUserId,
+            ContentType = "application/octet-stream",
+            SizeBytes = 0,
+            UploadedByUserId = request.CreatedByUserId,
             UploadedAt = DateTimeOffset.UtcNow
         };
 

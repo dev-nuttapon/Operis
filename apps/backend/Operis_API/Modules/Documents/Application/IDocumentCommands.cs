@@ -4,5 +4,5 @@ namespace Operis_API.Modules.Documents.Application;
 
 public interface IDocumentCommands
 {
-    Task<DocumentUploadResult> UploadDocumentAsync(DocumentUploadRequest request, Stream content, CancellationToken cancellationToken);
+    Task<DocumentUploadResult> CreateDocumentAsync(DocumentCreateCommand request, CancellationToken cancellationToken);
 }
