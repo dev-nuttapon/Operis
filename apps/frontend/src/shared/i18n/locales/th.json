@@ -1318,6 +1318,8 @@
       "content_type": "ประเภทไฟล์",
       "size": "ขนาด",
       "uploaded_at": "วันที่อัปโหลด",
+      "document_count": "จำนวนเอกสาร",
+      "published_version": "เวอร์ชันที่ประกาศใช้",
       "actions": "การทำงาน",
       "no_file": "ยังไม่มีไฟล์",
       "version_code": "เวอร์ชัน",

@@ -4,6 +4,7 @@ public sealed record DocumentEntity
 {
     public Guid Id { get; init; }
     public string DocumentName { get; init; } = string.Empty;
+    public Guid? PublishedVersionId { get; init; }
     public string? UploadedByUserId { get; init; }
     public DateTimeOffset UploadedAt { get; init; }
     public bool IsDeleted { get; init; }

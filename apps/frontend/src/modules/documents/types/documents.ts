@@ -8,4 +8,6 @@ export interface DocumentListItemView {
   uploadedAt: string;
   versionCode: string | null;
   revision: number | null;
+  publishedVersionCode: string | null;
+  publishedRevision: number | null;
 }

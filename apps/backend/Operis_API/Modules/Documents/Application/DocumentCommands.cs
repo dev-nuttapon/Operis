@@ -56,6 +56,8 @@ public sealed class DocumentCommands(
             entity.UploadedByUserId,
             entity.UploadedAt,
             null,
+            null,
+            null,
             null);
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -108,11 +110,10 @@ public sealed class DocumentCommands(
             return DocumentVersionCreateResult.Fail(ApiErrorCodes.Documents.FileTooLarge, "The uploaded file exceeds the configured size limit.");
         }
 
-        var documentExists = await dbContext.Documents
-            .AsNoTracking()
-            .AnyAsync(x => x.Id == request.DocumentId && !x.IsDeleted, cancellationToken);
+        var document = await dbContext.Documents
+            .SingleOrDefaultAsync(x => x.Id == request.DocumentId && !x.IsDeleted, cancellationToken);
 
-        if (!documentExists)
+        if (document is null)
         {
             return DocumentVersionCreateResult.Fail(ApiErrorCodes.Documents.DocumentNotFound, "Document not found.");
         }
@@ -164,6 +165,12 @@ public sealed class DocumentCommands(
         };
 
         dbContext.DocumentVersions.Add(versionEntity);
+
+        if (document.PublishedVersionId is null)
+        {
+            dbContext.Entry(document).CurrentValues.SetValues(document with { PublishedVersionId = versionEntity.Id });
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var response = new DocumentVersionListItem(
@@ -242,6 +249,8 @@ public sealed class DocumentCommands(
             0,
             updated.UploadedByUserId,
             updated.UploadedAt,
+            null,
+            null,
             null,
             null);
 

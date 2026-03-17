@@ -37,14 +37,20 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.DocumentName).HasColumnName("document_name").HasMaxLength(256);
+            entity.Property(x => x.PublishedVersionId).HasColumnName("published_version_id");
             entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id").HasMaxLength(64);
             entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at");
             entity.Property(x => x.IsDeleted).HasColumnName("is_deleted");
             entity.Property(x => x.DeletedByUserId).HasColumnName("deleted_by_user_id").HasMaxLength(64);
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
             entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(512);
+            entity.HasOne<DocumentVersionEntity>()
+                .WithMany()
+                .HasForeignKey(x => x.PublishedVersionId)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => x.UploadedAt);
             entity.HasIndex(x => x.IsDeleted);
+            entity.HasIndex(x => x.PublishedVersionId);
         });
 
         modelBuilder.Entity<DocumentVersionEntity>(entity =>

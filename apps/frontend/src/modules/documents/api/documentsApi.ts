@@ -10,6 +10,8 @@ export interface DocumentListItem {
   uploadedAt: string;
   versionCode: string | null;
   revision: number | null;
+  publishedVersionCode: string | null;
+  publishedRevision: number | null;
 }
 
 export interface DocumentCreateRequest {

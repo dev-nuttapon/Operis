@@ -26,6 +26,9 @@ public sealed class DocumentQueries(
                     latest = versions
                         .OrderByDescending(version => version.Revision)
                         .ThenByDescending(version => version.UploadedAt)
+                        .FirstOrDefault(),
+                    published = versions
+                        .Where(version => document.PublishedVersionId != null && version.Id == document.PublishedVersionId)
                         .FirstOrDefault()
                 })
             .Select(x => new DocumentListItem(
@@ -37,7 +40,9 @@ public sealed class DocumentQueries(
                 x.latest != null ? x.latest.UploadedByUserId : x.document.UploadedByUserId,
                 x.latest != null ? x.latest.UploadedAt : x.document.UploadedAt,
                 x.latest != null ? x.latest.VersionCode : null,
-                x.latest != null ? x.latest.Revision : null))
+                x.latest != null ? x.latest.Revision : null,
+                x.published != null ? x.published.VersionCode : null,
+                x.published != null ? x.published.Revision : null))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(

@@ -1318,6 +1318,8 @@
       "content_type": "File type",
       "size": "Size",
       "uploaded_at": "Uploaded date",
+      "document_count": "Total files",
+      "published_version": "Published version",
       "actions": "Actions",
       "no_file": "No file yet",
       "version_code": "Version",

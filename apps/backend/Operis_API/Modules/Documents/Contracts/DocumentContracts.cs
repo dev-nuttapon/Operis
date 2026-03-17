@@ -9,7 +9,9 @@ public sealed record DocumentListItem(
     string? UploadedByUserId,
     DateTimeOffset UploadedAt,
     string? VersionCode,
-    int? Revision);
+    int? Revision,
+    string? PublishedVersionCode,
+    int? PublishedRevision);
 
 public sealed record DocumentCreateRequest(string DocumentName);
 

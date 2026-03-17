@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Typography, Card, Button, Space, Divider, Table, Tag, Alert, Dropdown, Modal, Form, Input } from "antd";
+import { Typography, Card, Button, Space, Divider, Table, Alert, Dropdown, Modal, Form, Input } from "antd";
 import { UploadOutlined, MoreOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
@@ -40,51 +40,18 @@ export function DocumentDashboardPage() {
       render: (value: string) => <span title={value}>{value}</span>,
     },
     {
-      title: tr("documents.columns.file_name"),
-      dataIndex: "fileName",
-      key: "fileName",
-      ellipsis: true,
-      render: (value: string) => {
-        const label = value?.trim() ? value : tr("documents.columns.no_file");
-        return <span title={label}>{label}</span>;
-      },
+      title: tr("documents.columns.document_count"),
+      dataIndex: "revision",
+      key: "documentCount",
+      align: "center",
+      render: (value: number | null) => value ?? 0,
     },
     {
-      title: tr("documents.columns.version_code"),
-      dataIndex: "versionCode",
-      key: "versionCode",
+      title: tr("documents.columns.published_version"),
+      dataIndex: "publishedVersionCode",
+      key: "publishedVersion",
       align: "center",
       render: (value: string | null) => value ?? "-",
-    },
-    {
-      title: tr("documents.columns.revision"),
-      dataIndex: "revision",
-      key: "revision",
-      align: "center",
-      render: (value: number | null) => (value ? `r${value}` : "-"),
-    },
-    {
-      title: tr("documents.columns.content_type"),
-      dataIndex: "contentType",
-      key: "contentType",
-      ellipsis: true,
-      render: (value: string, record) => {
-        const hasFile = Boolean(record.fileName?.trim()) && record.sizeBytes > 0;
-        return hasFile ? <Tag>{value}</Tag> : "-";
-      },
-    },
-    {
-      title: tr("documents.columns.size"),
-      dataIndex: "sizeBytes",
-      key: "sizeBytes",
-      align: "right",
-      render: (value: number) => (value > 0 ? `${Math.ceil(value / 1024)} KB` : "-"),
-    },
-    {
-      title: tr("documents.columns.uploaded_at"),
-      dataIndex: "uploadedAt",
-      key: "uploadedAt",
-      render: (value: string) => new Date(value).toLocaleDateString(language.startsWith("th") ? "th-TH" : "en-US"),
     },
     {
       title: tr("documents.columns.actions"),
