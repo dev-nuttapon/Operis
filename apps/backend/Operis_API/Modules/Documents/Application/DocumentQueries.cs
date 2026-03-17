@@ -58,6 +58,12 @@ public sealed class DocumentQueries(
 
     public async Task<IReadOnlyList<DocumentVersionListItem>> ListDocumentVersionsAsync(Guid documentId, CancellationToken cancellationToken)
     {
+        var publishedVersionId = await dbContext.Documents
+            .AsNoTracking()
+            .Where(x => x.Id == documentId && !x.IsDeleted)
+            .Select(x => x.PublishedVersionId)
+            .SingleOrDefaultAsync(cancellationToken);
+
         var versions = await dbContext.DocumentVersions
             .AsNoTracking()
             .Where(x => x.DocumentId == documentId && !x.IsDeleted)
@@ -72,7 +78,8 @@ public sealed class DocumentQueries(
                 x.ContentType ?? "application/octet-stream",
                 x.SizeBytes,
                 x.UploadedByUserId,
-                x.UploadedAt))
+                x.UploadedAt,
+                publishedVersionId != null && x.Id == publishedVersionId))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createDocument, createDocumentVersion, deleteDocument, listDocumentVersions, listDocuments, updateDocument } from "../api/documentsApi";
+import { createDocument, createDocumentVersion, deleteDocument, deleteDocumentVersion, listDocumentVersions, listDocuments, updateDocument } from "../api/documentsApi";
 
 export function useDocuments(enabled = true) {
   return useQuery({
@@ -38,6 +38,19 @@ export function useDocumentVersions(documentId: string | null, enabled = true) {
     queryKey: ["documents", "versions", documentId],
     queryFn: ({ signal }) => (documentId ? listDocumentVersions(documentId, signal) : Promise.resolve([])),
     enabled: enabled && Boolean(documentId),
+  });
+}
+
+export function useDeleteDocumentVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId, versionId }: { documentId: string; versionId: string }) =>
+      deleteDocumentVersion(documentId, versionId),
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["documents", "versions", variables.documentId] });
+      await queryClient.invalidateQueries({ queryKey: ["documents", "list"] });
+    },
   });
 }
 

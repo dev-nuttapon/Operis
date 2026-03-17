@@ -36,6 +36,21 @@ public sealed record DocumentVersionCreateResult(
     public static DocumentVersionCreateResult Fail(string errorCode, string errorMessage) => new(false, null, errorCode, errorMessage);
 }
 
+public sealed record DocumentVersionDeleteCommand(
+    Guid DocumentId,
+    Guid VersionId,
+    string? DeletedByUserId);
+
+public sealed record DocumentVersionDeleteResult(
+    bool Succeeded,
+    string? ErrorCode,
+    string? ErrorMessage)
+{
+    public static DocumentVersionDeleteResult Success() => new(true, null, null);
+
+    public static DocumentVersionDeleteResult Fail(string errorCode, string errorMessage) => new(false, errorCode, errorMessage);
+}
+
 public sealed record DocumentUpdateCommand(
     Guid DocumentId,
     string DocumentName,

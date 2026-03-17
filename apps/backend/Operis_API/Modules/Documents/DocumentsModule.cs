@@ -37,6 +37,8 @@ public sealed class DocumentsModule : IModule
         group.MapPost("/{documentId:guid}/versions", CreateDocumentVersionAsync)
             .DisableAntiforgery()
             .WithName("Documents_CreateVersion");
+        group.MapDelete("/{documentId:guid}/versions/{versionId:guid}", DeleteDocumentVersionAsync)
+            .WithName("Documents_DeleteVersion");
         group.MapPut("/{documentId:guid}", UpdateDocumentAsync)
             .WithName("Documents_Update");
         group.MapDelete("/{documentId:guid}", DeleteDocumentAsync)
@@ -190,6 +192,31 @@ public sealed class DocumentsModule : IModule
                 documentId,
                 principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier),
                 reason),
+            cancellationToken);
+
+        return result.Succeeded
+            ? Results.NoContent()
+            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> DeleteDocumentVersionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        Guid versionId,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.DeleteDocumentVersionAsync(
+            new DocumentVersionDeleteCommand(
+                documentId,
+                versionId,
+                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
             cancellationToken);
 
         return result.Succeeded

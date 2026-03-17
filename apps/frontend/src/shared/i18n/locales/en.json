@@ -1320,6 +1320,7 @@
       "uploaded_at": "Uploaded date",
       "document_count": "Total files",
       "published_version": "Published version",
+      "status": "Status",
       "actions": "Actions",
       "no_file": "No file yet",
       "version_code": "Version",
@@ -1328,6 +1329,18 @@
     "load_failed": "Unable to load documents.",
     "empty": "No documents yet.",
     "download_action": "Download",
+    "version_status": {
+      "published": "Published",
+      "draft": "Draft"
+    },
+    "version_actions": {
+      "delete": {
+        "label": "Delete",
+        "confirm": "Delete this version?",
+        "confirm_ok": "Delete",
+        "confirm_cancel": "Cancel"
+      }
+    },
     "operations_title": "Document Responsibilities",
     "operations_description": "Only users with document-specific roles should upload files, manage versions, publish documents, delete drafts, or deactivate active documents.",
     "read_only_title": "Read-only access",

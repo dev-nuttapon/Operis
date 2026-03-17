@@ -27,7 +27,8 @@ public sealed record DocumentVersionListItem(
     string ContentType,
     long SizeBytes,
     string? UploadedByUserId,
-    DateTimeOffset UploadedAt);
+    DateTimeOffset UploadedAt,
+    bool IsPublished);
 
 public sealed record DocumentDownloadResult(
     string FileName,

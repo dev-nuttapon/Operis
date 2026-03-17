@@ -182,7 +182,8 @@ public sealed class DocumentCommands(
             versionEntity.ContentType,
             versionEntity.SizeBytes,
             versionEntity.UploadedByUserId,
-            versionEntity.UploadedAt);
+            versionEntity.UploadedAt,
+            document.PublishedVersionId == versionEntity.Id);
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "documents",
@@ -205,6 +206,50 @@ public sealed class DocumentCommands(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return DocumentVersionCreateResult.Success(response);
+    }
+
+    public async Task<DocumentVersionDeleteResult> DeleteDocumentVersionAsync(DocumentVersionDeleteCommand request, CancellationToken cancellationToken)
+    {
+        if (request.DocumentId == Guid.Empty || request.VersionId == Guid.Empty)
+        {
+            return DocumentVersionDeleteResult.Fail(ApiErrorCodes.Documents.DocumentVersionNotFound, "Document version not found.");
+        }
+
+        var version = await dbContext.DocumentVersions
+            .SingleOrDefaultAsync(x => x.Id == request.VersionId && x.DocumentId == request.DocumentId && !x.IsDeleted, cancellationToken);
+
+        if (version is null)
+        {
+            return DocumentVersionDeleteResult.Fail(ApiErrorCodes.Documents.DocumentVersionNotFound, "Document version not found.");
+        }
+
+        var deletedAt = DateTimeOffset.UtcNow;
+        dbContext.Entry(version).CurrentValues.SetValues(version with
+        {
+            IsDeleted = true,
+            DeletedAt = deletedAt,
+            DeletedByUserId = request.DeletedByUserId
+        });
+
+        var document = await dbContext.Documents
+            .SingleOrDefaultAsync(x => x.Id == request.DocumentId && !x.IsDeleted, cancellationToken);
+
+        if (document is not null && document.PublishedVersionId == version.Id)
+        {
+            dbContext.Entry(document).CurrentValues.SetValues(document with { PublishedVersionId = null });
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "documents",
+            Action: "delete_version",
+            EntityType: "document_version",
+            EntityId: version.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return DocumentVersionDeleteResult.Success();
     }
 
     public async Task<DocumentUpdateResult> UpdateDocumentAsync(DocumentUpdateCommand request, CancellationToken cancellationToken)

@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { Alert, Button, Card, Divider, Space, Table, Typography } from "antd";
+import { Alert, Button, Card, Divider, Popconfirm, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, DownloadOutlined, UploadOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
-import { useDocumentVersions } from "../hooks/useDocuments";
+import { useDeleteDocumentVersion, useDocumentVersions } from "../hooks/useDocuments";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import type { DocumentVersionListItem } from "../api/documentsApi";
@@ -28,6 +28,7 @@ export function DocumentVersionsPage() {
   const tr = (key: string) => i18n.t(key, { lng: language });
 
   const versionsQuery = useDocumentVersions(documentId ?? null, canReadDocuments);
+  const deleteVersionMutation = useDeleteDocumentVersion();
   const documentLabel = useMemo(() => locationState?.documentName ?? documentId ?? "-", [locationState?.documentName, documentId]);
 
   const columns: ColumnsType<DocumentVersionListItem> = [
@@ -43,6 +44,16 @@ export function DocumentVersionsPage() {
       key: "revision",
       align: "center",
       render: (value: number) => `r${value}`,
+    },
+    {
+      title: tr("documents.columns.status"),
+      dataIndex: "isPublished",
+      key: "status",
+      align: "center",
+      render: (value: boolean) =>
+        value
+          ? <Tag color="green">{tr("documents.version_status.published")}</Tag>
+          : <Tag>{tr("documents.version_status.draft")}</Tag>,
     },
     {
       title: tr("documents.columns.file_name"),
@@ -78,6 +89,23 @@ export function DocumentVersionsPage() {
           >
             {tr("documents.download_action")}
           </Button>
+          {canManageVersions ? (
+            <Popconfirm
+              title={tr("documents.version_actions.delete.confirm")}
+              okText={tr("documents.version_actions.delete.confirm_ok")}
+              cancelText={tr("documents.version_actions.delete.confirm_cancel")}
+              onConfirm={() => {
+                if (!documentId) {
+                  return;
+                }
+                void deleteVersionMutation.mutateAsync({ documentId, versionId: item.id });
+              }}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />} loading={deleteVersionMutation.isPending}>
+                {tr("documents.version_actions.delete.label")}
+              </Button>
+            </Popconfirm>
+          ) : null}
         </Space>
       ),
     },

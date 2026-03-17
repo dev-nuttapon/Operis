@@ -58,10 +58,18 @@ export interface DocumentVersionListItem {
   sizeBytes: number;
   uploadedByUserId: string | null;
   uploadedAt: string;
+  isPublished: boolean;
 }
 
 export function listDocumentVersions(documentId: string, signal?: AbortSignal) {
   return apiRequest<DocumentVersionListItem[]>(`/api/v1/documents/${documentId}/versions`, { signal });
+}
+
+export function deleteDocumentVersion(documentId: string, versionId: string, signal?: AbortSignal) {
+  return apiRequest<void>(`/api/v1/documents/${documentId}/versions/${versionId}`, {
+    method: "DELETE",
+    signal,
+  });
 }
 
 export function updateDocument(documentId: string, documentName: string, signal?: AbortSignal) {
