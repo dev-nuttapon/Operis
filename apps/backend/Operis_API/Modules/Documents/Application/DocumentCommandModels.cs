@@ -51,6 +51,35 @@ public sealed record DocumentVersionDeleteResult(
     public static DocumentVersionDeleteResult Fail(string errorCode, string errorMessage) => new(false, errorCode, errorMessage);
 }
 
+public sealed record DocumentVersionPublishCommand(
+    Guid DocumentId,
+    Guid VersionId,
+    string? PublishedByUserId);
+
+public sealed record DocumentVersionPublishResult(
+    bool Succeeded,
+    string? ErrorCode,
+    string? ErrorMessage)
+{
+    public static DocumentVersionPublishResult Success() => new(true, null, null);
+
+    public static DocumentVersionPublishResult Fail(string errorCode, string errorMessage) => new(false, errorCode, errorMessage);
+}
+
+public sealed record DocumentVersionUnpublishCommand(
+    Guid DocumentId,
+    string? UnpublishedByUserId);
+
+public sealed record DocumentVersionUnpublishResult(
+    bool Succeeded,
+    string? ErrorCode,
+    string? ErrorMessage)
+{
+    public static DocumentVersionUnpublishResult Success() => new(true, null, null);
+
+    public static DocumentVersionUnpublishResult Fail(string errorCode, string errorMessage) => new(false, errorCode, errorMessage);
+}
+
 public sealed record DocumentUpdateCommand(
     Guid DocumentId,
     string DocumentName,

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createDocument, createDocumentVersion, deleteDocument, deleteDocumentVersion, listDocumentVersions, listDocuments, updateDocument } from "../api/documentsApi";
+import { createDocument, createDocumentVersion, deleteDocument, deleteDocumentVersion, listDocumentVersions, listDocuments, publishDocumentVersion, unpublishDocumentVersion, updateDocument } from "../api/documentsApi";
 
 export function useDocuments(enabled = true) {
   return useQuery({
@@ -47,6 +47,31 @@ export function useDeleteDocumentVersion() {
   return useMutation({
     mutationFn: ({ documentId, versionId }: { documentId: string; versionId: string }) =>
       deleteDocumentVersion(documentId, versionId),
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["documents", "versions", variables.documentId] });
+      await queryClient.invalidateQueries({ queryKey: ["documents", "list"] });
+    },
+  });
+}
+
+export function usePublishDocumentVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId, versionId }: { documentId: string; versionId: string }) =>
+      publishDocumentVersion(documentId, versionId),
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["documents", "versions", variables.documentId] });
+      await queryClient.invalidateQueries({ queryKey: ["documents", "list"] });
+    },
+  });
+}
+
+export function useUnpublishDocumentVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId }: { documentId: string }) => unpublishDocumentVersion(documentId),
     onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({ queryKey: ["documents", "versions", variables.documentId] });
       await queryClient.invalidateQueries({ queryKey: ["documents", "list"] });

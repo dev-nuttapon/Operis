@@ -72,6 +72,20 @@ export function deleteDocumentVersion(documentId: string, versionId: string, sig
   });
 }
 
+export function publishDocumentVersion(documentId: string, versionId: string, signal?: AbortSignal) {
+  return apiRequest<void>(`/api/v1/documents/${documentId}/versions/${versionId}/publish`, {
+    method: "POST",
+    signal,
+  });
+}
+
+export function unpublishDocumentVersion(documentId: string, signal?: AbortSignal) {
+  return apiRequest<void>(`/api/v1/documents/${documentId}/versions/unpublish`, {
+    method: "POST",
+    signal,
+  });
+}
+
 export function updateDocument(documentId: string, documentName: string, signal?: AbortSignal) {
   return apiRequest<DocumentListItem>(`/api/v1/documents/${documentId}`, {
     method: "PUT",

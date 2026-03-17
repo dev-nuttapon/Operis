@@ -252,6 +252,77 @@ public sealed class DocumentCommands(
         return DocumentVersionDeleteResult.Success();
     }
 
+    public async Task<DocumentVersionPublishResult> PublishDocumentVersionAsync(DocumentVersionPublishCommand request, CancellationToken cancellationToken)
+    {
+        if (request.DocumentId == Guid.Empty || request.VersionId == Guid.Empty)
+        {
+            return DocumentVersionPublishResult.Fail(ApiErrorCodes.Documents.DocumentVersionNotFound, "Document version not found.");
+        }
+
+        var version = await dbContext.DocumentVersions
+            .SingleOrDefaultAsync(x => x.Id == request.VersionId && x.DocumentId == request.DocumentId && !x.IsDeleted, cancellationToken);
+
+        if (version is null)
+        {
+            return DocumentVersionPublishResult.Fail(ApiErrorCodes.Documents.DocumentVersionNotFound, "Document version not found.");
+        }
+
+        var document = await dbContext.Documents
+            .SingleOrDefaultAsync(x => x.Id == request.DocumentId && !x.IsDeleted, cancellationToken);
+
+        if (document is null)
+        {
+            return DocumentVersionPublishResult.Fail(ApiErrorCodes.Documents.DocumentNotFound, "Document not found.");
+        }
+
+        dbContext.Entry(document).CurrentValues.SetValues(document with { PublishedVersionId = version.Id });
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "documents",
+            Action: "publish_version",
+            EntityType: "document_version",
+            EntityId: version.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return DocumentVersionPublishResult.Success();
+    }
+
+    public async Task<DocumentVersionUnpublishResult> UnpublishDocumentVersionAsync(DocumentVersionUnpublishCommand request, CancellationToken cancellationToken)
+    {
+        if (request.DocumentId == Guid.Empty)
+        {
+            return DocumentVersionUnpublishResult.Fail(ApiErrorCodes.Documents.DocumentNotFound, "Document not found.");
+        }
+
+        var document = await dbContext.Documents
+            .SingleOrDefaultAsync(x => x.Id == request.DocumentId && !x.IsDeleted, cancellationToken);
+
+        if (document is null)
+        {
+            return DocumentVersionUnpublishResult.Fail(ApiErrorCodes.Documents.DocumentNotFound, "Document not found.");
+        }
+
+        if (document.PublishedVersionId is null)
+        {
+            return DocumentVersionUnpublishResult.Success();
+        }
+
+        dbContext.Entry(document).CurrentValues.SetValues(document with { PublishedVersionId = null });
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "documents",
+            Action: "unpublish_version",
+            EntityType: "document",
+            EntityId: document.Id.ToString(),
+            StatusCode: StatusCodes.Status200OK));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return DocumentVersionUnpublishResult.Success();
+    }
+
     public async Task<DocumentUpdateResult> UpdateDocumentAsync(DocumentUpdateCommand request, CancellationToken cancellationToken)
     {
         if (request.DocumentId == Guid.Empty)

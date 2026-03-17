@@ -1339,6 +1339,18 @@
         "confirm": "Delete this version?",
         "confirm_ok": "Delete",
         "confirm_cancel": "Cancel"
+      },
+      "publish": {
+        "label": "Publish",
+        "confirm": "Publish this version?",
+        "confirm_ok": "Publish",
+        "confirm_cancel": "Cancel"
+      },
+      "unpublish": {
+        "label": "Unpublish",
+        "confirm": "Unpublish the current version?",
+        "confirm_ok": "Unpublish",
+        "confirm_cancel": "Cancel"
       }
     },
     "operations_title": "Document Responsibilities",

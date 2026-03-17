@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { Alert, Button, Card, Divider, Popconfirm, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Divider, Dropdown, Modal, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
-import { useDeleteDocumentVersion, useDocumentVersions } from "../hooks/useDocuments";
+import { useDeleteDocumentVersion, useDocumentVersions, usePublishDocumentVersion, useUnpublishDocumentVersion } from "../hooks/useDocuments";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import type { DocumentVersionListItem } from "../api/documentsApi";
@@ -29,6 +29,8 @@ export function DocumentVersionsPage() {
 
   const versionsQuery = useDocumentVersions(documentId ?? null, canReadDocuments);
   const deleteVersionMutation = useDeleteDocumentVersion();
+  const publishVersionMutation = usePublishDocumentVersion();
+  const unpublishVersionMutation = useUnpublishDocumentVersion();
   const documentLabel = useMemo(() => locationState?.documentName ?? documentId ?? "-", [locationState?.documentName, documentId]);
 
   const columns: ColumnsType<DocumentVersionListItem> = [
@@ -78,36 +80,75 @@ export function DocumentVersionsPage() {
       title: tr("documents.columns.actions"),
       key: "actions",
       align: "center",
-      render: (_, item) => (
-        <Space>
-          <Button
-            size="small"
-            icon={<DownloadOutlined />}
-            onClick={() => {
+      render: (_, item) => {
+        const menuItems = [
+          {
+            key: "download",
+            label: tr("documents.download_action"),
+            icon: <DownloadOutlined />,
+            onClick: () => {
               window.open(`/api/v1/documents/${item.documentId}/download`, "_blank", "noopener,noreferrer");
-            }}
-          >
-            {tr("documents.download_action")}
-          </Button>
-          {canManageVersions ? (
-            <Popconfirm
-              title={tr("documents.version_actions.delete.confirm")}
-              okText={tr("documents.version_actions.delete.confirm_ok")}
-              cancelText={tr("documents.version_actions.delete.confirm_cancel")}
-              onConfirm={() => {
-                if (!documentId) {
-                  return;
-                }
-                void deleteVersionMutation.mutateAsync({ documentId, versionId: item.id });
-              }}
-            >
-              <Button size="small" danger icon={<DeleteOutlined />} loading={deleteVersionMutation.isPending}>
-                {tr("documents.version_actions.delete.label")}
-              </Button>
-            </Popconfirm>
-          ) : null}
-        </Space>
-      ),
+            },
+          },
+          {
+            key: "publish",
+            label: item.isPublished ? tr("documents.version_actions.unpublish.label") : tr("documents.version_actions.publish.label"),
+            icon: item.isPublished ? <StopOutlined /> : <CheckCircleOutlined />,
+            disabled: !canManageVersions,
+            onClick: () => {
+              if (!documentId) {
+                return;
+              }
+              if (item.isPublished) {
+                Modal.confirm({
+                  title: tr("documents.version_actions.unpublish.confirm"),
+                  okText: tr("documents.version_actions.unpublish.confirm_ok"),
+                  cancelText: tr("documents.version_actions.unpublish.confirm_cancel"),
+                  okButtonProps: { danger: true },
+                  onOk: () => unpublishVersionMutation.mutateAsync({ documentId }),
+                });
+                return;
+              }
+
+              Modal.confirm({
+                title: tr("documents.version_actions.publish.confirm"),
+                okText: tr("documents.version_actions.publish.confirm_ok"),
+                cancelText: tr("documents.version_actions.publish.confirm_cancel"),
+                onOk: () => publishVersionMutation.mutateAsync({ documentId, versionId: item.id }),
+              });
+            },
+          },
+          {
+            key: "delete",
+            label: tr("documents.version_actions.delete.label"),
+            icon: <DeleteOutlined />,
+            danger: true,
+            disabled: !canManageVersions,
+            onClick: () => {
+              if (!documentId) {
+                return;
+              }
+              Modal.confirm({
+                title: tr("documents.version_actions.delete.confirm"),
+                okText: tr("documents.version_actions.delete.confirm_ok"),
+                cancelText: tr("documents.version_actions.delete.confirm_cancel"),
+                okButtonProps: { danger: true },
+                onOk: () => deleteVersionMutation.mutateAsync({ documentId, versionId: item.id }),
+              });
+            },
+          },
+        ];
+
+        return (
+          <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+            <Button
+              size="small"
+              icon={<MoreOutlined />}
+              loading={deleteVersionMutation.isPending || publishVersionMutation.isPending || unpublishVersionMutation.isPending}
+            />
+          </Dropdown>
+        );
+      },
     },
   ];
 

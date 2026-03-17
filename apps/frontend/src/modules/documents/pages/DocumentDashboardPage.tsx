@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Typography, Card, Button, Space, Divider, Table, Alert, Dropdown, Modal, Form, Input } from "antd";
-import { UploadOutlined, MoreOutlined } from "@ant-design/icons";
+import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, MoreOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
@@ -63,6 +63,7 @@ export function DocumentDashboardPage() {
           {
             key: "edit",
             label: tr("documents.actions.edit.label"),
+            icon: <UploadOutlined />,
             disabled: !canUploadDocuments,
             onClick: () => {
               setEditingDocument(item);
@@ -73,6 +74,7 @@ export function DocumentDashboardPage() {
           {
             key: "delete",
             label: tr("documents.actions.delete.label"),
+            icon: <DeleteOutlined />,
             disabled: !canDeleteDrafts,
             onClick: () => {
               setEditingDocument(item);
@@ -83,6 +85,7 @@ export function DocumentDashboardPage() {
           {
             key: "download",
             label: tr("documents.actions.download.label"),
+            icon: <DownloadOutlined />,
             disabled: !hasFile,
             onClick: () => {
               if (!hasFile) {
@@ -94,12 +97,14 @@ export function DocumentDashboardPage() {
           {
             key: "upload",
             label: tr("documents.actions.upload_file.label"),
+            icon: <UploadOutlined />,
             disabled: !canManageVersions,
             onClick: () => navigate(`/app/documents/${item.id}/versions/new`, { state: { documentName: item.documentName } }),
           },
           {
             key: "publish",
             label: tr("documents.actions.publish_list.label"),
+            icon: <BranchesOutlined />,
             disabled: !canPublishDocuments,
             onClick: () => navigate(`/app/documents/${item.id}/versions`, { state: { documentName: item.documentName } }),
           },
