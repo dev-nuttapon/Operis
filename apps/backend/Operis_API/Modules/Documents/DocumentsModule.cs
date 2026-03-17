@@ -31,6 +31,9 @@ public sealed class DocumentsModule : IModule
             .WithName("Documents_List");
         group.MapPost("/", CreateDocumentAsync)
             .WithName("Documents_Upload");
+        group.MapPost("/{documentId:guid}/versions", CreateDocumentVersionAsync)
+            .DisableAntiforgery()
+            .WithName("Documents_CreateVersion");
         group.MapGet("/{documentId:guid}/download", DownloadDocumentAsync)
             .WithName("Documents_Download");
 
@@ -78,6 +81,50 @@ public sealed class DocumentsModule : IModule
 
         return result.Succeeded
             ? Results.Created($"/api/v1/documents/{result.Document!.Id}", result.Document)
+            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> CreateDocumentVersionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        HttpRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
+        {
+            return Results.Forbid();
+        }
+
+        if (!request.HasFormContentType)
+        {
+            return BadRequestWithCode("Request must be multipart/form-data.", ApiErrorCodes.RequestValidationFailed);
+        }
+
+        var form = await request.ReadFormAsync(cancellationToken);
+        var file = form.Files.GetFile("file");
+        var versionCode = form.TryGetValue("versionCode", out var codeValues) ? codeValues.ToString() : null;
+
+        if (file is null)
+        {
+            return BadRequestWithCode("A file is required.", ApiErrorCodes.Documents.FileRequired);
+        }
+
+        await using var stream = file.OpenReadStream();
+        var result = await commands.CreateDocumentVersionAsync(
+            new DocumentVersionCreateCommand(
+                documentId,
+                versionCode ?? string.Empty,
+                file.FileName,
+                file.ContentType,
+                file.Length,
+                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
+            stream,
+            cancellationToken);
+
+        return result.Succeeded
+            ? Results.Created($"/api/v1/documents/{documentId}/versions/{result.Version!.Id}", result.Version)
             : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
     }
 

@@ -1319,7 +1319,9 @@
       "size": "Size",
       "uploaded_at": "Uploaded date",
       "actions": "Actions",
-      "no_file": "No file yet"
+      "no_file": "No file yet",
+      "version_code": "Version",
+      "revision": "Revision"
     },
     "load_failed": "Unable to load documents.",
     "empty": "No documents yet.",
@@ -1378,8 +1380,25 @@
         "file_placeholder": "No file selected"
       },
       "actions": {
-        "pick_file": "Choose file",
         "submit": "Save document",
+        "cancel": "Cancel"
+      }
+    },
+    "version_page": {
+      "title": "Add Document Version",
+      "description": "Upload a new file and provide a version code.",
+      "back_action": "Back",
+      "fields": {
+        "document_name": "Document name",
+        "version_code": "Version code",
+        "version_code_required": "Please enter a version code",
+        "version_code_placeholder": "e.g. 1.0, 1.1, v2",
+        "file": "Document file",
+        "file_required": "Please choose a document file"
+      },
+      "actions": {
+        "pick_file": "Choose file",
+        "submit": "Save version",
         "cancel": "Cancel"
       }
     },

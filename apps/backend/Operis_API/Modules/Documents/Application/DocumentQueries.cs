@@ -15,7 +15,28 @@ public sealed class DocumentQueries(
             .AsNoTracking()
             .OrderByDescending(x => x.UploadedAt)
             .Take(50)
-            .Select(x => new DocumentListItem(x.Id, x.DocumentName, x.FileName, x.ContentType ?? "application/octet-stream", x.SizeBytes, x.UploadedByUserId, x.UploadedAt))
+            .GroupJoin(
+                dbContext.DocumentVersions.AsNoTracking(),
+                document => document.Id,
+                version => version.DocumentId,
+                (document, versions) => new
+                {
+                    document,
+                    latest = versions
+                        .OrderByDescending(version => version.Revision)
+                        .ThenByDescending(version => version.UploadedAt)
+                        .FirstOrDefault()
+                })
+            .Select(x => new DocumentListItem(
+                x.document.Id,
+                x.document.DocumentName,
+                x.latest != null ? x.latest.FileName : string.Empty,
+                x.latest != null ? x.latest.ContentType : "application/octet-stream",
+                x.latest != null ? x.latest.SizeBytes : 0,
+                x.latest != null ? x.latest.UploadedByUserId : x.document.UploadedByUserId,
+                x.latest != null ? x.latest.UploadedAt : x.document.UploadedAt,
+                x.latest != null ? x.latest.VersionCode : null,
+                x.latest != null ? x.latest.Revision : null))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(

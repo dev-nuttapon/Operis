@@ -6,4 +6,6 @@ export interface DocumentListItemView {
   sizeBytes: number;
   uploadedByUserId: string | null;
   uploadedAt: string;
+  versionCode: string | null;
+  revision: number | null;
 }

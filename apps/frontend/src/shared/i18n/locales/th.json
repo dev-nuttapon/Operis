@@ -1319,7 +1319,9 @@
       "size": "ขนาด",
       "uploaded_at": "วันที่อัปโหลด",
       "actions": "การทำงาน",
-      "no_file": "ยังไม่มีไฟล์"
+      "no_file": "ยังไม่มีไฟล์",
+      "version_code": "เวอร์ชัน",
+      "revision": "Revision"
     },
     "load_failed": "ไม่สามารถโหลดรายการเอกสารได้",
     "empty": "ยังไม่มีเอกสาร",
@@ -1378,8 +1380,25 @@
         "file_placeholder": "ยังไม่ได้เลือกไฟล์เอกสาร"
       },
       "actions": {
-        "pick_file": "เลือกไฟล์เอกสาร",
         "submit": "บันทึกเอกสาร",
+        "cancel": "ยกเลิก"
+      }
+    },
+    "version_page": {
+      "title": "เพิ่มเวอร์ชันเอกสาร",
+      "description": "อัปโหลดไฟล์เอกสารใหม่และระบุรหัสเวอร์ชัน",
+      "back_action": "กลับ",
+      "fields": {
+        "document_name": "ชื่อเอกสาร",
+        "version_code": "รหัสเวอร์ชัน",
+        "version_code_required": "กรุณาระบุรหัสเวอร์ชัน",
+        "version_code_placeholder": "เช่น 1.0, 1.1, v2",
+        "file": "ไฟล์เอกสาร",
+        "file_required": "กรุณาเลือกไฟล์เอกสาร"
+      },
+      "actions": {
+        "pick_file": "เลือกไฟล์เอกสาร",
+        "submit": "บันทึกเวอร์ชัน",
         "cancel": "ยกเลิก"
       }
     },

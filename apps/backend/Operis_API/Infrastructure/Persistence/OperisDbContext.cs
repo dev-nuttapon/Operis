@@ -10,6 +10,7 @@ namespace Operis_API.Infrastructure.Persistence;
 public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) : DbContext(options)
 {
     public DbSet<DocumentEntity> Documents => Set<DocumentEntity>();
+    public DbSet<DocumentVersionEntity> DocumentVersions => Set<DocumentVersionEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<DivisionEntity> Divisions => Set<DivisionEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
@@ -36,6 +37,19 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.DocumentName).HasColumnName("document_name").HasMaxLength(256);
+            entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id").HasMaxLength(64);
+            entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at");
+            entity.HasIndex(x => x.UploadedAt);
+        });
+
+        modelBuilder.Entity<DocumentVersionEntity>(entity =>
+        {
+            entity.ToTable("document_versions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.DocumentId).HasColumnName("document_id");
+            entity.Property(x => x.Revision).HasColumnName("revision");
+            entity.Property(x => x.VersionCode).HasColumnName("version_code").HasMaxLength(64);
             entity.Property(x => x.FileName).HasColumnName("file_name").HasMaxLength(256);
             entity.Property(x => x.ObjectKey).HasColumnName("object_key").HasMaxLength(512);
             entity.Property(x => x.BucketName).HasColumnName("bucket_name").HasMaxLength(128);
@@ -43,7 +57,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.SizeBytes).HasColumnName("size_bytes");
             entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id").HasMaxLength(64);
             entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at");
-            entity.HasIndex(x => x.UploadedAt);
+            entity.HasIndex(x => x.DocumentId);
+            entity.HasIndex(x => new { x.DocumentId, x.Revision }).IsUnique();
+            entity.HasIndex(x => new { x.DocumentId, x.VersionCode }).IsUnique();
             entity.HasIndex(x => x.ObjectKey).IsUnique().HasFilter("\"object_key\" IS NOT NULL");
         });
 

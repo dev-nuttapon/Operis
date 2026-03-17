@@ -18,12 +18,24 @@ public sealed class DocumentDownloads(
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == documentId, cancellationToken);
 
-        if (entity is null || string.IsNullOrWhiteSpace(entity.ObjectKey))
+        if (entity is null)
         {
             return null;
         }
 
-        var content = await documentObjectStorage.OpenReadAsync(entity.ObjectKey, cancellationToken);
+        var latestVersion = await dbContext.DocumentVersions
+            .AsNoTracking()
+            .Where(x => x.DocumentId == documentId)
+            .OrderByDescending(x => x.Revision)
+            .ThenByDescending(x => x.UploadedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestVersion is null || string.IsNullOrWhiteSpace(latestVersion.ObjectKey))
+        {
+            return null;
+        }
+
+        var content = await documentObjectStorage.OpenReadAsync(latestVersion.ObjectKey, cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "documents",
@@ -31,9 +43,9 @@ public sealed class DocumentDownloads(
             EntityType: "document",
             EntityId: entity.Id.ToString(),
             StatusCode: StatusCodes.Status200OK,
-            Metadata: new { entity.FileName, entity.ContentType, entity.SizeBytes }));
+            Metadata: new { latestVersion.FileName, latestVersion.ContentType, latestVersion.SizeBytes }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new DocumentDownloadResult(entity.FileName, entity.ContentType, content);
+        return new DocumentDownloadResult(latestVersion.FileName, latestVersion.ContentType, content);
     }
 }

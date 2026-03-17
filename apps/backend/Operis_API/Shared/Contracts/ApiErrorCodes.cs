@@ -74,5 +74,8 @@ namespace Operis_API.Shared.Contracts;
         public const string FileEmpty = "document_file_empty";
         public const string FileTooLarge = "document_file_too_large";
         public const string FileTypeNotAllowed = "document_file_type_not_allowed";
+        public const string VersionCodeRequired = "document_version_code_required";
+        public const string VersionCodeExists = "document_version_code_exists";
+        public const string DocumentNotFound = "document_not_found";
     }
 }

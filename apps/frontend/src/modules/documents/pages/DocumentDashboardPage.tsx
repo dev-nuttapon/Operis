@@ -42,6 +42,20 @@ export function DocumentDashboardPage() {
       },
     },
     {
+      title: tr("documents.columns.version_code"),
+      dataIndex: "versionCode",
+      key: "versionCode",
+      align: "center",
+      render: (value: string | null) => value ?? "-",
+    },
+    {
+      title: tr("documents.columns.revision"),
+      dataIndex: "revision",
+      key: "revision",
+      align: "center",
+      render: (value: number | null) => (value ? `r${value}` : "-"),
+    },
+    {
       title: tr("documents.columns.content_type"),
       dataIndex: "contentType",
       key: "contentType",
@@ -71,19 +85,30 @@ export function DocumentDashboardPage() {
       render: (_, item) => {
         const hasFile = Boolean(item.fileName?.trim()) && item.sizeBytes > 0;
         return (
-          <Button
-            size="small"
-            icon={<DownloadOutlined />}
-            disabled={!hasFile}
-            onClick={() => {
-              if (!hasFile) {
-                return;
-              }
-              window.open(`/api/v1/documents/${item.id}/download`, "_blank", "noopener,noreferrer");
-            }}
-          >
-            {tr("documents.download_action")}
-          </Button>
+          <Space>
+            <Button
+              size="small"
+              icon={<DownloadOutlined />}
+              disabled={!hasFile}
+              onClick={() => {
+                if (!hasFile) {
+                  return;
+                }
+                window.open(`/api/v1/documents/${item.id}/download`, "_blank", "noopener,noreferrer");
+              }}
+            >
+              {tr("documents.download_action")}
+            </Button>
+            {canManageVersions ? (
+              <Button
+                size="small"
+                icon={<BranchesOutlined />}
+                onClick={() => navigate(`/app/documents/${item.id}/versions/new`, { state: { documentName: item.documentName } })}
+              >
+                {tr("documents.actions.version.button")}
+              </Button>
+            ) : null}
+          </Space>
         );
       },
     },

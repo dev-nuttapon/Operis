@@ -7,9 +7,22 @@ public sealed record DocumentListItem(
     string ContentType,
     long SizeBytes,
     string? UploadedByUserId,
-    DateTimeOffset UploadedAt);
+    DateTimeOffset UploadedAt,
+    string? VersionCode,
+    int? Revision);
 
 public sealed record DocumentCreateRequest(string DocumentName);
+
+public sealed record DocumentVersionListItem(
+    Guid Id,
+    Guid DocumentId,
+    int Revision,
+    string VersionCode,
+    string FileName,
+    string ContentType,
+    long SizeBytes,
+    string? UploadedByUserId,
+    DateTimeOffset UploadedAt);
 
 public sealed record DocumentDownloadResult(
     string FileName,

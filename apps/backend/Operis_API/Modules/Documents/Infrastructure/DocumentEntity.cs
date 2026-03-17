@@ -4,6 +4,16 @@ public sealed class DocumentEntity
 {
     public Guid Id { get; init; }
     public string DocumentName { get; init; } = string.Empty;
+    public string? UploadedByUserId { get; init; }
+    public DateTimeOffset UploadedAt { get; init; }
+}
+
+public sealed class DocumentVersionEntity
+{
+    public Guid Id { get; init; }
+    public Guid DocumentId { get; init; }
+    public int Revision { get; init; }
+    public string VersionCode { get; init; } = string.Empty;
     public string FileName { get; init; } = string.Empty;
     public string? ObjectKey { get; init; }
     public string? BucketName { get; init; }

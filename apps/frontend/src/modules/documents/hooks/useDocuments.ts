@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createDocument, listDocuments } from "../api/documentsApi";
+import { createDocument, createDocumentVersion, listDocuments } from "../api/documentsApi";
 
 export function useDocuments(enabled = true) {
   return useQuery({
@@ -15,6 +15,18 @@ export function useCreateDocument() {
 
   return useMutation({
     mutationFn: ({ documentName }: { documentName: string }) => createDocument({ documentName }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["documents", "list"] });
+    },
+  });
+}
+
+export function useCreateDocumentVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId, versionCode, file }: { documentId: string; versionCode: string; file: File }) =>
+      createDocumentVersion({ documentId, versionCode, file }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["documents", "list"] });
     },
