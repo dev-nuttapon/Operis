@@ -39,10 +39,10 @@ public sealed class WorkflowsModule : IModule
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
         IWorkflowQueries queries,
+        CancellationToken cancellationToken,
         [FromQuery] string? status,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        CancellationToken cancellationToken)
+        [FromQuery] int pageSize = 10)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.Read))
         {

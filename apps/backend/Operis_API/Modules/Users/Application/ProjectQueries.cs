@@ -29,7 +29,7 @@ public sealed record ProjectEvidenceListQuery(
     int Page = 1,
     int PageSize = 10);
 
-file sealed record ProjectOrgChartRow(
+sealed record ProjectOrgChartRow(
     Guid Id,
     string UserId,
     string? UserEmail,
@@ -42,7 +42,7 @@ file sealed record ProjectOrgChartRow(
     DateTimeOffset StartAt,
     DateTimeOffset? EndAt);
 
-file sealed record ProjectAssignmentRow(
+sealed record ProjectAssignmentRow(
     Guid Id,
     string UserId,
     string? UserEmail,
@@ -261,6 +261,11 @@ public sealed class ProjectQueries(
 
     public async Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken)
     {
+        var projectName = await dbContext.Projects.AsNoTracking()
+            .Where(project => project.Id == query.ProjectId && project.DeletedAt == null)
+            .Select(project => project.Name)
+            .SingleOrDefaultAsync(cancellationToken) ?? string.Empty;
+
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
         var source = from assignment in dbContext.UserProjectAssignments.AsNoTracking()
                      where assignment.ProjectId == query.ProjectId && assignment.Status == "Active"
@@ -268,8 +273,6 @@ public sealed class ProjectQueries(
                      from user in userJoin.DefaultIfEmpty()
                      join role in dbContext.ProjectRoles.AsNoTracking() on assignment.ProjectRoleId equals role.Id into roleJoin
                      from role in roleJoin.DefaultIfEmpty()
-                     join project in dbContext.Projects.AsNoTracking() on assignment.ProjectId equals project.Id into projectJoin
-                     from project in projectJoin.DefaultIfEmpty()
                      join reportsTo in dbContext.Users.AsNoTracking() on assignment.ReportsToUserId equals reportsTo.Id into reportsJoin
                      from reportsTo in reportsJoin.DefaultIfEmpty()
                      select new ProjectAssignmentRow(
@@ -278,7 +281,7 @@ public sealed class ProjectQueries(
                          user != null ? user.Id : null,
                          user != null ? user.Id : null,
                          assignment.ProjectId,
-                         project != null ? project.Name : string.Empty,
+                         projectName,
                          assignment.ProjectRoleId,
                          role != null ? role.Name : string.Empty,
                          assignment.ReportsToUserId,
@@ -1148,7 +1151,7 @@ public sealed class ProjectQueries(
     }
 }
 
-file sealed record ProjectEvidenceAssignmentRow(
+sealed record ProjectEvidenceAssignmentRow(
     Guid Id,
     string UserId,
     string? UserEmail,

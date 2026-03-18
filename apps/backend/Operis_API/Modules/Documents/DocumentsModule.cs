@@ -61,10 +61,10 @@ public sealed class DocumentsModule : IModule
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
         IDocumentQueries queries,
+        CancellationToken cancellationToken,
         string? search = null,
         int page = 1,
-        int pageSize = 10,
-        CancellationToken cancellationToken)
+        int pageSize = 10)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
         {
@@ -288,10 +288,10 @@ public sealed class DocumentsModule : IModule
         IPermissionMatrix permissionMatrix,
         IDocumentQueries queries,
         Guid documentId,
+        CancellationToken cancellationToken,
         string? search = null,
         int page = 1,
-        int pageSize = 10,
-        CancellationToken cancellationToken)
+        int pageSize = 10)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
         {
@@ -328,10 +328,10 @@ public sealed class DocumentsModule : IModule
         IPermissionMatrix permissionMatrix,
         IDocumentHistoryQueries queries,
         Guid documentId,
+        CancellationToken cancellationToken,
         string? search = null,
         int page = 1,
-        int pageSize = 10,
-        CancellationToken cancellationToken)
+        int pageSize = 10)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.ActivityLogs.Read))
         {
