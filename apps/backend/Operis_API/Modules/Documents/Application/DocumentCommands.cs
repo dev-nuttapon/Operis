@@ -82,9 +82,6 @@ public sealed class DocumentCommands(
             new { entity.DocumentName },
             "Created document",
             null,
-            "success",
-            StatusCodes.Status201Created,
-            "documents",
             null,
             cancellationToken);
 
@@ -224,9 +221,6 @@ public sealed class DocumentCommands(
             new { versionEntity.VersionCode, versionEntity.FileName, versionEntity.Revision },
             "Added document file",
             null,
-            "success",
-            StatusCodes.Status201Created,
-            "documents",
             null,
             cancellationToken);
 
@@ -280,9 +274,6 @@ public sealed class DocumentCommands(
             null,
             "Removed document file",
             null,
-            "success",
-            StatusCodes.Status200OK,
-            "documents",
             null,
             cancellationToken);
 
@@ -329,9 +320,6 @@ public sealed class DocumentCommands(
             new { version.VersionCode, version.Revision },
             "Published document version",
             null,
-            "success",
-            StatusCodes.Status200OK,
-            "documents",
             null,
             cancellationToken);
 
@@ -375,9 +363,6 @@ public sealed class DocumentCommands(
             null,
             "Unpublished document",
             null,
-            "success",
-            StatusCodes.Status200OK,
-            "documents",
             null,
             cancellationToken);
 
@@ -452,9 +437,6 @@ public sealed class DocumentCommands(
             new { updated.DocumentName },
             "Renamed document",
             null,
-            "success",
-            StatusCodes.Status200OK,
-            "documents",
             null,
             cancellationToken);
 
@@ -523,9 +505,6 @@ public sealed class DocumentCommands(
             null,
             "Deleted document",
             normalizedReason,
-            "success",
-            StatusCodes.Status200OK,
-            "documents",
             null,
             cancellationToken);
 
@@ -539,9 +518,6 @@ public sealed class DocumentCommands(
         object? after,
         string? summary,
         string? reason,
-        string? status,
-        int? statusCode,
-        string? source,
         object? metadata,
         CancellationToken cancellationToken)
     {
@@ -554,9 +530,6 @@ public sealed class DocumentCommands(
                 after,
                 summary,
                 reason,
-                status,
-                statusCode,
-                source,
                 metadata,
                 cancellationToken);
         }

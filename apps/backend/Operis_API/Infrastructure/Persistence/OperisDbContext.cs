@@ -92,9 +92,6 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.ActorUserId).HasColumnName("actor_user_id").HasMaxLength(64);
             entity.Property(x => x.ActorEmail).HasColumnName("actor_email").HasMaxLength(128);
             entity.Property(x => x.ActorDisplayName).HasColumnName("actor_display_name").HasMaxLength(128);
-            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(24);
-            entity.Property(x => x.StatusCode).HasColumnName("status_code");
-            entity.Property(x => x.Source).HasColumnName("source").HasMaxLength(64);
             entity.Property(x => x.BeforeJson).HasColumnName("before_json");
             entity.Property(x => x.AfterJson).HasColumnName("after_json");
             entity.Property(x => x.MetadataJson).HasColumnName("metadata_json");

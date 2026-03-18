@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Alert, Button, Card, Divider, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Divider, Space, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -58,19 +58,6 @@ export function DocumentHistoryPage() {
       render: (_: string | null, record) => record.actorDisplayName || record.actorEmail || record.actorUserId || "-",
     },
     {
-      title: tr("documents.history.columns.status"),
-      dataIndex: "status",
-      key: "status",
-      align: "center",
-      render: (value: string) => {
-        const normalized = value?.toLowerCase() ?? "";
-        const labelKey = `documents.history.status.${normalized}`;
-        const label = i18n.exists(labelKey) ? tr(labelKey) : value;
-        const color = normalized === "success" ? "green" : normalized === "denied" ? "orange" : normalized === "failed" ? "red" : "default";
-        return <Tag color={color}>{label}</Tag>;
-      },
-    },
-    {
       title: tr("documents.history.columns.reason"),
       dataIndex: "reason",
       key: "reason",
@@ -81,19 +68,6 @@ export function DocumentHistoryPage() {
       dataIndex: "summary",
       key: "summary",
       render: (value: string | null) => value ?? "-",
-    },
-    {
-      title: tr("documents.history.columns.source"),
-      dataIndex: "source",
-      key: "source",
-      render: (value: string | null) => value ?? "-",
-    },
-    {
-      title: tr("documents.history.columns.status_code"),
-      dataIndex: "statusCode",
-      key: "statusCode",
-      align: "center",
-      render: (value: number | null) => (value ? value : "-"),
     },
   ];
 

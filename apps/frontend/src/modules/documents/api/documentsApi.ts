@@ -70,9 +70,6 @@ export interface DocumentHistoryItem {
   actorUserId: string | null;
   actorEmail: string | null;
   actorDisplayName: string | null;
-  status: string | null;
-  statusCode: number | null;
-  source: string | null;
   beforeJson: string | null;
   afterJson: string | null;
   metadataJson: string | null;

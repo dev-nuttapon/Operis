@@ -1369,19 +1369,11 @@
         "occurred_at": "เวลา",
         "action": "การกระทำ",
         "actor": "ผู้ดำเนินการ",
-        "status": "สถานะ",
         "reason": "เหตุผล",
         "summary": "สรุป",
-        "source": "แหล่งที่มา",
-        "status_code": "รหัสสถานะ",
         "before": "ก่อนหน้า",
         "after": "หลังจาก",
         "metadata": "ข้อมูลประกอบ"
-      },
-      "status": {
-        "success": "สำเร็จ",
-        "failed": "ไม่สำเร็จ",
-        "denied": "ถูกปฏิเสธ"
       },
       "actions": {
         "create": "สร้างเอกสาร",

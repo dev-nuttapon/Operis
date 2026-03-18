@@ -16,9 +16,6 @@ public sealed class DocumentHistoryWriter(OperisDbContext dbContext, IHttpContex
         object? after,
         string? summary,
         string? reason,
-        string? status,
-        int? statusCode,
-        string? source,
         object? metadata,
         CancellationToken cancellationToken)
     {
@@ -39,9 +36,6 @@ public sealed class DocumentHistoryWriter(OperisDbContext dbContext, IHttpContex
             ActorUserId = TrimToMax(actorUserId, 64),
             ActorEmail = TrimToMax(actorEmail, 128),
             ActorDisplayName = TrimToMax(actorDisplayName, 128),
-            Status = TrimToMax(status, 24),
-            StatusCode = statusCode,
-            Source = TrimToMax(source, 64),
             BeforeJson = Serialize(before),
             AfterJson = Serialize(after),
             MetadataJson = Serialize(metadata),

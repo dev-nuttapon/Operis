@@ -227,20 +227,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("reason");
 
-                    b.Property<string>("Source")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("source");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(24)
-                        .HasColumnType("character varying(24)")
-                        .HasColumnName("status");
-
-                    b.Property<int?>("StatusCode")
-                        .HasColumnType("integer")
-                        .HasColumnName("status_code");
-
                     b.Property<string>("Summary")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")

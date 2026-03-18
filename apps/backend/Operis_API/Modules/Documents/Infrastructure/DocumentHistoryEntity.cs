@@ -10,9 +10,6 @@ public sealed record DocumentHistoryEntity
     public string? ActorUserId { get; init; }
     public string? ActorEmail { get; init; }
     public string? ActorDisplayName { get; init; }
-    public string? Status { get; init; }
-    public int? StatusCode { get; init; }
-    public string? Source { get; init; }
     public string? BeforeJson { get; init; }
     public string? AfterJson { get; init; }
     public string? MetadataJson { get; init; }
