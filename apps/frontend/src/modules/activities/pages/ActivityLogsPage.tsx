@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import { useActivityLogs } from "../hooks/useActivityLogs";
 import type { ActivityLogItem, ListActivityLogsInput } from "../types/activities";
 
@@ -55,6 +56,23 @@ function toApiSortOrder(order?: SortOrder): "asc" | "desc" | undefined {
   return undefined;
 }
 
+function areFiltersEqual(a: ListActivityLogsInput, b: ListActivityLogsInput) {
+  return (
+    a.module === b.module &&
+    a.action === b.action &&
+    a.entityType === b.entityType &&
+    a.entityId === b.entityId &&
+    a.actor === b.actor &&
+    a.status === b.status &&
+    a.from === b.from &&
+    a.to === b.to &&
+    a.page === b.page &&
+    a.pageSize === b.pageSize &&
+    a.sortBy === b.sortBy &&
+    a.sortOrder === b.sortOrder
+  );
+}
+
 export function ActivityLogsPage() {
   const { t, i18n } = useTranslation();
   const { token } = theme.useToken();
@@ -65,12 +83,58 @@ export function ActivityLogsPage() {
   const [filters, setFilters] = useState<ListActivityLogsInput>({ page: 1, pageSize: 10, sortBy: "occurredAt", sortOrder: "desc" });
   const [selectedActivity, setSelectedActivity] = useState<ActivityLogItem | null>(null);
   const activityLogsQuery = useActivityLogs(filters);
+  const watchedModule = Form.useWatch("module", form);
+  const watchedAction = Form.useWatch("action", form);
+  const watchedEntityType = Form.useWatch("entityType", form);
+  const watchedEntityId = Form.useWatch("entityId", form);
+  const watchedActor = Form.useWatch("actor", form);
+  const watchedStatus = Form.useWatch("status", form);
+  const watchedRange = Form.useWatch("range", form);
+
+  const debouncedFilters = useDebouncedValue(
+    useMemo(
+      () => ({
+        module: watchedModule,
+        action: watchedAction,
+        entityType: watchedEntityType,
+        entityId: watchedEntityId,
+        actor: watchedActor,
+        status: watchedStatus,
+        range: watchedRange,
+      }),
+      [watchedAction, watchedActor, watchedEntityId, watchedEntityType, watchedModule, watchedRange, watchedStatus],
+    ),
+    400,
+  );
 
   useEffect(() => {
     if (activityLogsQuery.isError) {
       handleError(activityLogsQuery.error);
     }
   }, [activityLogsQuery.error, activityLogsQuery.isError]);
+
+  useEffect(() => {
+    setFilters((current) => {
+      const nextFilters: ListActivityLogsInput = {
+        ...current,
+        module: debouncedFilters.module || undefined,
+        action: debouncedFilters.action || undefined,
+        entityType: debouncedFilters.entityType || undefined,
+        entityId: debouncedFilters.entityId || undefined,
+        actor: debouncedFilters.actor || undefined,
+        status: debouncedFilters.status || undefined,
+        from: debouncedFilters.range?.[0]?.startOf("day").toISOString(),
+        to: debouncedFilters.range?.[1]?.endOf("day").toISOString(),
+        page: 1,
+        pageSize: current.pageSize ?? 10,
+      };
+
+      if (areFiltersEqual(current, nextFilters)) {
+        return current;
+      }
+      return nextFilters;
+    });
+  }, [debouncedFilters]);
 
   const columns = useMemo<ColumnsType<ActivityLogItem>>(
     () => [

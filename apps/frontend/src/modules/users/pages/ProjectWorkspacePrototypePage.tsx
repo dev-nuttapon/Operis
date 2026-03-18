@@ -19,6 +19,7 @@ import {
   Timeline,
   Tree,
   Typography,
+  Skeleton,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { DataNode } from "antd/es/tree";
@@ -378,6 +379,9 @@ export function ProjectWorkspacePrototypePage() {
   const blockedFlowAlerts = useMemo(() => [], []);
   const requiredDocuments: ProjectWorkspacePrototypeRequiredDocument[] = [];
   const roleDependencies: Array<{ fromRoleCode: string; toRoleCode: string; relation: string; rationale: string }> = [];
+  const isOrgChartLoading = projectOrgChartQuery.isLoading && orgChartNodes.length === 0;
+  const isRoleLoading = projectEvidenceRoleResponsibilitiesQuery.isLoading && roleTableRows.length === 0;
+  const isAuditLoading = projectEvidenceAssignmentHistoryQuery.isLoading && auditTableRows.length === 0;
 
   const teamColumns: ColumnsType<ProjectWorkspacePrototypeMember> = [
     {
@@ -495,7 +499,11 @@ export function ProjectWorkspacePrototypePage() {
                 />
               </Flex>
             </Card>
-            {orgChartView === "tree" ? (
+            {isOrgChartLoading ? (
+              <Card size="small">
+                <Skeleton active paragraph={{ rows: 6 }} />
+              </Card>
+            ) : orgChartView === "tree" ? (
               <Card size="small" title={t("project_workspace.org_chart.tree_title")}>
                 <Tree defaultExpandAll showLine selectable={false} treeData={orgChartTree} />
               </Card>
@@ -549,37 +557,41 @@ export function ProjectWorkspacePrototypePage() {
                 }}
               />
             </Card>
-            <Row gutter={[16, 16]}>
-              {roleTableRows.map((role) => (
-                <Col key={role.id} xs={24} lg={12}>
-                  <Card size="small">
-                    <Space direction="vertical" size={8} style={{ width: "100%" }}>
-                      <Flex justify="space-between" align="center">
-                        <Typography.Text strong>{role.name}</Typography.Text>
-                        <Tag>{role.code}</Tag>
-                      </Flex>
-                      <Typography.Text type="secondary">{role.responsibility}</Typography.Text>
-                      <Descriptions size="small" column={1}>
-                        <Descriptions.Item label={t("project_workspace.roles.authority")}>
-                          {role.authority}
-                        </Descriptions.Item>
-                      </Descriptions>
-                      <Flex gap={8} wrap>
-                        <Button size="small" type="link" onClick={() => setSection("workflow")}>
-                          {t("project_workspace.roles.open_workflow")}
-                        </Button>
-                        <Button size="small" type="link" onClick={() => setSection("evidence")}>
-                          {t("project_workspace.roles.open_evidence")}
-                        </Button>
-                        <Button size="small" type="link" onClick={() => setSection("compliance")}>
-                          {t("project_workspace.roles.open_compliance")}
-                        </Button>
-                      </Flex>
-                    </Space>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
+            {isRoleLoading ? (
+              <Skeleton active paragraph={{ rows: 6 }} />
+            ) : (
+              <Row gutter={[16, 16]}>
+                {roleTableRows.map((role) => (
+                  <Col key={role.id} xs={24} lg={12}>
+                    <Card size="small">
+                      <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                        <Flex justify="space-between" align="center">
+                          <Typography.Text strong>{role.name}</Typography.Text>
+                          <Tag>{role.code}</Tag>
+                        </Flex>
+                        <Typography.Text type="secondary">{role.responsibility}</Typography.Text>
+                        <Descriptions size="small" column={1}>
+                          <Descriptions.Item label={t("project_workspace.roles.authority")}>
+                            {role.authority}
+                          </Descriptions.Item>
+                        </Descriptions>
+                        <Flex gap={8} wrap>
+                          <Button size="small" type="link" onClick={() => setSection("workflow")}>
+                            {t("project_workspace.roles.open_workflow")}
+                          </Button>
+                          <Button size="small" type="link" onClick={() => setSection("evidence")}>
+                            {t("project_workspace.roles.open_evidence")}
+                          </Button>
+                          <Button size="small" type="link" onClick={() => setSection("compliance")}>
+                            {t("project_workspace.roles.open_compliance")}
+                          </Button>
+                        </Flex>
+                      </Space>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            )}
             <Card size="small" title={t("project_workspace.roles.dependencies_title")}>
               {roleDependencies.length === 0 ? (
                 <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace.workflow.empty")} />
@@ -872,18 +884,22 @@ export function ProjectWorkspacePrototypePage() {
         return (
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <Card size="small" title={t("project_workspace.audit.timeline_title")}>
-              <Timeline
-                items={auditTableRows.map((event) => ({
-                  color: "blue",
-                  children: (
-                    <Space direction="vertical" size={0}>
-                      <Typography.Text strong>{`${event.actor} · ${event.action}`}</Typography.Text>
-                      <Typography.Text>{event.detail}</Typography.Text>
-                      <Typography.Text type="secondary">{`${event.timestamp} · ${event.target}`}</Typography.Text>
-                    </Space>
-                  ),
-                }))}
-              />
+              {isAuditLoading ? (
+                <Skeleton active paragraph={{ rows: 6 }} />
+              ) : (
+                <Timeline
+                  items={auditTableRows.map((event) => ({
+                    color: "blue",
+                    children: (
+                      <Space direction="vertical" size={0}>
+                        <Typography.Text strong>{`${event.actor} · ${event.action}`}</Typography.Text>
+                        <Typography.Text>{event.detail}</Typography.Text>
+                        <Typography.Text type="secondary">{`${event.timestamp} · ${event.target}`}</Typography.Text>
+                      </Space>
+                    ),
+                  }))}
+                />
+              )}
             </Card>
             <Card size="small" title={t("project_workspace.audit.table_title")}>
               <Table

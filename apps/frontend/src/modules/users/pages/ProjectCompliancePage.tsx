@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Card, Empty, List, Progress, Select, Space, Tag, Typography } from "antd";
+import { Alert, Card, Empty, List, Progress, Select, Space, Tag, Typography, Skeleton } from "antd";
 import { SafetyCertificateOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
@@ -101,6 +101,8 @@ export function ProjectCompliancePage() {
 
           {!selectedProjectId ? (
             <Alert type="info" showIcon message={t("project_compliance.select_project_message")} />
+          ) : projectComplianceQuery.isLoading && !compliance ? (
+            <Skeleton active paragraph={{ rows: 6 }} />
           ) : !compliance ? (
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_compliance.empty")} />
           ) : (
@@ -125,22 +127,26 @@ export function ProjectCompliancePage() {
               </Card>
 
               <Card size="small" title={t("project_compliance.checks_title")}>
-                <List
-                  dataSource={compliance.checks}
-                  renderItem={(item) => (
-                    <List.Item>
-                      <Space direction="vertical" size={4} style={{ width: "100%" }}>
-                        <Space wrap size={8}>
-                          <Typography.Text strong>{getCheckTitle(item.code, item.title)}</Typography.Text>
-                          <Tag color={getStatusColor(item.status)}>{getStatusLabel(item.status)}</Tag>
-                          <Tag>{getSeverityLabel(item.severity)}</Tag>
+                {projectComplianceQuery.isLoading ? (
+                  <Skeleton active paragraph={{ rows: 6 }} />
+                ) : (
+                  <List
+                    dataSource={compliance.checks}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                          <Space wrap size={8}>
+                            <Typography.Text strong>{getCheckTitle(item.code, item.title)}</Typography.Text>
+                            <Tag color={getStatusColor(item.status)}>{getStatusLabel(item.status)}</Tag>
+                            <Tag>{getSeverityLabel(item.severity)}</Tag>
+                          </Space>
+                          <Typography.Text type="secondary">{getCheckDescription(item.code, item.description)}</Typography.Text>
+                          {getCheckDetail(item.code, item.status, item.detail) ? <Typography.Text>{getCheckDetail(item.code, item.status, item.detail)}</Typography.Text> : null}
                         </Space>
-                        <Typography.Text type="secondary">{getCheckDescription(item.code, item.description)}</Typography.Text>
-                        {getCheckDetail(item.code, item.status, item.detail) ? <Typography.Text>{getCheckDetail(item.code, item.status, item.detail)}</Typography.Text> : null}
-                      </Space>
-                    </List.Item>
-                  )}
-                />
+                      </List.Item>
+                    )}
+                  />
+                )}
               </Card>
             </Space>
           )}
