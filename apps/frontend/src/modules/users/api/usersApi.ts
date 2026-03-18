@@ -25,6 +25,7 @@ import type {
   ListUsersInput,
   MasterDataItem,
   Project,
+  ProjectListItem,
   ProjectAssignment,
   ProjectAssignmentHistoryRow,
   ProjectCompliance,
@@ -303,7 +304,11 @@ export function createJobTitle(input: CreateJobTitleInput) {
 }
 
 export function listProjects(input?: ListProjectsInput, signal?: AbortSignal) {
-  return apiRequest<PaginatedResult<Project>>(`/api/v1/users/projects${toListQuery(input)}`, { signal });
+  return apiRequest<PaginatedResult<ProjectListItem>>(`/api/v1/users/projects${toListQuery(input)}`, { signal });
+}
+
+export function getProject(id: string, signal?: AbortSignal) {
+  return apiRequest<Project>(`/api/v1/users/projects/${id}`, { signal });
 }
 
 export function listProjectTypeTemplates(input?: ListQueryInput, signal?: AbortSignal) {

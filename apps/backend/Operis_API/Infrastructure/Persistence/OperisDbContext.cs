@@ -52,6 +52,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.UploadedAt);
             entity.HasIndex(x => x.IsDeleted);
             entity.HasIndex(x => x.PublishedVersionId);
+            entity.HasIndex(x => new { x.IsDeleted, x.UploadedAt });
         });
 
         modelBuilder.Entity<DocumentVersionEntity>(entity =>
@@ -78,6 +79,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => new { x.DocumentId, x.VersionCode }).IsUnique();
             entity.HasIndex(x => x.ObjectKey).IsUnique().HasFilter("\"object_key\" IS NOT NULL");
             entity.HasIndex(x => x.IsDeleted);
+            entity.HasIndex(x => new { x.DocumentId, x.IsDeleted, x.Revision });
+            entity.HasIndex(x => new { x.DocumentId, x.IsDeleted, x.UploadedAt });
         });
 
         modelBuilder.Entity<DocumentHistoryEntity>(entity =>
@@ -100,6 +103,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.DocumentId);
             entity.HasIndex(x => x.EventType);
             entity.HasIndex(x => x.OccurredAt);
+            entity.HasIndex(x => new { x.DocumentId, x.OccurredAt });
         });
 
         modelBuilder.Entity<UserEntity>(entity =>
@@ -206,6 +210,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique().HasFilter("\"deleted_at\" IS NULL AND \"code\" IS NOT NULL");
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
             entity.HasIndex(x => x.ProjectId);
+            entity.HasIndex(x => new { x.ProjectId, x.DeletedAt });
+            entity.HasIndex(x => new { x.ProjectId, x.DisplayOrder, x.Name }).HasFilter("\"deleted_at\" IS NULL");
         });
 
         modelBuilder.Entity<UserOrgAssignmentEntity>(entity =>
@@ -360,6 +366,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.ProjectRoleId);
             entity.HasIndex(x => x.ReportsToUserId);
             entity.HasIndex(x => new { x.ProjectId, x.Status, x.StartAt });
+            entity.HasIndex(x => new { x.ProjectId, x.CreatedAt });
+            entity.HasIndex(x => new { x.ProjectRoleId, x.Status });
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.CreatedAt });
         });
 
         modelBuilder.Entity<AppRoleEntity>(entity =>

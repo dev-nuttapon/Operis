@@ -10,7 +10,9 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import { useActivityLogs } from "../hooks/useActivityLogs";
-import type { ActivityLogItem, ListActivityLogsInput } from "../types/activities";
+import type { ActivityLogListItem, ListActivityLogsInput } from "../types/activities";
+import { getActivityLog } from "../api/activitiesApi";
+import { useQuery } from "@tanstack/react-query";
 
 const { RangePicker } = DatePicker;
 const { Text, Paragraph } = Typography;
@@ -81,8 +83,14 @@ export function ActivityLogsPage() {
   const canReadActivityLogs = permissionState.hasPermission(permissions.activityLogs.read);
   const [form] = Form.useForm();
   const [filters, setFilters] = useState<ListActivityLogsInput>({ page: 1, pageSize: 10, sortBy: "occurredAt", sortOrder: "desc" });
-  const [selectedActivity, setSelectedActivity] = useState<ActivityLogItem | null>(null);
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
   const activityLogsQuery = useActivityLogs(filters);
+  const activityDetailQuery = useQuery({
+    queryKey: ["admin", "activity-logs", "detail", selectedActivityId],
+    enabled: Boolean(selectedActivityId),
+    queryFn: ({ signal }) => getActivityLog(selectedActivityId!, signal),
+    staleTime: 30_000,
+  });
   const watchedModule = Form.useWatch("module", form);
   const watchedAction = Form.useWatch("action", form);
   const watchedEntityType = Form.useWatch("entityType", form);
@@ -136,7 +144,7 @@ export function ActivityLogsPage() {
     });
   }, [debouncedFilters]);
 
-  const columns = useMemo<ColumnsType<ActivityLogItem>>(
+  const columns = useMemo<ColumnsType<ActivityLogListItem>>(
     () => [
       {
         title: t("activity_logs.columns.occurred_at"),
@@ -191,7 +199,7 @@ export function ActivityLogsPage() {
         title: t("activity_logs.columns.actions"),
         key: "actions",
         render: (_, item) => (
-          <Button icon={<EyeOutlined />} onClick={() => setSelectedActivity(item)}>
+          <Button icon={<EyeOutlined />} onClick={() => setSelectedActivityId(item.id)}>
             {t("activity_logs.actions.view")}
           </Button>
         ),
@@ -316,7 +324,7 @@ export function ActivityLogsPage() {
         {activityLogsQuery.isLoading && (activityLogsQuery.data?.items?.length ?? 0) === 0 ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (
-          <Table<ActivityLogItem>
+          <Table<ActivityLogListItem>
             rowKey="id"
             columns={columns}
             dataSource={canReadActivityLogs ? (activityLogsQuery.data?.items ?? []) : []}
@@ -339,7 +347,7 @@ export function ActivityLogsPage() {
               emptyText: activityLogsQuery.isError ? t("activity_logs.empty_error") : t("activity_logs.empty"),
             }}
             onChange={(pagination, _, sorter) => {
-              const sort = sorter as SorterResult<ActivityLogItem>;
+              const sort = sorter as SorterResult<ActivityLogListItem>;
               setFilters((current) => ({
                 ...current,
                 page: pagination.current ?? current.page,
@@ -353,26 +361,28 @@ export function ActivityLogsPage() {
       </Card>
 
       <Modal
-        open={selectedActivity !== null}
+        open={selectedActivityId !== null}
         title={t("activity_logs.detail.title")}
-        onCancel={() => setSelectedActivity(null)}
+        onCancel={() => setSelectedActivityId(null)}
         footer={[
-          <Button key="close" onClick={() => setSelectedActivity(null)}>
+          <Button key="close" onClick={() => setSelectedActivityId(null)}>
             {t("activity_logs.actions.close")}
           </Button>,
         ]}
         width={1000}
         styles={{ body: { padding: "20px 0" } }}
       >
-        {selectedActivity ? (
+        {activityDetailQuery.isLoading && !activityDetailQuery.data ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : activityDetailQuery.data ? (
           <Space direction="vertical" size={24} style={{ width: "100%" }}>
             {/* Error Message Alert if failed */}
-            {selectedActivity.status !== "success" && (selectedActivity.errorCode || selectedActivity.errorMessage) && (
+            {activityDetailQuery.data.status !== "success" && (activityDetailQuery.data.errorCode || activityDetailQuery.data.errorMessage) && (
               <Alert
                 type="error"
                 showIcon
-                message={selectedActivity.errorCode || t("activity_logs.status.failed")}
-                description={selectedActivity.errorMessage}
+                message={activityDetailQuery.data.errorCode || t("activity_logs.status.failed")}
+                description={activityDetailQuery.data.errorMessage}
                 style={{ margin: "0 24px" }}
               />
             )}
@@ -386,29 +396,29 @@ export function ActivityLogsPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 32px" }}>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.occurred_at")}</Text>
-                    <Text strong>{formatDate(selectedActivity.occurredAt, i18n.language)}</Text>
+                    <Text strong>{formatDate(activityDetailQuery.data.occurredAt, i18n.language)}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.status")}</Text>
-                    <Tag color={getStatusColor(selectedActivity.status)} style={{ margin: 0 }}>
-                      {t(`activity_logs.status.${selectedActivity.status}`, { defaultValue: selectedActivity.status })}
+                    <Tag color={getStatusColor(activityDetailQuery.data.status)} style={{ margin: 0 }}>
+                      {t(`activity_logs.status.${activityDetailQuery.data.status}`, { defaultValue: activityDetailQuery.data.status })}
                     </Tag>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.module")}</Text>
-                    <Text>{selectedActivity.module}</Text>
+                    <Text>{activityDetailQuery.data.module}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.action")}</Text>
-                    <Tag>{selectedActivity.action.toUpperCase()}</Tag>
+                    <Tag>{activityDetailQuery.data.action.toUpperCase()}</Tag>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.entity")}</Text>
-                    <Text>{`${selectedActivity.entityType} (${selectedActivity.entityId || "-"})`}</Text>
+                    <Text>{`${activityDetailQuery.data.entityType} (${activityDetailQuery.data.entityId || "-"})`}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("activity_logs.columns.actor")}</Text>
-                    <Text>{selectedActivity.actorEmail || selectedActivity.actorDisplayName || selectedActivity.actorUserId || "-"}</Text>
+                    <Text>{activityDetailQuery.data.actorEmail || activityDetailQuery.data.actorDisplayName || activityDetailQuery.data.actorUserId || "-"}</Text>
                   </Space>
                 </div>
               </Card>
@@ -423,32 +433,32 @@ export function ActivityLogsPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.http_method")}</Text>
-                    <Text style={{ fontSize: 13 }}>{selectedActivity.httpMethod || "-"}</Text>
+                    <Text style={{ fontSize: 13 }}>{activityDetailQuery.data.httpMethod || "-"}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.status_code")}</Text>
-                    <Text style={{ fontSize: 13 }}>{selectedActivity.statusCode || "-"}</Text>
+                    <Text style={{ fontSize: 13 }}>{activityDetailQuery.data.statusCode || "-"}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.ip_address")}</Text>
-                    <Text style={{ fontSize: 13 }}>{selectedActivity.ipAddress || "-"}</Text>
+                    <Text style={{ fontSize: 13 }}>{activityDetailQuery.data.ipAddress || "-"}</Text>
                   </Space>
                   <div style={{ gridColumn: "span 3" }}>
                     <Space direction="vertical" size={0} style={{ width: "100%" }}>
                       <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.request_id")}</Text>
-                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{selectedActivity.requestId || "-"}</Text>
+                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{activityDetailQuery.data.requestId || "-"}</Text>
                     </Space>
                   </div>
                   <div style={{ gridColumn: "span 3" }}>
                     <Space direction="vertical" size={0} style={{ width: "100%" }}>
                       <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.trace_id")}</Text>
-                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{selectedActivity.traceId || "-"}</Text>
+                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{activityDetailQuery.data.traceId || "-"}</Text>
                     </Space>
                   </div>
                   <div style={{ gridColumn: "span 3" }}>
                     <Space direction="vertical" size={0} style={{ width: "100%" }}>
                       <Text type="secondary" style={{ fontSize: 11 }}>{t("activity_logs.detail.user_agent")}</Text>
-                      <Text style={{ fontSize: 12 }}>{selectedActivity.userAgent || "-"}</Text>
+                      <Text style={{ fontSize: 12 }}>{activityDetailQuery.data.userAgent || "-"}</Text>
                     </Space>
                   </div>
                 </div>
@@ -460,32 +470,32 @@ export function ActivityLogsPage() {
                 <div>
                   <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("activity_logs.detail.before")}</Typography.Title>
                   <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
-                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedActivity.beforeJson)}</pre>
+                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(activityDetailQuery.data.beforeJson)}</pre>
                   </Card>
                 </div>
                 <div>
                   <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("activity_logs.detail.after")}</Typography.Title>
                   <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
-                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedActivity.afterJson)}</pre>
+                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(activityDetailQuery.data.afterJson)}</pre>
                   </Card>
                 </div>
               </div>
             </div>
 
-            {selectedActivity.changesJson && selectedActivity.changesJson !== "{}" && (
+            {activityDetailQuery.data.changesJson && activityDetailQuery.data.changesJson !== "{}" && (
               <div style={{ padding: "0 24px" }}>
                 <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("activity_logs.detail.changes")}</Typography.Title>
                 <Card size="small" style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarningBorder}` }}>
-                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedActivity.changesJson)}</pre>
+                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(activityDetailQuery.data.changesJson)}</pre>
                 </Card>
               </div>
             )}
 
-            {selectedActivity.metadataJson && selectedActivity.metadataJson !== "{}" && (
+            {activityDetailQuery.data.metadataJson && activityDetailQuery.data.metadataJson !== "{}" && (
               <div style={{ padding: "0 24px" }}>
                 <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("activity_logs.detail.metadata")}</Typography.Title>
                 <Card size="small" style={{ background: token.colorInfoBg, border: `1px solid ${token.colorInfoBorder}` }}>
-                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedActivity.metadataJson)}</pre>
+                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(activityDetailQuery.data.metadataJson)}</pre>
                 </Card>
               </div>
             )}

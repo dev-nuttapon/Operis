@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listProjects } from "../api/usersApi";
-import type { Project } from "../types/users";
+import type { ProjectListItem } from "../types/users";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type ProjectOption = { label: string; value: string };
@@ -46,7 +46,7 @@ export function useProjectOptions({
 
   const items = useMemo(() => projectsQuery.data?.pages.flatMap((page) => page.items) ?? [], [projectsQuery.data]);
   const itemsById = useMemo(() => {
-    const map = new Map<string, Project>();
+    const map = new Map<string, ProjectListItem>();
     for (const item of items) {
       map.set(item.id, item);
     }

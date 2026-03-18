@@ -1,5 +1,20 @@
 export type AuditLogStatus = "success" | "failed" | "denied";
 
+export interface AuditLogListItem {
+  id: string;
+  occurredAt: string;
+  module: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  actorUserId: string | null;
+  actorEmail: string | null;
+  actorDisplayName: string | null;
+  status: AuditLogStatus | string;
+  httpMethod: string | null;
+  requestPath: string | null;
+}
+
 export interface AuditLogItem {
   id: string;
   occurredAt: string;

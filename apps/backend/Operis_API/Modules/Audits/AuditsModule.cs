@@ -27,6 +27,9 @@ public sealed class AuditsModule : IModule
         group.MapGet("/", ListAuditLogsAsync)
             .WithName("AuditLogs_List");
 
+        group.MapGet("/{auditLogId:guid}", GetAuditLogAsync)
+            .WithName("AuditLogs_Get");
+
         return endpoints;
     }
 
@@ -57,5 +60,21 @@ public sealed class AuditsModule : IModule
             new AuditLogListQuery(module, action, entityType, entityId, actor, status, sortBy, sortOrder, from, to, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetAuditLogAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IAuditLogQueries queries,
+        Guid auditLogId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.AuditLogs.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetAuditLogAsync(auditLogId, cancellationToken);
+        return result is null ? Results.NotFound() : Results.Ok(result);
     }
 }

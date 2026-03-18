@@ -218,6 +218,19 @@ public sealed record MasterDataResponse(
     DateTimeOffset? DeletedAt);
 
 public sealed record AppRoleResponse(Guid Id, string Name, string KeycloakRoleName, string? Description, int DisplayOrder);
+public sealed record ProjectListItem(
+    Guid Id,
+    string Code,
+    string Name,
+    string ProjectType,
+    string? OwnerUserId,
+    string? OwnerDisplayName,
+    string? SponsorDisplayName,
+    string? Phase,
+    string Status,
+    DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? EndAt,
+    DateTimeOffset CreatedAt);
 public sealed record ProjectResponse(
     Guid Id,
     string Code,

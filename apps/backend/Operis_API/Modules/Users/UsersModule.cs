@@ -108,6 +108,9 @@ public sealed class UsersModule : IModule
         group.MapGet("/projects", ListProjectsAsync)
             .WithName("Users_ListProjects");
 
+        group.MapGet("/projects/{projectId:guid}", GetProjectAsync)
+            .WithName("Users_GetProject");
+
         group.MapGet("/project-type-templates", ListProjectTypeTemplatesAsync)
             .WithName("Users_ListProjectTypeTemplates");
 
@@ -558,6 +561,22 @@ public sealed class UsersModule : IModule
 
         var result = await queries.ListProjectsAsync(new ProjectListQuery(search, sortBy, sortOrder, assignedUserId, page, pageSize), cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetProjectAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid projectId,
+        IProjectQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, projectId, cancellationToken))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetProjectAsync(projectId, cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
     }
 
     private static async Task<IResult> ListProjectTypeTemplatesAsync(

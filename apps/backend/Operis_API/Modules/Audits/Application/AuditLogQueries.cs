@@ -10,7 +10,7 @@ public sealed class AuditLogQueries(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter) : IAuditLogQueries
 {
-    public async Task<PagedResult<AuditLogResponse>> ListAuditLogsAsync(AuditLogListQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<AuditLogListItem>> ListAuditLogsAsync(AuditLogListQuery request, CancellationToken cancellationToken)
     {
         var normalizedPage = request.Page < 1 ? 1 : request.Page;
         var normalizedPageSize = Math.Clamp(request.PageSize, 10, 100);
@@ -68,6 +68,54 @@ public sealed class AuditLogQueries(
         var items = await query
             .Skip(skip)
             .Take(normalizedPageSize)
+            .Select(x => new AuditLogListItem(
+                x.Id,
+                x.OccurredAt,
+                x.Module,
+                x.Action,
+                x.EntityType,
+                x.EntityId,
+                x.ActorUserId,
+                x.ActorEmail,
+                x.ActorDisplayName,
+                x.Status,
+                x.HttpMethod,
+                x.RequestPath))
+            .ToListAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "audits",
+            Action: "list",
+            EntityType: "audit_log",
+            StatusCode: StatusCodes.Status200OK,
+            Audience: LogAudience.AuditOnly,
+            Metadata: new
+            {
+                count = items.Count,
+                request.Module,
+                request.Action,
+                request.EntityType,
+                request.EntityId,
+                request.Actor,
+                request.Status,
+                request.SortBy,
+                request.SortOrder,
+                request.From,
+                request.To,
+                total,
+                page = normalizedPage,
+                pageSize = normalizedPageSize
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new PagedResult<AuditLogListItem>(items, total, normalizedPage, normalizedPageSize);
+    }
+
+    public async Task<AuditLogResponse?> GetAuditLogAsync(Guid auditLogId, CancellationToken cancellationToken)
+    {
+        return await dbContext.AuditLogs
+            .AsNoTracking()
+            .Where(x => x.Id == auditLogId)
             .Select(x => new AuditLogResponse(
                 x.Id,
                 x.OccurredAt,
@@ -100,34 +148,7 @@ public sealed class AuditLogQueries(
                 x.MetadataJson,
                 x.IsSensitive,
                 x.RetentionClass))
-            .ToListAsync(cancellationToken);
-
-        auditLogWriter.Append(new AuditLogEntry(
-            Module: "audits",
-            Action: "list",
-            EntityType: "audit_log",
-            StatusCode: StatusCodes.Status200OK,
-            Audience: LogAudience.AuditOnly,
-            Metadata: new
-            {
-                count = items.Count,
-                request.Module,
-                request.Action,
-                request.EntityType,
-                request.EntityId,
-                request.Actor,
-                request.Status,
-                request.SortBy,
-                request.SortOrder,
-                request.From,
-                request.To,
-                total,
-                page = normalizedPage,
-                pageSize = normalizedPageSize
-            }));
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        return new PagedResult<AuditLogResponse>(items, total, normalizedPage, normalizedPageSize);
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     private static IQueryable<AuditLogEntity> ApplySorting(IQueryable<AuditLogEntity> query, string? sortBy, string? sortOrder)

@@ -70,6 +70,8 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("IsDeleted");
 
+                    b.HasIndex("IsDeleted", "UploadedAt");
+
                     b.HasIndex("PublishedVersionId");
 
                     b.HasIndex("UploadedAt");
@@ -164,6 +166,10 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("DocumentId", "Revision")
                         .IsUnique();
 
+                    b.HasIndex("DocumentId", "IsDeleted", "Revision");
+
+                    b.HasIndex("DocumentId", "IsDeleted", "UploadedAt");
+
                     b.HasIndex("DocumentId", "VersionCode")
                         .IsUnique();
 
@@ -235,6 +241,8 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("DocumentId", "OccurredAt");
 
                     b.HasIndex("EventType");
 
@@ -683,6 +691,11 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasFilter("\"deleted_at\" IS NULL");
 
                     b.HasIndex("DeletedAt", "DisplayOrder", "Name");
+
+                    b.HasIndex("ProjectId", "DeletedAt");
+
+                    b.HasIndex("ProjectId", "DisplayOrder", "Name")
+                        .HasFilter("\"deleted_at\" IS NULL");
 
                     b.ToTable("project_roles", (string)null);
                 });
@@ -1165,6 +1178,12 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("ProjectId", "IsPrimary");
 
                     b.HasIndex("ProjectId", "Status", "StartAt");
+
+                    b.HasIndex("ProjectId", "CreatedAt");
+
+                    b.HasIndex("ProjectRoleId", "Status");
+
+                    b.HasIndex("ProjectId", "Status", "CreatedAt");
 
                     b.HasIndex("UserId", "ProjectId", "ProjectRoleId");
 

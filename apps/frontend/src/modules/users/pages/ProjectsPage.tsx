@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
@@ -11,7 +11,7 @@ import { usePermissions } from "../../../shared/authz/usePermissions";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectTypeOptions } from "../hooks/useProjectTypeOptions";
-import type { Project, UpdateProjectInput, User } from "../types/users";
+import type { ProjectListItem, UpdateProjectInput, User } from "../types/users";
 import { ProjectForm, normalizeProjectPayload, toInitialValues, type ProjectFormValues } from "../components/projects/ProjectForm";
 import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
@@ -50,15 +50,16 @@ export function ProjectsPage() {
     sortBy: "createdAt",
     sortOrder: "desc" as "asc" | "desc",
   });
-  const [editTarget, setEditTarget] = useState<Project | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [editTarget, setEditTarget] = useState<ProjectListItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProjectListItem | null>(null);
   const [editForm] = Form.useForm<ProjectFormValues>();
   const [deleteForm] = Form.useForm();
 
   const debouncedSearch = useDebouncedValue(paging.search, 300);
-  const { projectsQuery, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
+  const { projectsQuery, projectDetailQuery, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
     projectsEnabled: canViewProjectList,
     projects: { ...paging, search: debouncedSearch, assignedOnly: isMyProjectsPage && !canReadProjects },
+    projectDetailId: editTarget?.id,
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
   });
@@ -83,7 +84,7 @@ export function ProjectsPage() {
     notification.error({ message: presentation.title, description: presentation.description });
   };
 
-  const columns = useMemo<ColumnsType<Project>>(
+  const columns = useMemo<ColumnsType<ProjectListItem>>(
     () => [
       { title: t("projects.columns.code"), dataIndex: "code", sorter: true },
       { title: t("projects.columns.name"), dataIndex: "name", sorter: true },
@@ -132,7 +133,6 @@ export function ProjectsPage() {
                   onClick={(event) => {
                     event.stopPropagation();
                     setEditTarget(record);
-                    editForm.setFieldsValue(toInitialValues(record));
                   }}
                 >
                   {t("common.actions.edit")}
@@ -165,8 +165,14 @@ export function ProjectsPage() {
         ),
       },
     ],
-    [canManageProjects, canViewProjectList, deleteForm, editForm, i18n.language, navigate, projectStatusLabel, t],
+    [canManageProjects, canViewProjectList, deleteForm, i18n.language, navigate, projectStatusLabel, t],
   );
+
+  useEffect(() => {
+    if (editTarget && projectDetailQuery.data) {
+      editForm.setFieldsValue(toInitialValues(projectDetailQuery.data));
+    }
+  }, [editForm, editTarget, projectDetailQuery.data]);
 
   const submitEdit = (values: ProjectFormValues) => {
     if (!editTarget) {
@@ -251,7 +257,7 @@ export function ProjectsPage() {
                   pageSizeOptions: [10, 25, 50, 100],
                 }}
                 onChange={(nextPagination, _, sorter) => {
-                  const resolvedSorter = sorter as SorterResult<Project>;
+                  const resolvedSorter = sorter as SorterResult<ProjectListItem>;
                   setPaging((current) => ({
                     ...current,
                     page: nextPagination.current ?? current.page,
@@ -279,20 +285,24 @@ export function ProjectsPage() {
         confirmLoading={updateProjectMutation.isPending}
         width={720}
       >
-        <ProjectForm
-          form={editForm}
-          t={t}
-          userOptions={userOptionsState.options}
-          projectTypeOptions={projectTypeOptions}
-          userOptionsLoading={userOptionsState.loading}
-          onUserSearch={userOptionsState.onSearch}
-          onUserLoadMore={userOptionsState.onLoadMore}
-          userHasMore={userOptionsState.hasMore}
-          projectTypeOptionsLoading={projectTypeOptionsState.loading}
-          onProjectTypeSearch={projectTypeOptionsState.onSearch}
-          onProjectTypeLoadMore={projectTypeOptionsState.onLoadMore}
-          projectTypeHasMore={projectTypeOptionsState.hasMore}
-        />
+        {projectDetailQuery.isLoading && !projectDetailQuery.data ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : (
+          <ProjectForm
+            form={editForm}
+            t={t}
+            userOptions={userOptionsState.options}
+            projectTypeOptions={projectTypeOptions}
+            userOptionsLoading={userOptionsState.loading}
+            onUserSearch={userOptionsState.onSearch}
+            onUserLoadMore={userOptionsState.onLoadMore}
+            userHasMore={userOptionsState.hasMore}
+            projectTypeOptionsLoading={projectTypeOptionsState.loading}
+            onProjectTypeSearch={projectTypeOptionsState.onSearch}
+            onProjectTypeLoadMore={projectTypeOptionsState.onLoadMore}
+            projectTypeHasMore={projectTypeOptionsState.hasMore}
+          />
+        )}
       </Modal>
 
       <Modal

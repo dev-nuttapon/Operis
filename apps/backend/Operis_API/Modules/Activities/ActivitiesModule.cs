@@ -22,6 +22,9 @@ public sealed class ActivitiesModule : IModule
         group.MapGet("/", ListActivityLogsAsync)
             .WithName("ActivityLogs_List");
 
+        group.MapGet("/{activityLogId:guid}", GetActivityLogAsync)
+            .WithName("ActivityLogs_Get");
+
         return endpoints;
     }
 
@@ -52,5 +55,21 @@ public sealed class ActivitiesModule : IModule
             new ActivityLogListQuery(module, action, entityType, entityId, actor, status, sortBy, sortOrder, from, to, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetActivityLogAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IActivityLogQueries queries,
+        Guid activityLogId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.ActivityLogs.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetActivityLogAsync(activityLogId, cancellationToken);
+        return result is null ? Results.NotFound() : Results.Ok(result);
     }
 }

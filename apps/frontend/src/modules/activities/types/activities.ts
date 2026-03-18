@@ -1,5 +1,20 @@
 export type ActivityLogStatus = "success" | "failed" | "denied";
 
+export interface ActivityLogListItem {
+  id: string;
+  occurredAt: string;
+  module: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  actorUserId: string | null;
+  actorEmail: string | null;
+  actorDisplayName: string | null;
+  status: ActivityLogStatus | string;
+  httpMethod: string | null;
+  requestPath: string | null;
+}
+
 export interface ActivityLogItem {
   id: string;
   occurredAt: string;

@@ -1,6 +1,6 @@
 import { apiRequest } from "../../../shared/lib/apiClient";
 import type { PaginatedResult } from "../../../shared/types/pagination";
-import type { AuditLogItem, ListAuditLogsInput } from "../types/audits";
+import type { AuditLogItem, AuditLogListItem, ListAuditLogsInput } from "../types/audits";
 
 export function listAuditLogs(input: ListAuditLogsInput, signal?: AbortSignal) {
   const params = new URLSearchParams();
@@ -19,5 +19,9 @@ export function listAuditLogs(input: ListAuditLogsInput, signal?: AbortSignal) {
   if (input.pageSize) params.set("pageSize", String(input.pageSize));
 
   const query = params.toString();
-  return apiRequest<PaginatedResult<AuditLogItem>>(`/api/v1/audit-logs${query ? `?${query}` : ""}`, { signal });
+  return apiRequest<PaginatedResult<AuditLogListItem>>(`/api/v1/audit-logs${query ? `?${query}` : ""}`, { signal });
+}
+
+export function getAuditLog(id: string, signal?: AbortSignal) {
+  return apiRequest<AuditLogItem>(`/api/v1/audit-logs/${id}`, { signal });
 }

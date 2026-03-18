@@ -1,5 +1,19 @@
 namespace Operis_API.Modules.Activities.Contracts;
 
+public sealed record ActivityLogListItem(
+    Guid Id,
+    DateTimeOffset OccurredAt,
+    string Module,
+    string Action,
+    string EntityType,
+    string? EntityId,
+    string? ActorUserId,
+    string? ActorEmail,
+    string? ActorDisplayName,
+    string Status,
+    string? HttpMethod,
+    string? RequestPath);
+
 public sealed record ActivityLogResponse(
     Guid Id,
     DateTimeOffset OccurredAt,

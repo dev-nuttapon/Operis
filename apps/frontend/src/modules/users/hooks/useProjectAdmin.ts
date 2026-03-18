@@ -5,6 +5,7 @@ import {
   createProjectRole,
   deleteProject,
   deleteProjectAssignment,
+  getProject,
   getProjectCompliance,
   exportProjectEvidence,
   deleteProjectRole,
@@ -32,12 +33,14 @@ import type {
 } from "../types/users";
 
 const projectsQueryKey = ["admin", "projects"];
+const projectDetailQueryKey = ["admin", "project-detail"];
 const projectRolesQueryKey = ["admin", "project-roles"];
 const projectAssignmentsQueryKey = ["admin", "project-assignments"];
 
 export function useProjectAdmin(input: {
   projectsEnabled?: boolean;
   projects: ListProjectsInput;
+  projectDetailId?: string;
   projectRoles: { projectId?: string; search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number };
   projectAssignments: ListProjectAssignmentsInput | null;
   projectOrgChartProjectId?: string;
@@ -52,6 +55,13 @@ export function useProjectAdmin(input: {
     queryKey: [...projectsQueryKey, input.projects],
     enabled: input.projectsEnabled ?? true,
     queryFn: ({ signal }) => listProjects(input.projects, signal),
+    staleTime: 15_000,
+  });
+
+  const projectDetailQuery = useQuery({
+    queryKey: [...projectDetailQueryKey, input.projectDetailId],
+    enabled: Boolean(input.projectDetailId),
+    queryFn: ({ signal }) => getProject(input.projectDetailId!, signal),
     staleTime: 15_000,
   });
 
@@ -133,6 +143,7 @@ export function useProjectAdmin(input: {
   const invalidateProjects = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: projectsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: projectDetailQueryKey }),
       queryClient.invalidateQueries({ queryKey: projectRolesQueryKey }),
       queryClient.invalidateQueries({ queryKey: projectAssignmentsQueryKey }),
     ]);
@@ -187,6 +198,7 @@ export function useProjectAdmin(input: {
 
   return {
     projectsQuery,
+    projectDetailQuery,
     projectRolesQuery,
     projectAssignmentsQuery,
     projectOrgChartQuery,

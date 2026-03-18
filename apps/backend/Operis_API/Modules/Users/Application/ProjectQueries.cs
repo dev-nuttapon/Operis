@@ -64,7 +64,8 @@ file sealed record ProjectAssignmentRow(
 
 public interface IProjectQueries
 {
-    Task<PagedResult<ProjectResponse>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<ProjectListItem>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken);
+    Task<ProjectResponse?> GetProjectAsync(Guid projectId, CancellationToken cancellationToken);
     Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ReferenceDataQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken);
     Task<bool> HasProjectAccessAsync(Guid projectId, string userId, CancellationToken cancellationToken);
@@ -81,7 +82,7 @@ public sealed class ProjectQueries(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter) : IProjectQueries
 {
-    public async Task<PagedResult<ProjectResponse>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken)
+    public async Task<PagedResult<ProjectListItem>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken)
     {
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
         IQueryable<ProjectEntity> source = dbContext.Projects.AsNoTracking().Where(x => x.DeletedAt == null);
@@ -118,28 +119,19 @@ public sealed class ProjectQueries(
                     .Select(user => user.Id)
                     .FirstOrDefault()
             })
-            .Select(x => new ProjectResponse(
+            .Select(x => new ProjectListItem(
                 x.Entity.Id,
                 x.Entity.Code,
                 x.Entity.Name,
                 x.Entity.ProjectType,
                 x.Entity.OwnerUserId,
                 x.OwnerDisplayName,
-                x.Entity.SponsorUserId,
                 x.SponsorDisplayName,
-                x.Entity.Methodology,
                 x.Entity.Phase,
                 x.Entity.Status,
-                x.Entity.StatusReason,
                 x.Entity.PlannedStartAt,
-                x.Entity.PlannedEndAt,
-                x.Entity.StartAt,
                 x.Entity.EndAt,
-                x.Entity.CreatedAt,
-                x.Entity.UpdatedAt,
-                x.Entity.DeletedReason,
-                x.Entity.DeletedBy,
-                x.Entity.DeletedAt))
+                x.Entity.CreatedAt))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -150,7 +142,55 @@ public sealed class ProjectQueries(
             Metadata: new { total, page, pageSize, query.Search, query.SortBy, query.SortOrder }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new PagedResult<ProjectResponse>(items, total, page, pageSize);
+        return new PagedResult<ProjectListItem>(items, total, page, pageSize);
+    }
+
+    public async Task<ProjectResponse?> GetProjectAsync(Guid projectId, CancellationToken cancellationToken)
+    {
+        var project = await dbContext.Projects
+            .AsNoTracking()
+            .Where(x => x.Id == projectId && x.DeletedAt == null)
+            .Select(x => new
+            {
+                Entity = x,
+                OwnerDisplayName = dbContext.Users
+                    .Where(user => user.Id == x.OwnerUserId && user.DeletedAt == null)
+                    .Select(user => user.Id)
+                    .FirstOrDefault(),
+                SponsorDisplayName = dbContext.Users
+                    .Where(user => user.Id == x.SponsorUserId && user.DeletedAt == null)
+                    .Select(user => user.Id)
+                    .FirstOrDefault()
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (project is null)
+        {
+            return null;
+        }
+
+        return new ProjectResponse(
+            project.Entity.Id,
+            project.Entity.Code,
+            project.Entity.Name,
+            project.Entity.ProjectType,
+            project.Entity.OwnerUserId,
+            project.OwnerDisplayName,
+            project.Entity.SponsorUserId,
+            project.SponsorDisplayName,
+            project.Entity.Methodology,
+            project.Entity.Phase,
+            project.Entity.Status,
+            project.Entity.StatusReason,
+            project.Entity.PlannedStartAt,
+            project.Entity.PlannedEndAt,
+            project.Entity.StartAt,
+            project.Entity.EndAt,
+            project.Entity.CreatedAt,
+            project.Entity.UpdatedAt,
+            project.Entity.DeletedReason,
+            project.Entity.DeletedBy,
+            project.Entity.DeletedAt);
     }
 
     public Task<bool> HasProjectAccessAsync(Guid projectId, string userId, CancellationToken cancellationToken) =>

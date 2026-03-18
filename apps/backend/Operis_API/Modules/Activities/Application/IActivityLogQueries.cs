@@ -5,5 +5,6 @@ namespace Operis_API.Modules.Activities.Application;
 
 public interface IActivityLogQueries
 {
-    Task<PagedResult<ActivityLogResponse>> ListActivityLogsAsync(ActivityLogListQuery request, CancellationToken cancellationToken);
+    Task<PagedResult<ActivityLogListItem>> ListActivityLogsAsync(ActivityLogListQuery request, CancellationToken cancellationToken);
+    Task<ActivityLogResponse?> GetActivityLogAsync(Guid activityLogId, CancellationToken cancellationToken);
 }

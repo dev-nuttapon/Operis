@@ -1,6 +1,6 @@
 import { apiRequest } from "../../../shared/lib/apiClient";
 import type { PaginatedResult } from "../../../shared/types/pagination";
-import type { ActivityLogItem, ListActivityLogsInput } from "../types/activities";
+import type { ActivityLogItem, ActivityLogListItem, ListActivityLogsInput } from "../types/activities";
 
 export function listActivityLogs(input: ListActivityLogsInput, signal?: AbortSignal) {
   const params = new URLSearchParams();
@@ -19,5 +19,9 @@ export function listActivityLogs(input: ListActivityLogsInput, signal?: AbortSig
   if (input.pageSize) params.set("pageSize", String(input.pageSize));
 
   const query = params.toString();
-  return apiRequest<PaginatedResult<ActivityLogItem>>(`/api/v1/activity-logs${query ? `?${query}` : ""}`, { signal });
+  return apiRequest<PaginatedResult<ActivityLogListItem>>(`/api/v1/activity-logs${query ? `?${query}` : ""}`, { signal });
+}
+
+export function getActivityLog(id: string, signal?: AbortSignal) {
+  return apiRequest<ActivityLogItem>(`/api/v1/activity-logs/${id}`, { signal });
 }

@@ -10,7 +10,9 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import { useAuditLogs } from "../hooks/useAuditLogs";
-import type { AuditLogItem, ListAuditLogsInput } from "../types/audits";
+import type { AuditLogListItem, ListAuditLogsInput } from "../types/audits";
+import { getAuditLog } from "../api/auditsApi";
+import { useQuery } from "@tanstack/react-query";
 
 const { RangePicker } = DatePicker;
 const { Text, Paragraph } = Typography;
@@ -81,8 +83,14 @@ export function AuditLogsPage() {
   const canReadAuditLogs = permissionState.hasPermission(permissions.auditLogs.read);
   const [form] = Form.useForm();
   const [filters, setFilters] = useState<ListAuditLogsInput>({ page: 1, pageSize: 10, sortBy: "occurredAt", sortOrder: "desc" });
-  const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
+  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const auditLogsQuery = useAuditLogs(filters);
+  const auditDetailQuery = useQuery({
+    queryKey: ["admin", "audit-logs", "detail", selectedLogId],
+    enabled: Boolean(selectedLogId),
+    queryFn: ({ signal }) => getAuditLog(selectedLogId!, signal),
+    staleTime: 30_000,
+  });
   const watchedModule = Form.useWatch("module", form);
   const watchedAction = Form.useWatch("action", form);
   const watchedEntityType = Form.useWatch("entityType", form);
@@ -136,7 +144,7 @@ export function AuditLogsPage() {
     });
   }, [debouncedFilters]);
 
-  const columns = useMemo<ColumnsType<AuditLogItem>>(
+  const columns = useMemo<ColumnsType<AuditLogListItem>>(
     () => [
       {
         title: t("audit_logs.columns.occurred_at"),
@@ -191,7 +199,7 @@ export function AuditLogsPage() {
         title: t("audit_logs.columns.actions"),
         key: "actions",
         render: (_, item) => (
-          <Button icon={<EyeOutlined />} onClick={() => setSelectedLog(item)}>
+          <Button icon={<EyeOutlined />} onClick={() => setSelectedLogId(item.id)}>
             {t("audit_logs.actions.view")}
           </Button>
         ),
@@ -316,7 +324,7 @@ export function AuditLogsPage() {
         {auditLogsQuery.isLoading && (auditLogsQuery.data?.items?.length ?? 0) === 0 ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (
-          <Table<AuditLogItem>
+          <Table<AuditLogListItem>
             rowKey="id"
             columns={columns}
             dataSource={canReadAuditLogs ? (auditLogsQuery.data?.items ?? []) : []}
@@ -339,7 +347,7 @@ export function AuditLogsPage() {
               emptyText: auditLogsQuery.isError ? t("audit_logs.empty_error") : t("audit_logs.empty"),
             }}
             onChange={(pagination, _, sorter) => {
-              const sort = sorter as SorterResult<AuditLogItem>;
+              const sort = sorter as SorterResult<AuditLogListItem>;
               setFilters((current) => ({
                 ...current,
                 page: pagination.current ?? current.page,
@@ -353,26 +361,28 @@ export function AuditLogsPage() {
       </Card>
 
       <Modal
-        open={selectedLog !== null}
+        open={selectedLogId !== null}
         title={t("audit_logs.detail.title")}
-        onCancel={() => setSelectedLog(null)}
+        onCancel={() => setSelectedLogId(null)}
         footer={[
-          <Button key="close" onClick={() => setSelectedLog(null)}>
+          <Button key="close" onClick={() => setSelectedLogId(null)}>
             {t("audit_logs.actions.close")}
           </Button>,
         ]}
         width={1000}
         styles={{ body: { padding: "20px 0" } }}
       >
-        {selectedLog ? (
+        {auditDetailQuery.isLoading && !auditDetailQuery.data ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : auditDetailQuery.data ? (
           <Space direction="vertical" size={24} style={{ width: "100%" }}>
             {/* Error Message Alert if failed */}
-            {selectedLog.status !== "success" && (selectedLog.errorCode || selectedLog.errorMessage) && (
+            {auditDetailQuery.data.status !== "success" && (auditDetailQuery.data.errorCode || auditDetailQuery.data.errorMessage) && (
               <Alert
                 type="error"
                 showIcon
-                message={selectedLog.errorCode || t("audit_logs.status.failed")}
-                description={selectedLog.errorMessage}
+                message={auditDetailQuery.data.errorCode || t("audit_logs.status.failed")}
+                description={auditDetailQuery.data.errorMessage}
                 style={{ margin: "0 24px" }}
               />
             )}
@@ -386,29 +396,29 @@ export function AuditLogsPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 32px" }}>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.occurred_at")}</Text>
-                    <Text strong>{formatDate(selectedLog.occurredAt, i18n.language)}</Text>
+                    <Text strong>{formatDate(auditDetailQuery.data.occurredAt, i18n.language)}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.status")}</Text>
-                    <Tag color={getStatusColor(selectedLog.status)} style={{ margin: 0 }}>
-                      {t(`audit_logs.status.${selectedLog.status}`, { defaultValue: selectedLog.status })}
+                    <Tag color={getStatusColor(auditDetailQuery.data.status)} style={{ margin: 0 }}>
+                      {t(`audit_logs.status.${auditDetailQuery.data.status}`, { defaultValue: auditDetailQuery.data.status })}
                     </Tag>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.module")}</Text>
-                    <Text>{selectedLog.module}</Text>
+                    <Text>{auditDetailQuery.data.module}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.action")}</Text>
-                    <Tag>{selectedLog.action.toUpperCase()}</Tag>
+                    <Tag>{auditDetailQuery.data.action.toUpperCase()}</Tag>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.entity")}</Text>
-                    <Text>{`${selectedLog.entityType} (${selectedLog.entityId || "-"})`}</Text>
+                    <Text>{`${auditDetailQuery.data.entityType} (${auditDetailQuery.data.entityId || "-"})`}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.actor")}</Text>
-                    <Text>{selectedLog.actorEmail || selectedLog.actorDisplayName || selectedLog.actorUserId || "-"}</Text>
+                    <Text>{auditDetailQuery.data.actorEmail || auditDetailQuery.data.actorDisplayName || auditDetailQuery.data.actorUserId || "-"}</Text>
                   </Space>
                 </div>
               </Card>
@@ -423,32 +433,32 @@ export function AuditLogsPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.http_method")}</Text>
-                    <Text style={{ fontSize: 13 }}>{selectedLog.httpMethod || "-"}</Text>
+                    <Text style={{ fontSize: 13 }}>{auditDetailQuery.data.httpMethod || "-"}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.status_code")}</Text>
-                    <Text style={{ fontSize: 13 }}>{selectedLog.statusCode || "-"}</Text>
+                    <Text style={{ fontSize: 13 }}>{auditDetailQuery.data.statusCode || "-"}</Text>
                   </Space>
                   <Space direction="vertical" size={0}>
                     <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.ip_address")}</Text>
-                    <Text style={{ fontSize: 13 }}>{selectedLog.ipAddress || "-"}</Text>
+                    <Text style={{ fontSize: 13 }}>{auditDetailQuery.data.ipAddress || "-"}</Text>
                   </Space>
                   <div style={{ gridColumn: "span 3" }}>
                     <Space direction="vertical" size={0} style={{ width: "100%" }}>
                       <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.request_id")}</Text>
-                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{selectedLog.requestId || "-"}</Text>
+                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{auditDetailQuery.data.requestId || "-"}</Text>
                     </Space>
                   </div>
                   <div style={{ gridColumn: "span 3" }}>
                     <Space direction="vertical" size={0} style={{ width: "100%" }}>
                       <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.trace_id")}</Text>
-                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{selectedLog.traceId || "-"}</Text>
+                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{auditDetailQuery.data.traceId || "-"}</Text>
                     </Space>
                   </div>
                   <div style={{ gridColumn: "span 3" }}>
                     <Space direction="vertical" size={0} style={{ width: "100%" }}>
                       <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.user_agent")}</Text>
-                      <Text style={{ fontSize: 12 }}>{selectedLog.userAgent || "-"}</Text>
+                      <Text style={{ fontSize: 12 }}>{auditDetailQuery.data.userAgent || "-"}</Text>
                     </Space>
                   </div>
                 </div>
@@ -460,32 +470,32 @@ export function AuditLogsPage() {
                 <div>
                   <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.before")}</Typography.Title>
                   <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
-                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedLog.beforeJson)}</pre>
+                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(auditDetailQuery.data.beforeJson)}</pre>
                   </Card>
                 </div>
                 <div>
                   <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.after")}</Typography.Title>
                   <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
-                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedLog.afterJson)}</pre>
+                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(auditDetailQuery.data.afterJson)}</pre>
                   </Card>
                 </div>
               </div>
             </div>
 
-            {selectedLog.changesJson && selectedLog.changesJson !== "{}" && (
+            {auditDetailQuery.data.changesJson && auditDetailQuery.data.changesJson !== "{}" && (
               <div style={{ padding: "0 24px" }}>
                 <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.changes")}</Typography.Title>
                 <Card size="small" style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarningBorder}` }}>
-                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedLog.changesJson)}</pre>
+                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(auditDetailQuery.data.changesJson)}</pre>
                 </Card>
               </div>
             )}
 
-            {selectedLog.metadataJson && selectedLog.metadataJson !== "{}" && (
+            {auditDetailQuery.data.metadataJson && auditDetailQuery.data.metadataJson !== "{}" && (
               <div style={{ padding: "0 24px" }}>
                 <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.metadata")}</Typography.Title>
                 <Card size="small" style={{ background: token.colorInfoBg, border: `1px solid ${token.colorInfoBorder}` }}>
-                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(selectedLog.metadataJson)}</pre>
+                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(auditDetailQuery.data.metadataJson)}</pre>
                 </Card>
               </div>
             )}

@@ -269,6 +269,21 @@ export interface AppRoleItem {
   displayOrder: number;
 }
 
+export interface ProjectListItem {
+  id: string;
+  code: string;
+  name: string;
+  projectType: string;
+  ownerUserId: string | null;
+  ownerDisplayName: string | null;
+  sponsorDisplayName: string | null;
+  phase: string | null;
+  status: string;
+  plannedStartAt: string | null;
+  endAt: string | null;
+  createdAt: string;
+}
+
 export interface Project {
   id: string;
   code: string;
