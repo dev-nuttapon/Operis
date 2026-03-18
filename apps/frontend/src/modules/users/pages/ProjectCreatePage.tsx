@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
-import { useProjectTemplates } from "../hooks/useProjectTemplates";
+import { useProjectTypeOptions } from "../hooks/useProjectTypeOptions";
 import { ProjectForm, normalizeProjectPayload, type ProjectFormValues } from "../components/projects/ProjectForm";
 import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import type { User } from "../types/users";
@@ -39,25 +39,18 @@ export function ProjectCreatePage() {
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
   });
-  const { templatesQuery } = useProjectTemplates({
-    templates: { page: 1, pageSize: 100, sortBy: "projectType", sortOrder: "asc" },
-    roleRequirements: {},
-  });
+  const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
 
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
   const projectTypeOptions = useMemo(() => {
-    const templateOptions =
-      templatesQuery.data?.items.map((item) => ({
-        label: item.projectType,
-        value: item.projectType,
-      })) ?? [];
+    const templateOptions = projectTypeOptionsState.options;
     return templateOptions.length > 0 ? templateOptions : [
       { label: t("projects.options.project_type.internal"), value: "Internal" },
       { label: t("projects.options.project_type.customer"), value: "Customer" },
       { label: t("projects.options.project_type.compliance"), value: "Compliance" },
       { label: t("projects.options.project_type.improvement"), value: "Improvement" },
     ];
-  }, [t, templatesQuery.data?.items]);
+  }, [projectTypeOptionsState.options, t]);
 
   const handleSubmit = async () => {
     const values = await createForm.validateFields();
@@ -105,6 +98,10 @@ export function ProjectCreatePage() {
               onUserSearch={userOptionsState.onSearch}
               onUserLoadMore={userOptionsState.onLoadMore}
               userHasMore={userOptionsState.hasMore}
+              projectTypeOptionsLoading={projectTypeOptionsState.loading}
+              onProjectTypeSearch={projectTypeOptionsState.onSearch}
+              onProjectTypeLoadMore={projectTypeOptionsState.onLoadMore}
+              projectTypeHasMore={projectTypeOptionsState.hasMore}
             />
             <Space style={{ width: "100%", justifyContent: "space-between" }}>
               <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(locationState?.from ?? "/app/projects")}>

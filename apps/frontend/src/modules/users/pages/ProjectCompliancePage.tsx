@@ -3,6 +3,7 @@ import { Alert, Card, Empty, List, Progress, Select, Space, Tag, Typography } fr
 import { SafetyCertificateOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
+import { useProjectOptions } from "../hooks/useProjectOptions";
 
 function getStatusColor(status: string) {
   switch (status.toLowerCase()) {
@@ -21,17 +22,15 @@ export function ProjectCompliancePage() {
   const { t } = useTranslation();
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
 
-  const { projectsQuery, projectComplianceQuery } = useProjectAdmin({
-    projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
+  const { projectComplianceQuery } = useProjectAdmin({
+    projectsEnabled: false,
+    projects: { page: 1, pageSize: 1 },
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
     projectComplianceProjectId: selectedProjectId,
   });
 
-  const projectOptions = (projectsQuery.data?.items ?? []).map((item) => ({
-    label: `${item.code} - ${item.name}`,
-    value: item.id,
-  }));
+  const projectOptionsState = useProjectOptions({ enabled: true });
 
   const compliance = projectComplianceQuery.data;
   const totalChecks = compliance?.checks.length ?? 0;
@@ -67,10 +66,37 @@ export function ProjectCompliancePage() {
           <Select
             allowClear
             showSearch
+            filterOption={false}
             placeholder={t("project_compliance.select_project_placeholder")}
-            options={projectOptions}
+            options={projectOptionsState.options}
             value={selectedProjectId}
+            onSearch={projectOptionsState.onSearch}
+            loading={projectOptionsState.loading}
             onChange={(value) => setSelectedProjectId(value)}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                {projectOptionsState.hasMore ? (
+                  <div style={{ padding: 8 }}>
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => projectOptionsState.onLoadMore()}
+                      style={{
+                        width: "100%",
+                        border: "none",
+                        background: "transparent",
+                        color: "#1677ff",
+                        cursor: "pointer",
+                        padding: 4,
+                      }}
+                    >
+                      {t("projects.load_more_projects")}
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
           />
 
           {!selectedProjectId ? (

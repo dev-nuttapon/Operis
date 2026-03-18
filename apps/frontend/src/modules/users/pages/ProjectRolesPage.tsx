@@ -10,6 +10,7 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
+import { useProjectOptions } from "../hooks/useProjectOptions";
 import type { CreateProjectRoleInput, ProjectRole, UpdateProjectRoleInput } from "../types/users";
 
 type ProjectRoleFormValues = {
@@ -136,25 +137,21 @@ export function ProjectRolesPage() {
   const [editForm] = Form.useForm<ProjectRoleFormValues>();
   const [deleteForm] = Form.useForm();
 
-  const {
-    projectsQuery,
-    projectRolesQuery,
-    createProjectRoleMutation,
-    updateProjectRoleMutation,
-    deleteProjectRoleMutation,
-  } = useProjectAdmin({
-    projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
+  const { projectRolesQuery, createProjectRoleMutation, updateProjectRoleMutation, deleteProjectRoleMutation } = useProjectAdmin({
+    projectsEnabled: false,
+    projects: { page: 1, pageSize: 1 },
     projectRoles: { ...paging, projectId: selectedProjectId },
     projectAssignments: null,
   });
+  const projectOptionsState = useProjectOptions({ enabled: canReadProjects });
 
   const handleError = (fallbackTitle: string, error: unknown) => {
     const presentation = getApiErrorPresentation(error, fallbackTitle);
     notification.error({ message: presentation.title, description: presentation.description });
   };
 
-  const projectOptions = (projectsQuery.data?.items ?? []).map((item) => ({ label: `${item.code} - ${item.name}`, value: item.id }));
-  const selectedProjectName = projectsQuery.data?.items.find((item) => item.id === selectedProjectId)?.name ?? null;
+  const projectOptions = projectOptionsState.options;
+  const selectedProjectName = selectedProjectId ? projectOptionsState.itemsById.get(selectedProjectId)?.name ?? null : null;
 
   const columns = useMemo<ColumnsType<ProjectRole>>(
     () => [
@@ -314,13 +311,40 @@ export function ProjectRolesPage() {
           <Select
             allowClear
             showSearch
+            filterOption={false}
             placeholder={t("project_roles.select_project_placeholder")}
             options={projectOptions}
             value={selectedProjectId}
+            onSearch={projectOptionsState.onSearch}
+            loading={projectOptionsState.loading}
             onChange={(value) => {
               setSelectedProjectId(value);
               setPaging((current) => ({ ...current, page: 1 }));
             }}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                {projectOptionsState.hasMore ? (
+                  <div style={{ padding: 8 }}>
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => projectOptionsState.onLoadMore()}
+                      style={{
+                        width: "100%",
+                        border: "none",
+                        background: "transparent",
+                        color: "#1677ff",
+                        cursor: "pointer",
+                        padding: 4,
+                      }}
+                    >
+                      {t("projects.load_more_projects")}
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
           />
 
           {!canReadProjects ? (

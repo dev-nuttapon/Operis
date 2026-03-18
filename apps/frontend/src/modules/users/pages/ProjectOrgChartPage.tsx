@@ -4,6 +4,7 @@ import type { DataNode } from "antd/es/tree";
 import { ApartmentOutlined, TeamOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
+import { useProjectOptions } from "../hooks/useProjectOptions";
 import type { ProjectOrgChartNode } from "../types/users";
 import { formatDate } from "../utils/adminUsersPresentation";
 
@@ -33,17 +34,15 @@ export function ProjectOrgChartPage() {
   const { t, i18n } = useTranslation();
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
 
-  const { projectsQuery, projectOrgChartQuery } = useProjectAdmin({
-    projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
+  const { projectOrgChartQuery } = useProjectAdmin({
+    projectsEnabled: false,
+    projects: { page: 1, pageSize: 1 },
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
     projectOrgChartProjectId: selectedProjectId,
   });
 
-  const projectOptions = (projectsQuery.data?.items ?? []).map((item) => ({
-    label: `${item.code} - ${item.name}`,
-    value: item.id,
-  }));
+  const projectOptionsState = useProjectOptions({ enabled: true });
 
   const treeData = useMemo(
     () => (projectOrgChartQuery.data ?? []).map((node) => toTreeNode(node, i18n.language, t)),
@@ -73,10 +72,37 @@ export function ProjectOrgChartPage() {
           <Select
             allowClear
             showSearch
+            filterOption={false}
             placeholder={t("project_org_chart.select_project_placeholder")}
-            options={projectOptions}
+            options={projectOptionsState.options}
             value={selectedProjectId}
+            onSearch={projectOptionsState.onSearch}
+            loading={projectOptionsState.loading}
             onChange={(value) => setSelectedProjectId(value)}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                {projectOptionsState.hasMore ? (
+                  <div style={{ padding: 8 }}>
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => projectOptionsState.onLoadMore()}
+                      style={{
+                        width: "100%",
+                        border: "none",
+                        background: "transparent",
+                        color: "#1677ff",
+                        cursor: "pointer",
+                        padding: 4,
+                      }}
+                    >
+                      {t("projects.load_more_projects")}
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
           />
 
           {!selectedProjectId ? (

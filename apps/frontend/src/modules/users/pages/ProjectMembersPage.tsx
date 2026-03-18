@@ -12,6 +12,8 @@ import { usePermissions } from "../../../shared/authz/usePermissions";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
+import { useProjectOptions } from "../hooks/useProjectOptions";
+import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { ProjectAssignment, UpdateProjectAssignmentInput, User } from "../types/users";
 
 type ProjectMemberFormValues = {
@@ -38,6 +40,10 @@ function ProjectMemberForm({
   onUserSearch,
   onUserLoadMore,
   userHasMore,
+  roleOptionsLoading,
+  onRoleSearch,
+  onRoleLoadMore,
+  roleHasMore,
 }: {
   form: FormInstance<ProjectMemberFormValues>;
   t: ReturnType<typeof useTranslation>["t"];
@@ -49,6 +55,10 @@ function ProjectMemberForm({
   onUserSearch?: (value: string) => void;
   onUserLoadMore?: () => void;
   userHasMore?: boolean;
+  roleOptionsLoading?: boolean;
+  onRoleSearch?: (value: string) => void;
+  onRoleLoadMore?: () => void;
+  roleHasMore?: boolean;
 }) {
   return (
     <Form form={form} layout="vertical" initialValues={{ isPrimary: false }}>
@@ -88,7 +98,38 @@ function ProjectMemberForm({
         />
       </Form.Item>
       <Form.Item name="projectRoleId" label={t("project_members.fields.project_role")} rules={[{ required: true }]}> 
-        <Select options={projectRoleOptions} placeholder={t("project_members.placeholders.project_role")} />
+        <Select
+          showSearch
+          filterOption={false}
+          options={projectRoleOptions}
+          placeholder={t("project_members.placeholders.project_role")}
+          loading={roleOptionsLoading}
+          onSearch={onRoleSearch}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              {roleHasMore ? (
+                <div style={{ padding: 8 }}>
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => onRoleLoadMore?.()}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      color: "#1677ff",
+                      cursor: "pointer",
+                      padding: 4,
+                    }}
+                  >
+                    {t("projects.load_more_roles")}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+        />
       </Form.Item>
       <Form.Item name="reportsToUserId" label={t("project_members.fields.reports_to")}> 
         <Select
@@ -162,17 +203,18 @@ export function ProjectMembersPage() {
   const [deleteForm] = Form.useForm<{ reason: string }>();
 
   const {
-    projectsQuery,
-    projectRolesQuery,
     projectAssignmentsQuery,
     createProjectAssignmentMutation,
     updateProjectAssignmentMutation,
     deleteProjectAssignmentMutation,
   } = useProjectAdmin({
-    projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
-    projectRoles: { projectId: selectedProjectId, page: 1, pageSize: 100, sortBy: "displayOrder", sortOrder: "asc" },
+    projectsEnabled: false,
+    projects: { page: 1, pageSize: 1 },
+    projectRoles: { page: 1, pageSize: 1 },
     projectAssignments: selectedProjectId ? { projectId: selectedProjectId, ...paging } : null,
   });
+  const projectOptionsState = useProjectOptions({ enabled: canReadProjects });
+  const projectRoleOptionsState = useProjectRoleOptions({ enabled: canManageProjectMembers, projectId: selectedProjectId });
   const userOptionsState = useProjectUserOptions(canManageProjectMembers, toUserLabel);
 
   const handleError = (fallbackTitle: string, error: unknown) => {
@@ -180,8 +222,19 @@ export function ProjectMembersPage() {
     notification.error({ message: presentation.title, description: presentation.description });
   };
 
-  const projectOptions = (projectsQuery.data?.items ?? []).map((item) => ({ label: `${item.code} - ${item.name}`, value: item.id }));
-  const projectRoleOptions = (projectRolesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const projectOptions = projectOptionsState.options;
+  const projectRoleOptions = projectRoleOptionsState.options;
+  const projectRoleOptionList = useMemo(() => {
+    const base = [...projectRoleOptions];
+    const seen = new Set(base.map((item) => item.value));
+    if (editTarget && !seen.has(editTarget.projectRoleId)) {
+      base.push({
+        value: editTarget.projectRoleId,
+        label: editTarget.projectRoleName ?? editTarget.projectRoleId,
+      });
+    }
+    return base;
+  }, [editTarget, projectRoleOptions]);
   const userOptions = useMemo(() => {
     const base = [...userOptionsState.options];
     const seen = new Set(base.map((item) => item.value));
@@ -270,7 +323,7 @@ export function ProjectMembersPage() {
         ),
       },
     ],
-    [canManageProjectMembers, editForm, i18n.language, t, userMap, deleteForm],
+    [canManageProjectMembers, editForm, i18n.language, t, deleteForm],
   );
 
   const createAssignment = (values: ProjectMemberFormValues) => {
@@ -349,13 +402,40 @@ export function ProjectMembersPage() {
           <Select
             allowClear
             showSearch
+            filterOption={false}
             placeholder={t("project_members.select_project_placeholder")}
             options={projectOptions}
             value={selectedProjectId}
+            onSearch={projectOptionsState.onSearch}
+            loading={projectOptionsState.loading}
             onChange={(value) => {
               setSelectedProjectId(value);
               setPaging((current) => ({ ...current, page: 1 }));
             }}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                {projectOptionsState.hasMore ? (
+                  <div style={{ padding: 8 }}>
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => projectOptionsState.onLoadMore()}
+                      style={{
+                        width: "100%",
+                        border: "none",
+                        background: "transparent",
+                        color: "#1677ff",
+                        cursor: "pointer",
+                        padding: 4,
+                      }}
+                    >
+                      {t("projects.load_more_projects")}
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
           />
 
           {!canReadProjects ? (
@@ -423,13 +503,17 @@ export function ProjectMembersPage() {
           form={createForm}
           t={t}
           userOptions={userOptions}
-          projectRoleOptions={projectRoleOptions}
+          projectRoleOptions={projectRoleOptionList}
           reportingOptions={reportingOptions}
           includeReason={false}
           userOptionsLoading={userOptionsState.loading}
           onUserSearch={userOptionsState.onSearch}
           onUserLoadMore={userOptionsState.onLoadMore}
           userHasMore={userOptionsState.hasMore}
+          roleOptionsLoading={projectRoleOptionsState.loading}
+          onRoleSearch={projectRoleOptionsState.onSearch}
+          onRoleLoadMore={projectRoleOptionsState.onLoadMore}
+          roleHasMore={projectRoleOptionsState.hasMore}
         />
       </Modal>
 
@@ -450,18 +534,22 @@ export function ProjectMembersPage() {
           form={editForm}
           t={t}
           userOptions={userOptions}
-          projectRoleOptions={projectRoleOptions}
+          projectRoleOptions={projectRoleOptionList}
           reportingOptions={reportingOptions}
           includeReason
           userOptionsLoading={userOptionsState.loading}
           onUserSearch={userOptionsState.onSearch}
           onUserLoadMore={userOptionsState.onLoadMore}
           userHasMore={userOptionsState.hasMore}
+          roleOptionsLoading={projectRoleOptionsState.loading}
+          onRoleSearch={projectRoleOptionsState.onSearch}
+          onRoleLoadMore={projectRoleOptionsState.onLoadMore}
+          roleHasMore={projectRoleOptionsState.hasMore}
         />
       </Modal>
 
       <Modal
-        title={deleteTarget ? t("project_members.delete_modal_title_with_name", { name: userMap.get(deleteTarget.userId) ?? deleteTarget.userDisplayName ?? deleteTarget.userEmail ?? deleteTarget.userId }) : t("project_members.delete_modal_title")}
+        title={deleteTarget ? t("project_members.delete_modal_title_with_name", { name: deleteTarget.userDisplayName ?? deleteTarget.userEmail ?? deleteTarget.userId }) : t("project_members.delete_modal_title")}
         open={deleteTarget !== null && canManageProjectMembers}
         onCancel={() => {
           setDeleteTarget(null);

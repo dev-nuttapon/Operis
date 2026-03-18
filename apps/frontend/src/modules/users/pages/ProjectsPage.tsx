@@ -10,7 +10,7 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
-import { useProjectTemplates } from "../hooks/useProjectTemplates";
+import { useProjectTypeOptions } from "../hooks/useProjectTypeOptions";
 import type { Project, UpdateProjectInput, User } from "../types/users";
 import { ProjectForm, normalizeProjectPayload, toInitialValues, type ProjectFormValues } from "../components/projects/ProjectForm";
 import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
@@ -60,30 +60,21 @@ export function ProjectsPage() {
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
   });
-  const { templatesQuery } = useProjectTemplates({
-    templates: { page: 1, pageSize: 100, sortBy: "projectType", sortOrder: "asc" },
-    roleRequirements: {},
-  });
+  const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
 
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
   const projectTypeOptions = useMemo(() => {
-    const templateOptions =
-      templatesQuery.data?.items.map((item) => ({
-        label: item.projectType,
-        value: item.projectType,
-      })) ?? [];
-
+    const templateOptions = projectTypeOptionsState.options;
     if (templateOptions.length > 0) {
       return templateOptions;
     }
-
     return [
       { value: "Internal", label: t("projects.options.project_type.internal") },
       { value: "Customer", label: t("projects.options.project_type.customer") },
       { value: "Compliance", label: t("projects.options.project_type.compliance") },
       { value: "Improvement", label: t("projects.options.project_type.improvement") },
     ];
-  }, [t, templatesQuery.data?.items]);
+  }, [projectTypeOptionsState.options, t]);
 
   const handleError = (fallbackTitle: string, error: unknown) => {
     const presentation = getApiErrorPresentation(error, fallbackTitle);
@@ -291,6 +282,10 @@ export function ProjectsPage() {
           onUserSearch={userOptionsState.onSearch}
           onUserLoadMore={userOptionsState.onLoadMore}
           userHasMore={userOptionsState.hasMore}
+          projectTypeOptionsLoading={projectTypeOptionsState.loading}
+          onProjectTypeSearch={projectTypeOptionsState.onSearch}
+          onProjectTypeLoadMore={projectTypeOptionsState.onLoadMore}
+          projectTypeHasMore={projectTypeOptionsState.hasMore}
         />
       </Modal>
 

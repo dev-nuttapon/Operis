@@ -20,7 +20,7 @@ export function useOrgStructureOptions(input: UseOrgStructureOptionsInput) {
     queryFn: ({ signal }) =>
       publicAccess
         ? listPublicDepartmentsByDivision(divisionId!, signal)
-        : listDepartments({ page: 1, pageSize: 100, divisionId }, signal),
+        : listDepartments({ page: 1, pageSize: 10, divisionId }, signal),
     enabled: Boolean(divisionId),
     staleTime: 5 * 60_000,
   });
@@ -30,7 +30,7 @@ export function useOrgStructureOptions(input: UseOrgStructureOptionsInput) {
     queryFn: ({ signal }) =>
       publicAccess
         ? listPublicJobTitlesByDepartment(departmentId!, signal)
-        : listJobTitles({ page: 1, pageSize: 100, departmentId }, signal),
+        : listJobTitles({ page: 1, pageSize: 10, departmentId }, signal),
     enabled: Boolean(departmentId),
     staleTime: 5 * 60_000,
   });

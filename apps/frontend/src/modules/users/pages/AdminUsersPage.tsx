@@ -14,6 +14,7 @@ import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth";
 import { useAdminUsersScreen } from "../hooks/useAdminUsersScreen";
+import { useDivisionOptions } from "../hooks/useDivisionOptions";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { formatDate } from "../utils/adminUsersPresentation";
 import type { Invitation } from "../types/users";
@@ -50,6 +51,7 @@ export function AdminUsersPage() {
   const location = useLocation();
   const { user } = useAuth();
   const currentLanguage = i18nInstance.language;
+  const divisionOptionsState = useDivisionOptions({ enabled: true, pageSize: 5 });
   const {
     actor,
     approveRegistrationMutation,
@@ -83,9 +85,7 @@ export function AdminUsersPage() {
     deletingJobTitle,
     deletingUser,
     divisionPaging,
-    divisionOptionsQuery,
     divisionsQuery,
-    departmentOptionsQuery,
     departmentPaging,
     departmentsQuery,
     editDivisionForm,
@@ -158,8 +158,7 @@ export function AdminUsersPage() {
     ),
     value: item.id,
   }));
-  const divisionOptions = (divisionOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const departmentOptions = (departmentOptionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id, divisionId: item.divisionId }));
+  const divisionOptions = divisionOptionsState.options;
   const invitationColumns: ColumnsType<Invitation> = [
     {
       title: t("admin_users.columns.email"),
@@ -566,10 +565,14 @@ export function AdminUsersPage() {
           <AdminInvitationModals
             createLoading={createInvitationMutation.isPending}
             creatingInvitation={creatingInvitation}
+            divisionHasMore={divisionOptionsState.hasMore}
+            divisionLoading={divisionOptionsState.loading}
             divisionOptions={divisionOptions}
             editForm={editInvitationForm}
             editingInvitation={editingInvitation}
             invitationForm={inviteForm}
+            onDivisionLoadMore={divisionOptionsState.onLoadMore}
+            onDivisionSearch={divisionOptionsState.onSearch}
             onCloseEdit={() => {
               setEditingInvitation(null);
               editInvitationForm.resetFields();
@@ -659,10 +662,14 @@ export function AdminUsersPage() {
             deleteForm={deleteUserForm}
             deleteLoading={deleteUserMutation.isPending}
             deletingUser={deletingUser}
+            divisionHasMore={divisionOptionsState.hasMore}
+            divisionLoading={divisionOptionsState.loading}
             divisionOptions={divisionOptions}
             editForm={editUserForm}
             editLoading={updateUserMutation.isPending}
             editingUser={editingUser}
+            onDivisionLoadMore={divisionOptionsState.onLoadMore}
+            onDivisionSearch={divisionOptionsState.onSearch}
             onCloseCreate={() => {
               setCreatingUser(false);
               createUserForm.resetFields();
@@ -803,8 +810,9 @@ export function AdminUsersPage() {
             deletingDivision={deletingDivision}
             deletingDepartment={deletingDepartment}
             deletingJobTitle={deletingJobTitle}
+            divisionHasMore={divisionOptionsState.hasMore}
+            divisionLoading={divisionOptionsState.loading}
             divisionOptions={divisionOptions}
-            departmentOptions={departmentOptions}
             editDivisionForm={editDivisionForm}
             editDivisionLoading={updateDivisionMutation.isPending}
             editDepartmentForm={editDepartmentForm}
@@ -814,6 +822,8 @@ export function AdminUsersPage() {
             editingDivision={editingDivision}
             editingDepartment={editingDepartment}
             editingJobTitle={editingJobTitle}
+            onDivisionLoadMore={divisionOptionsState.onLoadMore}
+            onDivisionSearch={divisionOptionsState.onSearch}
             onCloseCreateDivision={() => {
               setCreatingDivision(false);
               createDivisionForm.resetFields();

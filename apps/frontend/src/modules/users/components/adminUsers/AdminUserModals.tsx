@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Card, Form, Input, Modal, Select, Space, Typography } from "antd";
-import { useOrgStructureOptions } from "../../hooks/useOrgStructureOptions";
+import { useDepartmentOptions } from "../../hooks/useDepartmentOptions";
+import { useJobTitleOptions } from "../../hooks/useJobTitleOptions";
 import type { User } from "../../types/users";
 
 interface OptionItem {
@@ -15,10 +16,14 @@ interface AdminUserModalsProps {
   deleteForm: any;
   deleteLoading: boolean;
   deletingUser: User | null;
+  divisionHasMore: boolean;
+  divisionLoading: boolean;
   divisionOptions: OptionItem[];
   editForm: any;
   editLoading: boolean;
   editingUser: User | null;
+  onDivisionLoadMore: () => void;
+  onDivisionSearch: (value: string) => void;
   onCloseCreate: () => void;
   onCloseDelete: () => void;
   onCloseEdit: () => void;
@@ -37,10 +42,14 @@ export function AdminUserModals({
   deleteForm,
   deleteLoading,
   deletingUser,
+  divisionHasMore,
+  divisionLoading,
   divisionOptions,
   editForm,
   editLoading,
   editingUser,
+  onDivisionLoadMore,
+  onDivisionSearch,
   onCloseCreate,
   onCloseDelete,
   onCloseEdit,
@@ -55,12 +64,32 @@ export function AdminUserModals({
   const createDepartmentId = Form.useWatch("departmentId", createForm) as string | undefined;
   const editDivisionId = Form.useWatch("divisionId", editForm) as string | undefined;
   const editDepartmentId = Form.useWatch("departmentId", editForm) as string | undefined;
-  const createCascade = useOrgStructureOptions({ divisionId: createDivisionId, departmentId: createDepartmentId });
-  const editCascade = useOrgStructureOptions({ divisionId: editDivisionId, departmentId: editDepartmentId });
-  const createDepartmentItems = (createCascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const editDepartmentItems = (editCascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const createJobTitleItems = (createCascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const editJobTitleItems = (editCascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const editJobTitleId = Form.useWatch("jobTitleId", editForm) as string | undefined;
+  const createDepartments = useDepartmentOptions({ enabled: creatingUser, divisionId: createDivisionId, pageSize: 5 });
+  const editDepartments = useDepartmentOptions({ enabled: Boolean(editingUser), divisionId: editDivisionId, pageSize: 5 });
+  const createJobTitles = useJobTitleOptions({ enabled: creatingUser, departmentId: createDepartmentId, pageSize: 5 });
+  const editJobTitles = useJobTitleOptions({ enabled: Boolean(editingUser), departmentId: editDepartmentId, pageSize: 5 });
+
+  const ensureOption = (options: OptionItem[], value?: string, label?: string | null) => {
+    if (!value || options.some((option) => option.value === value)) {
+      return options;
+    }
+    return [{ label: label ?? value, value }, ...options];
+  };
+
+  const editDivisionOptions = ensureOption(divisionOptions, editDivisionId, editingUser?.divisionName ?? undefined);
+  const createDepartmentOptions = createDepartments.options;
+  const editDepartmentOptions = ensureOption(
+    editDepartments.options,
+    editDepartmentId,
+    editingUser?.departmentName ?? undefined
+  );
+  const createJobTitleOptions = createJobTitles.options;
+  const editJobTitleOptions = ensureOption(
+    editJobTitles.options,
+    editJobTitleId,
+    editingUser?.jobTitleName ?? undefined
+  );
 
   return (
     <>
@@ -128,8 +157,36 @@ export function AdminUserModals({
               <Form.Item label={t("admin_users.fields.division")} name="divisionId">
                 <Select
                   allowClear
+                  showSearch
+                  filterOption={false}
                   placeholder={t("admin_users.placeholders.select_division")}
                   options={divisionOptions}
+                  loading={divisionLoading}
+                  onSearch={onDivisionSearch}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {divisionHasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={onDivisionLoadMore}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("admin_users.load_more_divisions")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                   onChange={() => {
                     createForm.setFieldValue("departmentId", undefined);
                     createForm.setFieldValue("jobTitleId", undefined);
@@ -139,10 +196,37 @@ export function AdminUserModals({
               <Form.Item label={t("admin_users.fields.department")} name="departmentId">
                 <Select
                   allowClear
+                  showSearch
+                  filterOption={false}
                   placeholder={t("admin_users.placeholders.select_department")}
                   disabled={!createDivisionId}
-                  loading={createCascade.departmentsQuery.isLoading}
-                  options={createDepartmentItems}
+                  loading={createDepartments.loading}
+                  options={createDepartmentOptions}
+                  onSearch={createDepartments.onSearch}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {createDepartments.hasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={createDepartments.onLoadMore}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("admin_users.load_more_departments")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                   onChange={() => {
                     createForm.setFieldValue("jobTitleId", undefined);
                   }}
@@ -151,10 +235,37 @@ export function AdminUserModals({
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
                 <Select
                   allowClear
+                  showSearch
+                  filterOption={false}
                   disabled={!createDepartmentId}
                   placeholder={t("admin_users.placeholders.select_job_title")}
-                  loading={createCascade.jobTitlesQuery.isLoading}
-                  options={createJobTitleItems}
+                  loading={createJobTitles.loading}
+                  options={createJobTitleOptions}
+                  onSearch={createJobTitles.onSearch}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {createJobTitles.hasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={createJobTitles.onLoadMore}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("admin_users.load_more_job_titles")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 />
               </Form.Item>
             </Card>
@@ -206,8 +317,36 @@ export function AdminUserModals({
               <Form.Item label={t("admin_users.fields.division")} name="divisionId">
                 <Select
                   allowClear
+                  showSearch
+                  filterOption={false}
                   placeholder={t("admin_users.placeholders.select_division")}
-                  options={divisionOptions}
+                  options={editDivisionOptions}
+                  loading={divisionLoading}
+                  onSearch={onDivisionSearch}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {divisionHasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={onDivisionLoadMore}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("admin_users.load_more_divisions")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                   onChange={() => {
                     editForm.setFieldValue("departmentId", undefined);
                     editForm.setFieldValue("jobTitleId", undefined);
@@ -217,10 +356,37 @@ export function AdminUserModals({
               <Form.Item label={t("admin_users.fields.department")} name="departmentId">
                 <Select
                   allowClear
+                  showSearch
+                  filterOption={false}
                   placeholder={t("admin_users.placeholders.select_department")}
                   disabled={!editDivisionId}
-                  loading={editCascade.departmentsQuery.isLoading}
-                  options={editDepartmentItems}
+                  loading={editDepartments.loading}
+                  options={editDepartmentOptions}
+                  onSearch={editDepartments.onSearch}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {editDepartments.hasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={editDepartments.onLoadMore}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("admin_users.load_more_departments")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                   onChange={() => {
                     editForm.setFieldValue("jobTitleId", undefined);
                   }}
@@ -229,10 +395,37 @@ export function AdminUserModals({
               <Form.Item label={t("admin_users.fields.job_title")} name="jobTitleId">
                 <Select
                   allowClear
+                  showSearch
+                  filterOption={false}
                   disabled={!editDepartmentId}
                   placeholder={t("admin_users.placeholders.select_job_title")}
-                  loading={editCascade.jobTitlesQuery.isLoading}
-                  options={editJobTitleItems}
+                  loading={editJobTitles.loading}
+                  options={editJobTitleOptions}
+                  onSearch={editJobTitles.onSearch}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {editJobTitles.hasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={editJobTitles.onLoadMore}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("admin_users.load_more_job_titles")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 />
               </Form.Item>
             </Card>

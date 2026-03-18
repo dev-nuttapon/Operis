@@ -397,6 +397,9 @@
       "select_division": "Select division",
       "select_position": "Select position"
     },
+    "load_more_divisions": "Load 5 more divisions",
+    "load_more_departments": "Load 5 more departments",
+    "load_more_job_titles": "Load 5 more job titles",
     "validation": {
       "delete_reason_required": "Please provide a deletion reason.",
       "reason_required": "Please provide a reason."
@@ -550,6 +553,9 @@
     "create_page_back": "Back",
     "create_page_submit": "Save Project",
     "load_more_users": "Load 5 more",
+    "load_more_projects": "Load 10 more projects",
+    "load_more_roles": "Load 10 more roles",
+    "load_more_project_types": "Load 10 more project types",
     "edit_modal_title": "Edit Project",
     "edit_modal_title_with_name": "Edit project {{name}}",
     "delete_modal_title": "Delete Project",

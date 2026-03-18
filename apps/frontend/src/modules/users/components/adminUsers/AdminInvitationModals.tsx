@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { Button, DatePicker, Form, Input, Modal, Select, Space, Typography } from "antd";
 import { MailOutlined } from "@ant-design/icons";
-import { useOrgStructureOptions } from "../../hooks/useOrgStructureOptions";
+import { useDepartmentOptions } from "../../hooks/useDepartmentOptions";
+import { useJobTitleOptions } from "../../hooks/useJobTitleOptions";
 import type { Invitation } from "../../types/users";
 
 interface OptionItem {
@@ -12,10 +13,14 @@ interface OptionItem {
 interface AdminInvitationModalsProps {
   createLoading: boolean;
   creatingInvitation: boolean;
+  divisionHasMore: boolean;
+  divisionLoading: boolean;
   divisionOptions: OptionItem[];
   editForm: any;
   editingInvitation: Invitation | null;
   invitationForm: any;
+  onDivisionLoadMore: () => void;
+  onDivisionSearch: (value: string) => void;
   onCloseEdit: () => void;
   onCloseView: () => void;
   onCopyViewLink: () => void;
@@ -30,10 +35,14 @@ interface AdminInvitationModalsProps {
 export function AdminInvitationModals({
   createLoading,
   creatingInvitation,
+  divisionHasMore,
+  divisionLoading,
   divisionOptions,
   editForm,
   editingInvitation,
   invitationForm,
+  onDivisionLoadMore,
+  onDivisionSearch,
   onCloseEdit,
   onCloseView,
   onCopyViewLink,
@@ -48,12 +57,32 @@ export function AdminInvitationModals({
   const createDepartmentId = Form.useWatch("departmentId", invitationForm) as string | undefined;
   const editDivisionId = Form.useWatch("divisionId", editForm) as string | undefined;
   const editDepartmentId = Form.useWatch("departmentId", editForm) as string | undefined;
-  const createCascade = useOrgStructureOptions({ divisionId: createDivisionId, departmentId: createDepartmentId });
-  const editCascade = useOrgStructureOptions({ divisionId: editDivisionId, departmentId: editDepartmentId });
-  const createDepartmentItems = (createCascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const editDepartmentItems = (editCascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const createJobTitleItems = (createCascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const editJobTitleItems = (editCascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+  const editJobTitleId = Form.useWatch("jobTitleId", editForm) as string | undefined;
+  const createDepartments = useDepartmentOptions({ enabled: creatingInvitation, divisionId: createDivisionId, pageSize: 5 });
+  const editDepartments = useDepartmentOptions({ enabled: Boolean(editingInvitation), divisionId: editDivisionId, pageSize: 5 });
+  const createJobTitles = useJobTitleOptions({ enabled: creatingInvitation, departmentId: createDepartmentId, pageSize: 5 });
+  const editJobTitles = useJobTitleOptions({ enabled: Boolean(editingInvitation), departmentId: editDepartmentId, pageSize: 5 });
+
+  const ensureOption = (options: OptionItem[], value?: string, label?: string | null) => {
+    if (!value || options.some((option) => option.value === value)) {
+      return options;
+    }
+    return [{ label: label ?? value, value }, ...options];
+  };
+
+  const editDivisionOptions = ensureOption(divisionOptions, editDivisionId, editingInvitation?.divisionName ?? undefined);
+  const createDepartmentOptions = createDepartments.options;
+  const editDepartmentOptions = ensureOption(
+    editDepartments.options,
+    editDepartmentId,
+    editingInvitation?.departmentName ?? undefined
+  );
+  const createJobTitleOptions = createJobTitles.options;
+  const editJobTitleOptions = ensureOption(
+    editJobTitles.options,
+    editJobTitleId,
+    editingInvitation?.jobTitleName ?? undefined
+  );
   return (
     <>
       <Modal
@@ -103,8 +132,36 @@ export function AdminInvitationModals({
           <Form.Item label={t("admin_users.fields.division")} name="divisionId">
             <Select
               allowClear
+              showSearch
+              filterOption={false}
               placeholder={t("admin_users.placeholders.select_division")}
               options={divisionOptions}
+              loading={divisionLoading}
+              onSearch={onDivisionSearch}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  {divisionHasMore ? (
+                    <div style={{ padding: 8 }}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={onDivisionLoadMore}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          color: "#1677ff",
+                          cursor: "pointer",
+                          padding: 4,
+                        }}
+                      >
+                        {t("admin_users.load_more_divisions")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
               onChange={() => {
                 invitationForm.setFieldValue("departmentId", undefined);
                 invitationForm.setFieldValue("jobTitleId", undefined);
@@ -115,9 +172,36 @@ export function AdminInvitationModals({
                 <Select
                   allowClear
                   disabled={!createDivisionId}
+                  showSearch
+                  filterOption={false}
                   placeholder={t("admin_users.placeholders.select_department")}
-                  loading={createCascade.departmentsQuery.isLoading}
-              options={createDepartmentItems}
+                  loading={createDepartments.loading}
+              options={createDepartmentOptions}
+              onSearch={createDepartments.onSearch}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  {createDepartments.hasMore ? (
+                    <div style={{ padding: 8 }}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={createDepartments.onLoadMore}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          color: "#1677ff",
+                          cursor: "pointer",
+                          padding: 4,
+                        }}
+                      >
+                        {t("admin_users.load_more_departments")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
               onChange={() => {
                 invitationForm.setFieldValue("jobTitleId", undefined);
               }}
@@ -127,9 +211,36 @@ export function AdminInvitationModals({
             <Select
               allowClear
               disabled={!createDepartmentId}
+              showSearch
+              filterOption={false}
               placeholder={t("admin_users.placeholders.select_job_title")}
-              loading={createCascade.jobTitlesQuery.isLoading}
-              options={createJobTitleItems}
+              loading={createJobTitles.loading}
+              options={createJobTitleOptions}
+              onSearch={createJobTitles.onSearch}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  {createJobTitles.hasMore ? (
+                    <div style={{ padding: 8 }}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={createJobTitles.onLoadMore}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          color: "#1677ff",
+                          cursor: "pointer",
+                          padding: 4,
+                        }}
+                      >
+                        {t("admin_users.load_more_job_titles")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.expires_at")} name="expiresAt">
@@ -160,8 +271,36 @@ export function AdminInvitationModals({
           <Form.Item label={t("admin_users.fields.division")} name="divisionId">
             <Select
               allowClear
+              showSearch
+              filterOption={false}
               placeholder={t("admin_users.placeholders.select_division")}
-              options={divisionOptions}
+              options={editDivisionOptions}
+              loading={divisionLoading}
+              onSearch={onDivisionSearch}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  {divisionHasMore ? (
+                    <div style={{ padding: 8 }}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={onDivisionLoadMore}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          color: "#1677ff",
+                          cursor: "pointer",
+                          padding: 4,
+                        }}
+                      >
+                        {t("admin_users.load_more_divisions")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
               onChange={() => {
                 editForm.setFieldValue("departmentId", undefined);
                 editForm.setFieldValue("jobTitleId", undefined);
@@ -172,9 +311,36 @@ export function AdminInvitationModals({
                 <Select
                   allowClear
                   disabled={!editDivisionId}
+                  showSearch
+                  filterOption={false}
                   placeholder={t("admin_users.placeholders.select_department")}
-                  loading={editCascade.departmentsQuery.isLoading}
-              options={editDepartmentItems}
+                  loading={editDepartments.loading}
+              options={editDepartmentOptions}
+              onSearch={editDepartments.onSearch}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  {editDepartments.hasMore ? (
+                    <div style={{ padding: 8 }}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={editDepartments.onLoadMore}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          color: "#1677ff",
+                          cursor: "pointer",
+                          padding: 4,
+                        }}
+                      >
+                        {t("admin_users.load_more_departments")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
               onChange={() => {
                 editForm.setFieldValue("jobTitleId", undefined);
               }}
@@ -184,9 +350,36 @@ export function AdminInvitationModals({
             <Select
               allowClear
               disabled={!editDepartmentId}
+              showSearch
+              filterOption={false}
               placeholder={t("admin_users.placeholders.select_job_title")}
-              loading={editCascade.jobTitlesQuery.isLoading}
-              options={editJobTitleItems}
+              loading={editJobTitles.loading}
+              options={editJobTitleOptions}
+              onSearch={editJobTitles.onSearch}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  {editJobTitles.hasMore ? (
+                    <div style={{ padding: 8 }}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={editJobTitles.onLoadMore}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          color: "#1677ff",
+                          cursor: "pointer",
+                          padding: 4,
+                        }}
+                      >
+                        {t("admin_users.load_more_job_titles")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
             />
           </Form.Item>
           <Form.Item label={t("admin_users.fields.expires_at")} name="expiresAt">

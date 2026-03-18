@@ -37,6 +37,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
+import { useProjectOptions } from "../hooks/useProjectOptions";
 import { formatDate } from "../utils/adminUsersPresentation";
 import type { ProjectOrgChartNode } from "../types/users";
 import type {
@@ -137,33 +138,30 @@ export function ProjectWorkspacePrototypePage() {
     [],
   );
 
-  const {
-    projectsQuery,
-    projectOrgChartQuery,
-    projectEvidenceTeamRegisterQuery,
-    projectEvidenceRoleResponsibilitiesQuery,
-    projectEvidenceAssignmentHistoryQuery,
-  } = useProjectAdmin({
-    projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc", assignedOnly: !canReadProjects },
-    projectRoles: { page: 1, pageSize: 100, sortBy: "displayOrder", sortOrder: "asc" },
-    projectAssignments: null,
-    projectOrgChartProjectId: projectId,
-    projectEvidenceTeamRegister: { projectId, page: teamPage, pageSize: teamPageSize },
-    projectEvidenceRoleResponsibilities: { projectId, page: rolePage, pageSize: rolePageSize },
-    projectEvidenceAssignmentHistory: { projectId, page: auditPage, pageSize: auditPageSize },
-  });
+  const { projectOrgChartQuery, projectEvidenceTeamRegisterQuery, projectEvidenceRoleResponsibilitiesQuery, projectEvidenceAssignmentHistoryQuery } =
+    useProjectAdmin({
+      projectsEnabled: false,
+      projects: { page: 1, pageSize: 1 },
+      projectRoles: { page: 1, pageSize: 1 },
+      projectAssignments: null,
+      projectOrgChartProjectId: projectId,
+      projectEvidenceTeamRegister: { projectId, page: teamPage, pageSize: teamPageSize },
+      projectEvidenceRoleResponsibilities: { projectId, page: rolePage, pageSize: rolePageSize },
+      projectEvidenceAssignmentHistory: { projectId, page: auditPage, pageSize: auditPageSize },
+    });
+  const projectOptionsState = useProjectOptions({ enabled: true, assignedOnly: !canReadProjects });
 
   const selectedProject = useMemo(
-    () => (projectsQuery.data?.items ?? []).find((item) => item.id === projectId) ?? null,
-    [projectId, projectsQuery.data?.items],
+    () => (projectId ? projectOptionsState.itemsById.get(projectId) ?? null : null),
+    [projectId, projectOptionsState.itemsById],
   );
   const hasWorkspaceAccess = canReadProjects || selectedProject !== null;
 
   useEffect(() => {
-    if (!projectId && (projectsQuery.data?.items?.length ?? 0) > 0) {
-      navigate(`/app/projects/${projectsQuery.data!.items[0]!.id}/workspace`, { replace: true });
+    if (!projectId && projectOptionsState.items.length > 0) {
+      navigate(`/app/projects/${projectOptionsState.items[0]!.id}/workspace`, { replace: true });
     }
-  }, [navigate, projectId, projectsQuery.data?.items]);
+  }, [navigate, projectId, projectOptionsState.items]);
 
   useEffect(() => {
     if (auditorMode && !["compliance", "evidence", "auditTrail", "workflow"].includes(section)) {
@@ -1046,15 +1044,39 @@ export function ProjectWorkspacePrototypePage() {
                 <Space wrap size={12}>
                   <Select
                     showSearch
+                    filterOption={false}
                     optionFilterProp="label"
                     style={{ minWidth: 320, maxWidth: "100%" }}
                     placeholder={t("project_workspace.select_project_placeholder")}
-                    options={(projectsQuery.data?.items ?? []).map((item) => ({
-                      label: `${item.code} - ${item.name}`,
-                      value: item.id,
-                    }))}
+                    options={projectOptionsState.options}
                     value={projectId}
+                    loading={projectOptionsState.loading}
+                    onSearch={projectOptionsState.onSearch}
                     onChange={(value: string) => navigate(`/app/projects/${value}/workspace`)}
+                    dropdownRender={(menu) => (
+                      <>
+                        {menu}
+                        {projectOptionsState.hasMore ? (
+                          <div style={{ padding: 8 }}>
+                            <button
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => projectOptionsState.onLoadMore()}
+                              style={{
+                                width: "100%",
+                                border: "none",
+                                background: "transparent",
+                                color: "#1677ff",
+                                cursor: "pointer",
+                                padding: 4,
+                              }}
+                            >
+                              {t("projects.load_more_projects")}
+                            </button>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
                   />
                   <Segmented
                     options={[

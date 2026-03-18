@@ -75,6 +75,10 @@ export function ProjectForm({
   onUserSearch?: (value: string) => void;
   onUserLoadMore?: () => void;
   userHasMore?: boolean;
+  projectTypeOptionsLoading?: boolean;
+  onProjectTypeSearch?: (value: string) => void;
+  onProjectTypeLoadMore?: () => void;
+  projectTypeHasMore?: boolean;
 }) {
   const projectStatusOptions = [
     { value: "planned", label: t("projects.options.status.planned") },
@@ -105,7 +109,37 @@ export function ProjectForm({
         <Input placeholder={t("projects.placeholders.name")} />
       </Form.Item>
       <Form.Item name="projectType" label={t("projects.fields.project_type")} initialValue="Internal" rules={[{ required: true }]}>
-        <Select options={projectTypeOptions} />
+        <Select
+          showSearch
+          filterOption={false}
+          options={projectTypeOptions}
+          loading={projectTypeOptionsLoading}
+          onSearch={onProjectTypeSearch}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              {projectTypeHasMore ? (
+                <div style={{ padding: 8 }}>
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => onProjectTypeLoadMore?.()}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      color: "#1677ff",
+                      cursor: "pointer",
+                      padding: 4,
+                    }}
+                  >
+                    {t("projects.load_more_project_types")}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+        />
       </Form.Item>
       <Form.Item name="ownerUserId" label={t("projects.fields.owner")}>
         <Select

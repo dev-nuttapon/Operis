@@ -4,6 +4,7 @@ import type { ColumnsType } from "antd/es/table";
 import { AuditOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
+import { useProjectOptions } from "../hooks/useProjectOptions";
 import type { ProjectAssignmentHistoryRow, ProjectRoleResponsibilityRow, ProjectTeamRegisterRow } from "../types/users";
 import { formatDate } from "../utils/adminUsersPresentation";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -24,20 +25,17 @@ export function ProjectEvidencePage() {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(10);
 
-  const {
-    projectsQuery,
-    projectEvidenceTeamRegisterQuery,
-    projectEvidenceRoleResponsibilitiesQuery,
-    projectEvidenceAssignmentHistoryQuery,
-    exportProjectEvidenceCsv,
-  } = useProjectAdmin({
-    projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
-    projectRoles: { page: 1, pageSize: 10 },
-    projectAssignments: null,
-    projectEvidenceTeamRegister: { projectId: selectedProjectId, page: teamPage, pageSize: teamPageSize },
-    projectEvidenceRoleResponsibilities: { projectId: selectedProjectId, page: rolePage, pageSize: rolePageSize },
-    projectEvidenceAssignmentHistory: { projectId: selectedProjectId, page: historyPage, pageSize: historyPageSize },
-  });
+  const { projectEvidenceTeamRegisterQuery, projectEvidenceRoleResponsibilitiesQuery, projectEvidenceAssignmentHistoryQuery, exportProjectEvidenceCsv } =
+    useProjectAdmin({
+      projectsEnabled: false,
+      projects: { page: 1, pageSize: 1 },
+      projectRoles: { page: 1, pageSize: 10 },
+      projectAssignments: null,
+      projectEvidenceTeamRegister: { projectId: selectedProjectId, page: teamPage, pageSize: teamPageSize },
+      projectEvidenceRoleResponsibilities: { projectId: selectedProjectId, page: rolePage, pageSize: rolePageSize },
+      projectEvidenceAssignmentHistory: { projectId: selectedProjectId, page: historyPage, pageSize: historyPageSize },
+    });
+  const projectOptionsState = useProjectOptions({ enabled: canReadEvidence });
 
   useEffect(() => {
     setTeamPage(1);
@@ -49,13 +47,8 @@ export function ProjectEvidencePage() {
     if (!selectedProjectId) {
       return null;
     }
-    return projectsQuery.data?.items?.find((item) => item.id === selectedProjectId)?.name ?? null;
-  }, [projectsQuery.data?.items, selectedProjectId]);
-
-  const projectOptions = (projectsQuery.data?.items ?? []).map((item) => ({
-    label: `${item.code} - ${item.name}`,
-    value: item.id,
-  }));
+    return projectOptionsState.itemsById.get(selectedProjectId)?.name ?? null;
+  }, [projectOptionsState.itemsById, selectedProjectId]);
 
   const teamColumns: ColumnsType<ProjectTeamRegisterRow> = [
     {
@@ -178,10 +171,37 @@ export function ProjectEvidencePage() {
           <Select
             allowClear
             showSearch
+            filterOption={false}
             placeholder={t("project_evidence.select_project_placeholder")}
-            options={projectOptions}
+            options={projectOptionsState.options}
             value={selectedProjectId}
+            onSearch={projectOptionsState.onSearch}
+            loading={projectOptionsState.loading}
             onChange={(value) => setSelectedProjectId(value)}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                {projectOptionsState.hasMore ? (
+                  <div style={{ padding: 8 }}>
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => projectOptionsState.onLoadMore()}
+                      style={{
+                        width: "100%",
+                        border: "none",
+                        background: "transparent",
+                        color: "#1677ff",
+                        cursor: "pointer",
+                        padding: 4,
+                      }}
+                    >
+                      {t("projects.load_more_projects")}
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
           />
 
           {!canReadEvidence ? (

@@ -48,11 +48,8 @@ const usersQueryKey = ["admin", "users"];
 const requestsQueryKey = ["admin", "registration-requests"];
 const invitationsQueryKey = ["admin", "invitations"];
 const divisionsQueryKey = ["admin", "divisions"];
-const divisionOptionsQueryKey = ["admin", "division-options"];
 const departmentsQueryKey = ["admin", "departments"];
 const jobTitlesQueryKey = ["admin", "job-titles"];
-const departmentOptionsQueryKey = ["admin", "department-options"];
-const jobTitleOptionsQueryKey = ["admin", "job-title-options"];
 const rolesQueryKey = ["admin", "roles"];
 
 export function useAdminUsers(paging: {
@@ -101,24 +98,6 @@ export function useAdminUsers(paging: {
     staleTime: 60_000,
   });
 
-  const departmentOptionsQuery = useQuery({
-    queryKey: departmentOptionsQueryKey,
-    queryFn: ({ signal }) => listDepartments({ page: 1, pageSize: 100 }, signal),
-    staleTime: 5 * 60_000,
-  });
-
-  const divisionOptionsQuery = useQuery({
-    queryKey: divisionOptionsQueryKey,
-    queryFn: ({ signal }) => listDivisions({ page: 1, pageSize: 100 }, signal),
-    staleTime: 5 * 60_000,
-  });
-
-  const jobTitleOptionsQuery = useQuery({
-    queryKey: jobTitleOptionsQueryKey,
-    queryFn: ({ signal }) => listJobTitles({ page: 1, pageSize: 100 }, signal),
-    staleTime: 5 * 60_000,
-  });
-
   const rolesQuery = useQuery({
     queryKey: rolesQueryKey,
     queryFn: ({ signal }) => listRoles(signal),
@@ -131,11 +110,11 @@ export function useAdminUsers(paging: {
       queryClient.invalidateQueries({ queryKey: requestsQueryKey }),
       queryClient.invalidateQueries({ queryKey: invitationsQueryKey }),
       queryClient.invalidateQueries({ queryKey: divisionsQueryKey }),
-      queryClient.invalidateQueries({ queryKey: divisionOptionsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: ["division-options"] }),
       queryClient.invalidateQueries({ queryKey: departmentsQueryKey }),
       queryClient.invalidateQueries({ queryKey: jobTitlesQueryKey }),
-      queryClient.invalidateQueries({ queryKey: departmentOptionsQueryKey }),
-      queryClient.invalidateQueries({ queryKey: jobTitleOptionsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: ["department-options"] }),
+      queryClient.invalidateQueries({ queryKey: ["job-title-options"] }),
       queryClient.invalidateQueries({ queryKey: rolesQueryKey }),
     ]);
   };
@@ -232,11 +211,8 @@ export function useAdminUsers(paging: {
     registrationRequestsQuery,
     invitationsQuery,
     divisionsQuery,
-    divisionOptionsQuery,
     departmentsQuery,
     jobTitlesQuery,
-    departmentOptionsQuery,
-    jobTitleOptionsQuery,
     rolesQuery,
     createInvitationMutation,
     updateInvitationMutation,
