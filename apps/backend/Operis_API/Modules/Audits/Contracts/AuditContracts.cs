@@ -46,3 +46,17 @@ public sealed record AuditLogResponse(
     string? MetadataJson,
     bool IsSensitive,
     string? RetentionClass);
+
+public sealed record BusinessAuditEventItem(
+    Guid Id,
+    DateTimeOffset OccurredAt,
+    string Module,
+    string EventType,
+    string EntityType,
+    string? EntityId,
+    string? Summary,
+    string? Reason,
+    string? ActorUserId,
+    string? ActorEmail,
+    string? ActorDisplayName,
+    string? MetadataJson);

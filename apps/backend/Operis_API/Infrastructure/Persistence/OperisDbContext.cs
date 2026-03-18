@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Operis_API.Modules.Audits.Infrastructure;
 using Operis_API.Modules.Documents.Infrastructure;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Modules.Workflows.Infrastructure;
@@ -28,6 +29,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<UserInvitationEntity> UserInvitations => Set<UserInvitationEntity>();
     public DbSet<ActivityLogEntity> ActivityLogs => Set<ActivityLogEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
+    public DbSet<BusinessAuditEventEntity> BusinessAuditEvents => Set<BusinessAuditEventEntity>();
     public DbSet<WorkflowDefinitionEntity> WorkflowDefinitions => Set<WorkflowDefinitionEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -488,6 +490,30 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.RequestId);
             entity.HasIndex(x => new { x.Status, x.OccurredAt });
             entity.HasIndex(x => new { x.DepartmentId, x.OccurredAt });
+        });
+
+        modelBuilder.Entity<BusinessAuditEventEntity>(entity =>
+        {
+            entity.ToTable("business_audit_events");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Module).HasColumnName("module").HasMaxLength(64);
+            entity.Property(x => x.EventType).HasColumnName("event_type").HasMaxLength(64);
+            entity.Property(x => x.EntityType).HasColumnName("entity_type").HasMaxLength(64);
+            entity.Property(x => x.EntityId).HasColumnName("entity_id").HasMaxLength(64);
+            entity.Property(x => x.Summary).HasColumnName("summary").HasMaxLength(512);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(512);
+            entity.Property(x => x.ActorUserId).HasColumnName("actor_user_id").HasMaxLength(64);
+            entity.Property(x => x.ActorEmail).HasColumnName("actor_email").HasMaxLength(128);
+            entity.Property(x => x.ActorDisplayName).HasColumnName("actor_display_name").HasMaxLength(128);
+            entity.Property(x => x.MetadataJson).HasColumnName("metadata_json").HasColumnType("jsonb");
+            entity.Property(x => x.OccurredAt).HasColumnName("occurred_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(x => x.Module);
+            entity.HasIndex(x => x.EventType);
+            entity.HasIndex(x => x.EntityType);
+            entity.HasIndex(x => x.EntityId);
+            entity.HasIndex(x => new { x.EntityType, x.EntityId, x.OccurredAt });
         });
 
         modelBuilder.Entity<ActivityLogEntity>(entity =>

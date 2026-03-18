@@ -15,6 +15,8 @@ public sealed class AuditsModule : IModule
     public IServiceCollection RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IAuditLogQueries, AuditLogQueries>();
+        services.AddScoped<IBusinessAuditEventQueries, BusinessAuditEventQueries>();
+        services.AddScoped<IBusinessAuditEventWriter, BusinessAuditEventWriter>();
         return services;
     }
 
@@ -29,6 +31,13 @@ public sealed class AuditsModule : IModule
 
         group.MapGet("/{auditLogId:guid}", GetAuditLogAsync)
             .WithName("AuditLogs_Get");
+
+        var businessGroup = endpoints.MapGroup("/api/v1/audit-events")
+            .WithTags("Audit Events")
+            .RequireAuthorization();
+
+        businessGroup.MapGet("/", ListBusinessAuditEventsAsync)
+            .WithName("AuditEvents_List");
 
         return endpoints;
     }
@@ -76,5 +85,32 @@ public sealed class AuditsModule : IModule
 
         var result = await queries.GetAuditLogAsync(auditLogId, cancellationToken);
         return result is null ? Results.NotFound() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> ListBusinessAuditEventsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IBusinessAuditEventQueries queries,
+        string? module,
+        string? eventType,
+        string? entityType,
+        string? entityId,
+        string? actor,
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.AuditLogs.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListAsync(
+            new BusinessAuditEventListQuery(module, eventType, entityType, entityId, actor, from, to, page, pageSize),
+            cancellationToken);
+
+        return Results.Ok(result);
     }
 }

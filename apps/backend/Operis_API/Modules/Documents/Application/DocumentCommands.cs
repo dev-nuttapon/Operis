@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Audits.Application;
 using Operis_API.Modules.Documents.Contracts;
 using Operis_API.Modules.Documents.Infrastructure;
 using Operis_API.Shared.Auditing;
@@ -13,6 +14,7 @@ public sealed class DocumentCommands(
     OperisDbContext dbContext,
     IDocumentObjectStorage documentObjectStorage,
     IAuditLogWriter auditLogWriter,
+    IBusinessAuditEventWriter businessAuditEventWriter,
     DocumentHistoryWriter historyWriter,
     IOptions<DocumentStorageOptions> optionsAccessor) : IDocumentCommands
 {
@@ -83,6 +85,15 @@ public sealed class DocumentCommands(
             "Created document",
             null,
             null,
+            cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "documents",
+            "document.created",
+            "document",
+            entity.Id.ToString(),
+            "Created document",
+            null,
+            new { entity.DocumentName },
             cancellationToken);
 
         return DocumentUploadResult.Success(response);
@@ -223,6 +234,15 @@ public sealed class DocumentCommands(
             null,
             null,
             cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "documents",
+            "document.version.created",
+            "document",
+            versionEntity.DocumentId.ToString(),
+            "Added document file",
+            null,
+            new { versionEntity.VersionCode, versionEntity.Revision, versionEntity.FileName },
+            cancellationToken);
 
         return DocumentVersionCreateResult.Success(response);
     }
@@ -276,6 +296,15 @@ public sealed class DocumentCommands(
             null,
             null,
             cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "documents",
+            "document.version.deleted",
+            "document",
+            version.DocumentId.ToString(),
+            "Removed document file",
+            null,
+            new { version.VersionCode, version.Revision, version.FileName },
+            cancellationToken);
 
         return DocumentVersionDeleteResult.Success();
     }
@@ -322,6 +351,15 @@ public sealed class DocumentCommands(
             null,
             null,
             cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "documents",
+            "document.version.published",
+            "document",
+            version.DocumentId.ToString(),
+            "Published document version",
+            null,
+            new { version.VersionCode, version.Revision },
+            cancellationToken);
 
         return DocumentVersionPublishResult.Success();
     }
@@ -361,6 +399,15 @@ public sealed class DocumentCommands(
             "unpublish_version",
             null,
             null,
+            "Unpublished document",
+            null,
+            null,
+            cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "documents",
+            "document.version.unpublished",
+            "document",
+            document.Id.ToString(),
             "Unpublished document",
             null,
             null,
@@ -439,6 +486,15 @@ public sealed class DocumentCommands(
             null,
             null,
             cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "documents",
+            "document.renamed",
+            "document",
+            updated.Id.ToString(),
+            "Renamed document",
+            null,
+            new { beforeName = entity.DocumentName, afterName = updated.DocumentName },
+            cancellationToken);
 
         return DocumentUpdateResult.Success(response);
     }
@@ -507,6 +563,15 @@ public sealed class DocumentCommands(
             normalizedReason,
             null,
             cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "documents",
+            "document.deleted",
+            "document",
+            request.DocumentId.ToString(),
+            "Deleted document",
+            normalizedReason,
+            new { document.DocumentName },
+            cancellationToken);
 
         return DocumentDeleteResult.Success();
     }
@@ -536,6 +601,34 @@ public sealed class DocumentCommands(
         catch
         {
             // Best-effort history; avoid failing business flow on history write errors.
+        }
+    }
+
+    private async Task TryAppendBusinessEventAsync(
+        string module,
+        string eventType,
+        string entityType,
+        string? entityId,
+        string? summary,
+        string? reason,
+        object? metadata,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await businessAuditEventWriter.AppendAsync(
+                module,
+                eventType,
+                entityType,
+                entityId,
+                summary,
+                reason,
+                metadata,
+                cancellationToken);
+        }
+        catch
+        {
+            // Best-effort business audit; avoid failing business flow on audit write errors.
         }
     }
 }

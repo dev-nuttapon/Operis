@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Audits.Application;
 using Operis_API.Modules.Workflows.Infrastructure;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
@@ -9,7 +10,8 @@ namespace Operis_API.Modules.Workflows;
 
 public sealed class WorkflowCommands(
     OperisDbContext dbContext,
-    IAuditLogWriter auditLogWriter) : IWorkflowCommands
+    IAuditLogWriter auditLogWriter,
+    IBusinessAuditEventWriter businessAuditEventWriter) : IWorkflowCommands
 {
     public async Task<WorkflowCommandResult> CreateDefinitionAsync(CreateWorkflowDefinitionRequest request, CancellationToken cancellationToken)
     {
@@ -52,6 +54,15 @@ public sealed class WorkflowCommands(
                 entity.CreatedAt
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "workflows",
+            "workflow.definition.created",
+            "workflow_definition",
+            entity.Id.ToString(),
+            "Created workflow definition",
+            null,
+            new { entity.Code, entity.Name, entity.Status },
+            cancellationToken);
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
@@ -97,6 +108,15 @@ public sealed class WorkflowCommands(
                 entity.UpdatedAt
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "workflows",
+            "workflow.definition.updated",
+            "workflow_definition",
+            entity.Id.ToString(),
+            "Updated workflow definition",
+            null,
+            new { before, after = ToContract(entity) },
+            cancellationToken);
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
@@ -220,9 +240,46 @@ public sealed class WorkflowCommands(
                 entity.UpdatedAt
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "workflows",
+            $"workflow.definition.{action}d",
+            "workflow_definition",
+            entity.Id.ToString(),
+            action == "activate" ? "Activated workflow definition" : "Archived workflow definition",
+            null,
+            new { before, after = ToContract(entity) },
+            cancellationToken);
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
             Response: ToContract(entity));
+    }
+
+    private async Task TryAppendBusinessEventAsync(
+        string module,
+        string eventType,
+        string entityType,
+        string? entityId,
+        string? summary,
+        string? reason,
+        object? metadata,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await businessAuditEventWriter.AppendAsync(
+                module,
+                eventType,
+                entityType,
+                entityId,
+                summary,
+                reason,
+                metadata,
+                cancellationToken);
+        }
+        catch
+        {
+            // Best-effort business audit; avoid failing business flow on audit write errors.
+        }
     }
 }

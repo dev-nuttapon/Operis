@@ -1679,10 +1679,92 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Module", "OccurredAt");
 
-                    b.HasIndex("Status", "OccurredAt");
+                b.HasIndex("Status", "OccurredAt");
 
-                    b.ToTable("audit_logs", (string)null);
-                });
+                b.ToTable("audit_logs", (string)null);
+            });
+
+        modelBuilder.Entity("Operis_API.Modules.Audits.Infrastructure.BusinessAuditEventEntity", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<string>("ActorDisplayName")
+                    .HasMaxLength(128)
+                    .HasColumnType("character varying(128)")
+                    .HasColumnName("actor_display_name");
+
+                b.Property<string>("ActorEmail")
+                    .HasMaxLength(128)
+                    .HasColumnType("character varying(128)")
+                    .HasColumnName("actor_email");
+
+                b.Property<string>("ActorUserId")
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
+                    .HasColumnName("actor_user_id");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("EntityId")
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
+                    .HasColumnName("entity_id");
+
+                b.Property<string>("EntityType")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
+                    .HasColumnName("entity_type");
+
+                b.Property<string>("EventType")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
+                    .HasColumnName("event_type");
+
+                b.Property<string>("MetadataJson")
+                    .HasColumnType("jsonb")
+                    .HasColumnName("metadata_json");
+
+                b.Property<string>("Module")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
+                    .HasColumnName("module");
+
+                b.Property<DateTimeOffset>("OccurredAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("occurred_at");
+
+                b.Property<string>("Reason")
+                    .HasMaxLength(512)
+                    .HasColumnType("character varying(512)")
+                    .HasColumnName("reason");
+
+                b.Property<string>("Summary")
+                    .HasMaxLength(512)
+                    .HasColumnType("character varying(512)")
+                    .HasColumnName("summary");
+
+                b.HasKey("Id");
+
+                b.HasIndex("EntityId");
+
+                b.HasIndex("EntityType");
+
+                b.HasIndex("EventType");
+
+                b.HasIndex("Module");
+
+                b.HasIndex("EntityType", "EntityId", "OccurredAt");
+
+                b.ToTable("business_audit_events", (string)null);
+            });
 
             modelBuilder.Entity("Operis_API.Modules.Documents.Infrastructure.DocumentEntity", b =>
                 {

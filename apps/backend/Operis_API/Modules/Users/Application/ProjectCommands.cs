@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Audits.Application;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
@@ -23,7 +24,8 @@ public interface IProjectCommands
 public sealed class ProjectCommands(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter,
-    IReferenceDataCache referenceDataCache) : IProjectCommands
+    IReferenceDataCache referenceDataCache,
+    IBusinessAuditEventWriter businessAuditEventWriter) : IProjectCommands
 {
     public async Task<(bool Success, string? Error, string? ErrorCode, ProjectResponse? Response)> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken)
     {
@@ -74,6 +76,15 @@ public sealed class ProjectCommands(
         dbContext.Projects.Add(entity);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "create", EntityType: "project", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status201Created, After: ToProjectState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "projects",
+            "project.created",
+            "project",
+            entity.Id.ToString(),
+            "Created project",
+            null,
+            new { entity.Code, entity.Name, entity.ProjectType },
+            cancellationToken);
         return (true, null, null, await ToProjectResponseAsync(entity, cancellationToken));
     }
 
@@ -128,6 +139,15 @@ public sealed class ProjectCommands(
 
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Before: before, After: ToProjectState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "projects",
+            "project.updated",
+            "project",
+            entity.Id.ToString(),
+            "Updated project",
+            null,
+            new { before, after = ToProjectState(entity) },
+            cancellationToken);
         return (true, null, null, await ToProjectResponseAsync(entity, cancellationToken), false);
     }
 
@@ -145,6 +165,15 @@ public sealed class ProjectCommands(
         entity.DeletedReason = NormalizeRequired(request.Reason, 500) ?? "No reason provided";
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "soft_delete", EntityType: "project", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status204NoContent, Reason: entity.DeletedReason, Before: before, After: ToProjectState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "projects",
+            "project.deleted",
+            "project",
+            entity.Id.ToString(),
+            "Deleted project",
+            entity.DeletedReason,
+            new { before },
+            cancellationToken);
         await referenceDataCache.InvalidateProjectRolesAsync(cancellationToken);
         return (true, false);
     }
@@ -200,6 +229,15 @@ public sealed class ProjectCommands(
         dbContext.ProjectRoles.Add(entity);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "create", EntityType: "project_role", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status201Created, After: ToProjectRoleState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "projects",
+            "project.role.created",
+            "project_role",
+            entity.Id.ToString(),
+            "Created project role",
+            null,
+            new { entity.ProjectId, entity.Name, entity.Code },
+            cancellationToken);
         await referenceDataCache.InvalidateProjectRolesAsync(cancellationToken);
         return (true, null, null, ToProjectRoleResponse(entity, project.Name));
     }
@@ -256,6 +294,15 @@ public sealed class ProjectCommands(
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project_role", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Before: before, After: ToProjectRoleState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "projects",
+            "project.role.updated",
+            "project_role",
+            entity.Id.ToString(),
+            "Updated project role",
+            null,
+            new { before, after = ToProjectRoleState(entity) },
+            cancellationToken);
         await referenceDataCache.InvalidateProjectRolesAsync(cancellationToken);
         return (true, null, null, ToProjectRoleResponse(entity, project.Name), false);
     }
@@ -274,6 +321,15 @@ public sealed class ProjectCommands(
         entity.DeletedReason = NormalizeRequired(request.Reason, 500) ?? "No reason provided";
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "soft_delete", EntityType: "project_role", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status204NoContent, Reason: entity.DeletedReason, Before: before, After: ToProjectRoleState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "projects",
+            "project.role.deleted",
+            "project_role",
+            entity.Id.ToString(),
+            "Deleted project role",
+            entity.DeletedReason,
+            new { before },
+            cancellationToken);
         await referenceDataCache.InvalidateProjectRolesAsync(cancellationToken);
         return (true, false);
     }
@@ -303,6 +359,15 @@ public sealed class ProjectCommands(
         dbContext.UserProjectAssignments.Add(entity);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "create", EntityType: "project_assignment", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status201Created, After: ToProjectAssignmentState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "projects",
+            "project.assignment.created",
+            "project_assignment",
+            entity.Id.ToString(),
+            "Assigned member to project",
+            null,
+            new { entity.ProjectId, entity.UserId, entity.ProjectRoleId },
+            cancellationToken);
         return (true, null, null, await BuildProjectAssignmentResponseAsync(entity.Id, cancellationToken));
     }
 
@@ -353,6 +418,15 @@ public sealed class ProjectCommands(
         dbContext.UserProjectAssignments.Add(replacement);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project_assignment", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Reason: reason, Before: before, After: ToProjectAssignmentState(replacement)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "projects",
+            "project.assignment.updated",
+            "project_assignment",
+            replacement.Id.ToString(),
+            "Updated project assignment",
+            reason,
+            new { before, after = ToProjectAssignmentState(replacement) },
+            cancellationToken);
         return (true, null, null, await BuildProjectAssignmentResponseAsync(replacement.Id, cancellationToken), false);
     }
 
@@ -371,6 +445,15 @@ public sealed class ProjectCommands(
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "delete", EntityType: "project_assignment", EntityId: assignmentId.ToString(), StatusCode: StatusCodes.Status204NoContent, Reason: entity.ChangeReason, Before: before, After: ToProjectAssignmentState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await TryAppendBusinessEventAsync(
+            "projects",
+            "project.assignment.removed",
+            "project_assignment",
+            assignmentId.ToString(),
+            "Removed project assignment",
+            entity.ChangeReason,
+            new { before, after = ToProjectAssignmentState(entity) },
+            cancellationToken);
         return (true, false);
     }
 
@@ -434,6 +517,34 @@ public sealed class ProjectCommands(
             entity.EndAt,
             entity.CreatedAt,
             entity.UpdatedAt);
+    }
+
+    private async Task TryAppendBusinessEventAsync(
+        string module,
+        string eventType,
+        string entityType,
+        string? entityId,
+        string? summary,
+        string? reason,
+        object? metadata,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await businessAuditEventWriter.AppendAsync(
+                module,
+                eventType,
+                entityType,
+                entityId,
+                summary,
+                reason,
+                metadata,
+                cancellationToken);
+        }
+        catch
+        {
+            // Best-effort business audit; avoid failing business flow on audit write errors.
+        }
     }
 
     private async Task<string?> ValidateProjectUsersAsync(string? ownerUserId, string? sponsorUserId, CancellationToken cancellationToken)
