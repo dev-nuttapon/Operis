@@ -1388,7 +1388,7 @@
     "history_page": {
       "title": "Document History",
       "description": "Track document events for audit and review.",
-      "back_action": "Back to versions",
+      "back_action": "Back",
       "open_action": "History"
     },
     "operations_title": "Document Responsibilities",

@@ -150,7 +150,7 @@ export function DocumentDashboardPage() {
             label: tr("documents.actions.history.label"),
             icon: <FileTextOutlined />,
             disabled: !canReadDocuments,
-            onClick: () => navigate(`/app/documents/${item.id}/history`, { state: { documentName: item.documentName } }),
+            onClick: () => navigate(`/app/documents/${item.id}/history`, { state: { documentName: item.documentName, from: "/app/documents" } }),
           },
         ];
         return (

@@ -170,7 +170,14 @@ export function DocumentVersionsPage() {
               {tr("documents.versions_page.actions.add_version")}
             </Button>
           ) : null}
-          <Button icon={<FileTextOutlined />} onClick={() => navigate(`/app/documents/${documentId}/history`, { state: { documentName: documentLabel } })}>
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() =>
+              navigate(`/app/documents/${documentId}/history`, {
+                state: { documentName: documentLabel, from: `/app/documents/${documentId}/versions` },
+              })
+            }
+          >
             {tr("documents.history_page.open_action")}
           </Button>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")}>

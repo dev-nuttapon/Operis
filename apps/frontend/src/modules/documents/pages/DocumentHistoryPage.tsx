@@ -14,6 +14,7 @@ const { Title, Paragraph, Text } = Typography;
 
 type LocationState = {
   documentName?: string;
+  from?: string;
 };
 
 export function DocumentHistoryPage() {
@@ -90,7 +91,14 @@ export function DocumentHistoryPage() {
           <Text type="secondary">{documentLabel}</Text>
         </div>
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/app/documents/${documentId}/versions`, { state: { documentName: documentLabel } })}>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() =>
+              navigate(locationState?.from ?? `/app/documents/${documentId}/versions`, {
+                state: { documentName: documentLabel },
+              })
+            }
+          >
             {tr("documents.history_page.back_action")}
           </Button>
         </Space>
