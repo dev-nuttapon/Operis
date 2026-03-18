@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { listUsers } from "../api/usersApi";
 import type { User } from "../types/users";
 
@@ -7,83 +7,51 @@ type UserOption = { label: string; value: string };
 
 export function useProjectUserOptions(enabled: boolean, toLabel: (user: User) => string) {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [buffer, setBuffer] = useState<UserOption[]>([]);
-  const [total, setTotal] = useState(0);
-  const [visibleCount, setVisibleCount] = useState(5);
   const pageSize = 5;
-  const serverPageSize = 10;
 
-  const usersQuery = useQuery({
-    queryKey: ["project-user-options", { page }],
+  const usersQuery = useInfiniteQuery({
+    queryKey: ["project-user-options", { search }],
     enabled,
-    queryFn: ({ signal }) => listUsers({ page, pageSize: serverPageSize, sortBy: "createdAt", sortOrder: "desc" }, signal),
+    queryFn: ({ signal, pageParam }) =>
+      listUsers({ page: pageParam as number, pageSize, search, sortBy: "createdAt", sortOrder: "desc" }, signal),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((sum, page) => sum + page.items.length, 0);
+      if (lastPage.total && loaded < lastPage.total) {
+        return allPages.length + 1;
+      }
+      return lastPage.items.length === pageSize ? allPages.length + 1 : undefined;
+    },
     staleTime: 60_000,
   });
 
-  useEffect(() => {
-    if (!usersQuery.data) {
-      return;
-    }
-    const nextOptions = usersQuery.data.items.map((item) => ({ label: toLabel(item), value: item.id }));
-    setTotal(usersQuery.data.total ?? Math.max(total, (page - 1) * serverPageSize + nextOptions.length));
-    setBuffer((current) => {
-      if (page === 1) {
-        return nextOptions;
-      }
-      const existing = new Set(current.map((item) => item.value));
-      const merged = [...current];
-      nextOptions.forEach((item) => {
-        if (!existing.has(item.value)) {
-          merged.push(item);
-        }
-      });
-      return merged;
-    });
-  }, [page, toLabel, usersQuery.data]);
+  const options = useMemo(() => {
+    const items = usersQuery.data?.pages.flatMap((page) => page.items) ?? [];
+    return items.map((item) => ({ label: toLabel(item), value: item.id }));
+  }, [toLabel, usersQuery.data]);
 
-  const filteredBuffer = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) {
-      return buffer;
-    }
-    return buffer.filter((item) => item.label.toLowerCase().includes(term));
-  }, [buffer, search]);
-
-  const hasMore = filteredBuffer.length < visibleCount
-    ? total > buffer.length
-    : filteredBuffer.length > visibleCount || total > buffer.length;
+  const hasMore = Boolean(usersQuery.hasNextPage);
 
   const handleSearch = (value: string) => {
     setSearch(value);
-    setVisibleCount(pageSize);
-    if (!value.trim()) {
-      return;
-    }
-    // keep current buffer to allow client-side filtering
   };
 
   const loadMore = () => {
-    if (usersQuery.isFetching) {
-      return;
-    }
-    const nextVisible = visibleCount + pageSize;
-    setVisibleCount(nextVisible);
-    if (buffer.length < total && nextVisible > buffer.length) {
-      setPage((current) => current + 1);
+    if (!usersQuery.isFetching && usersQuery.hasNextPage) {
+      void usersQuery.fetchNextPage();
     }
   };
 
   const result = useMemo(
     () => ({
-      options: filteredBuffer.slice(0, visibleCount),
+      options,
       search,
       hasMore,
       loading: usersQuery.isFetching,
       onSearch: handleSearch,
       onLoadMore: loadMore,
     }),
-    [filteredBuffer, hasMore, search, usersQuery.isFetching, visibleCount],
+    [hasMore, options, search, usersQuery.isFetching],
   );
 
   return result;

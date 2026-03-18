@@ -4,6 +4,7 @@ public interface IKeycloakAdminClient
 {
     Task<KeycloakUserProfile?> FindUserByEmailAsync(string email, CancellationToken cancellationToken);
     Task<KeycloakUserProfile?> GetUserByIdAsync(string keycloakUserId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<KeycloakUserProfile>> SearchUsersAsync(string search, int first, int max, CancellationToken cancellationToken);
     Task<KeycloakCreateUserResult> CreateUserAsync(string email, string firstName, string lastName, string? password, CancellationToken cancellationToken);
     Task<KeycloakUpdateUserResult> UpdateUserAsync(string keycloakUserId, string email, string firstName, string lastName, CancellationToken cancellationToken);
     Task<KeycloakUpdateUserResult> UpdatePasswordAsync(string keycloakUserId, string password, bool temporary, CancellationToken cancellationToken);

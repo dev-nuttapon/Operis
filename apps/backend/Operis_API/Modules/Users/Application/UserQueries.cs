@@ -39,10 +39,17 @@ public sealed class UserQueries(
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var searchPattern = $"%{query.Search.Trim()}%";
+            var matchedIds = Array.Empty<string>();
+            if (query.IncludeIdentity)
+            {
+                var keycloakMatches = await keycloakAdminClient.SearchUsersAsync(query.Search.Trim(), 0, 200, cancellationToken);
+                matchedIds = keycloakMatches.Select(x => x.Id).Distinct(StringComparer.Ordinal).ToArray();
+            }
             baseQuery = baseQuery.Where(x =>
                 EF.Functions.ILike(x.Id, searchPattern)
                 || EF.Functions.ILike(x.CreatedBy, searchPattern)
-                || (x.DeletedBy != null && EF.Functions.ILike(x.DeletedBy, searchPattern)));
+                || (x.DeletedBy != null && EF.Functions.ILike(x.DeletedBy, searchPattern))
+                || (matchedIds.Length > 0 && matchedIds.Contains(x.Id)));
         }
 
         baseQuery = ApplyUserSorting(baseQuery, query.SortBy, query.SortOrder);
@@ -215,7 +222,7 @@ public sealed class UserQueries(
     private static (int Page, int PageSize, int Skip) NormalizePaging(int page, int pageSize)
     {
         var normalizedPage = page < 1 ? 1 : page;
-        var normalizedPageSize = Math.Clamp(pageSize, 10, 100);
+        var normalizedPageSize = Math.Clamp(pageSize, 5, 100);
         var skip = (normalizedPage - 1) * normalizedPageSize;
         return (normalizedPage, normalizedPageSize, skip);
     }

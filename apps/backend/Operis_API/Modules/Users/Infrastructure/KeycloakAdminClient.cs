@@ -72,6 +72,35 @@ public sealed class KeycloakAdminClient(HttpClient httpClient, IOptions<Keycloak
         return user is null ? null : ToProfile(user);
     }
 
+    public async Task<IReadOnlyList<KeycloakUserProfile>> SearchUsersAsync(string search, int first, int max, CancellationToken cancellationToken)
+    {
+        if (!IsConfigured() || string.IsNullOrWhiteSpace(search))
+        {
+            return [];
+        }
+
+        var token = await GetAccessTokenAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return [];
+        }
+
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{TrimTrailingSlash(_options.BaseUrl)}/admin/realms/{_options.Realm}/users?search={Uri.EscapeDataString(search)}&first={first}&max={max}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var users = JsonSerializer.Deserialize<List<KeycloakUserDto>>(json, JsonOptions) ?? [];
+        return users.Select(ToProfile).ToList();
+    }
+
     public async Task<KeycloakCreateUserResult> CreateUserAsync(
         string email,
         string firstName,
