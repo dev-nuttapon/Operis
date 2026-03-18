@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme } from "antd";
+import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SortOrder, SorterResult } from "antd/es/table/interface";
 import { EyeOutlined, SearchOutlined, SafetyCertificateOutlined, HistoryOutlined } from "@ant-design/icons";
@@ -249,39 +249,43 @@ export function AuditLogsPage() {
           </Space>
         </Form>
 
-        <Table<AuditLogItem>
-          rowKey="id"
-          columns={columns}
-          dataSource={canReadAuditLogs ? (auditLogsQuery.data?.items ?? []) : []}
-          loading={canReadAuditLogs ? auditLogsQuery.isLoading : false}
-          scroll={{ x: "max-content" }}
-          pagination={{
-            current: auditLogsQuery.data?.page ?? filters.page ?? 1,
-            pageSize: auditLogsQuery.data?.pageSize ?? filters.pageSize ?? 10,
-            total: auditLogsQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 25, 50, 100],
-            onChange: (page, pageSize) =>
+        {auditLogsQuery.isLoading && (auditLogsQuery.data?.items?.length ?? 0) === 0 ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : (
+          <Table<AuditLogItem>
+            rowKey="id"
+            columns={columns}
+            dataSource={canReadAuditLogs ? (auditLogsQuery.data?.items ?? []) : []}
+            loading={canReadAuditLogs ? auditLogsQuery.isLoading : false}
+            scroll={{ x: "max-content" }}
+            pagination={{
+              current: auditLogsQuery.data?.page ?? filters.page ?? 1,
+              pageSize: auditLogsQuery.data?.pageSize ?? filters.pageSize ?? 10,
+              total: auditLogsQuery.data?.total ?? 0,
+              showSizeChanger: true,
+              pageSizeOptions: [10, 25, 50, 100],
+              onChange: (page, pageSize) =>
+                setFilters((current) => ({
+                  ...current,
+                  page,
+                  pageSize,
+                })),
+            }}
+            locale={{
+              emptyText: auditLogsQuery.isError ? t("audit_logs.empty_error") : t("audit_logs.empty"),
+            }}
+            onChange={(pagination, _, sorter) => {
+              const sort = sorter as SorterResult<AuditLogItem>;
               setFilters((current) => ({
                 ...current,
-                page,
-                pageSize,
-              })),
-          }}
-          locale={{
-            emptyText: auditLogsQuery.isError ? t("audit_logs.empty_error") : t("audit_logs.empty"),
-          }}
-          onChange={(pagination, _, sorter) => {
-            const sort = sorter as SorterResult<AuditLogItem>;
-            setFilters((current) => ({
-              ...current,
-              page: pagination.current ?? current.page,
-              pageSize: pagination.pageSize ?? current.pageSize,
-              sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
-              sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
-            }));
-          }}
-        />
+                page: pagination.current ?? current.page,
+                pageSize: pagination.pageSize ?? current.pageSize,
+                sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
+                sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
+              }));
+            }}
+          />
+        )}
       </Card>
 
       <Modal

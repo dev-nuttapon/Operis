@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Divider, Dropdown, Modal, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Divider, Dropdown, Modal, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -195,22 +195,26 @@ export function DocumentVersionsPage() {
         <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
       ) : null}
 
-      <Table<DocumentVersionListItem>
-        rowKey="id"
-        loading={versionsQuery.isLoading}
-        columns={columns}
-        dataSource={versionsQuery.data?.items ?? []}
-        pagination={{
-          current: versionsQuery.data?.page ?? paging.page,
-          pageSize: versionsQuery.data?.pageSize ?? paging.pageSize,
-          total: versionsQuery.data?.total ?? 0,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 25, 50, 100],
-          onChange: (page, pageSize) => setPaging({ page, pageSize }),
-        }}
-        scroll={{ x: "max-content" }}
-        locale={{ emptyText: versionsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
-      />
+      {versionsQuery.isLoading && (versionsQuery.data?.items?.length ?? 0) === 0 ? (
+        <Skeleton active paragraph={{ rows: 6 }} />
+      ) : (
+        <Table<DocumentVersionListItem>
+          rowKey="id"
+          loading={versionsQuery.isLoading}
+          columns={columns}
+          dataSource={versionsQuery.data?.items ?? []}
+          pagination={{
+            current: versionsQuery.data?.page ?? paging.page,
+            pageSize: versionsQuery.data?.pageSize ?? paging.pageSize,
+            total: versionsQuery.data?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+            onChange: (page, pageSize) => setPaging({ page, pageSize }),
+          }}
+          scroll={{ x: "max-content" }}
+          locale={{ emptyText: versionsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
+        />
+      )}
 
     </Card>
   );

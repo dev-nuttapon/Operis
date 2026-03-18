@@ -1,4 +1,4 @@
-import { Button, Card, Input, Space, Table, Typography } from "antd";
+import { Button, Card, Input, Space, Table, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
@@ -129,29 +129,33 @@ export function AdminMasterDataSection({
           </Button>
         ) : null}
       </Space>
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={data}
-        loading={loading}
-        pagination={{
-          current: pagination?.page ?? paging.page,
-          pageSize: pagination?.pageSize ?? paging.pageSize,
-          total: pagination?.total ?? 0,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 25, 50, 100],
-        }}
-        onChange={(nextPagination, _, sorter) => {
-          const sort = sorter as SorterResult<MasterDataItem>;
-          setPaging((current) => ({
-            ...current,
-            page: nextPagination.current ?? current.page,
-            pageSize: nextPagination.pageSize ?? current.pageSize,
-            sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
-            sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
-          }));
-        }}
-      />
+      {loading && data.length === 0 ? (
+        <Skeleton active paragraph={{ rows: 6 }} />
+      ) : (
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={data}
+          loading={loading}
+          pagination={{
+            current: pagination?.page ?? paging.page,
+            pageSize: pagination?.pageSize ?? paging.pageSize,
+            total: pagination?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+          }}
+          onChange={(nextPagination, _, sorter) => {
+            const sort = sorter as SorterResult<MasterDataItem>;
+            setPaging((current) => ({
+              ...current,
+              page: nextPagination.current ?? current.page,
+              pageSize: nextPagination.pageSize ?? current.pageSize,
+              sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
+              sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
+            }));
+          }}
+        />
+      )}
     </Card>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Typography, Card, Button, Space, Divider, Table, Alert, Dropdown, Modal, Form, Input, Tag } from "antd";
+import { Typography, Card, Button, Space, Divider, Table, Alert, Dropdown, Modal, Form, Input, Tag, Skeleton } from "antd";
 import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, MoreOutlined, FileTextOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
@@ -212,23 +212,27 @@ export function DocumentDashboardPage() {
       <Title level={4} style={{ marginTop: 0 }}>
         {tr("documents.list_title")}
       </Title>
-      <Table<DocumentListItemView>
-        rowKey="id"
-        loading={documentsQuery.isLoading}
-        columns={latestDocumentColumns}
-        dataSource={canReadDocuments ? (documentsQuery.data?.items ?? []) : []}
-        pagination={{
-          current: documentsQuery.data?.page ?? paging.page,
-          pageSize: documentsQuery.data?.pageSize ?? paging.pageSize,
-          total: documentsQuery.data?.total ?? 0,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 25, 50, 100],
-          onChange: (page, pageSize) => setPaging({ page, pageSize }),
-        }}
-        scroll={{ x: "max-content" }}
-        locale={{ emptyText: !canReadDocuments ? tr("documents.read_only_title") : documentsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
-        style={{ marginBottom: 24 }}
-      />
+      {documentsQuery.isLoading && (documentsQuery.data?.items?.length ?? 0) === 0 ? (
+        <Skeleton active paragraph={{ rows: 6 }} />
+      ) : (
+        <Table<DocumentListItemView>
+          rowKey="id"
+          loading={documentsQuery.isLoading}
+          columns={latestDocumentColumns}
+          dataSource={canReadDocuments ? (documentsQuery.data?.items ?? []) : []}
+          pagination={{
+            current: documentsQuery.data?.page ?? paging.page,
+            pageSize: documentsQuery.data?.pageSize ?? paging.pageSize,
+            total: documentsQuery.data?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+            onChange: (page, pageSize) => setPaging({ page, pageSize }),
+          }}
+          scroll={{ x: "max-content" }}
+          locale={{ emptyText: !canReadDocuments ? tr("documents.read_only_title") : documentsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
+          style={{ marginBottom: 24 }}
+        />
+      )}
 
       <Modal
         open={editModalOpen}

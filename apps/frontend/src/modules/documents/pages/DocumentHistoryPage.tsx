@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Divider, Space, Table, Typography } from "antd";
+import { Alert, Button, Card, Divider, Space, Table, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -111,6 +111,8 @@ export function DocumentHistoryPage() {
 
       {!canReadHistory ? (
         <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
+      ) : historyQuery.isLoading && historyItems.length === 0 ? (
+        <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
         <Table<DocumentHistoryItem>
           rowKey="id"

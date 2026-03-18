@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme } from "antd";
+import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SortOrder, SorterResult } from "antd/es/table/interface";
 import { EyeOutlined, SearchOutlined, HistoryOutlined } from "@ant-design/icons";
@@ -249,39 +249,43 @@ export function ActivityLogsPage() {
           </Space>
         </Form>
 
-        <Table<ActivityLogItem>
-          rowKey="id"
-          columns={columns}
-          dataSource={canReadActivityLogs ? (activityLogsQuery.data?.items ?? []) : []}
-          loading={canReadActivityLogs ? activityLogsQuery.isLoading : false}
-          scroll={{ x: "max-content" }}
-          pagination={{
-            current: activityLogsQuery.data?.page ?? filters.page ?? 1,
-            pageSize: activityLogsQuery.data?.pageSize ?? filters.pageSize ?? 10,
-            total: activityLogsQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 25, 50, 100],
-            onChange: (page, pageSize) =>
+        {activityLogsQuery.isLoading && (activityLogsQuery.data?.items?.length ?? 0) === 0 ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : (
+          <Table<ActivityLogItem>
+            rowKey="id"
+            columns={columns}
+            dataSource={canReadActivityLogs ? (activityLogsQuery.data?.items ?? []) : []}
+            loading={canReadActivityLogs ? activityLogsQuery.isLoading : false}
+            scroll={{ x: "max-content" }}
+            pagination={{
+              current: activityLogsQuery.data?.page ?? filters.page ?? 1,
+              pageSize: activityLogsQuery.data?.pageSize ?? filters.pageSize ?? 10,
+              total: activityLogsQuery.data?.total ?? 0,
+              showSizeChanger: true,
+              pageSizeOptions: [10, 25, 50, 100],
+              onChange: (page, pageSize) =>
+                setFilters((current) => ({
+                  ...current,
+                  page,
+                  pageSize,
+                })),
+            }}
+            locale={{
+              emptyText: activityLogsQuery.isError ? t("activity_logs.empty_error") : t("activity_logs.empty"),
+            }}
+            onChange={(pagination, _, sorter) => {
+              const sort = sorter as SorterResult<ActivityLogItem>;
               setFilters((current) => ({
                 ...current,
-                page,
-                pageSize,
-              })),
-          }}
-          locale={{
-            emptyText: activityLogsQuery.isError ? t("activity_logs.empty_error") : t("activity_logs.empty"),
-          }}
-          onChange={(pagination, _, sorter) => {
-            const sort = sorter as SorterResult<ActivityLogItem>;
-            setFilters((current) => ({
-              ...current,
-              page: pagination.current ?? current.page,
-              pageSize: pagination.pageSize ?? current.pageSize,
-              sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
-              sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
-            }));
-          }}
-        />
+                page: pagination.current ?? current.page,
+                pageSize: pagination.pageSize ?? current.pageSize,
+                sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
+                sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
+              }));
+            }}
+          />
+        )}
       </Card>
 
       <Modal

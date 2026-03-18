@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography } from "antd";
+import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DeleteOutlined, EditOutlined, PlusOutlined, ProfileOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
@@ -164,14 +164,18 @@ export function ProjectTypeTemplatesPage() {
           <Input.Search allowClear placeholder={t("project_type_templates.search_placeholder")} style={{ width: 360, maxWidth: "100%" }} onSearch={(value) => setTemplatePaging((current) => ({ ...current, page: 1, search: value }))} />
           {canManageTemplates ? <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateTemplateOpen(true)}>{t("project_type_templates.create_action")}</Button> : null}
         </Space>
-        <Table
-          rowKey="id"
-          columns={templateColumns}
-          dataSource={templatesQuery.data?.items ?? []}
-          loading={templatesQuery.isLoading}
-          onRow={(record) => ({ onClick: () => setSelectedTemplate(record) })}
-          pagination={{ current: templatesQuery.data?.page ?? templatePaging.page, pageSize: templatesQuery.data?.pageSize ?? templatePaging.pageSize, total: templatesQuery.data?.total ?? 0, showSizeChanger: true, pageSizeOptions: [10,25,50,100], onChange: (page, pageSize) => setTemplatePaging((current) => ({ ...current, page, pageSize })) }}
-        />
+        {templatesQuery.isLoading && (templatesQuery.data?.items?.length ?? 0) === 0 ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : (
+          <Table
+            rowKey="id"
+            columns={templateColumns}
+            dataSource={templatesQuery.data?.items ?? []}
+            loading={templatesQuery.isLoading}
+            onRow={(record) => ({ onClick: () => setSelectedTemplate(record) })}
+            pagination={{ current: templatesQuery.data?.page ?? templatePaging.page, pageSize: templatesQuery.data?.pageSize ?? templatePaging.pageSize, total: templatesQuery.data?.total ?? 0, showSizeChanger: true, pageSizeOptions: [10,25,50,100], onChange: (page, pageSize) => setTemplatePaging((current) => ({ ...current, page, pageSize })) }}
+          />
+        )}
       </Card>
 
       <Card variant="borderless" title={t("project_type_templates.role_requirements.title")} extra={canManageTemplates ? <Button type="primary" onClick={() => {
@@ -190,13 +194,17 @@ export function ProjectTypeTemplatesPage() {
             }}
           />
           {selectedTemplate ? <Tag color="blue">{selectedTemplate.projectType}</Tag> : null}
-          <Table
-            rowKey="id"
-            columns={requirementColumns}
-            dataSource={roleRequirementsQuery.data?.items ?? []}
-            loading={roleRequirementsQuery.isLoading}
-            pagination={{ current: roleRequirementsQuery.data?.page ?? requirementPaging.page, pageSize: roleRequirementsQuery.data?.pageSize ?? requirementPaging.pageSize, total: roleRequirementsQuery.data?.total ?? 0, showSizeChanger: true, pageSizeOptions: [10,25,50,100], onChange: (page, pageSize) => setRequirementPaging((current) => ({ ...current, page, pageSize })) }}
-          />
+          {roleRequirementsQuery.isLoading && (roleRequirementsQuery.data?.items?.length ?? 0) === 0 ? (
+            <Skeleton active paragraph={{ rows: 6 }} />
+          ) : (
+            <Table
+              rowKey="id"
+              columns={requirementColumns}
+              dataSource={roleRequirementsQuery.data?.items ?? []}
+              loading={roleRequirementsQuery.isLoading}
+              pagination={{ current: roleRequirementsQuery.data?.page ?? requirementPaging.page, pageSize: roleRequirementsQuery.data?.pageSize ?? requirementPaging.pageSize, total: roleRequirementsQuery.data?.total ?? 0, showSizeChanger: true, pageSizeOptions: [10,25,50,100], onChange: (page, pageSize) => setRequirementPaging((current) => ({ ...current, page, pageSize })) }}
+            />
+          )}
         </Space>
       </Card>
 

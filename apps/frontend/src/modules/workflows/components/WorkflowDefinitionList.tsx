@@ -1,4 +1,4 @@
-import { Button, List, Space, Tag } from "antd";
+import { Button, List, Space, Tag, Skeleton } from "antd";
 import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowDefinitionSummary } from "../types/workflows";
@@ -47,6 +47,10 @@ export function WorkflowDefinitionList({
     active: t("workflow_definitions.filters.active"),
     archived: t("workflow_definitions.filters.archived"),
   };
+
+  if (isLoading && definitions.length === 0) {
+    return <Skeleton active paragraph={{ rows: 6 }} />;
+  }
 
   return (
     <List
