@@ -14,6 +14,7 @@ import {
   ProjectOutlined,
   TeamOutlined,
   ApartmentOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../modules/auth';
@@ -121,6 +122,13 @@ export function MainLayout() {
           key: '/app/documents',
           icon: <FileTextOutlined />,
           label: tr('common.documents'),
+        }]
+      : []),
+    ...(hasDocumentAccess
+      ? [{
+          key: '/app/document-templates',
+          icon: <FolderOpenOutlined />,
+          label: tr('common.document_templates'),
         }]
       : []),
     {
@@ -291,6 +299,7 @@ export function MainLayout() {
 
   const getPageTitle = (path: string) => {
     if (path.includes('dashboard')) return tr('common.dashboard');
+    if (path.includes('document-templates')) return tr('common.document_templates');
     if (path.includes('documents')) return tr('common.documents');
     if (path === '/app/projects') return tr('common.my_projects');
     if (path.includes('workflows')) return tr('common.workflows');

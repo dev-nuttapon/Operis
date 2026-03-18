@@ -4,6 +4,7 @@ import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined, ShareAltOutlined } from "@ant-design/icons";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -185,6 +186,8 @@ function ProjectMemberForm({
 export function ProjectMembersPage() {
   const { t, i18n } = useTranslation();
   const { notification } = App.useApp();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
@@ -209,6 +212,13 @@ export function ProjectMembersPage() {
   useEffect(() => {
     setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
   }, [debouncedSearch, setPaging]);
+
+  useEffect(() => {
+    const projectId = searchParams.get("projectId") ?? undefined;
+    if (projectId) {
+      setSelectedProjectId(projectId);
+    }
+  }, [searchParams]);
   const {
     projectAssignmentsQuery,
     createProjectAssignmentMutation,
@@ -460,11 +470,18 @@ export function ProjectMembersPage() {
                   onChange={(event) => setSearchInput(event.target.value)}
                   onSearch={(value) => setSearchInput(value)}
                 />
-                {canManageProjectMembers ? (
-                  <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
-                    {t("project_members.create_action")}
-                  </Button>
-                ) : null}
+                <Space>
+                  {selectedProjectId ? (
+                    <Button onClick={() => navigate(`/app/admin/project-roles?projectId=${selectedProjectId}`)}>
+                      {t("project_members.go_to_roles")}
+                    </Button>
+                  ) : null}
+                  {canManageProjectMembers ? (
+                    <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
+                      {t("project_members.create_action")}
+                    </Button>
+                  ) : null}
+                </Space>
               </Space>
 
               {canReadProjects && projectAssignmentsQuery.isLoading && (projectAssignmentsQuery.data?.items?.length ?? 0) === 0 ? (

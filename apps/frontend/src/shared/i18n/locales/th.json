@@ -166,6 +166,7 @@
     "application_name": "Operis",
     "dashboard": "แดชบอร์ด",
     "documents": "เอกสาร",
+    "document_templates": "เทมเพลตเอกสาร",
     "workflows": "เวิร์กโฟลว์",
     "admin": "ผู้ดูแลระบบ",
     "user_admin_group": "จัดการผู้ใช้งาน",
@@ -559,6 +560,11 @@
     "load_more_projects": "โหลดเพิ่มอีก 10 โครงการ",
     "load_more_roles": "โหลดเพิ่มอีก 10 ตำแหน่ง",
     "load_more_project_types": "โหลดเพิ่มอีก 10 ประเภทโครงการ",
+    "actions": {
+      "open_workspace": "เปิดพื้นที่โครงการ",
+      "manage_members": "สมาชิกโครงการ",
+      "manage_documents": "เอกสารโครงการ"
+    },
     "edit_modal_title": "แก้ไขโครงการ",
     "edit_modal_title_with_name": "แก้ไขโครงการ {{name}}",
     "delete_modal_title": "ลบโครงการ",
@@ -640,6 +646,7 @@
     "select_project_placeholder": "เลือกโครงการ",
     "select_project_message": "กรุณาเลือกโครงการก่อน เพื่อจัดการตำแหน่งในโครงการ",
     "search_placeholder": "ค้นหาตำแหน่งในโครงการ",
+    "go_to_members": "ไปหน้าสมาชิกโครงการ",
     "create_action": "เพิ่มตำแหน่งในโครงการ",
     "create_modal_title": "เพิ่มตำแหน่งในโครงการ",
     "edit_modal_title": "แก้ไขตำแหน่งในโครงการ",
@@ -700,6 +707,7 @@
     "select_project_placeholder": "เลือกโครงการ",
     "select_project_message": "กรุณาเลือกโครงการก่อน เพื่อจัดการสมาชิกของโครงการ",
     "search_placeholder": "ค้นหาด้วยสมาชิกหรือตำแหน่งในโครงการ",
+    "go_to_roles": "ไปหน้าตำแหน่งในโครงการ",
     "create_action": "เพิ่มคนเข้าโครงการ",
     "create_modal_title": "เพิ่มคนเข้าโครงการ",
     "edit_modal_title": "แก้ไขสมาชิกโครงการ",
@@ -1006,6 +1014,8 @@
     },
     "side_panels": {
       "project_controls": "บล็อกของพื้นที่ทำงาน",
+      "manage_members": "เพิ่มสมาชิกโครงการ",
+      "manage_documents": "เพิ่มเอกสารโครงการ",
       "team_register": "ทะเบียนทีม",
       "org_chart": "ผังงานในโครงการ",
       "role_matrix": "เมทริกซ์ตำแหน่ง",
@@ -1414,6 +1424,53 @@
         "title": "ยกเลิกใช้งาน",
         "description": "ยกเลิกการใช้งานเอกสารที่ active เมื่อเอกสารล้าสมัยหรือถูกแทนที่",
         "button": "ยกเลิกใช้งาน"
+      }
+    },
+    "templates": {
+      "title": "เทมเพลตเอกสารโครงการ",
+      "description": "สร้างชุดเอกสารที่ใช้ซ้ำเพื่อนำไปกำหนดให้กับโครงการ",
+      "action": "เทมเพลตเอกสาร",
+      "create_page_title": "สร้างเทมเพลตเอกสาร",
+      "create_page_description": "ตั้งชื่อเทมเพลตและเลือกเอกสารที่ต้องการใช้",
+      "create_page_back": "กลับ",
+      "create_page_submit": "บันทึกเทมเพลต",
+      "edit_page_title": "แก้ไขเทมเพลตเอกสาร",
+      "edit_page_description": "ปรับชื่อเทมเพลตหรือรายการเอกสาร",
+      "edit_page_back": "กลับ",
+      "edit_page_submit": "บันทึกการแก้ไข",
+      "search_placeholder": "ค้นหาชื่อเทมเพลต",
+      "empty": "ยังไม่มีเทมเพลต",
+      "empty_selection": "ยังไม่ได้เลือกเอกสาร",
+      "fields": {
+        "name": "ชื่อเทมเพลต",
+        "documents": "เอกสารที่อยู่ในเทมเพลต"
+      },
+      "placeholders": {
+        "name": "เช่น ISO Project Starter",
+        "documents": "เลือกเอกสารที่จะอยู่ในเทมเพลต"
+      },
+      "validation": {
+        "name_required": "กรุณาระบุชื่อเทมเพลต",
+        "documents_required": "กรุณาเลือกเอกสารอย่างน้อย 1 รายการ"
+      },
+      "columns": {
+        "name": "ชื่อเทมเพลต",
+        "document_count": "จำนวนเอกสาร",
+        "created_at": "วันที่สร้าง",
+        "actions": "การทำงาน"
+      },
+      "actions": {
+        "create": "สร้างเทมเพลต",
+        "create_new": "เพิ่มเทมเพลต",
+        "edit": "แก้ไข",
+        "audit_logs": "บันทึกตรวจสอบ",
+        "load_more": "โหลดเอกสารเพิ่มอีก 10 รายการ"
+      },
+      "messages": {
+        "created": "สร้างเทมเพลตแล้ว",
+        "create_failed": "ไม่สามารถสร้างเทมเพลตได้",
+        "updated": "แก้ไขเทมเพลตแล้ว",
+        "update_failed": "ไม่สามารถแก้ไขเทมเพลตได้"
       }
     },
     "upload": {

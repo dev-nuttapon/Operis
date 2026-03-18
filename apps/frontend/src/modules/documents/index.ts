@@ -3,5 +3,8 @@ export * from "./hooks/useDocuments";
 export * from "./hooks/useDocumentDashboard";
 export * from "./pages/DocumentDashboardPage";
 export * from "./pages/DocumentHistoryPage";
+export * from "./pages/DocumentTemplatesPage";
+export * from "./pages/DocumentTemplateCreatePage";
+export * from "./pages/DocumentTemplateEditPage";
 export type { DocumentFormValues } from "./types/documentForm";
 export type { DocumentListItemView } from "./types/documents";

@@ -27,6 +27,7 @@ import {
   AuditOutlined,
   ClusterOutlined,
   DeploymentUnitOutlined,
+  FileAddOutlined,
   FileSearchOutlined,
   ProfileOutlined,
   ProjectOutlined,
@@ -1154,16 +1155,28 @@ export function ProjectWorkspacePrototypePage() {
                     <Card size="small" title={t("project_workspace.side_panels.project_controls")}>
                       <List
                         dataSource={[
-                          { icon: <TeamOutlined />, label: t("project_workspace.side_panels.team_register") },
-                          { icon: <ClusterOutlined />, label: t("project_workspace.side_panels.org_chart") },
-                          { icon: <ProfileOutlined />, label: t("project_workspace.side_panels.role_matrix") },
-                          { icon: <DeploymentUnitOutlined />, label: t("project_workspace.side_panels.workflow") },
-                          { icon: <SafetyCertificateOutlined />, label: t("project_workspace.side_panels.compliance") },
-                          { icon: <FileSearchOutlined />, label: t("project_workspace.side_panels.evidence") },
-                          { icon: <AuditOutlined />, label: t("project_workspace.side_panels.audit") },
+                          {
+                            key: "members",
+                            icon: <TeamOutlined />,
+                            label: t("project_workspace.side_panels.manage_members"),
+                            onClick: () => projectId && navigate(`/app/admin/project-members?projectId=${projectId}`),
+                          },
+                          {
+                            key: "documents",
+                            icon: <FileAddOutlined />,
+                            label: t("project_workspace.side_panels.manage_documents"),
+                            onClick: () => projectId && navigate(`/app/documents?projectId=${projectId}`),
+                          },
+                          { key: "team", icon: <TeamOutlined />, label: t("project_workspace.side_panels.team_register") },
+                          { key: "org", icon: <ClusterOutlined />, label: t("project_workspace.side_panels.org_chart") },
+                          { key: "roles", icon: <ProfileOutlined />, label: t("project_workspace.side_panels.role_matrix") },
+                          { key: "workflow", icon: <DeploymentUnitOutlined />, label: t("project_workspace.side_panels.workflow") },
+                          { key: "compliance", icon: <SafetyCertificateOutlined />, label: t("project_workspace.side_panels.compliance") },
+                          { key: "evidence", icon: <FileSearchOutlined />, label: t("project_workspace.side_panels.evidence") },
+                          { key: "audit", icon: <AuditOutlined />, label: t("project_workspace.side_panels.audit") },
                         ]}
                         renderItem={(item) => (
-                          <List.Item>
+                          <List.Item onClick={item.onClick} style={item.onClick ? { cursor: "pointer" } : undefined}>
                             <Space>
                               {item.icon}
                               <Typography.Text>{item.label}</Typography.Text>

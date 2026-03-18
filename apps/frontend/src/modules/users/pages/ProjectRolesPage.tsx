@@ -4,6 +4,7 @@ import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SolutionOutlined } from "@ant-design/icons";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { permissions } from "../../../shared/authz/permissions";
@@ -120,6 +121,8 @@ function ProjectRoleForm({
 export function ProjectRolesPage() {
   const { t } = useTranslation();
   const { notification } = App.useApp();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjectRoles = permissionState.hasPermission(permissions.projects.manageRoles);
@@ -144,6 +147,13 @@ export function ProjectRolesPage() {
   useEffect(() => {
     setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
   }, [debouncedSearch, setPaging]);
+
+  useEffect(() => {
+    const projectId = searchParams.get("projectId") ?? undefined;
+    if (projectId) {
+      setSelectedProjectId(projectId);
+    }
+  }, [searchParams]);
   const { projectRolesQuery, createProjectRoleMutation, updateProjectRoleMutation, deleteProjectRoleMutation } = useProjectAdmin({
     projectsEnabled: false,
     projects: { page: 1, pageSize: 1 },
@@ -369,27 +379,34 @@ export function ProjectRolesPage() {
                   onChange={(event) => setSearchInput(event.target.value)}
                   onSearch={(value) => setSearchInput(value)}
                 />
-                {canManageProjectRoles ? (
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    size="large"
-                    onClick={() => {
-                      createForm.setFieldsValue({
-                        projectId: selectedProjectId,
-                        isReviewRole: false,
-                        isApprovalRole: false,
-                        canCreateDocuments: false,
-                        canReviewDocuments: false,
-                        canApproveDocuments: false,
-                        canReleaseDocuments: false,
-                      });
-                      setCreateOpen(true);
-                    }}
-                  >
-                    {t("project_roles.create_action")}
-                  </Button>
-                ) : null}
+                <Space>
+                  {selectedProjectId ? (
+                    <Button onClick={() => navigate(`/app/admin/project-members?projectId=${selectedProjectId}`)}>
+                      {t("project_roles.go_to_members")}
+                    </Button>
+                  ) : null}
+                  {canManageProjectRoles ? (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      size="large"
+                      onClick={() => {
+                        createForm.setFieldsValue({
+                          projectId: selectedProjectId,
+                          isReviewRole: false,
+                          isApprovalRole: false,
+                          canCreateDocuments: false,
+                          canReviewDocuments: false,
+                          canApproveDocuments: false,
+                          canReleaseDocuments: false,
+                        });
+                        setCreateOpen(true);
+                      }}
+                    >
+                      {t("project_roles.create_action")}
+                    </Button>
+                  ) : null}
+                </Space>
               </Space>
 
               {canReadProjects && projectRolesQuery.isLoading && (projectRolesQuery.data?.items?.length ?? 0) === 0 ? (

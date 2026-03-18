@@ -19,6 +19,15 @@ const DocumentVersionsPage = lazy(() =>
 const DocumentHistoryPage = lazy(() =>
   import("../modules/documents/pages/DocumentHistoryPage").then((module) => ({ default: module.DocumentHistoryPage }))
 );
+const DocumentTemplatesPage = lazy(() =>
+  import("../modules/documents/pages/DocumentTemplatesPage").then((module) => ({ default: module.DocumentTemplatesPage }))
+);
+const DocumentTemplateCreatePage = lazy(() =>
+  import("../modules/documents/pages/DocumentTemplateCreatePage").then((module) => ({ default: module.DocumentTemplateCreatePage }))
+);
+const DocumentTemplateEditPage = lazy(() =>
+  import("../modules/documents/pages/DocumentTemplateEditPage").then((module) => ({ default: module.DocumentTemplateEditPage }))
+);
 const LoginPage = lazy(() =>
   import("../modules/auth/pages/LoginPage").then((module) => ({ default: module.LoginPage }))
 );
@@ -94,6 +103,10 @@ export function AppRouter() {
             <Route element={<MainLayout />}>
               <Route index element={<Navigate to="documents" replace />} />
               <Route path="documents" element={<DocumentDashboardPage />} />
+              <Route path="documents/templates" element={<DocumentTemplatesPage />} />
+              <Route path="document-templates" element={<DocumentTemplatesPage />} />
+              <Route path="document-templates/new" element={<DocumentTemplateCreatePage />} />
+              <Route path="document-templates/:templateId/edit" element={<DocumentTemplateEditPage />} />
               <Route path="documents/upload" element={<DocumentUploadPage />} />
               <Route path="documents/:documentId/versions" element={<DocumentVersionsPage />} />
               <Route path="documents/:documentId/history" element={<DocumentHistoryPage />} />

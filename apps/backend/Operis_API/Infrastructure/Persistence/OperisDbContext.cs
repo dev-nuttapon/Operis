@@ -13,6 +13,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<DocumentEntity> Documents => Set<DocumentEntity>();
     public DbSet<DocumentVersionEntity> DocumentVersions => Set<DocumentVersionEntity>();
     public DbSet<DocumentHistoryEntity> DocumentHistories => Set<DocumentHistoryEntity>();
+    public DbSet<DocumentTemplateEntity> DocumentTemplates => Set<DocumentTemplateEntity>();
+    public DbSet<DocumentTemplateItemEntity> DocumentTemplateItems => Set<DocumentTemplateItemEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<DivisionEntity> Divisions => Set<DivisionEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
@@ -106,6 +108,44 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.EventType);
             entity.HasIndex(x => x.OccurredAt);
             entity.HasIndex(x => new { x.DocumentId, x.OccurredAt });
+        });
+
+        modelBuilder.Entity<DocumentTemplateEntity>(entity =>
+        {
+            entity.ToTable("document_templates");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id").HasMaxLength(64);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(x => x.DeletedByUserId).HasColumnName("deleted_by_user_id").HasMaxLength(64);
+            entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
+            entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(512);
+            entity.HasIndex(x => x.Name);
+            entity.HasIndex(x => x.IsDeleted);
+            entity.HasIndex(x => new { x.IsDeleted, x.CreatedAt });
+        });
+
+        modelBuilder.Entity<DocumentTemplateItemEntity>(entity =>
+        {
+            entity.ToTable("document_template_items");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.TemplateId).HasColumnName("template_id");
+            entity.Property(x => x.DocumentId).HasColumnName("document_id");
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
+            entity.HasOne<DocumentTemplateEntity>()
+                .WithMany()
+                .HasForeignKey(x => x.TemplateId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<DocumentEntity>()
+                .WithMany()
+                .HasForeignKey(x => x.DocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.TemplateId);
+            entity.HasIndex(x => x.DocumentId);
+            entity.HasIndex(x => new { x.TemplateId, x.DocumentId }).IsUnique();
         });
 
         modelBuilder.Entity<UserEntity>(entity =>

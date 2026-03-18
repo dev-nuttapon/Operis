@@ -31,6 +31,8 @@ export function ProjectCreatePage() {
   const locationState = location.state as LocationState | null;
   const permissionState = usePermissions();
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
+  const canManageProjectRoles = permissionState.hasPermission(permissions.projects.manageRoles);
+  const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
   const [createForm] = Form.useForm<ProjectFormValues>();
 
   const { createProjectMutation } = useProjectAdmin({
@@ -55,8 +57,17 @@ export function ProjectCreatePage() {
   const handleSubmit = async () => {
     const values = await createForm.validateFields();
     createProjectMutation.mutate(normalizeProjectPayload(values), {
-      onSuccess: () => {
+      onSuccess: (project) => {
         notification.success({ message: t("projects.messages.created", { name: values.name }) });
+        const projectId = project.id;
+        if (canManageProjectRoles) {
+          navigate(`/app/admin/project-roles?projectId=${projectId}`, { state: { from: "/app/projects/new" } });
+          return;
+        }
+        if (canManageProjectMembers) {
+          navigate(`/app/admin/project-members?projectId=${projectId}`, { state: { from: "/app/projects/new" } });
+          return;
+        }
         navigate(locationState?.from ?? "/app/admin/projects");
       },
       onError: (error) => {

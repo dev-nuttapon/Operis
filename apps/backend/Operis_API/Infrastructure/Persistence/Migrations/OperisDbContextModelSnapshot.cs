@@ -251,6 +251,88 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.ToTable("document_histories", (string)null);
                 });
 
+            modelBuilder.Entity("Operis_API.Modules.Documents.Infrastructure.DocumentTemplateEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("deleted_by_user_id");
+
+                    b.Property<string>("DeletedReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("deleted_reason");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("IsDeleted", "CreatedAt");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("document_templates", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Documents.Infrastructure.DocumentTemplateItemEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("TemplateId");
+
+                    b.HasIndex("TemplateId", "DocumentId")
+                        .IsUnique();
+
+                    b.ToTable("document_template_items", (string)null);
+                });
+
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.AppRoleEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1772,6 +1854,21 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("PublishedVersionId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Documents.Infrastructure.DocumentTemplateItemEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Documents.Infrastructure.DocumentEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Documents.Infrastructure.DocumentTemplateEntity", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.DepartmentEntity", b =>

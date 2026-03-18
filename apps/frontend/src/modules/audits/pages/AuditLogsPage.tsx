@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SortOrder, SorterResult } from "antd/es/table/interface";
 import { EyeOutlined, SearchOutlined, SafetyCertificateOutlined, HistoryOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
@@ -79,6 +80,8 @@ export function AuditLogsPage() {
   const { t, i18n } = useTranslation();
   const { token } = theme.useToken();
   const { notification } = App.useApp();
+  const [searchParams] = useSearchParams();
+  const initializedRef = useRef(false);
   const permissionState = usePermissions();
   const canReadAuditLogs = permissionState.hasPermission(permissions.auditLogs.read);
   const [form] = Form.useForm();
@@ -114,6 +117,23 @@ export function AuditLogsPage() {
     ),
     400,
   );
+
+  useEffect(() => {
+    if (initializedRef.current) return;
+    const entityType = searchParams.get("entityType") ?? undefined;
+    const entityId = searchParams.get("entityId") ?? undefined;
+    if (entityType || entityId) {
+      form.setFieldsValue({ entityType, entityId });
+      setFilters((current) => ({
+        ...current,
+        entityType,
+        entityId,
+        page: 1,
+        pageSize: current.pageSize ?? 10,
+      }));
+    }
+    initializedRef.current = true;
+  }, [form, searchParams]);
 
   useEffect(() => {
     if (auditLogsQuery.isError) {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
-import { DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, FileAddOutlined, FolderOpenOutlined, PlusOutlined, TeamOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -31,6 +31,8 @@ export function ProjectsPage() {
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
+  const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
+  const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
   const isMyProjectsPage = location.pathname === "/app/projects";
   const canViewProjectList = canReadProjects || isMyProjectsPage;
   const projectStatusLabel = useMemo<Record<string, string>>(
@@ -133,6 +135,28 @@ export function ProjectsPage() {
                 >
                   {t("projects.actions.open_workspace")}
                 </Button>
+                {canManageProjectMembers ? (
+                  <Button
+                    icon={<TeamOutlined />}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/app/admin/project-members?projectId=${record.id}`);
+                    }}
+                  >
+                    {t("projects.actions.manage_members")}
+                  </Button>
+                ) : null}
+                {canReadDocuments ? (
+                  <Button
+                    icon={<FileAddOutlined />}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/app/documents?projectId=${record.id}`);
+                    }}
+                  >
+                    {t("projects.actions.manage_documents")}
+                  </Button>
+                ) : null}
                 <Button
                   icon={<EditOutlined />}
                   onClick={(event) => {
@@ -156,15 +180,39 @@ export function ProjectsPage() {
               </>
             ) : null}
             {!canManageProjects && canViewProjectList ? (
-              <Button
-                icon={<FolderOpenOutlined />}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  navigate(`/app/projects/${record.id}/workspace`);
-                }}
-              >
-                {t("projects.actions.open_workspace")}
-              </Button>
+              <Space>
+                <Button
+                  icon={<FolderOpenOutlined />}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(`/app/projects/${record.id}/workspace`);
+                  }}
+                >
+                  {t("projects.actions.open_workspace")}
+                </Button>
+                {canManageProjectMembers ? (
+                  <Button
+                    icon={<TeamOutlined />}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/app/admin/project-members?projectId=${record.id}`);
+                    }}
+                  >
+                    {t("projects.actions.manage_members")}
+                  </Button>
+                ) : null}
+                {canReadDocuments ? (
+                  <Button
+                    icon={<FileAddOutlined />}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/app/documents?projectId=${record.id}`);
+                    }}
+                  >
+                    {t("projects.actions.manage_documents")}
+                  </Button>
+                ) : null}
+              </Space>
             ) : null}
           </Space>
         ),

@@ -21,6 +21,8 @@ public sealed class DocumentsModule : IModule
         services.AddScoped<IDocumentDownloads, DocumentDownloads>();
         services.AddScoped<IDocumentHistoryQueries, DocumentHistoryQueries>();
         services.AddScoped<DocumentHistoryWriter>();
+        services.AddScoped<IDocumentTemplateQueries, DocumentTemplateQueries>();
+        services.AddScoped<IDocumentTemplateCommands, DocumentTemplateCommands>();
         return services;
     }
 
@@ -53,6 +55,14 @@ public sealed class DocumentsModule : IModule
             .WithName("Documents_Download");
         group.MapGet("/{documentId:guid}/history", ListDocumentHistoryAsync)
             .WithName("Documents_History");
+        group.MapGet("/templates", ListDocumentTemplatesAsync)
+            .WithName("Documents_ListTemplates");
+        group.MapPost("/templates", CreateDocumentTemplateAsync)
+            .WithName("Documents_CreateTemplate");
+        group.MapGet("/templates/{templateId:guid}", GetDocumentTemplateAsync)
+            .WithName("Documents_GetTemplate");
+        group.MapPut("/templates/{templateId:guid}", UpdateDocumentTemplateAsync)
+            .WithName("Documents_UpdateTemplate");
 
         return endpoints;
     }
@@ -340,6 +350,103 @@ public sealed class DocumentsModule : IModule
 
         var items = await queries.ListAsync(new DocumentHistoryListQuery(documentId, search, page, pageSize), cancellationToken);
         return Results.Ok(items);
+    }
+
+    private static async Task<IResult> ListDocumentTemplatesAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentTemplateQueries queries,
+        CancellationToken cancellationToken,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListTemplatesAsync(new DocumentTemplateListQuery(search, page, pageSize), cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> CreateDocumentTemplateAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentTemplateCommands commands,
+        DocumentTemplateCreateRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload))
+        {
+            return Results.Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequestWithCode("A template name is required.", ApiErrorCodes.RequestValidationFailed);
+        }
+
+        var result = await commands.CreateTemplateAsync(
+            new DocumentTemplateCreateCommand(
+                request.Name,
+                request.DocumentIds,
+                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
+            cancellationToken);
+
+        return Results.Created($"/api/v1/documents/templates/{result.Id}", result);
+    }
+
+    private static async Task<IResult> GetDocumentTemplateAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentTemplateQueries queries,
+        Guid templateId,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetTemplateAsync(templateId, cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> UpdateDocumentTemplateAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentTemplateCommands commands,
+        IDocumentTemplateQueries queries,
+        Guid templateId,
+        DocumentTemplateUpdateRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload))
+        {
+            return Results.Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequestWithCode("A template name is required.", ApiErrorCodes.RequestValidationFailed);
+        }
+
+        var existing = await queries.GetTemplateAsync(templateId, cancellationToken);
+        if (existing is null)
+        {
+            return NotFoundWithCode();
+        }
+
+        var result = await commands.UpdateTemplateAsync(
+            new DocumentTemplateUpdateCommand(
+                templateId,
+                request.Name,
+                request.DocumentIds,
+                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
+            cancellationToken);
+
+        return Results.Ok(result);
     }
 
     private static IResult BadRequestWithCode(string? detail, string? code = null) =>
