@@ -98,40 +98,31 @@ public sealed class ProjectQueries(
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var search = query.Search.Trim().ToLowerInvariant();
-            source = source.Where(x => x.Name.ToLower().Contains(search) || x.Code.ToLower().Contains(search));
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x => EF.Functions.ILike(x.Name, search) || EF.Functions.ILike(x.Code, search));
         }
 
         source = ApplyProjectSorting(source, query.SortBy, query.SortOrder);
         var total = await source.CountAsync(cancellationToken);
-        var items = await source
-            .Skip(skip)
-            .Take(pageSize)
-            .Select(x => new
-            {
-                Entity = x,
-                OwnerDisplayName = dbContext.Users
-                    .Where(user => user.Id == x.OwnerUserId && user.DeletedAt == null)
-                    .Select(user => user.Id)
-                    .FirstOrDefault(),
-                SponsorDisplayName = dbContext.Users
-                    .Where(user => user.Id == x.SponsorUserId && user.DeletedAt == null)
-                    .Select(user => user.Id)
-                    .FirstOrDefault()
-            })
-            .Select(x => new ProjectListItem(
-                x.Entity.Id,
-                x.Entity.Code,
-                x.Entity.Name,
-                x.Entity.ProjectType,
-                x.Entity.OwnerUserId,
-                x.OwnerDisplayName,
-                x.SponsorDisplayName,
-                x.Entity.Phase,
-                x.Entity.Status,
-                x.Entity.PlannedStartAt,
-                x.Entity.EndAt,
-                x.Entity.CreatedAt))
+        var items = await (
+                from project in source.Skip(skip).Take(pageSize)
+                join owner in dbContext.Users.AsNoTracking() on project.OwnerUserId equals owner.Id into ownerJoin
+                from owner in ownerJoin.DefaultIfEmpty()
+                join sponsor in dbContext.Users.AsNoTracking() on project.SponsorUserId equals sponsor.Id into sponsorJoin
+                from sponsor in sponsorJoin.DefaultIfEmpty()
+                select new ProjectListItem(
+                    project.Id,
+                    project.Code,
+                    project.Name,
+                    project.ProjectType,
+                    project.OwnerUserId,
+                    owner != null && owner.DeletedAt == null ? owner.Id : null,
+                    sponsor != null && sponsor.DeletedAt == null ? sponsor.Id : null,
+                    project.Phase,
+                    project.Status,
+                    project.PlannedStartAt,
+                    project.EndAt,
+                    project.CreatedAt))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -147,22 +138,19 @@ public sealed class ProjectQueries(
 
     public async Task<ProjectResponse?> GetProjectAsync(Guid projectId, CancellationToken cancellationToken)
     {
-        var project = await dbContext.Projects
-            .AsNoTracking()
-            .Where(x => x.Id == projectId && x.DeletedAt == null)
-            .Select(x => new
+        var project = await (
+            from entity in dbContext.Projects.AsNoTracking()
+            where entity.Id == projectId && entity.DeletedAt == null
+            join owner in dbContext.Users.AsNoTracking() on entity.OwnerUserId equals owner.Id into ownerJoin
+            from owner in ownerJoin.DefaultIfEmpty()
+            join sponsor in dbContext.Users.AsNoTracking() on entity.SponsorUserId equals sponsor.Id into sponsorJoin
+            from sponsor in sponsorJoin.DefaultIfEmpty()
+            select new
             {
-                Entity = x,
-                OwnerDisplayName = dbContext.Users
-                    .Where(user => user.Id == x.OwnerUserId && user.DeletedAt == null)
-                    .Select(user => user.Id)
-                    .FirstOrDefault(),
-                SponsorDisplayName = dbContext.Users
-                    .Where(user => user.Id == x.SponsorUserId && user.DeletedAt == null)
-                    .Select(user => user.Id)
-                    .FirstOrDefault()
-            })
-            .SingleOrDefaultAsync(cancellationToken);
+                Entity = entity,
+                OwnerDisplayName = owner != null && owner.DeletedAt == null ? owner.Id : null,
+                SponsorDisplayName = sponsor != null && sponsor.DeletedAt == null ? sponsor.Id : null
+            }).SingleOrDefaultAsync(cancellationToken);
 
         if (project is null)
         {
@@ -214,38 +202,39 @@ public sealed class ProjectQueries(
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var search = query.Search.Trim().ToLowerInvariant();
-            source = source.Where(x => x.Name.ToLower().Contains(search));
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x => EF.Functions.ILike(x.Name, search));
         }
 
         source = ApplyProjectRoleSorting(source, query.SortBy, query.SortOrder);
         var total = await source.CountAsync(cancellationToken);
-        var items = await source
+        var items = await (
+            from role in source
+            join project in dbContext.Projects.AsNoTracking() on role.ProjectId equals project.Id into projectJoin
+            from project in projectJoin.DefaultIfEmpty()
+            select new ProjectRoleResponse(
+                role.Id,
+                role.ProjectId,
+                project != null ? project.Name : null,
+                role.Name,
+                role.Code,
+                role.Description,
+                role.Responsibilities,
+                role.AuthorityScope,
+                role.CanCreateDocuments,
+                role.CanReviewDocuments,
+                role.CanApproveDocuments,
+                role.CanReleaseDocuments,
+                role.IsReviewRole,
+                role.IsApprovalRole,
+                role.DisplayOrder,
+                role.CreatedAt,
+                role.UpdatedAt,
+                role.DeletedReason,
+                role.DeletedBy,
+                role.DeletedAt))
             .Skip(skip)
             .Take(pageSize)
-            .Select(x => new ProjectRoleResponse(
-                x.Id,
-                x.ProjectId,
-                x.ProjectId.HasValue
-                    ? dbContext.Projects.Where(project => project.Id == x.ProjectId.Value).Select(project => project.Name).FirstOrDefault()
-                    : null,
-                x.Name,
-                x.Code,
-                x.Description,
-                x.Responsibilities,
-                x.AuthorityScope,
-                x.CanCreateDocuments,
-                x.CanReviewDocuments,
-                x.CanApproveDocuments,
-                x.CanReleaseDocuments,
-                x.IsReviewRole,
-                x.IsApprovalRole,
-                x.DisplayOrder,
-                x.CreatedAt,
-                x.UpdatedAt,
-                x.DeletedReason,
-                x.DeletedBy,
-                x.DeletedAt))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -692,11 +681,113 @@ public sealed class ProjectQueries(
 
     public async Task<ProjectEvidenceExportResult?> GetProjectEvidenceExportAsync(Guid projectId, CancellationToken cancellationToken)
     {
-        var evidence = await GetProjectEvidenceAsync(projectId, cancellationToken);
-        if (evidence is null)
+        var projectName = await dbContext.Projects
+            .AsNoTracking()
+            .Where(project => project.Id == projectId && project.DeletedAt == null)
+            .Select(project => project.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (projectName is null)
         {
             return null;
         }
+
+        var teamRegister = await (
+            from assignment in dbContext.UserProjectAssignments.AsNoTracking()
+            where assignment.ProjectId == projectId && assignment.Status == "Active"
+            join user in dbContext.Users.AsNoTracking() on assignment.UserId equals user.Id into userJoin
+            from user in userJoin.DefaultIfEmpty()
+            join role in dbContext.ProjectRoles.AsNoTracking() on assignment.ProjectRoleId equals role.Id into roleJoin
+            from role in roleJoin.DefaultIfEmpty()
+            join reportsTo in dbContext.Users.AsNoTracking() on assignment.ReportsToUserId equals reportsTo.Id into reportsJoin
+            from reportsTo in reportsJoin.DefaultIfEmpty()
+            orderby user != null ? user.Id : assignment.UserId
+            select new ProjectTeamRegisterRowResponse(
+                assignment.Id,
+                assignment.UserId,
+                user != null ? user.Id : null,
+                user != null ? user.Id : null,
+                role != null ? role.Name : string.Empty,
+                reportsTo != null ? reportsTo.Id : null,
+                assignment.IsPrimary,
+                assignment.Status,
+                assignment.StartAt,
+                assignment.EndAt))
+            .ToListAsync(cancellationToken);
+
+        var roleRows = await dbContext.ProjectRoles
+            .AsNoTracking()
+            .Where(x => x.ProjectId == projectId && x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                x.Code,
+                x.Description,
+                x.Responsibilities,
+                x.AuthorityScope,
+                x.CanCreateDocuments,
+                x.CanReviewDocuments,
+                x.CanApproveDocuments,
+                x.CanReleaseDocuments,
+                x.IsReviewRole,
+                x.IsApprovalRole,
+            })
+            .ToListAsync(cancellationToken);
+
+        var roleIds = roleRows.Select(x => x.Id).ToArray();
+        var roleMemberCounts = roleIds.Length == 0
+            ? new Dictionary<Guid, int>()
+            : await dbContext.UserProjectAssignments
+                .AsNoTracking()
+                .Where(assignment => assignment.Status == "Active" && roleIds.Contains(assignment.ProjectRoleId))
+                .GroupBy(assignment => assignment.ProjectRoleId)
+                .Select(group => new { RoleId = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(x => x.RoleId, x => x.Count, cancellationToken);
+
+        var roleResponsibilities = roleRows
+            .Select(x => new ProjectRoleResponsibilityRowResponse(
+                x.Id,
+                x.Name,
+                x.Code,
+                x.Description,
+                x.Responsibilities,
+                x.AuthorityScope,
+                x.CanCreateDocuments,
+                x.CanReviewDocuments,
+                x.CanApproveDocuments,
+                x.CanReleaseDocuments,
+                x.IsReviewRole,
+                x.IsApprovalRole,
+                roleMemberCounts.TryGetValue(x.Id, out var count) ? count : 0))
+            .ToList();
+
+        var assignmentHistory = await (
+            from assignment in dbContext.UserProjectAssignments.AsNoTracking()
+            where assignment.ProjectId == projectId
+            join user in dbContext.Users.AsNoTracking() on assignment.UserId equals user.Id into userJoin
+            from user in userJoin.DefaultIfEmpty()
+            join role in dbContext.ProjectRoles.AsNoTracking() on assignment.ProjectRoleId equals role.Id into roleJoin
+            from role in roleJoin.DefaultIfEmpty()
+            join reportsTo in dbContext.Users.AsNoTracking() on assignment.ReportsToUserId equals reportsTo.Id into reportsJoin
+            from reportsTo in reportsJoin.DefaultIfEmpty()
+            orderby assignment.CreatedAt descending
+            select new ProjectAssignmentHistoryRowResponse(
+                assignment.Id,
+                assignment.UserId,
+                user != null ? user.Id : null,
+                user != null ? user.Id : null,
+                role != null ? role.Name : string.Empty,
+                assignment.Status,
+                assignment.ChangeReason,
+                reportsTo != null ? reportsTo.Id : null,
+                assignment.IsPrimary,
+                assignment.StartAt,
+                assignment.EndAt,
+                assignment.CreatedAt,
+                assignment.UpdatedAt))
+            .ToListAsync(cancellationToken);
 
         static string Csv(string? value)
         {
@@ -707,7 +798,7 @@ public sealed class ProjectQueries(
         var builder = new StringBuilder();
         builder.AppendLine("Section,Member,Email,Role,Reports To,Primary,Status,Reason,Start At,End At,Created At,Updated At,Role Code,Description,Responsibilities,Authority Scope,Can Create,Can Review,Can Approve,Can Release,Is Review Role,Is Approval Role,Member Count");
 
-        foreach (var row in evidence.TeamRegister)
+        foreach (var row in teamRegister)
         {
             builder.AppendLine(string.Join(",",
                 Csv("Team Register"),
@@ -735,7 +826,7 @@ public sealed class ProjectQueries(
                 Csv(null)));
         }
 
-        foreach (var row in evidence.RoleResponsibilities)
+        foreach (var row in roleResponsibilities)
         {
             builder.AppendLine(string.Join(",",
                 Csv("Role Responsibility"),
@@ -763,7 +854,7 @@ public sealed class ProjectQueries(
                 Csv(row.MemberCount.ToString())));
         }
 
-        foreach (var row in evidence.AssignmentHistory)
+        foreach (var row in assignmentHistory)
         {
             builder.AppendLine(string.Join(",",
                 Csv("Assignment History"),
@@ -791,7 +882,7 @@ public sealed class ProjectQueries(
                 Csv(null)));
         }
 
-        var safeProjectName = string.Concat(evidence.ProjectName.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_')).Trim('_');
+        var safeProjectName = string.Concat(projectName.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_')).Trim('_');
         var fileName = $"project-evidence-{safeProjectName}-{projectId:N}.csv";
 
         auditLogWriter.Append(new AuditLogEntry(

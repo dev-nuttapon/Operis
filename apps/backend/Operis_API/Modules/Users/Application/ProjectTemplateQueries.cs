@@ -25,8 +25,8 @@ public sealed class ProjectTemplateQueries(
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var search = query.Search.Trim().ToLowerInvariant();
-            source = source.Where(x => x.ProjectType.ToLower().Contains(search));
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x => EF.Functions.ILike(x.ProjectType, search));
         }
 
         source = ApplySorting(source, query.SortBy, query.SortOrder);
@@ -46,8 +46,10 @@ public sealed class ProjectTemplateQueries(
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var normalizedSearch = search.Trim().ToLowerInvariant();
-            source = source.Where(x => x.RoleName.ToLower().Contains(normalizedSearch) || (x.RoleCode != null && x.RoleCode.ToLower().Contains(normalizedSearch)));
+            var normalizedSearch = $"%{search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.RoleName, normalizedSearch)
+                || (x.RoleCode != null && EF.Functions.ILike(x.RoleCode, normalizedSearch)));
         }
 
         source = ApplyRoleSorting(source, sortBy, sortOrder);
