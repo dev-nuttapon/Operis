@@ -1622,26 +1622,8 @@
       "entity": "Entity",
       "actor": "Actor",
       "summary": "Summary",
-      "reason": "Reason"
-    },
-    "filters": {
-      "module": "Module",
-      "event_type": "Event Type",
-      "entity_type": "Entity Type",
-      "entity_id": "Entity ID",
-      "actor": "Actor",
-      "date_range": "Date Range"
-    },
-    "placeholders": {
-      "module": "e.g. documents",
-      "event_type": "e.g. updated",
-      "entity_type": "e.g. document_template",
-      "entity_id": "Search by entity reference",
-      "actor": "User email or display name"
-    },
-    "actions": {
-      "search": "Search",
-      "reset": "Reset"
+      "reason": "Reason",
+      "metadata": "Metadata"
     },
     "notifications": {
       "load_failed_title": "Unable to load audit events"

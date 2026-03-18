@@ -1622,26 +1622,8 @@
       "entity": "รายการที่เกี่ยวข้อง",
       "actor": "ผู้กระทำ",
       "summary": "สรุป",
-      "reason": "เหตุผล"
-    },
-    "filters": {
-      "module": "โมดูล",
-      "event_type": "ประเภทเหตุการณ์",
-      "entity_type": "ประเภทข้อมูล",
-      "entity_id": "รหัสข้อมูล",
-      "actor": "ผู้กระทำ",
-      "date_range": "ช่วงเวลา"
-    },
-    "placeholders": {
-      "module": "เช่น documents",
-      "event_type": "เช่น updated",
-      "entity_type": "เช่น document_template",
-      "entity_id": "ค้นหาด้วยรหัสอ้างอิง",
-      "actor": "อีเมลหรือชื่อที่แสดงของผู้ใช้"
-    },
-    "actions": {
-      "search": "ค้นหา",
-      "reset": "ล้างค่า"
+      "reason": "เหตุผล",
+      "metadata": "ข้อมูลเพิ่มเติม"
     },
     "notifications": {
       "load_failed_title": "ไม่สามารถโหลดข้อมูลเหตุการณ์ได้"
