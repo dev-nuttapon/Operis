@@ -54,23 +54,24 @@ public sealed class ProjectTemplateQueries(
 
         source = ApplyRoleSorting(source, sortBy, sortOrder);
         var total = await source.CountAsync(cancellationToken);
-        var projectType = await dbContext.ProjectTypeTemplates.Where(x => x.Id == templateId).Select(x => x.ProjectType).FirstOrDefaultAsync(cancellationToken);
-        var items = await source
+        var items = await (
+            from requirement in source
+            join template in dbContext.ProjectTypeTemplates.AsNoTracking() on requirement.ProjectTypeTemplateId equals template.Id
+            select new ProjectTypeRoleRequirementResponse(
+                requirement.Id,
+                requirement.ProjectTypeTemplateId,
+                template.ProjectType,
+                requirement.RoleName,
+                requirement.RoleCode,
+                requirement.Description,
+                requirement.DisplayOrder,
+                requirement.CreatedAt,
+                requirement.UpdatedAt,
+                requirement.DeletedReason,
+                requirement.DeletedBy,
+                requirement.DeletedAt))
             .Skip(skip)
             .Take(normalizedPageSize)
-            .Select(x => new ProjectTypeRoleRequirementResponse(
-                x.Id,
-                x.ProjectTypeTemplateId,
-                projectType ?? string.Empty,
-                x.RoleName,
-                x.RoleCode,
-                x.Description,
-                x.DisplayOrder,
-                x.CreatedAt,
-                x.UpdatedAt,
-                x.DeletedReason,
-                x.DeletedBy,
-                x.DeletedAt))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "list", EntityType: "project_type_role_requirement", EntityId: templateId.ToString(), StatusCode: StatusCodes.Status200OK, Metadata: new { total, page = normalizedPage, pageSize = normalizedPageSize, search, sortBy, sortOrder }));
