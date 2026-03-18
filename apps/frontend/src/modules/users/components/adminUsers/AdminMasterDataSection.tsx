@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { Button, Card, Input, Space, Table, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { permissions } from "../../../../shared/authz/permissions";
 import { usePermissions } from "../../../../shared/authz/usePermissions";
+import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toApiSortOrder } from "../../utils/adminUsersPresentation";
 import type { MasterDataItem } from "../../types/users";
 
@@ -62,6 +64,16 @@ export function AdminMasterDataSection({
 }: AdminMasterDataSectionProps) {
   const permissionState = usePermissions();
   const canManagePermanentOrg = permissionState.hasPermission(permissions.masterData.managePermanentOrg);
+  const [searchInput, setSearchInput] = useState(paging.search);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  useEffect(() => {
+    setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
+  }, [debouncedSearch, setPaging]);
+
+  useEffect(() => {
+    setSearchInput(paging.search);
+  }, [paging.search]);
   const columns: ColumnsType<MasterDataItem> = [
     {
       title: itemLabel,
@@ -121,7 +133,9 @@ export function AdminMasterDataSection({
           allowClear
           style={{ width: 360, maxWidth: "100%" }}
           placeholder={searchPlaceholder}
-          onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          onSearch={(value) => setSearchInput(value)}
         />
         {canManagePermanentOrg ? (
           <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreating(true)}>

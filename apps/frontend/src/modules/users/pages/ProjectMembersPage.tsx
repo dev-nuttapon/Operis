@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, App, Button, Card, Checkbox, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -196,6 +196,7 @@ export function ProjectMembersPage() {
     sortBy: "createdAt",
     sortOrder: "desc" as "asc" | "desc",
   });
+  const [searchInput, setSearchInput] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProjectAssignment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectAssignment | null>(null);
@@ -203,7 +204,11 @@ export function ProjectMembersPage() {
   const [editForm] = Form.useForm<ProjectMemberFormValues>();
   const [deleteForm] = Form.useForm<{ reason: string }>();
 
-  const debouncedSearch = useDebouncedValue(paging.search, 300);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  useEffect(() => {
+    setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
+  }, [debouncedSearch, setPaging]);
   const {
     projectAssignmentsQuery,
     createProjectAssignmentMutation,
@@ -451,7 +456,9 @@ export function ProjectMembersPage() {
                   allowClear
                   placeholder={t("project_members.search_placeholder")}
                   style={{ width: 360, maxWidth: "100%" }}
-                  onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  onSearch={(value) => setSearchInput(value)}
                 />
                 {canManageProjectMembers ? (
                   <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>

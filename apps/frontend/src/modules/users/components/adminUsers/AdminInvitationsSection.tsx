@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { Button, Card, DatePicker, Input, Select, Space, Table, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { EditOutlined, EyeOutlined, MailOutlined } from "@ant-design/icons";
 import { permissions } from "../../../../shared/authz/permissions";
 import { usePermissions } from "../../../../shared/authz/usePermissions";
+import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import { invitationStatusOptions, toApiSortOrder, toRange } from "../../utils/adminUsersPresentation";
@@ -57,6 +59,16 @@ export function AdminInvitationsSection({
 }: AdminInvitationsSectionProps) {
   const permissionState = usePermissions();
   const canInviteUsers = permissionState.hasPermission(permissions.users.invite);
+  const [searchInput, setSearchInput] = useState(paging.search);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  useEffect(() => {
+    setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
+  }, [debouncedSearch, setPaging]);
+
+  useEffect(() => {
+    setSearchInput(paging.search);
+  }, [paging.search]);
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card variant="borderless">
@@ -70,12 +82,9 @@ export function AdminInvitationsSection({
             allowClear
             style={{ width: 320 }}
             placeholder={t("admin_users.placeholders.search_invitations")}
-            onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
-            onChange={(event) => {
-              if (event.target.value === "") {
-                setPaging((current) => ({ ...current, page: 1, search: "" }));
-              }
-            }}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            onSearch={(value) => setSearchInput(value)}
           />
           <Select
             allowClear

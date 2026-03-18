@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DeleteOutlined, EditOutlined, PlusOutlined, ProfileOutlined } from "@ant-design/icons";
@@ -30,6 +30,7 @@ export function ProjectTypeTemplatesPage() {
   const canManageTemplates = permissionState.hasPermission(permissions.projects.manageTemplates);
   const [templatePaging, setTemplatePaging] = useState({ page: 1, pageSize: 10, search: "", sortBy: "projectType", sortOrder: "asc" as "asc" | "desc" });
   const [requirementPaging, setRequirementPaging] = useState({ page: 1, pageSize: 10, search: "", sortBy: "displayOrder", sortOrder: "asc" as "asc" | "desc" });
+  const [templateSearchInput, setTemplateSearchInput] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTypeTemplate | null>(null);
   const [createTemplateOpen, setCreateTemplateOpen] = useState(false);
   const [editTemplateTarget, setEditTemplateTarget] = useState<ProjectTypeTemplate | null>(null);
@@ -44,8 +45,12 @@ export function ProjectTypeTemplatesPage() {
   const [editRequirementForm] = Form.useForm<RequirementFormValues>();
   const [requirementDeleteForm] = Form.useForm<{ reason: string }>();
 
-  const debouncedTemplateSearch = useDebouncedValue(templatePaging.search, 300);
+  const debouncedTemplateSearch = useDebouncedValue(templateSearchInput, 300);
   const debouncedRequirementSearch = useDebouncedValue(requirementPaging.search, 300);
+
+  useEffect(() => {
+    setTemplatePaging((current) => ({ ...current, page: 1, search: debouncedTemplateSearch }));
+  }, [debouncedTemplateSearch, setTemplatePaging]);
   const {
     templatesQuery,
     roleRequirementsQuery,
@@ -161,7 +166,14 @@ export function ProjectTypeTemplatesPage() {
 
       <Card variant="borderless">
         <Space wrap style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }}>
-          <Input.Search allowClear placeholder={t("project_type_templates.search_placeholder")} style={{ width: 360, maxWidth: "100%" }} onSearch={(value) => setTemplatePaging((current) => ({ ...current, page: 1, search: value }))} />
+          <Input.Search
+            allowClear
+            placeholder={t("project_type_templates.search_placeholder")}
+            style={{ width: 360, maxWidth: "100%" }}
+            value={templateSearchInput}
+            onChange={(event) => setTemplateSearchInput(event.target.value)}
+            onSearch={(value) => setTemplateSearchInput(value)}
+          />
           {canManageTemplates ? <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateTemplateOpen(true)}>{t("project_type_templates.create_action")}</Button> : null}
         </Space>
         {templatesQuery.isLoading && (templatesQuery.data?.items?.length ?? 0) === 0 ? (

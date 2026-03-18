@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, App, Button, Card, Checkbox, Form, Input, InputNumber, Modal, Select, Space, Table, Typography, Skeleton } from "antd";
 import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -131,6 +131,7 @@ export function ProjectRolesPage() {
     sortBy: "displayOrder",
     sortOrder: "asc" as "asc" | "desc",
   });
+  const [searchInput, setSearchInput] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProjectRole | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectRole | null>(null);
@@ -138,7 +139,11 @@ export function ProjectRolesPage() {
   const [editForm] = Form.useForm<ProjectRoleFormValues>();
   const [deleteForm] = Form.useForm();
 
-  const debouncedSearch = useDebouncedValue(paging.search, 300);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  useEffect(() => {
+    setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
+  }, [debouncedSearch, setPaging]);
   const { projectRolesQuery, createProjectRoleMutation, updateProjectRoleMutation, deleteProjectRoleMutation } = useProjectAdmin({
     projectsEnabled: false,
     projects: { page: 1, pageSize: 1 },
@@ -360,7 +365,9 @@ export function ProjectRolesPage() {
                   allowClear
                   placeholder={t("project_roles.search_placeholder")}
                   style={{ width: 360, maxWidth: "100%" }}
-                  onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  onSearch={(value) => setSearchInput(value)}
                 />
                 {canManageProjectRoles ? (
                   <Button

@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { Button, Card, DatePicker, Divider, Input, Select, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { permissions } from "../../../../shared/authz/permissions";
 import { usePermissions } from "../../../../shared/authz/usePermissions";
+import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import {
@@ -58,6 +60,16 @@ export function AdminRegistrationsSection({
 }: AdminRegistrationsSectionProps) {
   const permissionState = usePermissions();
   const canReviewRegistrations = permissionState.hasPermission(permissions.users.reviewRegistrations);
+  const [searchInput, setSearchInput] = useState(paging.search);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  useEffect(() => {
+    setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
+  }, [debouncedSearch, setPaging]);
+
+  useEffect(() => {
+    setSearchInput(paging.search);
+  }, [paging.search]);
   const columns: ColumnsType<RegistrationRequest> = [
     {
       title: t("admin_users.columns.applicant"),
@@ -141,12 +153,9 @@ export function AdminRegistrationsSection({
           allowClear
           style={{ width: 320 }}
           placeholder={t("admin_users.placeholders.search_registrations")}
-          onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
-          onChange={(event) => {
-            if (event.target.value === "") {
-              setPaging((current) => ({ ...current, page: 1, search: "" }));
-            }
-          }}
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          onSearch={(value) => setSearchInput(value)}
         />
         <Select
           allowClear

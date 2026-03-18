@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { Button, Card, DatePicker, Input, Select, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, UserAddOutlined } from "@ant-design/icons";
 import { permissions } from "../../../../shared/authz/permissions";
 import { usePermissions } from "../../../../shared/authz/usePermissions";
+import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import {
@@ -70,6 +72,16 @@ export function AdminUsersDirectorySection({
   const canCreateUsers = permissionState.hasPermission(permissions.users.create);
   const canUpdateUsers = permissionState.hasPermission(permissions.users.update);
   const canDeleteUsers = permissionState.hasPermission(permissions.users.delete);
+  const [searchInput, setSearchInput] = useState(paging.search);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  useEffect(() => {
+    setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
+  }, [debouncedSearch, setPaging]);
+
+  useEffect(() => {
+    setSearchInput(paging.search);
+  }, [paging.search]);
   const columns: ColumnsType<User> = [
     {
       title: t("admin_users.columns.name"),
@@ -180,12 +192,9 @@ export function AdminUsersDirectorySection({
             allowClear
             style={{ width: 320 }}
             placeholder={t("admin_users.placeholders.search_users")}
-            onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
-            onChange={(event) => {
-              if (event.target.value === "") {
-                setPaging((current) => ({ ...current, page: 1, search: "" }));
-              }
-            }}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            onSearch={(value) => setSearchInput(value)}
           />
           <Select
             allowClear

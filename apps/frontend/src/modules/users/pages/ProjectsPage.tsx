@@ -50,12 +50,17 @@ export function ProjectsPage() {
     sortBy: "createdAt",
     sortOrder: "desc" as "asc" | "desc",
   });
+  const [searchInput, setSearchInput] = useState("");
   const [editTarget, setEditTarget] = useState<ProjectListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectListItem | null>(null);
   const [editForm] = Form.useForm<ProjectFormValues>();
   const [deleteForm] = Form.useForm();
 
-  const debouncedSearch = useDebouncedValue(paging.search, 300);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  useEffect(() => {
+    setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
+  }, [debouncedSearch, setPaging]);
   const { projectsQuery, projectDetailQuery, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
     projectsEnabled: canViewProjectList,
     projects: { ...paging, search: debouncedSearch, assignedOnly: isMyProjectsPage && !canReadProjects },
@@ -218,12 +223,14 @@ export function ProjectsPage() {
         ) : (
           <>
             <Space wrap style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }} size={[12, 12]}>
-              <Input.Search
-                allowClear
-                placeholder={t("projects.search_placeholder")}
-                style={{ width: 360, maxWidth: "100%" }}
-                onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
-              />
+                <Input.Search
+                  allowClear
+                  placeholder={t("projects.search_placeholder")}
+                  style={{ width: 360, maxWidth: "100%" }}
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  onSearch={(value) => setSearchInput(value)}
+                />
               {canManageProjects ? (
                 <Button
                   type="primary"
