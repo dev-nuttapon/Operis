@@ -62,11 +62,19 @@ export function ProjectForm({
   t,
   userOptions,
   projectTypeOptions,
+  userOptionsLoading,
+  onUserSearch,
+  onUserLoadMore,
+  userHasMore,
 }: {
   form: FormInstance<ProjectFormValues>;
   t: (key: string) => string;
   userOptions: { label: string; value: string }[];
   projectTypeOptions: { label: string; value: string }[];
+  userOptionsLoading?: boolean;
+  onUserSearch?: (value: string) => void;
+  onUserLoadMore?: () => void;
+  userHasMore?: boolean;
 }) {
   const projectStatusOptions = [
     { value: "planned", label: t("projects.options.status.planned") },
@@ -100,10 +108,76 @@ export function ProjectForm({
         <Select options={projectTypeOptions} />
       </Form.Item>
       <Form.Item name="ownerUserId" label={t("projects.fields.owner")}>
-        <Select allowClear showSearch optionFilterProp="label" options={userOptions} placeholder={t("projects.placeholders.owner")} />
+        <Select
+          allowClear
+          showSearch
+          filterOption={false}
+          optionFilterProp="label"
+          options={userOptions}
+          placeholder={t("projects.placeholders.owner")}
+          loading={userOptionsLoading}
+          onSearch={onUserSearch}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              {userHasMore ? (
+                <div style={{ padding: 8 }}>
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => onUserLoadMore?.()}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      color: "#1677ff",
+                      cursor: "pointer",
+                      padding: 4,
+                    }}
+                  >
+                    {t("projects.load_more_users")}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+        />
       </Form.Item>
       <Form.Item name="sponsorUserId" label={t("projects.fields.sponsor")}>
-        <Select allowClear showSearch optionFilterProp="label" options={userOptions} placeholder={t("projects.placeholders.sponsor")} />
+        <Select
+          allowClear
+          showSearch
+          filterOption={false}
+          optionFilterProp="label"
+          options={userOptions}
+          placeholder={t("projects.placeholders.sponsor")}
+          loading={userOptionsLoading}
+          onSearch={onUserSearch}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              {userHasMore ? (
+                <div style={{ padding: 8 }}>
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => onUserLoadMore?.()}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      color: "#1677ff",
+                      cursor: "pointer",
+                      padding: 4,
+                    }}
+                  >
+                    {t("projects.load_more_users")}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+        />
       </Form.Item>
       <Form.Item name="methodology" label={t("projects.fields.methodology")}>
         <Select allowClear options={methodologyOptions} placeholder={t("projects.placeholders.methodology")} />

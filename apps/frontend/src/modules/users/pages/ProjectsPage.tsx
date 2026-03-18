@@ -13,6 +13,7 @@ import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectTemplates } from "../hooks/useProjectTemplates";
 import type { Project, UpdateProjectInput, User } from "../types/users";
 import { ProjectForm, normalizeProjectPayload, toInitialValues, type ProjectFormValues } from "../components/projects/ProjectForm";
+import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 
 function toUserLabel(user: User) {
   const displayName = [user.keycloak?.firstName, user.keycloak?.lastName].filter(Boolean).join(" ").trim();
@@ -53,9 +54,9 @@ export function ProjectsPage() {
   const [editForm] = Form.useForm<ProjectFormValues>();
   const [deleteForm] = Form.useForm();
 
-  const { projectsQuery, projectMemberUsersQuery, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
+  const { projectsQuery, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
     projectsEnabled: canViewProjectList,
-    projectMemberUsersEnabled: canManageProjects,
+    projectMemberUsersEnabled: false,
     projects: { ...paging, assignedOnly: isMyProjectsPage && !canReadProjects },
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
@@ -65,10 +66,7 @@ export function ProjectsPage() {
     roleRequirements: {},
   });
 
-  const userOptions = useMemo(
-    () => (projectMemberUsersQuery.data?.items ?? []).map((item) => ({ label: toUserLabel(item), value: item.id })),
-    [projectMemberUsersQuery.data?.items],
-  );
+  const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
   const projectTypeOptions = useMemo(() => {
     const templateOptions =
       templatesQuery.data?.items.map((item) => ({
@@ -244,7 +242,7 @@ export function ProjectsPage() {
               rowKey="id"
               columns={columns}
               dataSource={projectsQuery.data?.items ?? []}
-              loading={projectsQuery.isLoading || (canManageProjects && projectMemberUsersQuery.isLoading)}
+              loading={projectsQuery.isLoading}
               rowClassName={() => "clickable-project-row"}
               onRow={(record) => ({
                 onClick: () => navigate(`/app/projects/${record.id}/workspace`),
@@ -285,7 +283,16 @@ export function ProjectsPage() {
         confirmLoading={updateProjectMutation.isPending}
         width={720}
       >
-        <ProjectForm form={editForm} t={t} userOptions={userOptions} projectTypeOptions={projectTypeOptions} />
+        <ProjectForm
+          form={editForm}
+          t={t}
+          userOptions={userOptionsState.options}
+          projectTypeOptions={projectTypeOptions}
+          userOptionsLoading={userOptionsState.loading}
+          onUserSearch={userOptionsState.onSearch}
+          onUserLoadMore={userOptionsState.onLoadMore}
+          userHasMore={userOptionsState.hasMore}
+        />
       </Modal>
 
       <Modal

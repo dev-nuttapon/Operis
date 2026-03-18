@@ -8,6 +8,7 @@ import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectTemplates } from "../hooks/useProjectTemplates";
 import { ProjectForm, normalizeProjectPayload, type ProjectFormValues } from "../components/projects/ProjectForm";
+import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 
@@ -32,9 +33,9 @@ export function ProjectCreatePage() {
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
   const [createForm] = Form.useForm<ProjectFormValues>();
 
-  const { projectMemberUsersQuery, createProjectMutation } = useProjectAdmin({
+  const { createProjectMutation } = useProjectAdmin({
     projectsEnabled: false,
-    projectMemberUsersEnabled: canManageProjects,
+    projectMemberUsersEnabled: false,
     projects: { page: 1, pageSize: 10 },
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
@@ -44,10 +45,7 @@ export function ProjectCreatePage() {
     roleRequirements: {},
   });
 
-  const userOptions = useMemo(
-    () => (projectMemberUsersQuery.data?.items ?? []).map((item) => ({ label: toUserLabel(item), value: item.id })),
-    [projectMemberUsersQuery.data?.items],
-  );
+  const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
   const projectTypeOptions = useMemo(() => {
     const templateOptions =
       templatesQuery.data?.items.map((item) => ({
@@ -99,7 +97,16 @@ export function ProjectCreatePage() {
           <Alert type="info" showIcon message={t("errors.title_forbidden")} />
         ) : (
           <>
-            <ProjectForm form={createForm} t={t} userOptions={userOptions} projectTypeOptions={projectTypeOptions} />
+            <ProjectForm
+              form={createForm}
+              t={t}
+              userOptions={userOptionsState.options}
+              projectTypeOptions={projectTypeOptions}
+              userOptionsLoading={userOptionsState.loading}
+              onUserSearch={userOptionsState.onSearch}
+              onUserLoadMore={userOptionsState.onLoadMore}
+              userHasMore={userOptionsState.hasMore}
+            />
             <Space style={{ width: "100%", justifyContent: "space-between" }}>
               <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(locationState?.from ?? "/app/projects")}>
                 {t("projects.create_page_back")}
