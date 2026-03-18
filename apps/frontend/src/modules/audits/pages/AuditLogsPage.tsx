@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme, Skeleton } from "antd";
+import { Alert, App, Button, Card, DatePicker, Form, Input, Space, Table, Tag, Typography, theme, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import type { SortOrder, SorterResult } from "antd/es/table/interface";
-import { EyeOutlined, SearchOutlined, SafetyCertificateOutlined, HistoryOutlined } from "@ant-design/icons";
+import { SearchOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -11,9 +10,7 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import { useAuditLogs } from "../hooks/useAuditLogs";
-import type { AuditLogListItem, ListAuditLogsInput } from "../types/audits";
-import { getAuditLog } from "../api/auditsApi";
-import { useQuery } from "@tanstack/react-query";
+import type { BusinessAuditEventItem, ListAuditLogsInput } from "../types/audits";
 
 const { RangePicker } = DatePicker;
 const { Text, Paragraph } = Typography;
@@ -25,48 +22,13 @@ function formatDate(value: string, language: string) {
   }).format(new Date(value));
 }
 
-function prettyJson(value: string | null) {
-  if (!value) {
-    return "-";
-  }
-
-  try {
-    return JSON.stringify(JSON.parse(value), null, 2);
-  } catch {
-    return value;
-  }
-}
-
-function getStatusColor(status: string) {
-  if (status === "success") {
-    return "green";
-  }
-
-  if (status === "failed") {
-    return "red";
-  }
-
-  if (status === "denied") {
-    return "gold";
-  }
-
-  return "default";
-}
-
-function toApiSortOrder(order?: SortOrder): "asc" | "desc" | undefined {
-  if (order === "ascend") return "asc";
-  if (order === "descend") return "desc";
-  return undefined;
-}
-
 function areFiltersEqual(a: ListAuditLogsInput, b: ListAuditLogsInput) {
   return (
     a.module === b.module &&
-    a.action === b.action &&
+    a.eventType === b.eventType &&
     a.entityType === b.entityType &&
     a.entityId === b.entityId &&
     a.actor === b.actor &&
-    a.status === b.status &&
     a.from === b.from &&
     a.to === b.to &&
     a.page === b.page &&
@@ -86,34 +48,25 @@ export function AuditLogsPage() {
   const canReadAuditLogs = permissionState.hasPermission(permissions.auditLogs.read);
   const [form] = Form.useForm();
   const [filters, setFilters] = useState<ListAuditLogsInput>({ page: 1, pageSize: 10, sortBy: "occurredAt", sortOrder: "desc" });
-  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const auditLogsQuery = useAuditLogs(filters);
-  const auditDetailQuery = useQuery({
-    queryKey: ["admin", "audit-logs", "detail", selectedLogId],
-    enabled: Boolean(selectedLogId),
-    queryFn: ({ signal }) => getAuditLog(selectedLogId!, signal),
-    staleTime: 30_000,
-  });
   const watchedModule = Form.useWatch("module", form);
-  const watchedAction = Form.useWatch("action", form);
+  const watchedEventType = Form.useWatch("eventType", form);
   const watchedEntityType = Form.useWatch("entityType", form);
   const watchedEntityId = Form.useWatch("entityId", form);
   const watchedActor = Form.useWatch("actor", form);
-  const watchedStatus = Form.useWatch("status", form);
   const watchedRange = Form.useWatch("range", form);
 
   const debouncedFilters = useDebouncedValue(
     useMemo(
       () => ({
         module: watchedModule,
-        action: watchedAction,
+        eventType: watchedEventType,
         entityType: watchedEntityType,
         entityId: watchedEntityId,
         actor: watchedActor,
-        status: watchedStatus,
         range: watchedRange,
       }),
-      [watchedAction, watchedActor, watchedEntityId, watchedEntityType, watchedModule, watchedRange, watchedStatus],
+      [watchedActor, watchedEntityId, watchedEntityType, watchedEventType, watchedModule, watchedRange],
     ),
     400,
   );
@@ -146,11 +99,10 @@ export function AuditLogsPage() {
       const nextFilters: ListAuditLogsInput = {
         ...current,
         module: debouncedFilters.module || undefined,
-        action: debouncedFilters.action || undefined,
+        eventType: debouncedFilters.eventType || undefined,
         entityType: debouncedFilters.entityType || undefined,
         entityId: debouncedFilters.entityId || undefined,
         actor: debouncedFilters.actor || undefined,
-        status: debouncedFilters.status || undefined,
         from: debouncedFilters.range?.[0]?.startOf("day").toISOString(),
         to: debouncedFilters.range?.[1]?.endOf("day").toISOString(),
         page: 1,
@@ -164,23 +116,21 @@ export function AuditLogsPage() {
     });
   }, [debouncedFilters]);
 
-  const columns = useMemo<ColumnsType<AuditLogListItem>>(
+  const columns = useMemo<ColumnsType<BusinessAuditEventItem>>(
     () => [
       {
         title: t("audit_logs.columns.occurred_at"),
         dataIndex: "occurredAt",
-        sorter: true,
         render: (value: string) => formatDate(value, i18n.language),
       },
       {
         title: t("audit_logs.columns.module"),
         dataIndex: "module",
-        sorter: true,
       },
       {
-        title: t("audit_logs.columns.action"),
-        dataIndex: "action",
-        sorter: true,
+        title: t("audit_logs.columns.event_type"),
+        dataIndex: "eventType",
+        render: (value: string) => <Tag>{value}</Tag>,
       },
       {
         title: t("audit_logs.columns.entity"),
@@ -198,31 +148,16 @@ export function AuditLogsPage() {
         render: (_, item) => item.actorEmail || item.actorDisplayName || item.actorUserId || "-",
       },
       {
-        title: t("audit_logs.columns.status"),
-        dataIndex: "status",
-        sorter: true,
-        render: (status: string) => (
-          <Tag color={getStatusColor(status)}>{t(`audit_logs.status.${status}`, { defaultValue: status })}</Tag>
-        ),
+        title: t("audit_logs.columns.summary"),
+        dataIndex: "summary",
+        ellipsis: true,
+        render: (value: string | null) => value || "-",
       },
       {
-        title: t("audit_logs.columns.request"),
-        key: "request",
-        render: (_, item) => (
-          <Space direction="vertical" size={0}>
-            <Text>{item.httpMethod || "-"}</Text>
-            <Text type="secondary">{item.requestPath || "-"}</Text>
-          </Space>
-        ),
-      },
-      {
-        title: t("audit_logs.columns.actions"),
-        key: "actions",
-        render: (_, item) => (
-          <Button icon={<EyeOutlined />} onClick={() => setSelectedLogId(item.id)}>
-            {t("audit_logs.actions.view")}
-          </Button>
-        ),
+        title: t("audit_logs.columns.reason"),
+        dataIndex: "reason",
+        ellipsis: true,
+        render: (value: string | null) => value || "-",
       },
     ],
     [i18n.language, t]
@@ -230,20 +165,18 @@ export function AuditLogsPage() {
 
   const handleSearch = (values: {
     module?: string;
-    action?: string;
+    eventType?: string;
     entityType?: string;
     entityId?: string;
     actor?: string;
-    status?: string;
     range?: [dayjs.Dayjs, dayjs.Dayjs];
   }) => {
     setFilters({
       module: values.module || undefined,
-      action: values.action || undefined,
+      eventType: values.eventType || undefined,
       entityType: values.entityType || undefined,
       entityId: values.entityId || undefined,
       actor: values.actor || undefined,
-      status: values.status || undefined,
       from: values.range?.[0]?.startOf("day").toISOString(),
       to: values.range?.[1]?.endOf("day").toISOString(),
       page: 1,
@@ -306,8 +239,8 @@ export function AuditLogsPage() {
             <Form.Item name="module" label={t("audit_logs.filters.module")}>
               <Input placeholder={t("audit_logs.placeholders.module")} />
             </Form.Item>
-            <Form.Item name="action" label={t("audit_logs.filters.action")}>
-              <Input placeholder={t("audit_logs.placeholders.action")} />
+            <Form.Item name="eventType" label={t("audit_logs.filters.event_type")}>
+              <Input placeholder={t("audit_logs.placeholders.event_type")} />
             </Form.Item>
             <Form.Item name="entityType" label={t("audit_logs.filters.entity_type")}>
               <Input placeholder={t("audit_logs.placeholders.entity_type")} />
@@ -317,17 +250,6 @@ export function AuditLogsPage() {
             </Form.Item>
             <Form.Item name="actor" label={t("audit_logs.filters.actor")}>
               <Input placeholder={t("audit_logs.placeholders.actor")} />
-            </Form.Item>
-            <Form.Item name="status" label={t("audit_logs.filters.status")}>
-              <Select
-                allowClear
-                style={{ width: 160 }}
-                options={[
-                  { value: "success", label: t("audit_logs.status.success") },
-                  { value: "failed", label: t("audit_logs.status.failed") },
-                  { value: "denied", label: t("audit_logs.status.denied") },
-                ]}
-              />
             </Form.Item>
             <Form.Item name="range" label={t("audit_logs.filters.date_range")}>
               <RangePicker />
@@ -344,7 +266,7 @@ export function AuditLogsPage() {
         {auditLogsQuery.isLoading && (auditLogsQuery.data?.items?.length ?? 0) === 0 ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (
-          <Table<AuditLogListItem>
+          <Table<BusinessAuditEventItem>
             rowKey="id"
             columns={columns}
             dataSource={canReadAuditLogs ? (auditLogsQuery.data?.items ?? []) : []}
@@ -366,162 +288,9 @@ export function AuditLogsPage() {
             locale={{
               emptyText: auditLogsQuery.isError ? t("audit_logs.empty_error") : t("audit_logs.empty"),
             }}
-            onChange={(pagination, _, sorter) => {
-              const sort = sorter as SorterResult<AuditLogListItem>;
-              setFilters((current) => ({
-                ...current,
-                page: pagination.current ?? current.page,
-                pageSize: pagination.pageSize ?? current.pageSize,
-                sortBy: typeof sort.field === "string" ? sort.field : current.sortBy,
-                sortOrder: toApiSortOrder(sort.order) ?? current.sortOrder,
-              }));
-            }}
           />
         )}
       </Card>
-
-      <Modal
-        open={selectedLogId !== null}
-        title={t("audit_logs.detail.title")}
-        onCancel={() => setSelectedLogId(null)}
-        footer={[
-          <Button key="close" onClick={() => setSelectedLogId(null)}>
-            {t("audit_logs.actions.close")}
-          </Button>,
-        ]}
-        width={1000}
-        styles={{ body: { padding: "20px 0" } }}
-      >
-        {auditDetailQuery.isLoading && !auditDetailQuery.data ? (
-          <Skeleton active paragraph={{ rows: 6 }} />
-        ) : auditDetailQuery.data ? (
-          <Space direction="vertical" size={24} style={{ width: "100%" }}>
-            {/* Error Message Alert if failed */}
-            {auditDetailQuery.data.status !== "success" && (auditDetailQuery.data.errorCode || auditDetailQuery.data.errorMessage) && (
-              <Alert
-                type="error"
-                showIcon
-                message={auditDetailQuery.data.errorCode || t("audit_logs.status.failed")}
-                description={auditDetailQuery.data.errorMessage}
-                style={{ margin: "0 24px" }}
-              />
-            )}
-
-            <div style={{ padding: "0 24px" }}>
-              <Typography.Title level={5} style={{ marginBottom: 16 }}>
-                <HistoryOutlined style={{ marginRight: 8 }} />
-                {t("audit_logs.detail.summary")}
-              </Typography.Title>
-              <Card size="small" variant="outlined" style={{ background: token.colorFillAlter }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 32px" }}>
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.occurred_at")}</Text>
-                    <Text strong>{formatDate(auditDetailQuery.data.occurredAt, i18n.language)}</Text>
-                  </Space>
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.status")}</Text>
-                    <Tag color={getStatusColor(auditDetailQuery.data.status)} style={{ margin: 0 }}>
-                      {t(`audit_logs.status.${auditDetailQuery.data.status}`, { defaultValue: auditDetailQuery.data.status })}
-                    </Tag>
-                  </Space>
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.module")}</Text>
-                    <Text>{auditDetailQuery.data.module}</Text>
-                  </Space>
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.action")}</Text>
-                    <Tag>{auditDetailQuery.data.action.toUpperCase()}</Tag>
-                  </Space>
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.entity")}</Text>
-                    <Text>{`${auditDetailQuery.data.entityType} (${auditDetailQuery.data.entityId || "-"})`}</Text>
-                  </Space>
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{t("audit_logs.columns.actor")}</Text>
-                    <Text>{auditDetailQuery.data.actorEmail || auditDetailQuery.data.actorDisplayName || auditDetailQuery.data.actorUserId || "-"}</Text>
-                  </Space>
-                </div>
-              </Card>
-            </div>
-
-            <div style={{ padding: "0 24px" }}>
-              <Typography.Title level={5} style={{ marginBottom: 16 }}>
-                <SearchOutlined style={{ marginRight: 8 }} />
-                {t("audit_logs.detail.metadata")}
-              </Typography.Title>
-              <Card size="small" variant="outlined">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.http_method")}</Text>
-                    <Text style={{ fontSize: 13 }}>{auditDetailQuery.data.httpMethod || "-"}</Text>
-                  </Space>
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.status_code")}</Text>
-                    <Text style={{ fontSize: 13 }}>{auditDetailQuery.data.statusCode || "-"}</Text>
-                  </Space>
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.ip_address")}</Text>
-                    <Text style={{ fontSize: 13 }}>{auditDetailQuery.data.ipAddress || "-"}</Text>
-                  </Space>
-                  <div style={{ gridColumn: "span 3" }}>
-                    <Space direction="vertical" size={0} style={{ width: "100%" }}>
-                      <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.request_id")}</Text>
-                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{auditDetailQuery.data.requestId || "-"}</Text>
-                    </Space>
-                  </div>
-                  <div style={{ gridColumn: "span 3" }}>
-                    <Space direction="vertical" size={0} style={{ width: "100%" }}>
-                      <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.trace_id")}</Text>
-                      <Text copyable style={{ fontSize: 12, fontFamily: "monospace" }}>{auditDetailQuery.data.traceId || "-"}</Text>
-                    </Space>
-                  </div>
-                  <div style={{ gridColumn: "span 3" }}>
-                    <Space direction="vertical" size={0} style={{ width: "100%" }}>
-                      <Text type="secondary" style={{ fontSize: 11 }}>{t("audit_logs.detail.user_agent")}</Text>
-                      <Text style={{ fontSize: 12 }}>{auditDetailQuery.data.userAgent || "-"}</Text>
-                    </Space>
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            <div style={{ padding: "0 24px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-                <div>
-                  <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.before")}</Typography.Title>
-                  <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
-                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(auditDetailQuery.data.beforeJson)}</pre>
-                  </Card>
-                </div>
-                <div>
-                  <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.after")}</Typography.Title>
-                  <Card size="small" style={{ maxHeight: 300, overflow: "auto", background: token.colorFillTertiary, border: `1px solid ${token.colorBorderSecondary}` }}>
-                    <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(auditDetailQuery.data.afterJson)}</pre>
-                  </Card>
-                </div>
-              </div>
-            </div>
-
-            {auditDetailQuery.data.changesJson && auditDetailQuery.data.changesJson !== "{}" && (
-              <div style={{ padding: "0 24px" }}>
-                <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.changes")}</Typography.Title>
-                <Card size="small" style={{ background: token.colorWarningBg, border: `1px solid ${token.colorWarningBorder}` }}>
-                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(auditDetailQuery.data.changesJson)}</pre>
-                </Card>
-              </div>
-            )}
-
-            {auditDetailQuery.data.metadataJson && auditDetailQuery.data.metadataJson !== "{}" && (
-              <div style={{ padding: "0 24px" }}>
-                <Typography.Title level={5} style={{ marginBottom: 8 }}>{t("audit_logs.detail.metadata")}</Typography.Title>
-                <Card size="small" style={{ background: token.colorInfoBg, border: `1px solid ${token.colorInfoBorder}` }}>
-                  <pre style={{ margin: 0, fontSize: 12 }}>{prettyJson(auditDetailQuery.data.metadataJson)}</pre>
-                </Card>
-              </div>
-            )}
-          </Space>
-        ) : null}
-      </Modal>
     </Space>
   );
 }

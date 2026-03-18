@@ -1611,65 +1611,40 @@
     }
   },
   "audit_logs": {
-    "title": "Audit Logs",
-    "description": "Review audit evidence with change snapshots, request context, and compliance-grade trace details.",
-    "empty": "No audit logs found.",
-    "empty_error": "Unable to load audit logs.",
+    "title": "Business Audit Events",
+    "description": "Track who created, updated, or deleted business records with clear summaries and reasons.",
+    "empty": "No audit events found.",
+    "empty_error": "Unable to load audit events.",
     "columns": {
       "occurred_at": "Occurred At",
       "module": "Module",
-      "action": "Action",
+      "event_type": "Event Type",
       "entity": "Entity",
       "actor": "Actor",
-      "status": "Status",
-      "request": "Request Context",
-      "actions": "Actions"
+      "summary": "Summary",
+      "reason": "Reason"
     },
     "filters": {
       "module": "Module",
-      "action": "Action",
+      "event_type": "Event Type",
       "entity_type": "Entity Type",
       "entity_id": "Entity ID",
       "actor": "Actor",
-      "status": "Status",
       "date_range": "Date Range"
     },
     "placeholders": {
-      "module": "e.g. users",
-      "action": "e.g. update",
-      "entity_type": "e.g. user",
+      "module": "e.g. documents",
+      "event_type": "e.g. updated",
+      "entity_type": "e.g. document_template",
       "entity_id": "Search by entity reference",
       "actor": "User email or display name"
     },
     "actions": {
       "search": "Search",
-      "reset": "Reset",
-      "view": "View",
-      "close": "Close"
-    },
-    "detail": {
-      "title": "Audit Details",
-      "summary": "Audit Summary",
-      "before": "Before",
-      "after": "After",
-      "changes": "Changes",
-      "metadata": "Metadata",
-      "error_code": "Error Code",
-      "error_message": "Error Message",
-      "request_id": "Request ID",
-      "trace_id": "Trace ID",
-      "ip_address": "IP Address",
-      "user_agent": "User Agent",
-      "http_method": "HTTP Method",
-      "status_code": "Status Code"
-    },
-    "status": {
-      "success": "Success",
-      "failed": "Failed",
-      "denied": "Denied"
+      "reset": "Reset"
     },
     "notifications": {
-      "load_failed_title": "Unable to load audit logs"
+      "load_failed_title": "Unable to load audit events"
     }
   }
 }

@@ -1611,65 +1611,40 @@
     }
   },
   "audit_logs": {
-    "title": "Audit Logs",
-    "description": "ตรวจสอบบันทึกสำหรับการตรวจประเมินย้อนหลัง พร้อม snapshot การเปลี่ยนแปลง บริบทคำขอ และรายละเอียดเพื่อการกำกับดูแล",
-    "empty": "ยังไม่มีข้อมูล Audit Logs",
-    "empty_error": "ไม่สามารถโหลดข้อมูล Audit Logs ได้",
+    "title": "บันทึกเหตุการณ์เชิงธุรกิจ",
+    "description": "ติดตามว่าใครเพิ่ม แก้ไข หรือยกเลิกข้อมูล พร้อมสรุปและเหตุผลที่ตรวจสอบได้",
+    "empty": "ยังไม่มีข้อมูลเหตุการณ์",
+    "empty_error": "ไม่สามารถโหลดข้อมูลเหตุการณ์ได้",
     "columns": {
       "occurred_at": "วันเวลา",
       "module": "โมดูล",
-      "action": "การกระทำ",
+      "event_type": "ประเภทเหตุการณ์",
       "entity": "รายการที่เกี่ยวข้อง",
       "actor": "ผู้กระทำ",
-      "status": "ผลลัพธ์",
-      "request": "บริบทคำขอ",
-      "actions": "การจัดการ"
+      "summary": "สรุป",
+      "reason": "เหตุผล"
     },
     "filters": {
       "module": "โมดูล",
-      "action": "การกระทำ",
+      "event_type": "ประเภทเหตุการณ์",
       "entity_type": "ประเภทข้อมูล",
       "entity_id": "รหัสข้อมูล",
       "actor": "ผู้กระทำ",
-      "status": "ผลลัพธ์",
       "date_range": "ช่วงเวลา"
     },
     "placeholders": {
-      "module": "เช่น users",
-      "action": "เช่น update",
-      "entity_type": "เช่น user",
+      "module": "เช่น documents",
+      "event_type": "เช่น updated",
+      "entity_type": "เช่น document_template",
       "entity_id": "ค้นหาด้วยรหัสอ้างอิง",
       "actor": "อีเมลหรือชื่อที่แสดงของผู้ใช้"
     },
     "actions": {
       "search": "ค้นหา",
-      "reset": "ล้างค่า",
-      "view": "ดู",
-      "close": "ปิด"
-    },
-    "detail": {
-      "title": "รายละเอียดการตรวจสอบ",
-      "summary": "สรุปการตรวจสอบ",
-      "before": "ข้อมูลก่อนเปลี่ยน",
-      "after": "ข้อมูลหลังเปลี่ยน",
-      "changes": "รายการเปลี่ยนแปลง",
-      "metadata": "ข้อมูลเพิ่มเติม",
-      "error_code": "รหัสข้อผิดพลาด",
-      "error_message": "ข้อความแสดงข้อผิดพลาด",
-      "request_id": "รหัสคำขอ (Request ID)",
-      "trace_id": "รหัสติดตาม (Trace ID)",
-      "ip_address": "ที่อยู่ IP",
-      "user_agent": "User Agent",
-      "http_method": "วิธีการ HTTP",
-      "status_code": "รหัสสถานะ"
-    },
-    "status": {
-      "success": "สำเร็จ",
-      "failed": "ล้มเหลว",
-      "denied": "ถูกปฏิเสธ"
+      "reset": "ล้างค่า"
     },
     "notifications": {
-      "load_failed_title": "ไม่สามารถโหลด Audit Logs ได้"
+      "load_failed_title": "ไม่สามารถโหลดข้อมูลเหตุการณ์ได้"
     }
   }
 }

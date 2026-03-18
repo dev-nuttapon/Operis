@@ -18,15 +18,13 @@ describe("listAuditLogs", () => {
     await listAuditLogs({
       module: "users",
       actor: "admin@example.com",
-      status: "success",
-      sortBy: "occurredAt",
-      sortOrder: "desc",
+      eventType: "created",
       page: 2,
       pageSize: 25,
     });
 
     expect(apiRequest).toHaveBeenCalledWith(
-      "/api/v1/audit-logs?module=users&actor=admin%40example.com&status=success&sortBy=occurredAt&sortOrder=desc&page=2&pageSize=25",
+      "/api/v1/audit-events?module=users&eventType=created&actor=admin%40example.com&page=2&pageSize=25",
       { signal: undefined },
     );
   });
