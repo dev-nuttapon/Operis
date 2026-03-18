@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Typography, Card, Button, Space, Divider, Table, Alert, Dropdown, Modal, Form, Input } from "antd";
+import { Typography, Card, Button, Space, Divider, Table, Alert, Dropdown, Modal, Form, Input, Tag } from "antd";
 import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, MoreOutlined, FileTextOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +33,16 @@ export function DocumentDashboardPage() {
   const canPublishDocuments = permissionState.hasPermission(permissions.documents.publish);
   const canDeleteDrafts = permissionState.hasPermission(permissions.documents.deleteDraft);
   const canOperateDocuments = canUploadDocuments || canManageVersions || canPublishDocuments || canDeleteDrafts;
+  const resolveDocumentStatus = (item: DocumentListItemView) => {
+    const revisionCount = item.revision ?? 0;
+    if (revisionCount === 0) {
+      return { key: "empty", label: tr("documents.document_status.empty"), color: "default" as const };
+    }
+    if (item.publishedVersionCode) {
+      return { key: "published", label: tr("documents.document_status.published"), color: "green" as const };
+    }
+    return { key: "unpublished", label: tr("documents.document_status.unpublished"), color: "gold" as const };
+  };
   const latestDocumentColumns: ColumnsType<DocumentListItemView> = [
     {
       title: tr("documents.columns.document_name"),
@@ -67,6 +77,15 @@ export function DocumentDashboardPage() {
       key: "publishedRevision",
       align: "center",
       render: (value: number | null) => (value ? `r${value}` : "-"),
+    },
+    {
+      title: tr("documents.columns.status"),
+      key: "status",
+      align: "center",
+      render: (_, item) => {
+        const status = resolveDocumentStatus(item);
+        return <Tag color={status.color}>{status.label}</Tag>;
+      },
     },
     {
       title: tr("documents.columns.actions"),

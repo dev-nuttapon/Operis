@@ -1335,6 +1335,11 @@
       "published": "Published",
       "draft": "Draft"
     },
+    "document_status": {
+      "empty": "No file",
+      "unpublished": "Unpublished",
+      "published": "Published"
+    },
     "version_actions": {
       "delete": {
         "label": "Delete",
@@ -1365,7 +1370,13 @@
         "action": "Action",
         "actor": "Actor",
         "status": "Status",
-        "reason": "Reason"
+        "reason": "Reason",
+        "summary": "Summary",
+        "source": "Source",
+        "status_code": "Status code",
+        "before": "Before",
+        "after": "After",
+        "metadata": "Metadata"
       },
       "status": {
         "success": "Success",
@@ -1417,7 +1428,7 @@
         "label": "Upload file"
       },
       "publish_list": {
-        "label": "Publish"
+        "label": "Document versions"
       },
       "history": {
         "label": "History"

@@ -1335,6 +1335,11 @@
       "published": "ประกาศใช้งาน",
       "draft": "พร้อม"
     },
+    "document_status": {
+      "empty": "ยังไม่มีเอกสาร",
+      "unpublished": "ยังไม่ประกาศใช้",
+      "published": "ประกาศใช้งาน"
+    },
     "version_actions": {
       "delete": {
         "label": "ลบ",
@@ -1365,7 +1370,13 @@
         "action": "การกระทำ",
         "actor": "ผู้ดำเนินการ",
         "status": "สถานะ",
-        "reason": "เหตุผล"
+        "reason": "เหตุผล",
+        "summary": "สรุป",
+        "source": "แหล่งที่มา",
+        "status_code": "รหัสสถานะ",
+        "before": "ก่อนหน้า",
+        "after": "หลังจาก",
+        "metadata": "ข้อมูลประกอบ"
       },
       "status": {
         "success": "สำเร็จ",
@@ -1417,7 +1428,7 @@
         "label": "อัปโหลดไฟล์"
       },
       "publish_list": {
-        "label": "ประกาศใช้"
+        "label": "เวอร์ชันเอกสาร"
       },
       "history": {
         "label": "ประวัติ"

@@ -76,7 +76,37 @@ export function DocumentHistoryPage() {
       key: "reason",
       render: (value: string | null) => value ?? "-",
     },
+    {
+      title: tr("documents.history.columns.summary"),
+      dataIndex: "summary",
+      key: "summary",
+      render: (value: string | null) => value ?? "-",
+    },
+    {
+      title: tr("documents.history.columns.source"),
+      dataIndex: "source",
+      key: "source",
+      render: (value: string | null) => value ?? "-",
+    },
+    {
+      title: tr("documents.history.columns.status_code"),
+      dataIndex: "statusCode",
+      key: "statusCode",
+      align: "center",
+      render: (value: number | null) => (value ? value : "-"),
+    },
   ];
+
+  const parseJson = (value: string | null) => {
+    if (!value) {
+      return null;
+    }
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  };
 
   return (
     <Card bordered={false} style={{ borderRadius: 16 }}>
@@ -99,7 +129,7 @@ export function DocumentHistoryPage() {
       {!canReadHistory ? (
         <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
       ) : (
-        <Table<ActivityLogItem>
+        <Table<DocumentHistoryItem>
           rowKey="id"
           loading={historyQuery.isLoading}
           columns={historyColumns}
@@ -107,6 +137,36 @@ export function DocumentHistoryPage() {
           pagination={false}
           scroll={{ x: "max-content" }}
           locale={{ emptyText: historyQuery.isError ? tr("documents.load_failed") : tr("documents.history.empty") }}
+          expandable={{
+            expandedRowRender: (record) => {
+              const before = parseJson(record.beforeJson);
+              const after = parseJson(record.afterJson);
+              const metadata = parseJson(record.metadataJson);
+              return (
+                <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                  <div>
+                    <Text strong>{tr("documents.history.columns.before")}</Text>
+                    <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                      {before ? JSON.stringify(before, null, 2) : "-"}
+                    </pre>
+                  </div>
+                  <div>
+                    <Text strong>{tr("documents.history.columns.after")}</Text>
+                    <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                      {after ? JSON.stringify(after, null, 2) : "-"}
+                    </pre>
+                  </div>
+                  <div>
+                    <Text strong>{tr("documents.history.columns.metadata")}</Text>
+                    <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                      {metadata ? JSON.stringify(metadata, null, 2) : "-"}
+                    </pre>
+                  </div>
+                </Space>
+              );
+            },
+            rowExpandable: (record) => Boolean(record.beforeJson || record.afterJson || record.metadataJson),
+          }}
         />
       )}
     </Card>
