@@ -192,7 +192,7 @@ export function DocumentVersionsPage() {
         loading={versionsQuery.isLoading}
         columns={columns}
         dataSource={versionsQuery.data ?? []}
-        pagination={false}
+        pagination={{ pageSize: 10, pageSizeOptions: [10, 25, 50, 100], showSizeChanger: true }}
         scroll={{ x: "max-content" }}
         locale={{ emptyText: versionsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
       />

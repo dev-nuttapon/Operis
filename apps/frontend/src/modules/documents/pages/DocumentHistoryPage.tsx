@@ -108,7 +108,7 @@ export function DocumentHistoryPage() {
           loading={historyQuery.isLoading}
           columns={historyColumns}
           dataSource={historyItems}
-          pagination={false}
+          pagination={{ pageSize: 10, pageSizeOptions: [10, 25, 50, 100], showSizeChanger: true }}
           scroll={{ x: "max-content" }}
           locale={{ emptyText: historyQuery.isError ? tr("documents.load_failed") : tr("documents.history.empty") }}
           expandable={{

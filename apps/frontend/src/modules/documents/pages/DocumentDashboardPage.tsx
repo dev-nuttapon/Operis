@@ -216,7 +216,7 @@ export function DocumentDashboardPage() {
         loading={documentsQuery.isLoading}
         columns={latestDocumentColumns}
         dataSource={canReadDocuments ? (documentsQuery.data ?? []) : []}
-        pagination={false}
+        pagination={{ pageSize: 10, pageSizeOptions: [10, 25, 50, 100], showSizeChanger: true }}
         scroll={{ x: "max-content" }}
         locale={{ emptyText: !canReadDocuments ? tr("documents.read_only_title") : documentsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
         style={{ marginBottom: 24 }}
