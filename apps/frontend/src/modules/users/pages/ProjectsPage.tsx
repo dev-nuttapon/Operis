@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
-import { App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
-import type { FormInstance } from "antd";
+import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -13,134 +11,14 @@ import { usePermissions } from "../../../shared/authz/usePermissions";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectTemplates } from "../hooks/useProjectTemplates";
-import type { CreateProjectInput, Project, UpdateProjectInput, User } from "../types/users";
-
-type ProjectFormValues = {
-  code: string;
-  name: string;
-  projectType: string;
-  ownerUserId?: string;
-  sponsorUserId?: string;
-  methodology?: string;
-  phase?: string;
-  status: string;
-  statusReason?: string;
-  plannedPeriod?: [dayjs.Dayjs | null, dayjs.Dayjs | null];
-  actualPeriod?: [dayjs.Dayjs | null, dayjs.Dayjs | null];
-};
+import type { Project, UpdateProjectInput, User } from "../types/users";
+import { ProjectForm, normalizeProjectPayload, toInitialValues, type ProjectFormValues } from "../components/projects/ProjectForm";
 
 function toUserLabel(user: User) {
-  return user.keycloak?.email ?? user.keycloak?.username ?? user.id;
-}
-
-function normalizeProjectPayload(values: ProjectFormValues): Omit<CreateProjectInput, "id"> {
-  return {
-    code: values.code,
-    name: values.name,
-    projectType: values.projectType,
-    ownerUserId: values.ownerUserId,
-    sponsorUserId: values.sponsorUserId,
-    methodology: values.methodology,
-    phase: values.phase,
-    status: values.status,
-    statusReason: values.statusReason,
-    plannedStartAt: values.plannedPeriod?.[0]?.startOf("day").toISOString(),
-    plannedEndAt: values.plannedPeriod?.[1]?.endOf("day").toISOString(),
-    startAt: values.actualPeriod?.[0]?.startOf("day").toISOString(),
-    endAt: values.actualPeriod?.[1]?.endOf("day").toISOString(),
-  };
-}
-
-function toInitialValues(project: Project): ProjectFormValues {
-  return {
-    code: project.code,
-    name: project.name,
-    projectType: project.projectType,
-    ownerUserId: project.ownerUserId ?? undefined,
-    sponsorUserId: project.sponsorUserId ?? undefined,
-    methodology: project.methodology ?? undefined,
-    phase: project.phase ?? undefined,
-    status: project.status,
-    statusReason: project.statusReason ?? undefined,
-    plannedPeriod:
-      project.plannedStartAt || project.plannedEndAt
-        ? [project.plannedStartAt ? dayjs(project.plannedStartAt) : null, project.plannedEndAt ? dayjs(project.plannedEndAt) : null]
-        : undefined,
-    actualPeriod:
-      project.startAt || project.endAt
-        ? [project.startAt ? dayjs(project.startAt) : null, project.endAt ? dayjs(project.endAt) : null]
-        : undefined,
-  };
-}
-
-function ProjectForm({
-  form,
-  t,
-  userOptions,
-  projectTypeOptions,
-}: {
-  form: FormInstance<ProjectFormValues>;
-  t: ReturnType<typeof useTranslation>["t"];
-  userOptions: { label: string; value: string }[];
-  projectTypeOptions: { label: string; value: string }[];
-}) {
-  const projectStatusOptions = [
-    { value: "planned", label: t("projects.options.status.planned") },
-    { value: "active", label: t("projects.options.status.active") },
-    { value: "onhold", label: t("projects.options.status.on_hold") },
-    { value: "completed", label: t("projects.options.status.completed") },
-    { value: "cancelled", label: t("projects.options.status.cancelled") },
-  ];
-  const methodologyOptions = [
-    { value: "Agile", label: t("projects.options.methodology.agile") },
-    { value: "Waterfall", label: t("projects.options.methodology.waterfall") },
-    { value: "Hybrid", label: t("projects.options.methodology.hybrid") },
-  ];
-  const phaseOptions = [
-    { value: "Initiation", label: t("projects.options.phase.initiation") },
-    { value: "Planning", label: t("projects.options.phase.planning") },
-    { value: "Execution", label: t("projects.options.phase.execution") },
-    { value: "Monitoring", label: t("projects.options.phase.monitoring") },
-    { value: "Closure", label: t("projects.options.phase.closure") },
-  ];
-
-  return (
-    <Form form={form} layout="vertical">
-      <Form.Item name="code" label={t("projects.fields.code")} rules={[{ required: true }]}> 
-        <Input placeholder={t("projects.placeholders.code")} />
-      </Form.Item>
-      <Form.Item name="name" label={t("projects.fields.name")} rules={[{ required: true }]}> 
-        <Input placeholder={t("projects.placeholders.name")} />
-      </Form.Item>
-      <Form.Item name="projectType" label={t("projects.fields.project_type")} initialValue="Internal" rules={[{ required: true }]}> 
-        <Select options={projectTypeOptions} />
-      </Form.Item>
-      <Form.Item name="ownerUserId" label={t("projects.fields.owner")}> 
-        <Select allowClear showSearch optionFilterProp="label" options={userOptions} placeholder={t("projects.placeholders.owner")} />
-      </Form.Item>
-      <Form.Item name="sponsorUserId" label={t("projects.fields.sponsor")}> 
-        <Select allowClear showSearch optionFilterProp="label" options={userOptions} placeholder={t("projects.placeholders.sponsor")} />
-      </Form.Item>
-      <Form.Item name="methodology" label={t("projects.fields.methodology")}> 
-        <Select allowClear options={methodologyOptions} placeholder={t("projects.placeholders.methodology")} />
-      </Form.Item>
-      <Form.Item name="phase" label={t("projects.fields.phase")}> 
-        <Select allowClear options={phaseOptions} placeholder={t("projects.placeholders.phase")} />
-      </Form.Item>
-      <Form.Item name="status" label={t("projects.fields.status")} initialValue="planned" rules={[{ required: true }]}> 
-        <Select options={projectStatusOptions} />
-      </Form.Item>
-      <Form.Item name="statusReason" label={t("projects.fields.status_reason")}> 
-        <Input.TextArea rows={3} placeholder={t("projects.placeholders.status_reason")} />
-      </Form.Item>
-      <Form.Item name="plannedPeriod" label={t("projects.fields.planned_period")}> 
-        <DatePicker.RangePicker style={{ width: "100%" }} />
-      </Form.Item>
-      <Form.Item name="actualPeriod" label={t("projects.fields.actual_period")}> 
-        <DatePicker.RangePicker style={{ width: "100%" }} />
-      </Form.Item>
-    </Form>
-  );
+  const displayName = [user.keycloak?.firstName, user.keycloak?.lastName].filter(Boolean).join(" ").trim();
+  const base = displayName || user.keycloak?.email || user.keycloak?.username || user.id;
+  const jobTitle = user.jobTitleName?.trim();
+  return jobTitle ? `${base} (${jobTitle})` : base;
 }
 
 export function ProjectsPage() {
@@ -170,14 +48,12 @@ export function ProjectsPage() {
     sortBy: "createdAt",
     sortOrder: "desc" as "asc" | "desc",
   });
-  const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
-  const [createForm] = Form.useForm<ProjectFormValues>();
   const [editForm] = Form.useForm<ProjectFormValues>();
   const [deleteForm] = Form.useForm();
 
-  const { projectsQuery, projectMemberUsersQuery, createProjectMutation, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
+  const { projectsQuery, projectMemberUsersQuery, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
     projectsEnabled: canViewProjectList,
     projectMemberUsersEnabled: canManageProjects,
     projects: { ...paging, assignedOnly: isMyProjectsPage && !canReadProjects },
@@ -302,17 +178,6 @@ export function ProjectsPage() {
     [canManageProjects, canViewProjectList, deleteForm, editForm, i18n.language, navigate, projectStatusLabel, t],
   );
 
-  const submitCreate = (values: ProjectFormValues) => {
-    createProjectMutation.mutate(normalizeProjectPayload(values), {
-      onSuccess: () => {
-        setCreateOpen(false);
-        createForm.resetFields();
-        notification.success({ message: t("projects.messages.created", { name: values.name }) });
-      },
-      onError: (error) => handleError(t("projects.messages.create_failed"), error),
-    });
-  };
-
   const submitEdit = (values: ProjectFormValues) => {
     if (!editTarget) {
       return;
@@ -364,7 +229,12 @@ export function ProjectsPage() {
                 onSearch={(value) => setPaging((current) => ({ ...current, page: 1, search: value }))}
               />
               {canManageProjects ? (
-                <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  size="large"
+                  onClick={() => navigate(isMyProjectsPage ? "/app/projects/new" : "/app/admin/projects/new", { state: { from: location.pathname } })}
+                >
                   {t("projects.create_action")}
                 </Button>
               ) : null}
@@ -401,22 +271,6 @@ export function ProjectsPage() {
           </>
         )}
       </Card>
-
-      <Modal
-        title={t("projects.create_modal_title")}
-        open={createOpen && canManageProjects}
-        onCancel={() => {
-          setCreateOpen(false);
-          createForm.resetFields();
-        }}
-        onOk={() => {
-          createForm.validateFields().then(submitCreate).catch(() => undefined);
-        }}
-        confirmLoading={createProjectMutation.isPending}
-        width={720}
-      >
-        <ProjectForm form={createForm} t={t} userOptions={userOptions} projectTypeOptions={projectTypeOptions} />
-      </Modal>
 
       <Modal
         title={editTarget ? t("projects.edit_modal_title_with_name", { name: editTarget.name }) : t("projects.edit_modal_title")}

@@ -37,6 +37,9 @@ const RegistrationPasswordSetupPage = lazy(() =>
 const ProjectsPage = lazy(() =>
   import("../modules/users/pages/ProjectsPage").then((module) => ({ default: module.ProjectsPage }))
 );
+const ProjectCreatePage = lazy(() =>
+  import("../modules/users/pages/ProjectCreatePage").then((module) => ({ default: module.ProjectCreatePage }))
+);
 const ProjectRolesPage = lazy(() =>
   import("../modules/users/pages/ProjectRolesPage").then((module) => ({ default: module.ProjectRolesPage }))
 );
@@ -96,6 +99,7 @@ export function AppRouter() {
               <Route path="documents/:documentId/history" element={<DocumentHistoryPage />} />
               <Route path="documents/:documentId/versions/new" element={<DocumentVersionUploadPage />} />
               <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/new" element={<ProjectCreatePage />} />
               <Route path="workflows" element={<WorkflowDefinitionsPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
@@ -103,6 +107,7 @@ export function AppRouter() {
               <Route path="admin/master/departments" element={<AdminUsersPage />} />
               <Route path="admin/master/positions" element={<AdminUsersPage />} />
               <Route path="admin/projects" element={<ProjectsPage />} />
+              <Route path="admin/projects/new" element={<ProjectCreatePage />} />
               <Route path="admin/project-roles" element={<ProjectRolesPage />} />
               <Route path="admin/project-members" element={<ProjectMembersPage />} />
               <Route path="admin/project-org-chart" element={<ProjectOrgChartPage />} />
