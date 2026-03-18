@@ -159,6 +159,15 @@ public sealed class UsersModule : IModule
         group.MapGet("/projects/{projectId:guid}/evidence", GetProjectEvidenceAsync)
             .WithName("Users_GetProjectEvidence");
 
+        group.MapGet("/projects/{projectId:guid}/evidence/team-register", ListProjectEvidenceTeamRegisterAsync)
+            .WithName("Users_ListProjectEvidenceTeamRegister");
+
+        group.MapGet("/projects/{projectId:guid}/evidence/role-responsibilities", ListProjectEvidenceRoleResponsibilitiesAsync)
+            .WithName("Users_ListProjectEvidenceRoleResponsibilities");
+
+        group.MapGet("/projects/{projectId:guid}/evidence/assignment-history", ListProjectEvidenceAssignmentHistoryAsync)
+            .WithName("Users_ListProjectEvidenceAssignmentHistory");
+
         group.MapGet("/projects/{projectId:guid}/evidence/export", ExportProjectEvidenceAsync)
             .WithName("Users_ExportProjectEvidence");
 
@@ -898,6 +907,60 @@ public sealed class UsersModule : IModule
         }
 
         var result = await queries.GetProjectEvidenceAsync(projectId, cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> ListProjectEvidenceTeamRegisterAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid projectId,
+        IProjectQueries queries,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, projectId, cancellationToken))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListProjectTeamRegisterAsync(new ProjectEvidenceListQuery(projectId, page, pageSize), cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> ListProjectEvidenceRoleResponsibilitiesAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid projectId,
+        IProjectQueries queries,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, projectId, cancellationToken))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListProjectRoleResponsibilitiesAsync(new ProjectEvidenceListQuery(projectId, page, pageSize), cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> ListProjectEvidenceAssignmentHistoryAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid projectId,
+        IProjectQueries queries,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, projectId, cancellationToken))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListProjectAssignmentHistoryAsync(new ProjectEvidenceListQuery(projectId, page, pageSize), cancellationToken);
         return result is null ? NotFoundWithCode() : Results.Ok(result);
     }
 

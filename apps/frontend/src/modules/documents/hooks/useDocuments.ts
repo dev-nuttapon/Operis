@@ -1,10 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createDocument, createDocumentVersion, deleteDocument, deleteDocumentVersion, listDocumentHistory, listDocumentVersions, listDocuments, publishDocumentVersion, unpublishDocumentVersion, updateDocument } from "../api/documentsApi";
+import {
+  createDocument,
+  createDocumentVersion,
+  deleteDocument,
+  deleteDocumentVersion,
+  listDocumentHistory,
+  listDocumentVersions,
+  listDocuments,
+  publishDocumentVersion,
+  unpublishDocumentVersion,
+  updateDocument,
+  type DocumentHistoryListInput,
+  type DocumentListInput,
+  type DocumentVersionListInput,
+} from "../api/documentsApi";
 
-export function useDocuments(enabled = true) {
+export function useDocuments(input?: DocumentListInput, enabled = true) {
   return useQuery({
-    queryKey: ["documents", "list"],
-    queryFn: ({ signal }) => listDocuments(signal),
+    queryKey: ["documents", "list", input],
+    queryFn: ({ signal }) => listDocuments(input, signal),
     staleTime: 15_000,
     enabled,
   });
@@ -33,18 +47,18 @@ export function useCreateDocumentVersion() {
   });
 }
 
-export function useDocumentVersions(documentId: string | null, enabled = true) {
+export function useDocumentVersions(documentId: string | null, input?: DocumentVersionListInput, enabled = true) {
   return useQuery({
-    queryKey: ["documents", "versions", documentId],
-    queryFn: ({ signal }) => (documentId ? listDocumentVersions(documentId, signal) : Promise.resolve([])),
+    queryKey: ["documents", "versions", documentId, input],
+    queryFn: ({ signal }) => (documentId ? listDocumentVersions(documentId, input, signal) : Promise.resolve({ items: [], total: 0, page: 1, pageSize: 10 })),
     enabled: enabled && Boolean(documentId),
   });
 }
 
-export function useDocumentHistory(documentId: string | null, enabled = true) {
+export function useDocumentHistory(documentId: string | null, input?: DocumentHistoryListInput, enabled = true) {
   return useQuery({
-    queryKey: ["documents", "history", documentId],
-    queryFn: ({ signal }) => (documentId ? listDocumentHistory(documentId, signal) : Promise.resolve([])),
+    queryKey: ["documents", "history", documentId, input],
+    queryFn: ({ signal }) => (documentId ? listDocumentHistory(documentId, input, signal) : Promise.resolve({ items: [], total: 0, page: 1, pageSize: 10 })),
     enabled: enabled && Boolean(documentId),
   });
 }

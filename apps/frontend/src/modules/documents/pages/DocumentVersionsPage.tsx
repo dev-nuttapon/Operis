@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Button, Card, Divider, Dropdown, Modal, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined } from "@ant-design/icons";
@@ -29,7 +29,8 @@ export function DocumentVersionsPage() {
   const canManageVersions = permissionState.hasPermission(permissions.documents.manageVersions);
   const tr = (key: string) => i18n.t(key, { lng: language });
 
-  const versionsQuery = useDocumentVersions(documentId ?? null, canReadDocuments);
+  const [paging, setPaging] = useState({ page: 1, pageSize: 10 });
+  const versionsQuery = useDocumentVersions(documentId ?? null, paging, canReadDocuments);
   const deleteVersionMutation = useDeleteDocumentVersion();
   const publishVersionMutation = usePublishDocumentVersion();
   const unpublishVersionMutation = useUnpublishDocumentVersion();
@@ -198,8 +199,15 @@ export function DocumentVersionsPage() {
         rowKey="id"
         loading={versionsQuery.isLoading}
         columns={columns}
-        dataSource={versionsQuery.data ?? []}
-        pagination={{ pageSize: 10, pageSizeOptions: [10, 25, 50, 100], showSizeChanger: true }}
+        dataSource={versionsQuery.data?.items ?? []}
+        pagination={{
+          current: versionsQuery.data?.page ?? paging.page,
+          pageSize: versionsQuery.data?.pageSize ?? paging.pageSize,
+          total: versionsQuery.data?.total ?? 0,
+          showSizeChanger: true,
+          pageSizeOptions: [10, 25, 50, 100],
+          onChange: (page, pageSize) => setPaging({ page, pageSize }),
+        }}
         scroll={{ x: "max-content" }}
         locale={{ emptyText: versionsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
       />

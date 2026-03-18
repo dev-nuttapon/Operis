@@ -1,4 +1,5 @@
 import { apiDownload, apiRequest } from "../../../shared/lib/apiClient";
+import type { PaginatedResult } from "../../../shared/types/pagination";
 
 export interface DocumentListItem {
   id: string;
@@ -18,8 +19,19 @@ export interface DocumentCreateRequest {
   documentName: string;
 }
 
-export function listDocuments(signal?: AbortSignal) {
-  return apiRequest<DocumentListItem[]>("/api/v1/documents", { signal });
+export type DocumentListInput = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+};
+
+export function listDocuments(input?: DocumentListInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input?.page) params.set("page", String(input.page));
+  if (input?.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input?.search) params.set("search", input.search);
+  const query = params.toString();
+  return apiRequest<PaginatedResult<DocumentListItem>>(`/api/v1/documents${query ? `?${query}` : ""}`, { signal });
 }
 
 export function createDocument(payload: DocumentCreateRequest, signal?: AbortSignal) {
@@ -76,12 +88,40 @@ export interface DocumentHistoryItem {
   occurredAt: string;
 }
 
-export function listDocumentVersions(documentId: string, signal?: AbortSignal) {
-  return apiRequest<DocumentVersionListItem[]>(`/api/v1/documents/${documentId}/versions`, { signal });
+export type DocumentVersionListInput = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+};
+
+export function listDocumentVersions(documentId: string, input?: DocumentVersionListInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input?.page) params.set("page", String(input.page));
+  if (input?.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input?.search) params.set("search", input.search);
+  const query = params.toString();
+  return apiRequest<PaginatedResult<DocumentVersionListItem>>(
+    `/api/v1/documents/${documentId}/versions${query ? `?${query}` : ""}`,
+    { signal },
+  );
 }
 
-export function listDocumentHistory(documentId: string, signal?: AbortSignal) {
-  return apiRequest<DocumentHistoryItem[]>(`/api/v1/documents/${documentId}/history`, { signal });
+export type DocumentHistoryListInput = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+};
+
+export function listDocumentHistory(documentId: string, input?: DocumentHistoryListInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input?.page) params.set("page", String(input.page));
+  if (input?.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input?.search) params.set("search", input.search);
+  const query = params.toString();
+  return apiRequest<PaginatedResult<DocumentHistoryItem>>(
+    `/api/v1/documents/${documentId}/history${query ? `?${query}` : ""}`,
+    { signal },
+  );
 }
 
 export function deleteDocumentVersion(documentId: string, versionId: string, signal?: AbortSignal) {

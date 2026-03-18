@@ -61,6 +61,9 @@ public sealed class DocumentsModule : IModule
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
         IDocumentQueries queries,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10,
         CancellationToken cancellationToken)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
@@ -68,7 +71,7 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var items = await queries.ListDocumentsAsync(cancellationToken);
+        var items = await queries.ListDocumentsAsync(new DocumentListQuery(search, page, pageSize), cancellationToken);
         return Results.Ok(items);
     }
 
@@ -285,6 +288,9 @@ public sealed class DocumentsModule : IModule
         IPermissionMatrix permissionMatrix,
         IDocumentQueries queries,
         Guid documentId,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10,
         CancellationToken cancellationToken)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
@@ -292,7 +298,7 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var versions = await queries.ListDocumentVersionsAsync(documentId, cancellationToken);
+        var versions = await queries.ListDocumentVersionsAsync(new DocumentVersionListQuery(documentId, search, page, pageSize), cancellationToken);
         return Results.Ok(versions);
     }
 
@@ -322,6 +328,9 @@ public sealed class DocumentsModule : IModule
         IPermissionMatrix permissionMatrix,
         IDocumentHistoryQueries queries,
         Guid documentId,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10,
         CancellationToken cancellationToken)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.ActivityLogs.Read))
@@ -329,7 +338,7 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var items = await queries.ListAsync(documentId, cancellationToken);
+        var items = await queries.ListAsync(new DocumentHistoryListQuery(documentId, search, page, pageSize), cancellationToken);
         return Results.Ok(items);
     }
 

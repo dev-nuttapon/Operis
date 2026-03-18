@@ -5,6 +5,7 @@ import {
   Card,
   Col,
   Descriptions,
+  Empty,
   Flex,
   List,
   Modal,
@@ -36,15 +37,18 @@ import { useNavigate, useParams } from "react-router-dom";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
-import { useProjectWorkspacePrototype } from "../hooks/useProjectWorkspacePrototype";
+import { formatDate } from "../utils/adminUsersPresentation";
+import type { ProjectOrgChartNode } from "../types/users";
 import type {
   ProjectWorkspacePrototypeAuditEvent,
   ProjectWorkspacePrototypeComplianceCheck,
   ProjectWorkspacePrototypeEvidenceItem,
   ProjectWorkspacePrototypeMember,
   ProjectWorkspacePrototypeOrgNode,
+  ProjectWorkspacePrototypeRequiredDocument,
   ProjectWorkspacePrototypeRole,
   ProjectWorkspacePrototypeSection,
+  ProjectWorkspacePrototypeSummaryCard,
 } from "../types/projectWorkspacePrototype";
 
 function toneToStyle(tone: "blue" | "green" | "gold" | "red") {
@@ -84,44 +88,69 @@ function buildOrgChartTree(nodes: ProjectWorkspacePrototypeOrgNode[]): DataNode[
   }));
 }
 
+function mapOrgChartNodes(nodes: ProjectOrgChartNode[]): ProjectWorkspacePrototypeOrgNode[] {
+  return nodes.map((node) => ({
+    id: node.assignmentId,
+    label: node.userDisplayName ?? node.userEmail ?? node.userId,
+    subtitle: node.projectRoleName,
+    children: mapOrgChartNodes(node.children ?? []),
+  }));
+}
+
+function flattenOrgChart(nodes: ProjectOrgChartNode[]): ProjectOrgChartNode[] {
+  const result: ProjectOrgChartNode[] = [];
+  for (const node of nodes) {
+    result.push(node);
+    if (node.children?.length) {
+      result.push(...flattenOrgChart(node.children));
+    }
+  }
+  return result;
+}
+
 export function ProjectWorkspacePrototypePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const [selectedRole, setSelectedRole] = useState<ProjectWorkspacePrototypeRole | null>(null);
   const [selectedEvidenceItem, setSelectedEvidenceItem] = useState<ProjectWorkspacePrototypeEvidenceItem | null>(null);
+  const [section, setSection] = useState<ProjectWorkspacePrototypeSection>("overview");
   const [orgChartView, setOrgChartView] = useState<"tree" | "roleGroups">("tree");
-  const [projectSize, setProjectSize] = useState<"small" | "medium" | "large">("medium");
   const [auditorMode, setAuditorMode] = useState(false);
+  const [teamPage, setTeamPage] = useState(1);
+  const [teamPageSize, setTeamPageSize] = useState(10);
+  const [rolePage, setRolePage] = useState(1);
+  const [rolePageSize, setRolePageSize] = useState(10);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize, setAuditPageSize] = useState(10);
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
-  const {
-    section,
-    setSection,
-    templateId,
-    setTemplateId,
-    scenarioId,
-    setScenarioId,
-    templateOptions,
-    scenarioOptions,
-    quickActions,
-    summaryCards,
-    teamMembers,
-    roles,
-    complianceChecks,
-    evidenceItems,
-    auditTrail,
-    orgChart,
-    requiredDocuments,
-    approvalSteps,
-    roleDependencies,
-  } = useProjectWorkspacePrototype();
+  const quickActions = useMemo(
+    () => [
+      { id: "role-gap", labelKey: "project_workspace_prototype.quick_actions.role_gap", targetSection: "roles" as const },
+      { id: "org-chart", labelKey: "project_workspace_prototype.quick_actions.org_chart", targetSection: "orgChart" as const },
+      { id: "workflow", labelKey: "project_workspace_prototype.quick_actions.workflow", targetSection: "workflow" as const },
+      { id: "compliance", labelKey: "project_workspace_prototype.quick_actions.compliance", targetSection: "compliance" as const },
+      { id: "evidence", labelKey: "project_workspace_prototype.quick_actions.evidence", targetSection: "evidence" as const },
+    ],
+    [],
+  );
 
-  const { projectsQuery } = useProjectAdmin({
+  const {
+    projectsQuery,
+    projectOrgChartQuery,
+    projectEvidenceTeamRegisterQuery,
+    projectEvidenceRoleResponsibilitiesQuery,
+    projectEvidenceAssignmentHistoryQuery,
+  } = useProjectAdmin({
     projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc", assignedOnly: !canReadProjects },
     projectRoles: { page: 1, pageSize: 100, sortBy: "displayOrder", sortOrder: "asc" },
     projectAssignments: null,
+    projectOrgChartProjectId: projectId,
+    projectEvidenceTeamRegister: { projectId, page: teamPage, pageSize: teamPageSize },
+    projectEvidenceRoleResponsibilities: { projectId, page: rolePage, pageSize: rolePageSize },
+    projectEvidenceAssignmentHistory: { projectId, page: auditPage, pageSize: auditPageSize },
   });
 
   const projectOptions = useMemo(
@@ -151,6 +180,12 @@ export function ProjectWorkspacePrototypePage() {
     }
   }, [auditorMode, section, setSection]);
 
+  useEffect(() => {
+    setTeamPage(1);
+    setRolePage(1);
+    setAuditPage(1);
+  }, [projectId]);
+
   const sectionOptions = useMemo(
     () => [
       { label: t("project_workspace_prototype.sections.overview"), value: "overview" },
@@ -165,292 +200,195 @@ export function ProjectWorkspacePrototypePage() {
     [t],
   );
 
-  const selectedTemplate = templateOptions.find((option) => option.id === templateId) ?? null;
-  const selectedScenario = scenarioOptions.find((option) => option.id === scenarioId) ?? null;
-  const orgChartTree = useMemo(() => buildOrgChartTree(orgChart), [orgChart]);
+  const orgChartNodes = useMemo(() => mapOrgChartNodes(projectOrgChartQuery.data ?? []), [projectOrgChartQuery.data]);
+  const orgChartTree = useMemo(() => buildOrgChartTree(orgChartNodes), [orgChartNodes]);
+  const orgChartFlat = useMemo(() => flattenOrgChart(projectOrgChartQuery.data ?? []), [projectOrgChartQuery.data]);
+  const orgChartMembers = useMemo(() => {
+    const displayById = new Map<string, string>();
+    for (const node of orgChartFlat) {
+      displayById.set(node.userId, node.userDisplayName ?? node.userEmail ?? node.userId);
+    }
+    return orgChartFlat.map((node) => ({
+      id: node.assignmentId,
+      name: node.userDisplayName ?? node.userEmail ?? node.userId,
+      email: node.userEmail ?? "-",
+      roleCode: "-",
+      roleName: node.projectRoleName,
+      reportsTo: node.reportsToUserId ? displayById.get(node.reportsToUserId) : undefined,
+      primary: node.isPrimary,
+      status: node.status,
+      period: `${formatDate(node.startAt, i18n.language)} - ${formatDate(node.endAt, i18n.language)}`,
+    }));
+  }, [orgChartFlat, i18n.language]);
   const membersByRole = useMemo(() => {
     const groups = new Map<string, ProjectWorkspacePrototypeMember[]>();
-    for (const member of teamMembers) {
-      const key = `${member.roleCode} · ${member.roleName}`;
+    for (const member of orgChartMembers) {
+      const key = `${member.roleName}`;
       const current = groups.get(key) ?? [];
       current.push(member);
       groups.set(key, current);
     }
     return Array.from(groups.entries()).map(([roleKey, members]) => ({ roleKey, members }));
-  }, [teamMembers]);
-  const sizedRequiredDocuments = useMemo(() => {
-    if (projectSize === "small") {
-      return requiredDocuments.slice(0, Math.max(2, requiredDocuments.length - 1));
-    }
-    if (projectSize === "large") {
-      return [
-        ...requiredDocuments,
-        {
-          id: "extended-traceability",
-          code: "TRC",
-          name: t("project_workspace_prototype.compliance.synthetic_docs.traceability"),
-          ownerRoleCode: "QA",
-          stage: t("project_workspace_prototype.compliance.synthetic_docs.stage_verify"),
-          status: "Draft" as const,
-        },
-        {
-          id: "extended-milestone",
-          code: "MLS",
-          name: t("project_workspace_prototype.compliance.synthetic_docs.milestone_snapshot"),
-          ownerRoleCode: "PM",
-          stage: t("project_workspace_prototype.compliance.synthetic_docs.stage_release"),
-          status: "Missing" as const,
-        },
-      ];
-    }
-    return requiredDocuments;
-  }, [projectSize, requiredDocuments, t]);
-  const sizedApprovalSteps = useMemo(() => {
-    if (projectSize === "small") {
-      return approvalSteps.slice(0, Math.max(2, approvalSteps.length - 1));
-    }
-    if (projectSize === "large") {
-      return [
-        ...approvalSteps,
-        {
-          id: "release-board",
-          order: approvalSteps.length + 1,
-          roleCode: "CCB",
-          roleName: t("project_workspace_prototype.workflow.synthetic_roles.ccb"),
-          action: t("project_workspace_prototype.workflow.synthetic_actions.board_review"),
-          output: t("project_workspace_prototype.workflow.synthetic_outputs.board_release_note"),
-        },
-      ];
-    }
-    return approvalSteps;
-  }, [approvalSteps, projectSize, t]);
-  const sizedEvidenceItems = useMemo(() => {
-    const base = [...evidenceItems];
-    if (scenarioId === "audit_preparation") {
-      base.unshift({
-        id: "audit-pack",
-        title: t("project_workspace_prototype.evidence.synthetic.audit_pack_title"),
-        description: t("project_workspace_prototype.evidence.synthetic.audit_pack_description"),
-        lastUpdated: "13 Mar 2026 16:45",
-        format: "ZIP / PDF",
-      });
-    }
-    if (projectSize === "large") {
-      base.push({
-        id: "governance-register",
-        title: t("project_workspace_prototype.evidence.synthetic.governance_register_title"),
-        description: t("project_workspace_prototype.evidence.synthetic.governance_register_description"),
-        lastUpdated: "13 Mar 2026 17:10",
-        format: "XLSX / PDF",
-      });
-    }
-    return base;
-  }, [evidenceItems, projectSize, scenarioId, t]);
-  const sizedComplianceChecks = useMemo(() => {
-    const base = [...complianceChecks];
-    if (projectSize === "large") {
-      base.push({
-        id: "governance-register",
-        titleKey: "project_workspace_prototype.compliance.synthetic.governance_register.title",
-        detailKey: "project_workspace_prototype.compliance.synthetic.governance_register.detail",
+  }, [orgChartMembers]);
+
+  const activeMembers = projectEvidenceTeamRegisterQuery.data?.total ?? 0;
+  const activeRoles = projectEvidenceRoleResponsibilitiesQuery.data?.total ?? 0;
+  const reportingRoots = projectOrgChartQuery.data?.length ?? 0;
+  const summaryCards: ProjectWorkspacePrototypeSummaryCard[] = useMemo(
+    () => [
+      {
+        id: "project-type",
+        tone: "blue",
+        titleKey: "project_workspace_prototype.summary.project_type.title",
+        helperKey: "project_workspace_prototype.summary.project_type.helper",
+        value: selectedProject?.projectType ?? "-",
+      },
+      {
+        id: "active-members",
+        tone: "green",
+        titleKey: "project_workspace_prototype.summary.active_members.title",
+        helperKey: "project_workspace_prototype.summary.active_members.helper",
+        value: activeMembers.toString(),
+      },
+      {
+        id: "active-roles",
+        tone: "gold",
+        titleKey: "project_workspace_prototype.summary.active_roles.title",
+        helperKey: "project_workspace_prototype.summary.active_roles.helper",
+        value: activeRoles.toString(),
+      },
+      {
+        id: "reporting-roots",
+        tone: "red",
+        titleKey: "project_workspace_prototype.summary.reporting_roots.title",
+        helperKey: "project_workspace_prototype.summary.reporting_roots.helper",
+        value: reportingRoots.toString(),
+      },
+    ],
+    [activeMembers, activeRoles, reportingRoots, selectedProject?.projectType],
+  );
+
+  const complianceChecks: ProjectWorkspacePrototypeComplianceCheck[] = useMemo(() => {
+    const ownerOk = Boolean(selectedProject?.ownerUserId);
+    const rolesOk = activeRoles > 0;
+    const teamOk = activeMembers > 0;
+    const orgOk = reportingRoots > 0;
+    return [
+      {
+        id: "owner",
+        titleKey: "project_workspace_prototype.compliance.owner.title",
+        detailKey: "project_workspace_prototype.compliance.owner.detail",
+        severity: ownerOk ? "passed" : "warning",
+        targetSection: "overview",
+      },
+      {
+        id: "role-gap",
+        titleKey: "project_workspace_prototype.compliance.role_gap.title",
+        detailKey: "project_workspace_prototype.compliance.role_gap.detail",
+        severity: rolesOk ? "passed" : "warning",
+        targetSection: "roles",
+      },
+      {
+        id: "team",
+        titleKey: "project_workspace_prototype.compliance.org_chart.title",
+        detailKey: "project_workspace_prototype.compliance.org_chart.detail",
+        severity: teamOk && orgOk ? "passed" : "warning",
+        targetSection: "orgChart",
+      },
+      {
+        id: "evidence",
+        titleKey: "project_workspace_prototype.compliance.evidence.title",
+        detailKey: "project_workspace_prototype.compliance.evidence.detail",
         severity: "warning",
         targetSection: "evidence",
-      });
-      base.push({
-        id: "large-project-snapshot",
-        titleKey: "project_workspace_prototype.compliance.synthetic.large_project_snapshot.title",
-        detailKey: "project_workspace_prototype.compliance.synthetic.large_project_snapshot.detail",
-        severity: "warning",
-        targetSection: "evidence",
-      });
+      },
+    ];
+  }, [activeMembers, activeRoles, reportingRoots, selectedProject?.ownerUserId]);
+
+  const evidenceItems: ProjectWorkspacePrototypeEvidenceItem[] = [];
+  const evidenceSnapshots: { id: string; title: string; detail: string; meta: string }[] = [];
+  const processStages = useMemo(() => (selectedProject?.phase ? [selectedProject.phase] : []), [selectedProject?.phase]);
+  const workspacePrompts = useMemo(() => [], []);
+  const teamTableRows = useMemo(
+    () =>
+      (projectEvidenceTeamRegisterQuery.data?.items ?? []).map((row) => ({
+        id: row.assignmentId,
+        name: row.userDisplayName ?? row.userEmail ?? row.userId,
+        email: row.userEmail ?? "-",
+        roleCode: "-",
+        roleName: row.projectRoleName,
+        reportsTo: row.reportsToDisplayName ?? "-",
+        primary: row.isPrimary,
+        status: row.status,
+        period: `${formatDate(row.startAt, i18n.language)} - ${formatDate(row.endAt, i18n.language)}`,
+      })),
+    [projectEvidenceTeamRegisterQuery.data?.items, i18n.language],
+  );
+  const roleTableRows = useMemo(
+    () =>
+      (projectEvidenceRoleResponsibilitiesQuery.data?.items ?? []).map((row) => ({
+        id: row.projectRoleId,
+        name: row.projectRoleName,
+        code: row.code ?? "-",
+        responsibility: row.responsibilities ?? row.description ?? "-",
+        authority: row.authorityScope ?? "-",
+        review: row.canReviewDocuments,
+        approval: row.canApproveDocuments,
+        release: row.canReleaseDocuments,
+        memberCount: row.memberCount,
+      })),
+    [projectEvidenceRoleResponsibilitiesQuery.data?.items],
+  );
+  const auditTableRows = useMemo(
+    () =>
+      (projectEvidenceAssignmentHistoryQuery.data?.items ?? []).map((row) => ({
+        id: row.assignmentId,
+        timestamp: formatDate(row.createdAt, i18n.language),
+        actor: row.userDisplayName ?? row.userEmail ?? row.userId,
+        action: row.status,
+        target: row.projectRoleName,
+        detail: row.changeReason ?? "-",
+      })),
+    [projectEvidenceAssignmentHistoryQuery.data?.items, i18n.language],
+  );
+  const workflowSteps = useMemo(() => {
+    const steps: { roleCode: string; action: string; output: string }[] = [];
+    for (const role of roleTableRows) {
+      if (role.review) {
+        steps.push({ roleCode: role.code, action: t("project_workspace_prototype.roles.permissions.review"), output: role.name });
+      }
+      if (role.approval) {
+        steps.push({ roleCode: role.code, action: t("project_workspace_prototype.roles.permissions.approval"), output: role.name });
+      }
+      if (role.release) {
+        steps.push({ roleCode: role.code, action: t("project_workspace_prototype.roles.permissions.release"), output: role.name });
+      }
     }
-    if (scenarioId === "audit_preparation") {
-      base.push({
-        id: "audit-pack",
-        titleKey: "project_workspace_prototype.compliance.synthetic.audit_pack.title",
-        detailKey: "project_workspace_prototype.compliance.synthetic.audit_pack.detail",
-        severity: "warning",
-        targetSection: "evidence",
-      });
-      base.push({
-        id: "audit-preparation-snapshot",
-        titleKey: "project_workspace_prototype.compliance.synthetic.audit_preparation_snapshot.title",
-        detailKey: "project_workspace_prototype.compliance.synthetic.audit_preparation_snapshot.detail",
-        severity: "warning",
-        targetSection: "auditTrail",
-      });
-    }
-    if (scenarioId === "release_readiness") {
-      base.push({
-        id: "release-readiness-snapshot",
-        titleKey: "project_workspace_prototype.compliance.synthetic.release_readiness_gate.title",
-        detailKey: "project_workspace_prototype.compliance.synthetic.release_readiness_gate.detail",
-        severity: "warning",
-        targetSection: "workflow",
-      });
-    }
-    return base;
-  }, [complianceChecks, projectSize, scenarioId]);
+    return steps;
+  }, [roleTableRows, t]);
   const workflowPreviewSteps = useMemo(
     () =>
-      sizedApprovalSteps.map((step, index) => ({
-        title: `${step.order}. ${step.roleCode}`,
+      workflowSteps.map((step, index) => ({
+        title: `${index + 1}. ${step.roleCode}`,
         description: `${step.action} · ${step.output}`,
-        status: (index === sizedApprovalSteps.length - 1 ? "wait" : index === 0 ? "process" : "finish") as
+        status: (index === workflowSteps.length - 1 ? "wait" : index === 0 ? "process" : "finish") as
           | "wait"
           | "process"
           | "finish"
           | "error",
       })),
-    [sizedApprovalSteps],
+    [workflowSteps],
   );
-  const workflowStateSteps = useMemo(() => {
-    const base =
-      projectSize === "small"
-        ? [
-            t("project_workspace_prototype.workflow.states.draft"),
-            t("project_workspace_prototype.workflow.states.review"),
-            t("project_workspace_prototype.workflow.states.approve"),
-            t("project_workspace_prototype.workflow.states.release"),
-          ]
-        : projectSize === "large"
-          ? [
-              t("project_workspace_prototype.workflow.states.draft"),
-              t("project_workspace_prototype.workflow.states.internal_review"),
-              t("project_workspace_prototype.workflow.states.quality_gate"),
-              t("project_workspace_prototype.workflow.states.board_review"),
-              t("project_workspace_prototype.workflow.states.approve"),
-              t("project_workspace_prototype.workflow.states.release"),
-            ]
-          : [
-              t("project_workspace_prototype.workflow.states.draft"),
-              t("project_workspace_prototype.workflow.states.review"),
-              t("project_workspace_prototype.workflow.states.quality_gate"),
-              t("project_workspace_prototype.workflow.states.approve"),
-              t("project_workspace_prototype.workflow.states.release"),
-            ];
-    return base.map((title) => ({ title }));
-  }, [projectSize, t]);
-  const blockedFlowAlerts = useMemo(() => {
-    if (scenarioId === "release_readiness") {
-      return [
-        t("project_workspace_prototype.workflow.blockers.release_readiness.1"),
-        t("project_workspace_prototype.workflow.blockers.release_readiness.2"),
-      ];
-    }
-    if (scenarioId === "audit_preparation") {
-      return [
-        t("project_workspace_prototype.workflow.blockers.audit_preparation.1"),
-        t("project_workspace_prototype.workflow.blockers.audit_preparation.2"),
-      ];
-    }
-    if (projectSize === "large") {
-      return [
-        t("project_workspace_prototype.workflow.blockers.large_project.1"),
-        t("project_workspace_prototype.workflow.blockers.large_project.2"),
-      ];
-    }
-    return [t("project_workspace_prototype.workflow.blockers.default.1")];
-  }, [projectSize, scenarioId, t]);
-  const evidenceSnapshots = useMemo(() => {
-    const base = [
-      {
-        id: "milestone-m1",
-        title: t("project_workspace_prototype.evidence.snapshots.m1_title"),
-        detail: t("project_workspace_prototype.evidence.snapshots.m1_detail"),
-        meta: t("project_workspace_prototype.evidence.snapshot_meta", {
-          date: "2026-03-10",
-          owner: "PM",
-        }),
-      },
-      {
-        id: "milestone-m2",
-        title: t("project_workspace_prototype.evidence.snapshots.m2_title"),
-        detail: t("project_workspace_prototype.evidence.snapshots.m2_detail"),
-        meta: t("project_workspace_prototype.evidence.snapshot_meta", {
-          date: "2026-03-12",
-          owner: "QA",
-        }),
-      },
-    ];
-    if (projectSize !== "small") {
-      base.push({
-        id: "release-readiness",
-        title: t("project_workspace_prototype.evidence.snapshots.release_title"),
-        detail: t("project_workspace_prototype.evidence.snapshots.release_detail"),
-        meta: t("project_workspace_prototype.evidence.snapshot_meta", {
-          date: "2026-03-13",
-          owner: "CM",
-        }),
-      });
-    }
-    if (scenarioId === "audit_preparation") {
-      base.push({
-        id: "audit-cut",
-        title: t("project_workspace_prototype.evidence.snapshots.audit_title"),
-        detail: t("project_workspace_prototype.evidence.snapshots.audit_detail"),
-        meta: t("project_workspace_prototype.evidence.snapshot_meta", {
-          date: "2026-03-14",
-          owner: "QA",
-        }),
-      });
-    }
-    return base;
-  }, [projectSize, scenarioId, t]);
-  const processStages = useMemo(() => {
-    switch (templateId) {
-      case "compliance_audit":
-        return [
-          t("project_workspace_prototype.process_stages.compliance_audit.prepare"),
-          t("project_workspace_prototype.process_stages.compliance_audit.collect"),
-          t("project_workspace_prototype.process_stages.compliance_audit.review"),
-          t("project_workspace_prototype.process_stages.compliance_audit.close"),
-        ];
-      case "process_improvement":
-        return [
-          t("project_workspace_prototype.process_stages.process_improvement.assess"),
-          t("project_workspace_prototype.process_stages.process_improvement.design"),
-          t("project_workspace_prototype.process_stages.process_improvement.pilot"),
-          t("project_workspace_prototype.process_stages.process_improvement.rollout"),
-        ];
-      default:
-        return [
-          t("project_workspace_prototype.process_stages.software_delivery.plan"),
-          t("project_workspace_prototype.process_stages.software_delivery.build"),
-          t("project_workspace_prototype.process_stages.software_delivery.verify"),
-          t("project_workspace_prototype.process_stages.software_delivery.release"),
-        ];
-    }
-  }, [t, templateId]);
-
-  const workspacePrompts = useMemo(() => {
-    switch (scenarioId) {
-      case "release_readiness":
-        return [
-          t("project_workspace_prototype.workspace_prompts.release_readiness.1"),
-          t("project_workspace_prototype.workspace_prompts.release_readiness.2"),
-          t("project_workspace_prototype.workspace_prompts.release_readiness.3"),
-        ];
-      case "audit_preparation":
-        return [
-          t("project_workspace_prototype.workspace_prompts.audit_preparation.1"),
-          t("project_workspace_prototype.workspace_prompts.audit_preparation.2"),
-          t("project_workspace_prototype.workspace_prompts.audit_preparation.3"),
-        ];
-      case "corrective_action":
-        return [
-          t("project_workspace_prototype.workspace_prompts.corrective_action.1"),
-          t("project_workspace_prototype.workspace_prompts.corrective_action.2"),
-          t("project_workspace_prototype.workspace_prompts.corrective_action.3"),
-        ];
-      default:
-        return [
-          t("project_workspace_prototype.workspace_prompts.default.1"),
-          t("project_workspace_prototype.workspace_prompts.default.2"),
-          t("project_workspace_prototype.workspace_prompts.default.3"),
-        ];
-    }
-  }, [scenarioId, t]);
+  const workflowStateSteps = useMemo(
+    () =>
+      workflowSteps.map((step) => ({
+        title: step.action,
+      })),
+    [workflowSteps],
+  );
+  const blockedFlowAlerts = useMemo(() => [], []);
+  const requiredDocuments: ProjectWorkspacePrototypeRequiredDocument[] = [];
+  const roleDependencies: Array<{ fromRoleCode: string; toRoleCode: string; relation: string; rationale: string }> = [];
 
   const teamColumns: ColumnsType<ProjectWorkspacePrototypeMember> = [
     {
@@ -533,7 +471,23 @@ export function ProjectWorkspacePrototypePage() {
       case "team":
         return (
           <Card size="small" title={t("project_workspace_prototype.team.title")}>
-            <Table rowKey="id" columns={teamColumns} dataSource={teamMembers} pagination={false} />
+            <Table
+              rowKey="id"
+              columns={teamColumns}
+              dataSource={teamTableRows}
+              loading={projectEvidenceTeamRegisterQuery.isLoading}
+              pagination={{
+                current: teamPage,
+                pageSize: teamPageSize,
+                total: projectEvidenceTeamRegisterQuery.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: ["10", "25", "50", "100"],
+                onChange: (page, pageSize) => {
+                  setTeamPage(pageSize === teamPageSize ? page : 1);
+                  setTeamPageSize(pageSize);
+                },
+              }}
+            />
           </Card>
         );
       case "orgChart":
@@ -588,10 +542,26 @@ export function ProjectWorkspacePrototypePage() {
         return (
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <Card size="small" title={t("project_workspace_prototype.roles.title")}>
-              <Table rowKey="id" columns={roleColumns} dataSource={roles} pagination={false} />
+              <Table
+                rowKey="id"
+                columns={roleColumns}
+                dataSource={roleTableRows}
+                loading={projectEvidenceRoleResponsibilitiesQuery.isLoading}
+                pagination={{
+                  current: rolePage,
+                  pageSize: rolePageSize,
+                  total: projectEvidenceRoleResponsibilitiesQuery.data?.total ?? 0,
+                  showSizeChanger: true,
+                  pageSizeOptions: ["10", "25", "50", "100"],
+                  onChange: (page, pageSize) => {
+                    setRolePage(pageSize === rolePageSize ? page : 1);
+                    setRolePageSize(pageSize);
+                  },
+                }}
+              />
             </Card>
             <Row gutter={[16, 16]}>
-              {roles.map((role) => (
+              {roleTableRows.map((role) => (
                 <Col key={role.id} xs={24} lg={12}>
                   <Card size="small">
                     <Space direction="vertical" size={8} style={{ width: "100%" }}>
@@ -622,18 +592,22 @@ export function ProjectWorkspacePrototypePage() {
               ))}
             </Row>
             <Card size="small" title={t("project_workspace_prototype.roles.dependencies_title")}>
-              <Timeline
-                items={roleDependencies.map((dependency) => ({
-                  color: "blue",
-                  children: (
-                    <Space direction="vertical" size={2}>
-                      <Typography.Text strong>{`${dependency.fromRoleCode} → ${dependency.toRoleCode}`}</Typography.Text>
-                      <Typography.Text>{dependency.relation}</Typography.Text>
-                      <Typography.Text type="secondary">{dependency.rationale}</Typography.Text>
-                    </Space>
-                  ),
-                }))}
-              />
+              {roleDependencies.length === 0 ? (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.workflow.empty")} />
+              ) : (
+                <Timeline
+                  items={roleDependencies.map((dependency) => ({
+                    color: "blue",
+                    children: (
+                      <Space direction="vertical" size={2}>
+                        <Typography.Text strong>{`${dependency.fromRoleCode} → ${dependency.toRoleCode}`}</Typography.Text>
+                        <Typography.Text>{dependency.relation}</Typography.Text>
+                        <Typography.Text type="secondary">{dependency.rationale}</Typography.Text>
+                      </Space>
+                    ),
+                  }))}
+                />
+              )}
             </Card>
           </Space>
         );
@@ -661,30 +635,34 @@ export function ProjectWorkspacePrototypePage() {
               </Col>
               <Col xs={24} xl={12}>
                 <Card size="small" title={t("project_workspace_prototype.workflow.required_evidence_title")}>
-                  <List
-                    dataSource={sizedRequiredDocuments}
-                    renderItem={(item) => (
-                      <List.Item>
-                        <Space direction="vertical" size={2} style={{ width: "100%" }}>
-                          <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
-                            <Space>
-                              <Tag>{item.code}</Tag>
-                              <Typography.Text strong>{item.name}</Typography.Text>
-                            </Space>
-                            <Tag color={item.status === "Ready" ? "green" : item.status === "Draft" ? "gold" : "red"}>
-                              {item.status}
-                            </Tag>
-                          </Flex>
-                          <Typography.Text type="secondary">
-                            {t("project_workspace_prototype.workflow.required_evidence_meta", {
-                              owner: item.ownerRoleCode,
-                              stage: item.stage,
-                            })}
-                          </Typography.Text>
-                        </Space>
-                      </List.Item>
-                    )}
-                  />
+                  {requiredDocuments.length === 0 ? (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.evidence.empty")} />
+                  ) : (
+                    <List
+                      dataSource={requiredDocuments}
+                      renderItem={(item) => (
+                        <List.Item>
+                          <Space direction="vertical" size={2} style={{ width: "100%" }}>
+                            <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+                              <Space>
+                                <Tag>{item.code}</Tag>
+                                <Typography.Text strong>{item.name}</Typography.Text>
+                              </Space>
+                              <Tag color={item.status === "Ready" ? "green" : item.status === "Draft" ? "gold" : "red"}>
+                                {item.status}
+                              </Tag>
+                            </Flex>
+                            <Typography.Text type="secondary">
+                              {t("project_workspace_prototype.workflow.required_evidence_meta", {
+                                owner: item.ownerRoleCode,
+                                stage: item.stage,
+                              })}
+                            </Typography.Text>
+                          </Space>
+                        </List.Item>
+                      )}
+                    />
+                  )}
                   <Flex justify="flex-end" style={{ marginTop: 12 }}>
                     <Button type="link" onClick={() => setSection("evidence")}>
                       {t("project_workspace_prototype.workflow.open_evidence")}
@@ -694,18 +672,21 @@ export function ProjectWorkspacePrototypePage() {
               </Col>
               <Col xs={24} xl={12}>
                 <Card size="small" title={t("project_workspace_prototype.workflow.gates_title")}>
-                  <Timeline
-                    items={sizedApprovalSteps.map((step, index) => ({
-                      color: index === sizedApprovalSteps.length - 1 ? "green" : "blue",
-                      children: (
-                        <Space direction="vertical" size={2}>
-                          <Typography.Text strong>{`${step.roleCode} · ${step.roleName}`}</Typography.Text>
-                          <Typography.Text>{step.action}</Typography.Text>
-                          <Typography.Text type="secondary">{step.output}</Typography.Text>
-                        </Space>
-                      ),
-                    }))}
-                  />
+                  {workflowSteps.length === 0 ? (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.workflow.empty")} />
+                  ) : (
+                    <Timeline
+                      items={workflowSteps.map((step, index) => ({
+                        color: index === workflowSteps.length - 1 ? "green" : "blue",
+                        children: (
+                          <Space direction="vertical" size={2}>
+                            <Typography.Text strong={`${step.roleCode} · ${step.output}`} />
+                            <Typography.Text>{step.action}</Typography.Text>
+                          </Space>
+                        ),
+                      }))}
+                    />
+                  )}
                   <Flex justify="flex-end" style={{ marginTop: 12 }}>
                     <Button type="link" onClick={() => setSection("compliance")}>
                       {t("project_workspace_prototype.workflow.open_compliance")}
@@ -730,9 +711,11 @@ export function ProjectWorkspacePrototypePage() {
             </Card>
             <Card size="small" title={t("project_workspace_prototype.workflow.blocked_states_title")}>
               <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                {blockedFlowAlerts.map((item) => (
-                  <Alert key={item} type="warning" showIcon message={item} />
-                ))}
+                {blockedFlowAlerts.length === 0 ? (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.workflow.empty")} />
+                ) : (
+                  blockedFlowAlerts.map((item) => <Alert key={item} type="warning" showIcon message={item} />)
+                )}
               </Space>
             </Card>
           </Space>
@@ -742,7 +725,7 @@ export function ProjectWorkspacePrototypePage() {
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <Card size="small" title={t("project_workspace_prototype.compliance.title")}>
               <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                {sizedComplianceChecks.map((check) => (
+                {complianceChecks.map((check) => (
                   <Alert
                     key={check.id}
                     type={complianceColor(check.severity)}
@@ -763,44 +746,52 @@ export function ProjectWorkspacePrototypePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} xl={12}>
                 <Card size="small" title={t("project_workspace_prototype.compliance.required_documents_title")}>
-                  <List
-                    dataSource={sizedRequiredDocuments}
-                    renderItem={(item) => (
-                      <List.Item>
-                        <Space direction="vertical" size={2} style={{ width: "100%" }}>
-                          <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
-                            <Space>
-                              <Tag>{item.code}</Tag>
-                              <Typography.Text strong>{item.name}</Typography.Text>
-                            </Space>
-                            <Tag color={item.status === "Ready" ? "green" : item.status === "Draft" ? "gold" : "red"}>{item.status}</Tag>
-                          </Flex>
-                          <Typography.Text type="secondary">
-                            {t("project_workspace_prototype.compliance.document_meta", {
-                              owner: item.ownerRoleCode,
-                              stage: item.stage,
-                            })}
-                          </Typography.Text>
-                        </Space>
-                      </List.Item>
-                    )}
-                  />
+                  {requiredDocuments.length === 0 ? (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.compliance.empty")} />
+                  ) : (
+                    <List
+                      dataSource={requiredDocuments}
+                      renderItem={(item) => (
+                        <List.Item>
+                          <Space direction="vertical" size={2} style={{ width: "100%" }}>
+                            <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+                              <Space>
+                                <Tag>{item.code}</Tag>
+                                <Typography.Text strong>{item.name}</Typography.Text>
+                              </Space>
+                              <Tag color={item.status === "Ready" ? "green" : item.status === "Draft" ? "gold" : "red"}>{item.status}</Tag>
+                            </Flex>
+                            <Typography.Text type="secondary">
+                              {t("project_workspace_prototype.compliance.document_meta", {
+                                owner: item.ownerRoleCode,
+                                stage: item.stage,
+                              })}
+                            </Typography.Text>
+                          </Space>
+                        </List.Item>
+                      )}
+                    />
+                  )}
                 </Card>
               </Col>
               <Col xs={24} xl={12}>
                 <Card size="small" title={t("project_workspace_prototype.compliance.approval_flow_title")}>
-                  <Timeline
-                    items={approvalSteps.map((step) => ({
-                      color: "blue",
-                      children: (
-                        <Space direction="vertical" size={2}>
-                          <Typography.Text strong>{`${step.order}. ${step.roleCode} · ${step.roleName}`}</Typography.Text>
-                          <Typography.Text>{step.action}</Typography.Text>
-                          <Typography.Text type="secondary">{step.output}</Typography.Text>
-                        </Space>
-                      ),
-                    }))}
-                  />
+                  {workflowSteps.length === 0 ? (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.workflow.empty")} />
+                  ) : (
+                    <Timeline
+                      items={workflowSteps.map((step, index) => ({
+                        color: "blue",
+                        children: (
+                          <Space direction="vertical" size={2}>
+                            <Typography.Text strong>{`${index + 1}. ${step.roleCode}`}</Typography.Text>
+                            <Typography.Text>{step.action}</Typography.Text>
+                            <Typography.Text type="secondary">{step.output}</Typography.Text>
+                          </Space>
+                        ),
+                      }))}
+                    />
+                  )}
                 </Card>
               </Col>
             </Row>
@@ -815,6 +806,62 @@ export function ProjectWorkspacePrototypePage() {
                   <Typography.Text type="secondary">
                     {t("project_workspace_prototype.evidence.snapshot_preview_description")}
                   </Typography.Text>
+                  {evidenceSnapshots.length === 0 ? (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.evidence.empty")} />
+                  ) : (
+                    <List
+                      dataSource={evidenceSnapshots}
+                      renderItem={(item) => (
+                        <List.Item>
+                          <Space direction="vertical" size={2}>
+                            <Typography.Text strong>{item.title}</Typography.Text>
+                            <Typography.Text>{item.detail}</Typography.Text>
+                            <Typography.Text type="secondary">{item.meta}</Typography.Text>
+                          </Space>
+                        </List.Item>
+                      )}
+                    />
+                  )}
+                </Space>
+              </Card>
+              {evidenceItems.length === 0 ? (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.evidence.empty")} />
+              ) : (
+                <List
+                  dataSource={evidenceItems}
+                  renderItem={(item) => (
+                    <List.Item
+                      actions={[
+                        <Button key={`${item.id}-preview`} onClick={() => setSelectedEvidenceItem(item)}>
+                          {t("project_workspace_prototype.evidence.preview")}
+                        </Button>,
+                        <Button key={`${item.id}-history`} onClick={() => setSection("auditTrail")}>
+                          {t("project_workspace_prototype.evidence.view_history")}
+                        </Button>,
+                      ]}
+                    >
+                      <List.Item.Meta
+                        title={item.title}
+                        description={
+                          <Space direction="vertical" size={2}>
+                            <Typography.Text>{item.description}</Typography.Text>
+                            <Typography.Text type="secondary">
+                              {t("project_workspace_prototype.evidence.meta", {
+                                updated: item.lastUpdated,
+                                format: item.format,
+                              })}
+                            </Typography.Text>
+                          </Space>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              )}
+              <Card size="small" title={t("project_workspace_prototype.evidence.snapshots.title")}>
+                {evidenceSnapshots.length === 0 ? (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.evidence.empty")} />
+                ) : (
                   <List
                     dataSource={evidenceSnapshots}
                     renderItem={(item) => (
@@ -827,51 +874,7 @@ export function ProjectWorkspacePrototypePage() {
                       </List.Item>
                     )}
                   />
-                </Space>
-              </Card>
-              <List
-                dataSource={sizedEvidenceItems}
-                renderItem={(item) => (
-                  <List.Item
-                    actions={[
-                      <Button key={`${item.id}-preview`} onClick={() => setSelectedEvidenceItem(item)}>
-                        {t("project_workspace_prototype.evidence.preview")}
-                      </Button>,
-                      <Button key={`${item.id}-history`} onClick={() => setSection("auditTrail")}>
-                        {t("project_workspace_prototype.evidence.view_history")}
-                      </Button>,
-                    ]}
-                  >
-                    <List.Item.Meta
-                      title={item.title}
-                      description={
-                        <Space direction="vertical" size={2}>
-                          <Typography.Text>{item.description}</Typography.Text>
-                          <Typography.Text type="secondary">
-                            {t("project_workspace_prototype.evidence.meta", {
-                              updated: item.lastUpdated,
-                              format: item.format,
-                            })}
-                          </Typography.Text>
-                        </Space>
-                      }
-                    />
-                  </List.Item>
                 )}
-              />
-              <Card size="small" title={t("project_workspace_prototype.evidence.snapshots.title")}>
-                <List
-                  dataSource={evidenceSnapshots}
-                  renderItem={(item) => (
-                    <List.Item>
-                      <Space direction="vertical" size={2}>
-                        <Typography.Text strong>{item.title}</Typography.Text>
-                        <Typography.Text>{item.detail}</Typography.Text>
-                        <Typography.Text type="secondary">{item.meta}</Typography.Text>
-                      </Space>
-                    </List.Item>
-                  )}
-                />
               </Card>
             </Space>
           </Card>
@@ -881,7 +884,7 @@ export function ProjectWorkspacePrototypePage() {
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <Card size="small" title={t("project_workspace_prototype.audit.timeline_title")}>
               <Timeline
-                items={auditTrail.map((event) => ({
+                items={auditTableRows.map((event) => ({
                   color: "blue",
                   children: (
                     <Space direction="vertical" size={0}>
@@ -894,7 +897,23 @@ export function ProjectWorkspacePrototypePage() {
               />
             </Card>
             <Card size="small" title={t("project_workspace_prototype.audit.table_title")}>
-              <Table rowKey="id" columns={auditColumns} dataSource={auditTrail} pagination={false} />
+              <Table
+                rowKey="id"
+                columns={auditColumns}
+                dataSource={auditTableRows}
+                loading={projectEvidenceAssignmentHistoryQuery.isLoading}
+                pagination={{
+                  current: auditPage,
+                  pageSize: auditPageSize,
+                  total: projectEvidenceAssignmentHistoryQuery.data?.total ?? 0,
+                  showSizeChanger: true,
+                  pageSizeOptions: ["10", "25", "50", "100"],
+                  onChange: (page, pageSize) => {
+                    setAuditPage(pageSize === auditPageSize ? page : 1);
+                    setAuditPageSize(pageSize);
+                  },
+                }}
+              />
             </Card>
           </Space>
         );
@@ -915,7 +934,7 @@ export function ProjectWorkspacePrototypePage() {
                 {
                   key: "type",
                   label: t("project_workspace_prototype.overview.project_type"),
-                  children: selectedProject?.projectType ?? (selectedTemplate ? t(selectedTemplate.labelKey) : "-"),
+                  children: selectedProject?.projectType ?? "-",
                 },
                 {
                   key: "owner",
@@ -927,34 +946,32 @@ export function ProjectWorkspacePrototypePage() {
                   label: t("project_workspace_prototype.overview.sponsor"),
                   children: selectedProject?.sponsorDisplayName ?? "-",
                 },
-                {
-                  key: "template",
-                  label: t("project_workspace_prototype.overview.template"),
-                  children: selectedTemplate ? t(selectedTemplate.labelKey) : "-",
-                },
-                {
-                  key: "scenario",
-                  label: t("project_workspace_prototype.overview.scenario"),
-                  children: selectedScenario ? t(selectedScenario.labelKey) : "-",
-                },
               ]}
             />
             <Card size="small" title={t("project_workspace_prototype.overview.process_stages_title")}>
-              <Steps
-                current={Math.max(0, processStages.length - 2)}
-                responsive
-                items={processStages.map((title) => ({ title }))}
-              />
+              {processStages.length === 0 ? (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.workflow.empty")} />
+              ) : (
+                <Steps
+                  current={Math.max(0, processStages.length - 2)}
+                  responsive
+                  items={processStages.map((title) => ({ title }))}
+                />
+              )}
             </Card>
             <Card size="small" title={t("project_workspace_prototype.overview.workspace_prompts_title")}>
-              <List
-                dataSource={workspacePrompts}
-                renderItem={(item) => (
-                  <List.Item>
-                    <Typography.Text>{item}</Typography.Text>
-                  </List.Item>
-                )}
-              />
+              {workspacePrompts.length === 0 ? (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_workspace_prototype.workflow.empty")} />
+              ) : (
+                <List
+                  dataSource={workspacePrompts}
+                  renderItem={(item) => (
+                    <List.Item>
+                      <Typography.Text>{item}</Typography.Text>
+                    </List.Item>
+                  )}
+                />
+              )}
             </Card>
             <Card size="small" title={t("project_workspace_prototype.overview.workflow_preview_title")}>
               <Steps direction="vertical" size="small" current={0} items={workflowPreviewSteps} />
@@ -1045,29 +1062,6 @@ export function ProjectWorkspacePrototypePage() {
                     value={projectId}
                     onChange={(value: string) => navigate(`/app/projects/${value}/workspace`)}
                   />
-                  <Select
-                    style={{ minWidth: 220 }}
-                    options={templateOptions.map((option) => ({ label: t(option.labelKey), value: option.id }))}
-                    value={templateId}
-                    onChange={(value: string) => setTemplateId(value)}
-                    placeholder={t("project_workspace_prototype.select_template_placeholder")}
-                  />
-                  <Select
-                    style={{ minWidth: 220 }}
-                    options={scenarioOptions.map((option) => ({ label: t(option.labelKey), value: option.id }))}
-                    value={scenarioId}
-                    onChange={(value: string) => setScenarioId(value)}
-                    placeholder={t("project_workspace_prototype.select_scenario_placeholder")}
-                  />
-                  <Segmented
-                    options={[
-                      { label: t("project_workspace_prototype.project_size.small"), value: "small" },
-                      { label: t("project_workspace_prototype.project_size.medium"), value: "medium" },
-                      { label: t("project_workspace_prototype.project_size.large"), value: "large" },
-                    ]}
-                    value={projectSize}
-                    onChange={(value) => setProjectSize(value as "small" | "medium" | "large")}
-                  />
                   <Segmented
                     options={[
                       { label: t("project_workspace_prototype.modes.standard"), value: "standard" },
@@ -1155,11 +1149,6 @@ export function ProjectWorkspacePrototypePage() {
                             phase: selectedProject?.phase ?? "-",
                           })}
                         </Typography.Text>
-                        {selectedTemplate ? <Typography.Paragraph style={{ margin: 0 }}>{t(selectedTemplate.descriptionKey)}</Typography.Paragraph> : null}
-                        {selectedScenario ? <Typography.Paragraph style={{ margin: 0 }}>{t(selectedScenario.descriptionKey)}</Typography.Paragraph> : null}
-                        <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_1")}</Typography.Paragraph>
-                        <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_2")}</Typography.Paragraph>
-                        <Typography.Paragraph style={{ margin: 0 }}>{t("project_workspace_prototype.side_panels.prototype_notes_3")}</Typography.Paragraph>
                       </Space>
                     </Card>
                   </Space>

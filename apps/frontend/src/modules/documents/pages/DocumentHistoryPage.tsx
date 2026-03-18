@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Button, Card, Divider, Space, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined } from "@ant-design/icons";
@@ -27,14 +27,15 @@ export function DocumentHistoryPage() {
   const canReadHistory = permissionState.hasPermission(permissions.activityLogs.read);
   const tr = (key: string) => i18n.t(key, { lng: language });
 
-  const historyQuery = useDocumentHistory(documentId ?? null, canReadHistory);
+  const [paging, setPaging] = useState({ page: 1, pageSize: 10 });
+  const historyQuery = useDocumentHistory(documentId ?? null, paging, canReadHistory);
 
   const documentLabel = useMemo(() => locationState?.documentName ?? documentId ?? "-", [locationState?.documentName, documentId]);
 
   const historyItems = useMemo(() => {
-    const items = historyQuery.data ?? [];
+    const items = historyQuery.data?.items ?? [];
     return [...items].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
-  }, [historyQuery.data]);
+  }, [historyQuery.data?.items]);
 
   const historyColumns: ColumnsType<DocumentHistoryItem> = [
     {
@@ -116,7 +117,14 @@ export function DocumentHistoryPage() {
           loading={historyQuery.isLoading}
           columns={historyColumns}
           dataSource={historyItems}
-          pagination={{ pageSize: 10, pageSizeOptions: [10, 25, 50, 100], showSizeChanger: true }}
+          pagination={{
+            current: historyQuery.data?.page ?? paging.page,
+            pageSize: historyQuery.data?.pageSize ?? paging.pageSize,
+            total: historyQuery.data?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+            onChange: (page, pageSize) => setPaging({ page, pageSize }),
+          }}
           scroll={{ x: "max-content" }}
           locale={{ emptyText: historyQuery.isError ? tr("documents.load_failed") : tr("documents.history.empty") }}
           expandable={{

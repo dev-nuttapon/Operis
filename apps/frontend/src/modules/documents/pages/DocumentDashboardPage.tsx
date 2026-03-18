@@ -19,7 +19,8 @@ export function DocumentDashboardPage() {
   const navigate = useNavigate();
   const permissionState = usePermissions();
   const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
-  const { documentsQuery } = useDocumentDashboard(canReadDocuments);
+  const [paging, setPaging] = useState({ page: 1, pageSize: 10 });
+  const { documentsQuery } = useDocumentDashboard(canReadDocuments, paging.page, paging.pageSize);
   const tr = (key: string) => i18n.t(key, { lng: language });
   const [editForm] = Form.useForm();
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -215,8 +216,15 @@ export function DocumentDashboardPage() {
         rowKey="id"
         loading={documentsQuery.isLoading}
         columns={latestDocumentColumns}
-        dataSource={canReadDocuments ? (documentsQuery.data ?? []) : []}
-        pagination={{ pageSize: 10, pageSizeOptions: [10, 25, 50, 100], showSizeChanger: true }}
+        dataSource={canReadDocuments ? (documentsQuery.data?.items ?? []) : []}
+        pagination={{
+          current: documentsQuery.data?.page ?? paging.page,
+          pageSize: documentsQuery.data?.pageSize ?? paging.pageSize,
+          total: documentsQuery.data?.total ?? 0,
+          showSizeChanger: true,
+          pageSizeOptions: [10, 25, 50, 100],
+          onChange: (page, pageSize) => setPaging({ page, pageSize }),
+        }}
         scroll={{ x: "max-content" }}
         locale={{ emptyText: !canReadDocuments ? tr("documents.read_only_title") : documentsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
         style={{ marginBottom: 24 }}

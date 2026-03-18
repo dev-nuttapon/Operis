@@ -397,14 +397,6 @@ export interface ProjectAssignmentHistoryRow {
   updatedAt: string | null;
 }
 
-export interface ProjectEvidence {
-  projectId: string;
-  projectName: string;
-  teamRegister: ProjectTeamRegisterRow[];
-  roleResponsibilities: ProjectRoleResponsibilityRow[];
-  assignmentHistory: ProjectAssignmentHistoryRow[];
-}
-
 export interface ProjectComplianceCheck {
   code: string;
   title: string;

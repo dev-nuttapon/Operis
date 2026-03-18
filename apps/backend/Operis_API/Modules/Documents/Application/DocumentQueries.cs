@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Documents.Contracts;
 using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Documents.Application;
 
@@ -9,13 +10,25 @@ public sealed class DocumentQueries(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter) : IDocumentQueries
 {
-    public async Task<IReadOnlyList<DocumentListItem>> ListDocumentsAsync(CancellationToken cancellationToken)
+    public async Task<PagedResult<DocumentListItem>> ListDocumentsAsync(DocumentListQuery query, CancellationToken cancellationToken)
     {
-        var items = await dbContext.Documents
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery = dbContext.Documents
             .AsNoTracking()
-            .Where(x => !x.IsDeleted)
+            .Where(x => !x.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            baseQuery = baseQuery.Where(x => EF.Functions.ILike(x.DocumentName, search));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+
+        var items = await baseQuery
             .OrderByDescending(x => x.UploadedAt)
-            .Take(50)
+            .Skip(skip)
+            .Take(pageSize)
             .GroupJoin(
                 dbContext.DocumentVersions.AsNoTracking().Where(x => !x.IsDeleted),
                 document => document.Id,
@@ -50,25 +63,40 @@ public sealed class DocumentQueries(
             Action: "list",
             EntityType: "document",
             StatusCode: StatusCodes.Status200OK,
-            Metadata: new { count = items.Count }));
+            Metadata: new { count = items.Count, total, page, pageSize, query.Search }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return items;
+        return new PagedResult<DocumentListItem>(items, total, page, pageSize);
     }
 
-    public async Task<IReadOnlyList<DocumentVersionListItem>> ListDocumentVersionsAsync(Guid documentId, CancellationToken cancellationToken)
+    public async Task<PagedResult<DocumentVersionListItem>> ListDocumentVersionsAsync(DocumentVersionListQuery query, CancellationToken cancellationToken)
     {
         var publishedVersionId = await dbContext.Documents
             .AsNoTracking()
-            .Where(x => x.Id == documentId && !x.IsDeleted)
+            .Where(x => x.Id == query.DocumentId && !x.IsDeleted)
             .Select(x => x.PublishedVersionId)
             .SingleOrDefaultAsync(cancellationToken);
 
-        var versions = await dbContext.DocumentVersions
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery = dbContext.DocumentVersions
             .AsNoTracking()
-            .Where(x => x.DocumentId == documentId && !x.IsDeleted)
+            .Where(x => x.DocumentId == query.DocumentId && !x.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            baseQuery = baseQuery.Where(x =>
+                EF.Functions.ILike(x.VersionCode, search)
+                || EF.Functions.ILike(x.FileName, search));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+
+        var versions = await baseQuery
             .OrderByDescending(x => x.Revision)
             .ThenByDescending(x => x.UploadedAt)
+            .Skip(skip)
+            .Take(pageSize)
             .Select(x => new DocumentVersionListItem(
                 x.Id,
                 x.DocumentId,
@@ -87,9 +115,17 @@ public sealed class DocumentQueries(
             Action: "list_versions",
             EntityType: "document_version",
             StatusCode: StatusCodes.Status200OK,
-            Metadata: new { documentId, count = versions.Count }));
+            Metadata: new { documentId = query.DocumentId, count = versions.Count, total, page, pageSize, query.Search }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return versions;
+        return new PagedResult<DocumentVersionListItem>(versions, total, page, pageSize);
+    }
+
+    private static (int Page, int PageSize, int Skip) NormalizePaging(int page, int pageSize)
+    {
+        var normalizedPage = page < 1 ? 1 : page;
+        var normalizedPageSize = Math.Clamp(pageSize, 5, 100);
+        var skip = (normalizedPage - 1) * normalizedPageSize;
+        return (normalizedPage, normalizedPageSize, skip);
     }
 }

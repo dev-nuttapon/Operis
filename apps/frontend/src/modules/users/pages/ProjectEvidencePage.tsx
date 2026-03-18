@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { App, Alert, Button, Card, Empty, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { AuditOutlined, DownloadOutlined } from "@ant-design/icons";
@@ -17,13 +17,40 @@ export function ProjectEvidencePage() {
   const canReadEvidence = permissionState.hasPermission(permissions.projects.readEvidence);
   const canExportEvidence = permissionState.hasPermission(permissions.projects.exportEvidence);
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
+  const [teamPage, setTeamPage] = useState(1);
+  const [teamPageSize, setTeamPageSize] = useState(10);
+  const [rolePage, setRolePage] = useState(1);
+  const [rolePageSize, setRolePageSize] = useState(10);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize, setHistoryPageSize] = useState(10);
 
-  const { projectsQuery, projectEvidenceQuery, exportProjectEvidenceCsv } = useProjectAdmin({
+  const {
+    projectsQuery,
+    projectEvidenceTeamRegisterQuery,
+    projectEvidenceRoleResponsibilitiesQuery,
+    projectEvidenceAssignmentHistoryQuery,
+    exportProjectEvidenceCsv,
+  } = useProjectAdmin({
     projects: { page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" },
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
-    projectEvidenceProjectId: selectedProjectId,
+    projectEvidenceTeamRegister: { projectId: selectedProjectId, page: teamPage, pageSize: teamPageSize },
+    projectEvidenceRoleResponsibilities: { projectId: selectedProjectId, page: rolePage, pageSize: rolePageSize },
+    projectEvidenceAssignmentHistory: { projectId: selectedProjectId, page: historyPage, pageSize: historyPageSize },
   });
+
+  useEffect(() => {
+    setTeamPage(1);
+    setRolePage(1);
+    setHistoryPage(1);
+  }, [selectedProjectId]);
+
+  const selectedProjectName = useMemo(() => {
+    if (!selectedProjectId) {
+      return null;
+    }
+    return projectsQuery.data?.items?.find((item) => item.id === selectedProjectId)?.name ?? null;
+  }, [projectsQuery.data?.items, selectedProjectId]);
 
   const projectOptions = (projectsQuery.data?.items ?? []).map((item) => ({
     label: `${item.code} - ${item.name}`,
@@ -97,7 +124,14 @@ export function ProjectEvidencePage() {
     },
   ];
 
-  const evidence = projectEvidenceQuery.data;
+  const teamRegister = projectEvidenceTeamRegisterQuery.data;
+  const roleResponsibilities = projectEvidenceRoleResponsibilitiesQuery.data;
+  const assignmentHistory = projectEvidenceAssignmentHistoryQuery.data;
+  const evidenceLoaded = Boolean(teamRegister && roleResponsibilities && assignmentHistory);
+  const hasEvidence =
+    (teamRegister?.total ?? 0) > 0 ||
+    (roleResponsibilities?.total ?? 0) > 0 ||
+    (assignmentHistory?.total ?? 0) > 0;
 
   const handleExport = async () => {
     if (!selectedProjectId) {
@@ -154,13 +188,15 @@ export function ProjectEvidencePage() {
             <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
           ) : !selectedProjectId ? (
             <Alert type="info" showIcon message={t("project_evidence.select_project_message")} />
-          ) : !evidence ? (
+          ) : evidenceLoaded && !hasEvidence ? (
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("project_evidence.empty")} />
           ) : (
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                {evidence.projectName}
-              </Typography.Title>
+              {selectedProjectName ? (
+                <Typography.Title level={4} style={{ margin: 0 }}>
+                  {selectedProjectName}
+                </Typography.Title>
+              ) : null}
 
               <Space style={{ width: "100%", justifyContent: "flex-end" }}>
                 {canExportEvidence ? (
@@ -171,15 +207,63 @@ export function ProjectEvidencePage() {
               </Space>
 
               <Card size="small" title={t("project_evidence.team_register.title")}>
-                <Table rowKey="assignmentId" columns={teamColumns} dataSource={evidence.teamRegister} pagination={false} />
+                <Table
+                  rowKey="assignmentId"
+                  columns={teamColumns}
+                  dataSource={teamRegister?.items ?? []}
+                  loading={projectEvidenceTeamRegisterQuery.isLoading}
+                  pagination={{
+                    current: teamPage,
+                    pageSize: teamPageSize,
+                    total: teamRegister?.total ?? 0,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "25", "50", "100"],
+                    onChange: (page, pageSize) => {
+                      setTeamPage(pageSize === teamPageSize ? page : 1);
+                      setTeamPageSize(pageSize);
+                    },
+                  }}
+                />
               </Card>
 
               <Card size="small" title={t("project_evidence.role_responsibility.title")}>
-                <Table rowKey="projectRoleId" columns={roleColumns} dataSource={evidence.roleResponsibilities} pagination={false} />
+                <Table
+                  rowKey="projectRoleId"
+                  columns={roleColumns}
+                  dataSource={roleResponsibilities?.items ?? []}
+                  loading={projectEvidenceRoleResponsibilitiesQuery.isLoading}
+                  pagination={{
+                    current: rolePage,
+                    pageSize: rolePageSize,
+                    total: roleResponsibilities?.total ?? 0,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "25", "50", "100"],
+                    onChange: (page, pageSize) => {
+                      setRolePage(pageSize === rolePageSize ? page : 1);
+                      setRolePageSize(pageSize);
+                    },
+                  }}
+                />
               </Card>
 
               <Card size="small" title={t("project_evidence.assignment_history.title")}>
-                <Table rowKey="assignmentId" columns={historyColumns} dataSource={evidence.assignmentHistory} pagination={false} />
+                <Table
+                  rowKey="assignmentId"
+                  columns={historyColumns}
+                  dataSource={assignmentHistory?.items ?? []}
+                  loading={projectEvidenceAssignmentHistoryQuery.isLoading}
+                  pagination={{
+                    current: historyPage,
+                    pageSize: historyPageSize,
+                    total: assignmentHistory?.total ?? 0,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "25", "50", "100"],
+                    onChange: (page, pageSize) => {
+                      setHistoryPage(pageSize === historyPageSize ? page : 1);
+                      setHistoryPageSize(pageSize);
+                    },
+                  }}
+                />
               </Card>
             </Space>
           )}

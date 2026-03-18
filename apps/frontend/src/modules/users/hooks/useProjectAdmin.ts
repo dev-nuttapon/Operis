@@ -6,10 +6,12 @@ import {
   deleteProject,
   deleteProjectAssignment,
   getProjectCompliance,
-  getProjectEvidence,
   exportProjectEvidence,
   deleteProjectRole,
   getProjectOrgChart,
+  listProjectEvidenceAssignmentHistory,
+  listProjectEvidenceRoleResponsibilities,
+  listProjectEvidenceTeamRegister,
   listProjectAssignments,
   listProjectRoles,
   listProjects,
@@ -42,7 +44,9 @@ export function useProjectAdmin(input: {
   projectRoles: { projectId?: string; search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number };
   projectAssignments: ListProjectAssignmentsInput | null;
   projectOrgChartProjectId?: string;
-  projectEvidenceProjectId?: string;
+  projectEvidenceTeamRegister?: { projectId?: string; page?: number; pageSize?: number };
+  projectEvidenceRoleResponsibilities?: { projectId?: string; page?: number; pageSize?: number };
+  projectEvidenceAssignmentHistory?: { projectId?: string; page?: number; pageSize?: number };
   projectComplianceProjectId?: string;
 }) {
   const queryClient = useQueryClient();
@@ -86,10 +90,39 @@ export function useProjectAdmin(input: {
     staleTime: 15_000,
   });
 
-  const projectEvidenceQuery = useQuery({
-    queryKey: [...projectAssignmentsQueryKey, "evidence", input.projectEvidenceProjectId],
-    enabled: Boolean(input.projectEvidenceProjectId),
-    queryFn: ({ signal }) => getProjectEvidence(input.projectEvidenceProjectId!, signal),
+  const projectEvidenceTeamRegisterQuery = useQuery({
+    queryKey: [...projectAssignmentsQueryKey, "evidence", "team-register", input.projectEvidenceTeamRegister],
+    enabled: Boolean(input.projectEvidenceTeamRegister?.projectId),
+    queryFn: ({ signal }) =>
+      listProjectEvidenceTeamRegister(
+        input.projectEvidenceTeamRegister!.projectId!,
+        { page: input.projectEvidenceTeamRegister!.page, pageSize: input.projectEvidenceTeamRegister!.pageSize },
+        signal,
+      ),
+    staleTime: 15_000,
+  });
+
+  const projectEvidenceRoleResponsibilitiesQuery = useQuery({
+    queryKey: [...projectAssignmentsQueryKey, "evidence", "role-responsibilities", input.projectEvidenceRoleResponsibilities],
+    enabled: Boolean(input.projectEvidenceRoleResponsibilities?.projectId),
+    queryFn: ({ signal }) =>
+      listProjectEvidenceRoleResponsibilities(
+        input.projectEvidenceRoleResponsibilities!.projectId!,
+        { page: input.projectEvidenceRoleResponsibilities!.page, pageSize: input.projectEvidenceRoleResponsibilities!.pageSize },
+        signal,
+      ),
+    staleTime: 15_000,
+  });
+
+  const projectEvidenceAssignmentHistoryQuery = useQuery({
+    queryKey: [...projectAssignmentsQueryKey, "evidence", "assignment-history", input.projectEvidenceAssignmentHistory],
+    enabled: Boolean(input.projectEvidenceAssignmentHistory?.projectId),
+    queryFn: ({ signal }) =>
+      listProjectEvidenceAssignmentHistory(
+        input.projectEvidenceAssignmentHistory!.projectId!,
+        { page: input.projectEvidenceAssignmentHistory!.page, pageSize: input.projectEvidenceAssignmentHistory!.pageSize },
+        signal,
+      ),
     staleTime: 15_000,
   });
 
@@ -168,7 +201,9 @@ export function useProjectAdmin(input: {
     projectRolesQuery,
     projectAssignmentsQuery,
     projectOrgChartQuery,
-    projectEvidenceQuery,
+    projectEvidenceTeamRegisterQuery,
+    projectEvidenceRoleResponsibilitiesQuery,
+    projectEvidenceAssignmentHistoryQuery,
     projectComplianceQuery,
     projectMemberUsersQuery,
     createProjectMutation,

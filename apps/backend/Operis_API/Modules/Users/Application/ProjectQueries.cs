@@ -24,6 +24,11 @@ public sealed record ProjectAssignmentListQuery(
     int Page = 1,
     int PageSize = 10);
 
+public sealed record ProjectEvidenceListQuery(
+    Guid ProjectId,
+    int Page = 1,
+    int PageSize = 10);
+
 file sealed record ProjectOrgChartRow(
     Guid Id,
     string UserId,
@@ -45,6 +50,9 @@ public interface IProjectQueries
     Task<bool> HasProjectAccessAsync(Guid projectId, string userId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ProjectOrgChartNodeResponse>> GetProjectOrgChartAsync(Guid projectId, CancellationToken cancellationToken);
     Task<ProjectEvidenceResponse?> GetProjectEvidenceAsync(Guid projectId, CancellationToken cancellationToken);
+    Task<PagedResult<ProjectTeamRegisterRowResponse>?> ListProjectTeamRegisterAsync(ProjectEvidenceListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<ProjectRoleResponsibilityRowResponse>?> ListProjectRoleResponsibilitiesAsync(ProjectEvidenceListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<ProjectAssignmentHistoryRowResponse>?> ListProjectAssignmentHistoryAsync(ProjectEvidenceListQuery query, CancellationToken cancellationToken);
     Task<ProjectEvidenceExportResult?> GetProjectEvidenceExportAsync(Guid projectId, CancellationToken cancellationToken);
     Task<ProjectComplianceResponse?> GetProjectComplianceAsync(Guid projectId, CancellationToken cancellationToken);
 }
@@ -427,6 +435,136 @@ public sealed class ProjectQueries(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new ProjectEvidenceResponse(project.Id, project.Name, teamRegister, roleResponsibilities, assignmentHistory);
+    }
+
+    public async Task<PagedResult<ProjectTeamRegisterRowResponse>?> ListProjectTeamRegisterAsync(ProjectEvidenceListQuery query, CancellationToken cancellationToken)
+    {
+        if (!await ProjectExistsAsync(query.ProjectId, cancellationToken))
+        {
+            return null;
+        }
+
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery = BuildEvidenceAssignmentRows(query.ProjectId)
+            .Where(x => x.Status == "Active");
+        var total = await baseQuery.CountAsync(cancellationToken);
+
+        var items = await baseQuery
+            .OrderBy(x => x.UserDisplayName ?? x.UserEmail ?? x.UserId)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new ProjectTeamRegisterRowResponse(
+                x.Id,
+                x.UserId,
+                x.UserEmail,
+                x.UserDisplayName,
+                x.ProjectRoleName,
+                x.ReportsToDisplayName,
+                x.IsPrimary,
+                x.Status,
+                x.StartAt,
+                x.EndAt))
+            .ToListAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list_team_register",
+            EntityType: "project",
+            EntityId: query.ProjectId.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { total, page, pageSize }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new PagedResult<ProjectTeamRegisterRowResponse>(items, total, page, pageSize);
+    }
+
+    public async Task<PagedResult<ProjectRoleResponsibilityRowResponse>?> ListProjectRoleResponsibilitiesAsync(ProjectEvidenceListQuery query, CancellationToken cancellationToken)
+    {
+        if (!await ProjectExistsAsync(query.ProjectId, cancellationToken))
+        {
+            return null;
+        }
+
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var source = dbContext.ProjectRoles
+            .AsNoTracking()
+            .Where(x => x.ProjectId == query.ProjectId && x.DeletedAt == null);
+        var total = await source.CountAsync(cancellationToken);
+
+        var items = await source
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new ProjectRoleResponsibilityRowResponse(
+                x.Id,
+                x.Name,
+                x.Code,
+                x.Description,
+                x.Responsibilities,
+                x.AuthorityScope,
+                x.CanCreateDocuments,
+                x.CanReviewDocuments,
+                x.CanApproveDocuments,
+                x.CanReleaseDocuments,
+                x.IsReviewRole,
+                x.IsApprovalRole,
+                dbContext.UserProjectAssignments.Count(assignment => assignment.ProjectRoleId == x.Id && assignment.Status == "Active")))
+            .ToListAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list_role_responsibilities",
+            EntityType: "project",
+            EntityId: query.ProjectId.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { total, page, pageSize }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new PagedResult<ProjectRoleResponsibilityRowResponse>(items, total, page, pageSize);
+    }
+
+    public async Task<PagedResult<ProjectAssignmentHistoryRowResponse>?> ListProjectAssignmentHistoryAsync(ProjectEvidenceListQuery query, CancellationToken cancellationToken)
+    {
+        if (!await ProjectExistsAsync(query.ProjectId, cancellationToken))
+        {
+            return null;
+        }
+
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery = BuildEvidenceAssignmentRows(query.ProjectId);
+        var total = await baseQuery.CountAsync(cancellationToken);
+
+        var items = await baseQuery
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new ProjectAssignmentHistoryRowResponse(
+                x.Id,
+                x.UserId,
+                x.UserEmail,
+                x.UserDisplayName,
+                x.ProjectRoleName,
+                x.Status,
+                x.ChangeReason,
+                x.ReportsToDisplayName,
+                x.IsPrimary,
+                x.StartAt,
+                x.EndAt,
+                x.CreatedAt,
+                x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list_assignment_history",
+            EntityType: "project",
+            EntityId: query.ProjectId.ToString(),
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { total, page, pageSize }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new PagedResult<ProjectAssignmentHistoryRowResponse>(items, total, page, pageSize);
     }
 
     public async Task<ProjectEvidenceExportResult?> GetProjectEvidenceExportAsync(Guid projectId, CancellationToken cancellationToken)
@@ -859,4 +997,48 @@ public sealed class ProjectQueries(
         var skip = (normalizedPage - 1) * normalizedPageSize;
         return (normalizedPage, normalizedPageSize, skip);
     }
+
+    private Task<bool> ProjectExistsAsync(Guid projectId, CancellationToken cancellationToken) =>
+        dbContext.Projects.AsNoTracking().AnyAsync(project => project.Id == projectId && project.DeletedAt == null, cancellationToken);
+
+    private IQueryable<ProjectEvidenceAssignmentRow> BuildEvidenceAssignmentRows(Guid projectId)
+    {
+        return from assignment in dbContext.UserProjectAssignments.AsNoTracking()
+               where assignment.ProjectId == projectId
+               join user in dbContext.Users.AsNoTracking() on assignment.UserId equals user.Id into userJoin
+               from user in userJoin.DefaultIfEmpty()
+               join role in dbContext.ProjectRoles.AsNoTracking() on assignment.ProjectRoleId equals role.Id into roleJoin
+               from role in roleJoin.DefaultIfEmpty()
+               join reportsTo in dbContext.Users.AsNoTracking() on assignment.ReportsToUserId equals reportsTo.Id into reportsJoin
+               from reportsTo in reportsJoin.DefaultIfEmpty()
+               select new ProjectEvidenceAssignmentRow(
+                   assignment.Id,
+                   assignment.UserId,
+                   user != null ? user.Id : null,
+                   user != null ? user.Id : null,
+                   role != null ? role.Name : string.Empty,
+                   assignment.Status,
+                   assignment.ChangeReason,
+                   reportsTo != null ? reportsTo.Id : null,
+                   assignment.IsPrimary,
+                   assignment.StartAt,
+                   assignment.EndAt,
+                   assignment.CreatedAt,
+                   assignment.UpdatedAt);
+    }
 }
+
+file sealed record ProjectEvidenceAssignmentRow(
+    Guid Id,
+    string UserId,
+    string? UserEmail,
+    string? UserDisplayName,
+    string ProjectRoleName,
+    string Status,
+    string? ChangeReason,
+    string? ReportsToDisplayName,
+    bool IsPrimary,
+    DateTimeOffset StartAt,
+    DateTimeOffset? EndAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);

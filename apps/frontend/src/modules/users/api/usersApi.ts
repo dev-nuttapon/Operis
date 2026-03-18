@@ -26,10 +26,12 @@ import type {
   MasterDataItem,
   Project,
   ProjectAssignment,
-  ProjectEvidence,
+  ProjectAssignmentHistoryRow,
   ProjectCompliance,
   ProjectOrgChartNode,
   ProjectRole,
+  ProjectRoleResponsibilityRow,
+  ProjectTeamRegisterRow,
   ProjectTypeRoleRequirement,
   ProjectTypeTemplate,
   RegistrationRequest,
@@ -481,8 +483,34 @@ export function getProjectOrgChart(projectId: string, signal?: AbortSignal) {
   return apiRequest<ProjectOrgChartNode[]>(`/api/v1/users/projects/${encodeURIComponent(projectId)}/org-chart`, { signal });
 }
 
-export function getProjectEvidence(projectId: string, signal?: AbortSignal) {
-  return apiRequest<ProjectEvidence>(`/api/v1/users/projects/${encodeURIComponent(projectId)}/evidence`, { signal });
+export function listProjectEvidenceTeamRegister(projectId: string, input: PaginationInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input.page) params.set("page", String(input.page));
+  if (input.pageSize) params.set("pageSize", String(input.pageSize));
+  return apiRequest<PaginatedResult<ProjectTeamRegisterRow>>(
+    `/api/v1/users/projects/${encodeURIComponent(projectId)}/evidence/team-register?${params.toString()}`,
+    { signal },
+  );
+}
+
+export function listProjectEvidenceRoleResponsibilities(projectId: string, input: PaginationInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input.page) params.set("page", String(input.page));
+  if (input.pageSize) params.set("pageSize", String(input.pageSize));
+  return apiRequest<PaginatedResult<ProjectRoleResponsibilityRow>>(
+    `/api/v1/users/projects/${encodeURIComponent(projectId)}/evidence/role-responsibilities?${params.toString()}`,
+    { signal },
+  );
+}
+
+export function listProjectEvidenceAssignmentHistory(projectId: string, input: PaginationInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input.page) params.set("page", String(input.page));
+  if (input.pageSize) params.set("pageSize", String(input.pageSize));
+  return apiRequest<PaginatedResult<ProjectAssignmentHistoryRow>>(
+    `/api/v1/users/projects/${encodeURIComponent(projectId)}/evidence/assignment-history?${params.toString()}`,
+    { signal },
+  );
 }
 
 export function exportProjectEvidence(projectId: string, signal?: AbortSignal) {

@@ -36,7 +36,7 @@ export interface ProjectWorkspacePrototypeMember {
   roleName: string;
   reportsTo?: string;
   primary: boolean;
-  status: "Active" | "Warning";
+  status: string;
   period: string;
 }
 
