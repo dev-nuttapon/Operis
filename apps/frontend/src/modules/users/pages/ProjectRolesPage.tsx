@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, App, Button, Card, Checkbox, Form, Input, InputNumber, Modal, Select, Space, Table, Typography } from "antd";
+import { Alert, App, Button, Card, Checkbox, Form, Input, InputNumber, Modal, Select, Space, Table, Typography, Skeleton } from "antd";
 import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
@@ -12,6 +12,7 @@ import { toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectOptions } from "../hooks/useProjectOptions";
 import type { CreateProjectRoleInput, ProjectRole, UpdateProjectRoleInput } from "../types/users";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type ProjectRoleFormValues = {
   projectId: string;
@@ -137,10 +138,11 @@ export function ProjectRolesPage() {
   const [editForm] = Form.useForm<ProjectRoleFormValues>();
   const [deleteForm] = Form.useForm();
 
+  const debouncedSearch = useDebouncedValue(paging.search, 300);
   const { projectRolesQuery, createProjectRoleMutation, updateProjectRoleMutation, deleteProjectRoleMutation } = useProjectAdmin({
     projectsEnabled: false,
     projects: { page: 1, pageSize: 1 },
-    projectRoles: { ...paging, projectId: selectedProjectId },
+    projectRoles: { ...paging, search: debouncedSearch, projectId: selectedProjectId },
     projectAssignments: null,
   });
   const projectOptionsState = useProjectOptions({ enabled: canReadProjects });
@@ -383,29 +385,33 @@ export function ProjectRolesPage() {
                 ) : null}
               </Space>
 
-              <Table
-                rowKey="id"
-                columns={columns}
-                dataSource={canReadProjects ? (projectRolesQuery.data?.items ?? []) : []}
-                loading={canReadProjects ? projectRolesQuery.isLoading : false}
-                pagination={{
-                  current: projectRolesQuery.data?.page ?? paging.page,
-                  pageSize: projectRolesQuery.data?.pageSize ?? paging.pageSize,
-                  total: projectRolesQuery.data?.total ?? 0,
-                  showSizeChanger: true,
-                  pageSizeOptions: [10, 25, 50, 100],
-                }}
-                onChange={(nextPagination, _, sorter) => {
-                  const resolvedSorter = sorter as SorterResult<ProjectRole>;
-                  setPaging((current) => ({
-                    ...current,
-                    page: nextPagination.current ?? current.page,
-                    pageSize: nextPagination.pageSize ?? current.pageSize,
-                    sortBy: typeof resolvedSorter.field === "string" ? resolvedSorter.field : current.sortBy,
-                    sortOrder: toApiSortOrder(resolvedSorter.order) ?? current.sortOrder,
-                  }));
-                }}
-              />
+              {canReadProjects && projectRolesQuery.isLoading && (projectRolesQuery.data?.items?.length ?? 0) === 0 ? (
+                <Skeleton active paragraph={{ rows: 6 }} />
+              ) : (
+                <Table
+                  rowKey="id"
+                  columns={columns}
+                  dataSource={canReadProjects ? (projectRolesQuery.data?.items ?? []) : []}
+                  loading={canReadProjects ? projectRolesQuery.isLoading : false}
+                  pagination={{
+                    current: projectRolesQuery.data?.page ?? paging.page,
+                    pageSize: projectRolesQuery.data?.pageSize ?? paging.pageSize,
+                    total: projectRolesQuery.data?.total ?? 0,
+                    showSizeChanger: true,
+                    pageSizeOptions: [10, 25, 50, 100],
+                  }}
+                  onChange={(nextPagination, _, sorter) => {
+                    const resolvedSorter = sorter as SorterResult<ProjectRole>;
+                    setPaging((current) => ({
+                      ...current,
+                      page: nextPagination.current ?? current.page,
+                      pageSize: nextPagination.pageSize ?? current.pageSize,
+                      sortBy: typeof resolvedSorter.field === "string" ? resolvedSorter.field : current.sortBy,
+                      sortOrder: toApiSortOrder(resolvedSorter.order) ?? current.sortOrder,
+                    }));
+                  }}
+                />
+              )}
             </>
           )}
         </Space>

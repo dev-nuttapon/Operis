@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listProjectRoles } from "../api/usersApi";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 export function useProjectRoleOptions({
   enabled,
@@ -12,16 +13,17 @@ export function useProjectRoleOptions({
   pageSize?: number;
 }) {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const rolesQuery = useInfiniteQuery({
-    queryKey: ["project-role-options", { projectId, search, pageSize }],
+    queryKey: ["project-role-options", { projectId, search: debouncedSearch, pageSize }],
     enabled: enabled && Boolean(projectId),
     queryFn: ({ signal, pageParam }) =>
       listProjectRoles(
         {
           page: pageParam as number,
           pageSize,
-          search,
+          search: debouncedSearch,
           sortBy: "displayOrder",
           sortOrder: "asc",
           divisionId: projectId,

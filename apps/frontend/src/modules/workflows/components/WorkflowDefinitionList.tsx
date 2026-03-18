@@ -14,6 +14,12 @@ interface WorkflowDefinitionListProps {
   isLoading: boolean;
   isMutating: boolean;
   editingWorkflowDefinitionId: string | null;
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+  onPageChange: (page: number, pageSize: number) => void;
   onStartEdit: (workflowDefinitionId: string) => void;
   onCancelEdit: () => void;
   onUpdate: (workflowDefinitionId: string, name: string) => void;
@@ -27,6 +33,8 @@ export function WorkflowDefinitionList({
   isLoading,
   isMutating,
   editingWorkflowDefinitionId,
+  pagination,
+  onPageChange,
   onStartEdit,
   onCancelEdit,
   onUpdate,
@@ -45,6 +53,14 @@ export function WorkflowDefinitionList({
       dataSource={definitions}
       loading={isLoading}
       locale={{ emptyText: t("workflow_definitions.empty") }}
+      pagination={{
+        current: pagination.page,
+        pageSize: pagination.pageSize,
+        total: pagination.total,
+        showSizeChanger: true,
+        pageSizeOptions: [10, 25, 50, 100],
+        onChange: onPageChange,
+      }}
       renderItem={(item) => {
         const actions = canManage
           ? [

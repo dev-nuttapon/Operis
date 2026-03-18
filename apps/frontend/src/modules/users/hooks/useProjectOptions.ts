@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listProjects } from "../api/usersApi";
 import type { Project } from "../types/users";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type ProjectOption = { label: string; value: string };
 
@@ -15,16 +16,17 @@ export function useProjectOptions({
   pageSize?: number;
 }) {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const projectsQuery = useInfiniteQuery({
-    queryKey: ["project-options", { search, assignedOnly, pageSize }],
+    queryKey: ["project-options", { search: debouncedSearch, assignedOnly, pageSize }],
     enabled,
     queryFn: ({ signal, pageParam }) =>
       listProjects(
         {
           page: pageParam as number,
           pageSize,
-          search,
+          search: debouncedSearch,
           sortBy: "name",
           sortOrder: "asc",
           assignedOnly,

@@ -225,11 +225,6 @@ export function listDivisions(input?: ListQueryInput, signal?: AbortSignal) {
   return apiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/divisions${toListQuery(input)}`, { signal });
 }
 
-export function listPublicDepartments(input?: ListQueryInput, signal?: AbortSignal) {
-  const query = toListQuery(input ?? { page: 1, pageSize: 10 });
-  return publicApiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/departments${query}`, { signal });
-}
-
 export function listPublicDepartmentsByDivision(divisionId: string, input?: ListQueryInput, signal?: AbortSignal) {
   const query = toListQuery({ ...(input ?? { page: 1, pageSize: 10 }), divisionId });
   return publicApiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/departments${query}`, { signal });
@@ -290,17 +285,13 @@ export function listJobTitles(input?: ListQueryInput, signal?: AbortSignal) {
   return apiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/job-titles${toListQuery(input)}`, { signal });
 }
 
-export function listPublicJobTitlesByDepartment(departmentId: string, input?: ListQueryInput, signal?: AbortSignal) {
-  const query = toListQuery({ ...(input ?? { page: 1, pageSize: 10 }), departmentId });
-  return publicApiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/job-titles${query}`, { signal });
-}
 
 export function listProjectRoles(input?: ListQueryInput, signal?: AbortSignal) {
   return apiRequest<PaginatedResult<ProjectRole>>(`/api/v1/users/project-roles${toListQuery(input)}`, { signal });
 }
 
-export function listPublicJobTitles(input?: ListQueryInput, signal?: AbortSignal) {
-  const query = toListQuery(input ?? { page: 1, pageSize: 10 });
+export function listPublicJobTitlesByDepartment(departmentId: string, input?: ListQueryInput, signal?: AbortSignal) {
+  const query = toListQuery({ ...(input ?? { page: 1, pageSize: 10 }), departmentId });
   return publicApiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/job-titles${query}`, { signal });
 }
 

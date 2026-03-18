@@ -19,7 +19,15 @@ export function WorkflowDefinitionsPage() {
   const permissionState = usePermissions();
   const canReadWorkflows = permissionState.hasPermission(permissions.workflows.read);
   const canManageDefinitions = permissionState.hasPermission(permissions.workflows.manageDefinitions);
-  const { definitionsQuery, filteredDefinitions, setStatusFilter, statusFilter, statusSummary } = useWorkflowDefinitionsScreen();
+  const {
+    definitionsQuery,
+    filteredDefinitions,
+    setStatusFilter,
+    statusFilter,
+    statusSummary,
+    paging,
+    setPaging,
+  } = useWorkflowDefinitionsScreen();
   const createDefinitionMutation = useCreateWorkflowDefinition();
   const updateDefinitionMutation = useUpdateWorkflowDefinition();
   const { activateMutation, archiveMutation } = useWorkflowDefinitionActions();
@@ -100,6 +108,18 @@ export function WorkflowDefinitionsPage() {
           isLoading={definitionsQuery.isLoading}
           isMutating={updateDefinitionMutation.isPending || activateMutation.isPending || archiveMutation.isPending}
           editingWorkflowDefinitionId={editingWorkflowDefinitionId}
+          pagination={{
+            page: definitionsQuery.data?.page ?? paging.page,
+            pageSize: definitionsQuery.data?.pageSize ?? paging.pageSize,
+            total: definitionsQuery.data?.total ?? 0,
+          }}
+          onPageChange={(page, pageSize) => {
+            setPaging((current) => ({
+              ...current,
+              page: pageSize === current.pageSize ? page : 1,
+              pageSize,
+            }));
+          }}
           onStartEdit={startEditing}
           onCancelEdit={stopEditing}
           onUpdate={(workflowDefinitionId, name) => {

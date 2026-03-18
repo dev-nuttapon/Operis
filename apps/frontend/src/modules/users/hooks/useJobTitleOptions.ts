@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listJobTitles, listPublicJobTitlesByDepartment } from "../api/usersApi";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 export function useJobTitleOptions({
   enabled,
@@ -14,15 +15,16 @@ export function useJobTitleOptions({
   publicAccess?: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const jobTitlesQuery = useInfiniteQuery({
-    queryKey: ["job-title-options", { departmentId, publicAccess, search, pageSize }],
+    queryKey: ["job-title-options", { departmentId, publicAccess, search: debouncedSearch, pageSize }],
     enabled: enabled && Boolean(departmentId),
     queryFn: ({ signal, pageParam }) => {
       const input = {
         page: pageParam as number,
         pageSize,
-        search,
+        search: debouncedSearch,
         sortBy: "displayOrder",
         sortOrder: "asc",
         departmentId,

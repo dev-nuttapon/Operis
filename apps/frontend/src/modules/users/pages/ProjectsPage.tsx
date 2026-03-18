@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography } from "antd";
+import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined } from "@ant-design/icons";
@@ -14,6 +14,7 @@ import { useProjectTypeOptions } from "../hooks/useProjectTypeOptions";
 import type { Project, UpdateProjectInput, User } from "../types/users";
 import { ProjectForm, normalizeProjectPayload, toInitialValues, type ProjectFormValues } from "../components/projects/ProjectForm";
 import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 function toUserLabel(user: User) {
   const displayName = [user.keycloak?.firstName, user.keycloak?.lastName].filter(Boolean).join(" ").trim();
@@ -54,9 +55,10 @@ export function ProjectsPage() {
   const [editForm] = Form.useForm<ProjectFormValues>();
   const [deleteForm] = Form.useForm();
 
+  const debouncedSearch = useDebouncedValue(paging.search, 300);
   const { projectsQuery, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
     projectsEnabled: canViewProjectList,
-    projects: { ...paging, assignedOnly: isMyProjectsPage && !canReadProjects },
+    projects: { ...paging, search: debouncedSearch, assignedOnly: isMyProjectsPage && !canReadProjects },
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
   });
@@ -228,34 +230,38 @@ export function ProjectsPage() {
               ) : null}
             </Space>
 
-            <Table
-              rowKey="id"
-              columns={columns}
-              dataSource={projectsQuery.data?.items ?? []}
-              loading={projectsQuery.isLoading}
-              rowClassName={() => "clickable-project-row"}
-              onRow={(record) => ({
-                onClick: () => navigate(`/app/projects/${record.id}/workspace`),
-                style: { cursor: "pointer" },
-              })}
-              pagination={{
-                current: projectsQuery.data?.page ?? paging.page,
-                pageSize: projectsQuery.data?.pageSize ?? paging.pageSize,
-                total: projectsQuery.data?.total ?? 0,
-                showSizeChanger: true,
-                pageSizeOptions: [10, 25, 50, 100],
-              }}
-              onChange={(nextPagination, _, sorter) => {
-                const resolvedSorter = sorter as SorterResult<Project>;
-                setPaging((current) => ({
-                  ...current,
-                  page: nextPagination.current ?? current.page,
-                  pageSize: nextPagination.pageSize ?? current.pageSize,
-                  sortBy: typeof resolvedSorter.field === "string" ? resolvedSorter.field : current.sortBy,
-                  sortOrder: toApiSortOrder(resolvedSorter.order) ?? current.sortOrder,
-                }));
-              }}
-            />
+            {projectsQuery.isLoading && (projectsQuery.data?.items?.length ?? 0) === 0 ? (
+              <Skeleton active paragraph={{ rows: 6 }} />
+            ) : (
+              <Table
+                rowKey="id"
+                columns={columns}
+                dataSource={projectsQuery.data?.items ?? []}
+                loading={projectsQuery.isLoading}
+                rowClassName={() => "clickable-project-row"}
+                onRow={(record) => ({
+                  onClick: () => navigate(`/app/projects/${record.id}/workspace`),
+                  style: { cursor: "pointer" },
+                })}
+                pagination={{
+                  current: projectsQuery.data?.page ?? paging.page,
+                  pageSize: projectsQuery.data?.pageSize ?? paging.pageSize,
+                  total: projectsQuery.data?.total ?? 0,
+                  showSizeChanger: true,
+                  pageSizeOptions: [10, 25, 50, 100],
+                }}
+                onChange={(nextPagination, _, sorter) => {
+                  const resolvedSorter = sorter as SorterResult<Project>;
+                  setPaging((current) => ({
+                    ...current,
+                    page: nextPagination.current ?? current.page,
+                    pageSize: nextPagination.pageSize ?? current.pageSize,
+                    sortBy: typeof resolvedSorter.field === "string" ? resolvedSorter.field : current.sortBy,
+                    sortOrder: toApiSortOrder(resolvedSorter.order) ?? current.sortOrder,
+                  }));
+                }}
+              />
+            )}
           </>
         )}
       </Card>

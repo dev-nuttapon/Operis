@@ -15,6 +15,7 @@ import type {
   User,
   UserStatus,
 } from "../types/users";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -78,13 +79,20 @@ export function useAdminUsersScreen(input: {
     sortBy: "displayOrder",
     sortOrder: "asc" as "asc" | "desc",
   });
+  const debouncedUsersSearch = useDebouncedValue(usersPaging.search, 300);
+  const debouncedRegistrationSearch = useDebouncedValue(registrationPaging.search, 300);
+  const debouncedInvitationSearch = useDebouncedValue(invitationPaging.search, 300);
+  const debouncedDivisionSearch = useDebouncedValue(divisionPaging.search, 300);
+  const debouncedDepartmentSearch = useDebouncedValue(departmentPaging.search, 300);
+  const debouncedJobTitleSearch = useDebouncedValue(jobTitlePaging.search, 300);
+
   const adminUsers = useAdminUsers({
-    users: usersPaging,
-    registrationRequests: registrationPaging,
-    invitations: invitationPaging,
-    divisions: divisionPaging,
-    departments: departmentPaging,
-    jobTitles: jobTitlePaging,
+    users: { ...usersPaging, search: debouncedUsersSearch },
+    registrationRequests: { ...registrationPaging, search: debouncedRegistrationSearch },
+    invitations: { ...invitationPaging, search: debouncedInvitationSearch },
+    divisions: { ...divisionPaging, search: debouncedDivisionSearch },
+    departments: { ...departmentPaging, search: debouncedDepartmentSearch },
+    jobTitles: { ...jobTitlePaging, search: debouncedJobTitleSearch },
   });
 
   const [inviteForm] = Form.useForm();

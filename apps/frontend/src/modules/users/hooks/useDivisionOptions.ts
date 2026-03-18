@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listDivisions, listPublicDivisions } from "../api/usersApi";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 export function useDivisionOptions({
   enabled,
@@ -12,16 +13,17 @@ export function useDivisionOptions({
   publicAccess?: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const divisionsQuery = useInfiniteQuery({
-    queryKey: ["division-options", { publicAccess, search, pageSize }],
+    queryKey: ["division-options", { publicAccess, search: debouncedSearch, pageSize }],
     enabled,
     queryFn: ({ signal, pageParam }) =>
       (publicAccess ? listPublicDivisions : listDivisions)(
         {
           page: pageParam as number,
           pageSize,
-          search,
+          search: debouncedSearch,
           sortBy: "displayOrder",
           sortOrder: "asc",
         },

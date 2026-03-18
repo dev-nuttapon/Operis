@@ -470,7 +470,7 @@ export function ProjectWorkspacePrototypePage() {
                 pageSize: teamPageSize,
                 total: projectEvidenceTeamRegisterQuery.data?.total ?? 0,
                 showSizeChanger: true,
-                pageSizeOptions: ["10", "25", "50", "100"],
+                pageSizeOptions: [10, 25, 50, 100],
                 onChange: (page, pageSize) => {
                   setTeamPage(pageSize === teamPageSize ? page : 1);
                   setTeamPageSize(pageSize);
@@ -541,7 +541,7 @@ export function ProjectWorkspacePrototypePage() {
                   pageSize: rolePageSize,
                   total: projectEvidenceRoleResponsibilitiesQuery.data?.total ?? 0,
                   showSizeChanger: true,
-                  pageSizeOptions: ["10", "25", "50", "100"],
+                  pageSizeOptions: [10, 25, 50, 100],
                   onChange: (page, pageSize) => {
                     setRolePage(pageSize === rolePageSize ? page : 1);
                     setRolePageSize(pageSize);
@@ -896,7 +896,7 @@ export function ProjectWorkspacePrototypePage() {
                   pageSize: auditPageSize,
                   total: projectEvidenceAssignmentHistoryQuery.data?.total ?? 0,
                   showSizeChanger: true,
-                  pageSizeOptions: ["10", "25", "50", "100"],
+                  pageSizeOptions: [10, 25, 50, 100],
                   onChange: (page, pageSize) => {
                     setAuditPage(pageSize === auditPageSize ? page : 1);
                     setAuditPageSize(pageSize);

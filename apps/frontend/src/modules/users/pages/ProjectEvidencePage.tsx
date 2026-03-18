@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { App, Alert, Button, Card, Empty, Select, Space, Table, Tag, Typography } from "antd";
+import { App, Alert, Button, Card, Empty, Select, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { AuditOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
@@ -227,63 +227,75 @@ export function ProjectEvidencePage() {
               </Space>
 
               <Card size="small" title={t("project_evidence.team_register.title")}>
-                <Table
-                  rowKey="assignmentId"
-                  columns={teamColumns}
-                  dataSource={teamRegister?.items ?? []}
-                  loading={projectEvidenceTeamRegisterQuery.isLoading}
-                  pagination={{
-                    current: teamPage,
-                    pageSize: teamPageSize,
-                    total: teamRegister?.total ?? 0,
-                    showSizeChanger: true,
-                    pageSizeOptions: ["10", "25", "50", "100"],
-                    onChange: (page, pageSize) => {
-                      setTeamPage(pageSize === teamPageSize ? page : 1);
-                      setTeamPageSize(pageSize);
-                    },
-                  }}
-                />
+                {projectEvidenceTeamRegisterQuery.isLoading && (teamRegister?.items?.length ?? 0) === 0 ? (
+                  <Skeleton active paragraph={{ rows: 5 }} />
+                ) : (
+                  <Table
+                    rowKey="assignmentId"
+                    columns={teamColumns}
+                    dataSource={teamRegister?.items ?? []}
+                    loading={projectEvidenceTeamRegisterQuery.isLoading}
+                    pagination={{
+                      current: teamPage,
+                      pageSize: teamPageSize,
+                      total: teamRegister?.total ?? 0,
+                      showSizeChanger: true,
+                      pageSizeOptions: [10, 25, 50, 100],
+                      onChange: (page, pageSize) => {
+                        setTeamPage(pageSize === teamPageSize ? page : 1);
+                        setTeamPageSize(pageSize);
+                      },
+                    }}
+                  />
+                )}
               </Card>
 
               <Card size="small" title={t("project_evidence.role_responsibility.title")}>
-                <Table
-                  rowKey="projectRoleId"
-                  columns={roleColumns}
-                  dataSource={roleResponsibilities?.items ?? []}
-                  loading={projectEvidenceRoleResponsibilitiesQuery.isLoading}
-                  pagination={{
-                    current: rolePage,
-                    pageSize: rolePageSize,
-                    total: roleResponsibilities?.total ?? 0,
-                    showSizeChanger: true,
-                    pageSizeOptions: ["10", "25", "50", "100"],
-                    onChange: (page, pageSize) => {
-                      setRolePage(pageSize === rolePageSize ? page : 1);
-                      setRolePageSize(pageSize);
-                    },
-                  }}
-                />
+                {projectEvidenceRoleResponsibilitiesQuery.isLoading && (roleResponsibilities?.items?.length ?? 0) === 0 ? (
+                  <Skeleton active paragraph={{ rows: 5 }} />
+                ) : (
+                  <Table
+                    rowKey="projectRoleId"
+                    columns={roleColumns}
+                    dataSource={roleResponsibilities?.items ?? []}
+                    loading={projectEvidenceRoleResponsibilitiesQuery.isLoading}
+                    pagination={{
+                      current: rolePage,
+                      pageSize: rolePageSize,
+                      total: roleResponsibilities?.total ?? 0,
+                      showSizeChanger: true,
+                      pageSizeOptions: [10, 25, 50, 100],
+                      onChange: (page, pageSize) => {
+                        setRolePage(pageSize === rolePageSize ? page : 1);
+                        setRolePageSize(pageSize);
+                      },
+                    }}
+                  />
+                )}
               </Card>
 
               <Card size="small" title={t("project_evidence.assignment_history.title")}>
-                <Table
-                  rowKey="assignmentId"
-                  columns={historyColumns}
-                  dataSource={assignmentHistory?.items ?? []}
-                  loading={projectEvidenceAssignmentHistoryQuery.isLoading}
-                  pagination={{
-                    current: historyPage,
-                    pageSize: historyPageSize,
-                    total: assignmentHistory?.total ?? 0,
-                    showSizeChanger: true,
-                    pageSizeOptions: ["10", "25", "50", "100"],
-                    onChange: (page, pageSize) => {
-                      setHistoryPage(pageSize === historyPageSize ? page : 1);
-                      setHistoryPageSize(pageSize);
-                    },
-                  }}
-                />
+                {projectEvidenceAssignmentHistoryQuery.isLoading && (assignmentHistory?.items?.length ?? 0) === 0 ? (
+                  <Skeleton active paragraph={{ rows: 5 }} />
+                ) : (
+                  <Table
+                    rowKey="assignmentId"
+                    columns={historyColumns}
+                    dataSource={assignmentHistory?.items ?? []}
+                    loading={projectEvidenceAssignmentHistoryQuery.isLoading}
+                    pagination={{
+                      current: historyPage,
+                      pageSize: historyPageSize,
+                      total: assignmentHistory?.total ?? 0,
+                      showSizeChanger: true,
+                      pageSizeOptions: [10, 25, 50, 100],
+                      onChange: (page, pageSize) => {
+                        setHistoryPage(pageSize === historyPageSize ? page : 1);
+                        setHistoryPageSize(pageSize);
+                      },
+                    }}
+                  />
+                )}
               </Card>
             </Space>
           )}

@@ -2,18 +2,20 @@ import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listUsers } from "../api/usersApi";
 import type { User } from "../types/users";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type UserOption = { label: string; value: string };
 
 export function useProjectUserOptions(enabled: boolean, toLabel: (user: User) => string) {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const pageSize = 5;
 
   const usersQuery = useInfiniteQuery({
-    queryKey: ["project-user-options", { search }],
+    queryKey: ["project-user-options", { search: debouncedSearch }],
     enabled,
     queryFn: ({ signal, pageParam }) =>
-      listUsers({ page: pageParam as number, pageSize, search, sortBy: "createdAt", sortOrder: "desc" }, signal),
+      listUsers({ page: pageParam as number, pageSize, search: debouncedSearch, sortBy: "createdAt", sortOrder: "desc" }, signal),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       const loaded = allPages.reduce((sum, page) => sum + page.items.length, 0);

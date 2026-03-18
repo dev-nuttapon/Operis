@@ -1,19 +1,21 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listProjectTypeTemplates } from "../api/usersApi";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 export function useProjectTypeOptions({ enabled, pageSize = 10 }: { enabled: boolean; pageSize?: number }) {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const templatesQuery = useInfiniteQuery({
-    queryKey: ["project-type-options", { search, pageSize }],
+    queryKey: ["project-type-options", { search: debouncedSearch, pageSize }],
     enabled,
     queryFn: ({ signal, pageParam }) =>
       listProjectTypeTemplates(
         {
           page: pageParam as number,
           pageSize,
-          search,
+          search: debouncedSearch,
           sortBy: "projectType",
           sortOrder: "asc",
         },

@@ -16,6 +16,7 @@ import type {
   UpdateProjectTypeRoleRequirementInput,
   UpdateProjectTypeTemplateInput,
 } from "../types/users";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type TemplateFormValues = CreateProjectTypeTemplateInput;
 type RequirementFormValues = CreateProjectTypeRoleRequirementInput;
@@ -43,6 +44,8 @@ export function ProjectTypeTemplatesPage() {
   const [editRequirementForm] = Form.useForm<RequirementFormValues>();
   const [requirementDeleteForm] = Form.useForm<{ reason: string }>();
 
+  const debouncedTemplateSearch = useDebouncedValue(templatePaging.search, 300);
+  const debouncedRequirementSearch = useDebouncedValue(requirementPaging.search, 300);
   const {
     templatesQuery,
     roleRequirementsQuery,
@@ -53,8 +56,8 @@ export function ProjectTypeTemplatesPage() {
     updateRoleRequirementMutation,
     deleteRoleRequirementMutation,
   } = useProjectTemplates({
-    templates: templatePaging,
-    roleRequirements: { ...requirementPaging, templateId: selectedTemplate?.id },
+    templates: { ...templatePaging, search: debouncedTemplateSearch },
+    roleRequirements: { ...requirementPaging, search: debouncedRequirementSearch, templateId: selectedTemplate?.id },
   });
 
   const handleError = (fallbackTitle: string, error: unknown) => {

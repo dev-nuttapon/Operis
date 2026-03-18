@@ -42,6 +42,26 @@ file sealed record ProjectOrgChartRow(
     DateTimeOffset StartAt,
     DateTimeOffset? EndAt);
 
+file sealed record ProjectAssignmentRow(
+    Guid Id,
+    string UserId,
+    string? UserEmail,
+    string? UserDisplayName,
+    Guid ProjectId,
+    string ProjectName,
+    Guid ProjectRoleId,
+    string ProjectRoleName,
+    string? ReportsToUserId,
+    string? ReportsToDisplayName,
+    bool IsPrimary,
+    string Status,
+    string? ChangeReason,
+    Guid? ReplacedByAssignmentId,
+    DateTimeOffset StartAt,
+    DateTimeOffset? EndAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
 public interface IProjectQueries
 {
     Task<PagedResult<ProjectResponse>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken);
@@ -202,17 +222,43 @@ public sealed class ProjectQueries(
     public async Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken)
     {
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
-        IQueryable<UserProjectAssignmentEntity> source = dbContext.UserProjectAssignments
-            .AsNoTracking()
-            .Where(x => x.ProjectId == query.ProjectId && x.Status == "Active");
+        var source = from assignment in dbContext.UserProjectAssignments.AsNoTracking()
+                     where assignment.ProjectId == query.ProjectId && assignment.Status == "Active"
+                     join user in dbContext.Users.AsNoTracking() on assignment.UserId equals user.Id into userJoin
+                     from user in userJoin.DefaultIfEmpty()
+                     join role in dbContext.ProjectRoles.AsNoTracking() on assignment.ProjectRoleId equals role.Id into roleJoin
+                     from role in roleJoin.DefaultIfEmpty()
+                     join project in dbContext.Projects.AsNoTracking() on assignment.ProjectId equals project.Id into projectJoin
+                     from project in projectJoin.DefaultIfEmpty()
+                     join reportsTo in dbContext.Users.AsNoTracking() on assignment.ReportsToUserId equals reportsTo.Id into reportsJoin
+                     from reportsTo in reportsJoin.DefaultIfEmpty()
+                     select new ProjectAssignmentRow(
+                         assignment.Id,
+                         assignment.UserId,
+                         user != null ? user.Id : null,
+                         user != null ? user.Id : null,
+                         assignment.ProjectId,
+                         project != null ? project.Name : string.Empty,
+                         assignment.ProjectRoleId,
+                         role != null ? role.Name : string.Empty,
+                         assignment.ReportsToUserId,
+                         reportsTo != null ? reportsTo.Id : null,
+                         assignment.IsPrimary,
+                         assignment.Status,
+                         assignment.ChangeReason,
+                         assignment.ReplacedByAssignmentId,
+                         assignment.StartAt,
+                         assignment.EndAt,
+                         assignment.CreatedAt,
+                         assignment.UpdatedAt);
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var search = query.Search.Trim().ToLowerInvariant();
+            var searchPattern = $"%{query.Search.Trim()}%";
             source = source.Where(x =>
-                x.UserId.ToLower().Contains(search) ||
-                dbContext.Users.Where(user => user.Id == x.UserId).Any(user => user.Id.ToLower().Contains(search)) ||
-                dbContext.ProjectRoles.Where(role => role.Id == x.ProjectRoleId).Any(role => role.Name.ToLower().Contains(search)));
+                EF.Functions.ILike(x.UserId, searchPattern)
+                || (x.UserEmail != null && EF.Functions.ILike(x.UserEmail, searchPattern))
+                || EF.Functions.ILike(x.ProjectRoleName, searchPattern));
         }
 
         source = ApplyProjectAssignmentSorting(source, query.SortBy, query.SortOrder);
@@ -223,18 +269,14 @@ public sealed class ProjectQueries(
             .Select(x => new ProjectAssignmentResponse(
                 x.Id,
                 x.UserId,
-                dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
-                dbContext.Users.Where(user => user.Id == x.UserId)
-                    .Select(user => user.Id)
-                    .FirstOrDefault(),
+                x.UserEmail,
+                x.UserDisplayName,
                 x.ProjectId,
-                dbContext.Projects.Where(project => project.Id == x.ProjectId).Select(project => project.Name).FirstOrDefault() ?? string.Empty,
+                x.ProjectName,
                 x.ProjectRoleId,
-                dbContext.ProjectRoles.Where(role => role.Id == x.ProjectRoleId).Select(role => role.Name).FirstOrDefault() ?? string.Empty,
+                x.ProjectRoleName,
                 x.ReportsToUserId,
-                x.ReportsToUserId == null
-                    ? null
-                    : dbContext.Users.Where(user => user.Id == x.ReportsToUserId).Select(user => user.Id).FirstOrDefault(),
+                x.ReportsToDisplayName,
                 x.IsPrimary,
                 x.Status,
                 x.ChangeReason,
@@ -266,23 +308,26 @@ public sealed class ProjectQueries(
             return [];
         }
 
-        var assignments = await dbContext.UserProjectAssignments
-            .AsNoTracking()
-            .Where(x => x.ProjectId == projectId && x.Status == "Active")
-            .OrderBy(x => x.StartAt)
-            .ThenBy(x => x.CreatedAt)
-            .Select(x => new ProjectOrgChartRow(
-                x.Id,
-                x.UserId,
-                dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
-                dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
-                x.ProjectRoleId,
-                dbContext.ProjectRoles.Where(role => role.Id == x.ProjectRoleId).Select(role => role.Name).FirstOrDefault() ?? string.Empty,
-                x.IsPrimary,
-                x.Status,
-                x.ReportsToUserId,
-                x.StartAt,
-                x.EndAt))
+        var assignments = await (
+            from assignment in dbContext.UserProjectAssignments.AsNoTracking()
+            where assignment.ProjectId == projectId && assignment.Status == "Active"
+            join user in dbContext.Users.AsNoTracking() on assignment.UserId equals user.Id into userJoin
+            from user in userJoin.DefaultIfEmpty()
+            join role in dbContext.ProjectRoles.AsNoTracking() on assignment.ProjectRoleId equals role.Id into roleJoin
+            from role in roleJoin.DefaultIfEmpty()
+            orderby assignment.StartAt, assignment.CreatedAt
+            select new ProjectOrgChartRow(
+                assignment.Id,
+                assignment.UserId,
+                user != null ? user.Id : null,
+                user != null ? user.Id : null,
+                assignment.ProjectRoleId,
+                role != null ? role.Name : string.Empty,
+                assignment.IsPrimary,
+                assignment.Status,
+                assignment.ReportsToUserId,
+                assignment.StartAt,
+                assignment.EndAt))
             .ToListAsync(cancellationToken);
 
         var childrenLookup = assignments
@@ -340,29 +385,8 @@ public sealed class ProjectQueries(
             return null;
         }
 
-        var assignments = await dbContext.UserProjectAssignments
-            .AsNoTracking()
-            .Where(x => x.ProjectId == projectId)
+        var assignments = await BuildEvidenceAssignmentRows(projectId)
             .OrderByDescending(x => x.CreatedAt)
-            .Select(x => new
-            {
-                x.Id,
-                x.UserId,
-                UserEmail = dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
-                UserDisplayName = dbContext.Users.Where(user => user.Id == x.UserId).Select(user => user.Id).FirstOrDefault(),
-                ProjectRoleName = dbContext.ProjectRoles.Where(role => role.Id == x.ProjectRoleId).Select(role => role.Name).FirstOrDefault() ?? string.Empty,
-                x.Status,
-                x.ChangeReason,
-                x.ReportsToUserId,
-                ReportsToDisplayName = x.ReportsToUserId == null
-                    ? null
-                    : dbContext.Users.Where(user => user.Id == x.ReportsToUserId).Select(user => user.Id).FirstOrDefault(),
-                x.IsPrimary,
-                x.StartAt,
-                x.EndAt,
-                x.CreatedAt,
-                x.UpdatedAt
-            })
             .ToListAsync(cancellationToken);
 
         var teamRegister = assignments
@@ -381,11 +405,39 @@ public sealed class ProjectQueries(
                 x.EndAt))
             .ToList();
 
-        var roleResponsibilities = await dbContext.ProjectRoles
+        var roleRows = await dbContext.ProjectRoles
             .AsNoTracking()
             .Where(x => x.ProjectId == projectId && x.DeletedAt == null)
             .OrderBy(x => x.DisplayOrder)
             .ThenBy(x => x.Name)
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                x.Code,
+                x.Description,
+                x.Responsibilities,
+                x.AuthorityScope,
+                x.CanCreateDocuments,
+                x.CanReviewDocuments,
+                x.CanApproveDocuments,
+                x.CanReleaseDocuments,
+                x.IsReviewRole,
+                x.IsApprovalRole,
+            })
+            .ToListAsync(cancellationToken);
+
+        var roleIds = roleRows.Select(x => x.Id).ToArray();
+        var roleMemberCounts = roleIds.Length == 0
+            ? new Dictionary<Guid, int>()
+            : await dbContext.UserProjectAssignments
+                .AsNoTracking()
+                .Where(assignment => assignment.Status == "Active" && roleIds.Contains(assignment.ProjectRoleId))
+                .GroupBy(assignment => assignment.ProjectRoleId)
+                .Select(group => new { RoleId = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(x => x.RoleId, x => x.Count, cancellationToken);
+
+        var roleResponsibilities = roleRows
             .Select(x => new ProjectRoleResponsibilityRowResponse(
                 x.Id,
                 x.Name,
@@ -399,8 +451,8 @@ public sealed class ProjectQueries(
                 x.CanReleaseDocuments,
                 x.IsReviewRole,
                 x.IsApprovalRole,
-                dbContext.UserProjectAssignments.Count(assignment => assignment.ProjectRoleId == x.Id && assignment.Status == "Active")))
-            .ToListAsync(cancellationToken);
+                roleMemberCounts.TryGetValue(x.Id, out var count) ? count : 0))
+            .ToList();
 
         var assignmentHistory = assignments
             .Select(x => new ProjectAssignmentHistoryRowResponse(
@@ -491,11 +543,39 @@ public sealed class ProjectQueries(
             .Where(x => x.ProjectId == query.ProjectId && x.DeletedAt == null);
         var total = await source.CountAsync(cancellationToken);
 
-        var items = await source
+        var roles = await source
             .OrderBy(x => x.DisplayOrder)
             .ThenBy(x => x.Name)
             .Skip(skip)
             .Take(pageSize)
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                x.Code,
+                x.Description,
+                x.Responsibilities,
+                x.AuthorityScope,
+                x.CanCreateDocuments,
+                x.CanReviewDocuments,
+                x.CanApproveDocuments,
+                x.CanReleaseDocuments,
+                x.IsReviewRole,
+                x.IsApprovalRole,
+            })
+            .ToListAsync(cancellationToken);
+
+        var roleIds = roles.Select(x => x.Id).ToArray();
+        var memberCounts = roleIds.Length == 0
+            ? new Dictionary<Guid, int>()
+            : await dbContext.UserProjectAssignments
+                .AsNoTracking()
+                .Where(assignment => assignment.Status == "Active" && roleIds.Contains(assignment.ProjectRoleId))
+                .GroupBy(assignment => assignment.ProjectRoleId)
+                .Select(group => new { RoleId = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(x => x.RoleId, x => x.Count, cancellationToken);
+
+        var items = roles
             .Select(x => new ProjectRoleResponsibilityRowResponse(
                 x.Id,
                 x.Name,
@@ -509,8 +589,8 @@ public sealed class ProjectQueries(
                 x.CanReleaseDocuments,
                 x.IsReviewRole,
                 x.IsApprovalRole,
-                dbContext.UserProjectAssignments.Count(assignment => assignment.ProjectRoleId == x.Id && assignment.Status == "Active")))
-            .ToListAsync(cancellationToken);
+                memberCounts.TryGetValue(x.Id, out var count) ? count : 0))
+            .ToList();
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "users",
@@ -980,7 +1060,7 @@ public sealed class ProjectQueries(
         };
     }
 
-    private static IQueryable<UserProjectAssignmentEntity> ApplyProjectAssignmentSorting(IQueryable<UserProjectAssignmentEntity> source, string? sortBy, string? sortOrder)
+    private static IQueryable<ProjectAssignmentRow> ApplyProjectAssignmentSorting(IQueryable<ProjectAssignmentRow> source, string? sortBy, string? sortOrder)
     {
         var descending = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
         return (sortBy ?? string.Empty).ToLowerInvariant() switch

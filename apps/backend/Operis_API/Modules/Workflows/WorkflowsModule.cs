@@ -39,6 +39,9 @@ public sealed class WorkflowsModule : IModule
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
         IWorkflowQueries queries,
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.Read))
@@ -46,8 +49,15 @@ public sealed class WorkflowsModule : IModule
             return Results.Forbid();
         }
 
-        var definitions = await queries.ListDefinitionsAsync(cancellationToken);
-        return Results.Ok(definitions);
+        if (!IsValidStatus(status))
+        {
+            return BadRequestWithCode($"Invalid status filter: {status}", "invalid_status");
+        }
+
+        var result = await queries.ListDefinitionsAsync(
+            new WorkflowDefinitionListQuery(status, page, pageSize),
+            cancellationToken);
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> CreateWorkflowDefinitionAsync(
@@ -146,4 +156,15 @@ public sealed class WorkflowsModule : IModule
             code ?? ApiErrorCodeResolver.Resolve(detail, ApiErrorCodes.RequestValidationFailed),
             "Request conflict.",
             detail));
+
+    private static bool IsValidStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return true;
+        }
+
+        var normalized = status.Trim().ToLowerInvariant();
+        return normalized is "draft" or "active" or "archived";
+    }
 }

@@ -14,6 +14,20 @@ export interface WorkflowDefinitionStatusSummary {
   archived: number;
 }
 
+export interface WorkflowDefinitionListInput {
+  status?: WorkflowStatusFilter;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface WorkflowDefinitionListResponse {
+  items: WorkflowDefinitionSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+  statusSummary: WorkflowDefinitionStatusSummary;
+}
+
 export interface CreateWorkflowDefinitionInput {
   name: string;
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listDepartments, listPublicDepartmentsByDivision } from "../api/usersApi";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 export function useDepartmentOptions({
   enabled,
@@ -14,15 +15,16 @@ export function useDepartmentOptions({
   publicAccess?: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const departmentsQuery = useInfiniteQuery({
-    queryKey: ["department-options", { divisionId, publicAccess, search, pageSize }],
+    queryKey: ["department-options", { divisionId, publicAccess, search: debouncedSearch, pageSize }],
     enabled: enabled && Boolean(divisionId),
     queryFn: ({ signal, pageParam }) => {
       const input = {
         page: pageParam as number,
         pageSize,
-        search,
+        search: debouncedSearch,
         sortBy: "displayOrder",
         sortOrder: "asc",
         divisionId,

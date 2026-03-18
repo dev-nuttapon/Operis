@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, App, Button, Card, Checkbox, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
+import { Alert, App, Button, Card, Checkbox, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
@@ -15,6 +15,7 @@ import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import { useProjectOptions } from "../hooks/useProjectOptions";
 import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { ProjectAssignment, UpdateProjectAssignmentInput, User } from "../types/users";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type ProjectMemberFormValues = {
   userId: string;
@@ -202,6 +203,7 @@ export function ProjectMembersPage() {
   const [editForm] = Form.useForm<ProjectMemberFormValues>();
   const [deleteForm] = Form.useForm<{ reason: string }>();
 
+  const debouncedSearch = useDebouncedValue(paging.search, 300);
   const {
     projectAssignmentsQuery,
     createProjectAssignmentMutation,
@@ -211,7 +213,7 @@ export function ProjectMembersPage() {
     projectsEnabled: false,
     projects: { page: 1, pageSize: 1 },
     projectRoles: { page: 1, pageSize: 1 },
-    projectAssignments: selectedProjectId ? { projectId: selectedProjectId, ...paging } : null,
+    projectAssignments: selectedProjectId ? { projectId: selectedProjectId, ...paging, search: debouncedSearch } : null,
   });
   const projectOptionsState = useProjectOptions({ enabled: canReadProjects });
   const projectRoleOptionsState = useProjectRoleOptions({ enabled: canManageProjectMembers, projectId: selectedProjectId });
@@ -458,29 +460,33 @@ export function ProjectMembersPage() {
                 ) : null}
               </Space>
 
-              <Table
-                rowKey="id"
-                columns={columns}
-                dataSource={canReadProjects ? (projectAssignmentsQuery.data?.items ?? []) : []}
-                loading={canReadProjects ? projectAssignmentsQuery.isLoading : false}
-                pagination={{
-                  current: projectAssignmentsQuery.data?.page ?? paging.page,
-                  pageSize: projectAssignmentsQuery.data?.pageSize ?? paging.pageSize,
-                  total: projectAssignmentsQuery.data?.total ?? 0,
-                  showSizeChanger: true,
-                  pageSizeOptions: [10, 25, 50, 100],
-                }}
-                onChange={(nextPagination, _, sorter) => {
-                  const resolvedSorter = sorter as SorterResult<ProjectAssignment>;
-                  setPaging((current) => ({
-                    ...current,
-                    page: nextPagination.current ?? current.page,
-                    pageSize: nextPagination.pageSize ?? current.pageSize,
-                    sortBy: typeof resolvedSorter.field === "string" ? resolvedSorter.field : current.sortBy,
-                    sortOrder: toApiSortOrder(resolvedSorter.order) ?? current.sortOrder,
-                  }));
-                }}
-              />
+              {canReadProjects && projectAssignmentsQuery.isLoading && (projectAssignmentsQuery.data?.items?.length ?? 0) === 0 ? (
+                <Skeleton active paragraph={{ rows: 6 }} />
+              ) : (
+                <Table
+                  rowKey="id"
+                  columns={columns}
+                  dataSource={canReadProjects ? (projectAssignmentsQuery.data?.items ?? []) : []}
+                  loading={canReadProjects ? projectAssignmentsQuery.isLoading : false}
+                  pagination={{
+                    current: projectAssignmentsQuery.data?.page ?? paging.page,
+                    pageSize: projectAssignmentsQuery.data?.pageSize ?? paging.pageSize,
+                    total: projectAssignmentsQuery.data?.total ?? 0,
+                    showSizeChanger: true,
+                    pageSizeOptions: [10, 25, 50, 100],
+                  }}
+                  onChange={(nextPagination, _, sorter) => {
+                    const resolvedSorter = sorter as SorterResult<ProjectAssignment>;
+                    setPaging((current) => ({
+                      ...current,
+                      page: nextPagination.current ?? current.page,
+                      pageSize: nextPagination.pageSize ?? current.pageSize,
+                      sortBy: typeof resolvedSorter.field === "string" ? resolvedSorter.field : current.sortBy,
+                      sortOrder: toApiSortOrder(resolvedSorter.order) ?? current.sortOrder,
+                    }));
+                  }}
+                />
+              )}
             </>
           )}
         </Space>

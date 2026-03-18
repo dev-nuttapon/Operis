@@ -8,7 +8,13 @@ vi.mock("../../../shared/lib/apiClient", () => ({
 
 describe("listWorkflowDefinitions", () => {
   it("calls the workflows definitions endpoint", async () => {
-    vi.mocked(apiRequest).mockResolvedValueOnce([]);
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      statusSummary: { all: 0, draft: 0, active: 0, archived: 0 },
+    });
 
     await listWorkflowDefinitions();
 
