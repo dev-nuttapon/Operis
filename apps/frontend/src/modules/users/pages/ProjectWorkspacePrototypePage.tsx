@@ -153,15 +153,6 @@ export function ProjectWorkspacePrototypePage() {
     projectEvidenceAssignmentHistory: { projectId, page: auditPage, pageSize: auditPageSize },
   });
 
-  const projectOptions = useMemo(
-    () =>
-      (projectsQuery.data?.items ?? []).map((item) => ({
-        label: `${item.code} - ${item.name}`,
-        value: item.id,
-      })),
-    [projectsQuery.data?.items],
-  );
-
   const selectedProject = useMemo(
     () => (projectsQuery.data?.items ?? []).find((item) => item.id === projectId) ?? null,
     [projectId, projectsQuery.data?.items],
@@ -1058,7 +1049,10 @@ export function ProjectWorkspacePrototypePage() {
                     optionFilterProp="label"
                     style={{ minWidth: 320, maxWidth: "100%" }}
                     placeholder={t("project_workspace_prototype.select_project_placeholder")}
-                    options={projectOptions}
+                    options={(projectsQuery.data?.items ?? []).map((item) => ({
+                      label: `${item.code} - ${item.name}`,
+                      value: item.id,
+                    }))}
                     value={projectId}
                     onChange={(value: string) => navigate(`/app/projects/${value}/workspace`)}
                   />

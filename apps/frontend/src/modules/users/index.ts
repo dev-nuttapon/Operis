@@ -3,7 +3,6 @@ export * from "./pages/InvitationAcceptPage";
 export * from "./pages/PublicRegistrationPage";
 export * from "./pages/RegistrationPasswordSetupPage";
 export * from "./pages/ProjectOrgChartPage";
-export * from "./pages/ProjectWorkspacePrototypePage";
 export * from "./pages/ProjectEvidencePage";
 export * from "./pages/ProjectCompliancePage";
 export * from "./pages/ProjectTypeTemplatesPage";
