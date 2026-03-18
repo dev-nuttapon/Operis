@@ -3,7 +3,9 @@ import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePublicRegistration } from "../hooks/usePublicRegistration";
-import { useOrgStructureOptions } from "../hooks/useOrgStructureOptions";
+import { useDepartmentOptions } from "../hooks/useDepartmentOptions";
+import { useDivisionOptions } from "../hooks/useDivisionOptions";
+import { useJobTitleOptions } from "../hooks/useJobTitleOptions";
 import { ApiError, getApiErrorPresentation, hasApiErrorCode } from "../../../shared/lib/apiClient";
 import { useThemeStore, type ThemeMode } from "../../../shared/store/useThemeStore";
 
@@ -20,11 +22,13 @@ export function PublicRegistrationPage() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const { registerMutation, divisionsQuery } = usePublicRegistration();
+  const { registerMutation } = usePublicRegistration();
   const currentLanguage = i18n.language.startsWith("th") ? "th" : "en";
   const selectedDivisionId = Form.useWatch("divisionId", form) as string | undefined;
   const selectedDepartmentId = Form.useWatch("departmentId", form) as string | undefined;
-  const cascade = useOrgStructureOptions({ divisionId: selectedDivisionId, departmentId: selectedDepartmentId, publicAccess: true });
+  const divisionOptionsState = useDivisionOptions({ enabled: true, pageSize: 5, publicAccess: true });
+  const departmentOptionsState = useDepartmentOptions({ enabled: true, divisionId: selectedDivisionId, pageSize: 5, publicAccess: true });
+  const jobTitleOptionsState = useJobTitleOptions({ enabled: true, departmentId: selectedDepartmentId, pageSize: 5, publicAccess: true });
   const isDarkMode = designToken.colorBgBase.toLowerCase() === "#020617";
   const pageBackground = isDarkMode
     ? "radial-gradient(circle at top, rgba(14, 165, 233, 0.16) 0%, rgba(15, 23, 42, 0.98) 42%, rgba(2, 6, 23, 1) 100%)"
@@ -132,15 +136,9 @@ export function PublicRegistrationPage() {
     });
   }, [notification, registerMutation.error, registerMutation.isError]);
 
-  const divisionOptions = useMemo(() => (divisionsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })), [divisionsQuery.data?.items]);
-  const departmentOptions = useMemo(
-    () => (cascade.departmentsQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })),
-    [cascade.departmentsQuery.data?.items]
-  );
-  const jobTitleOptions = useMemo(
-    () => (cascade.jobTitlesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })),
-    [cascade.jobTitlesQuery.data?.items]
-  );
+  const divisionOptions = useMemo(() => divisionOptionsState.options, [divisionOptionsState.options]);
+  const departmentOptions = useMemo(() => departmentOptionsState.options, [departmentOptionsState.options]);
+  const jobTitleOptions = useMemo(() => jobTitleOptionsState.options, [jobTitleOptionsState.options]);
 
   return (
     <div
@@ -260,9 +258,36 @@ export function PublicRegistrationPage() {
               <Form.Item label={t("admin_users.fields.division")} name="divisionId">
                 <Select
                   allowClear
+                  showSearch
+                  filterOption={false}
                   placeholder={t("admin_users.placeholders.select_division")}
-                  loading={divisionsQuery.isLoading}
+                  loading={divisionOptionsState.loading}
                   options={divisionOptions}
+                  onSearch={divisionOptionsState.onSearch}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {divisionOptionsState.hasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={divisionOptionsState.onLoadMore}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("public_registration.load_more_divisions")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                   onChange={() => {
                     form.setFieldValue("departmentId", undefined);
                     form.setFieldValue("jobTitleId", undefined);
@@ -273,9 +298,36 @@ export function PublicRegistrationPage() {
                 <Select
                   allowClear
                   disabled={!selectedDivisionId}
+                  showSearch
+                  filterOption={false}
                   placeholder={t("admin_users.placeholders.select_department")}
-                  loading={cascade.departmentsQuery.isLoading}
+                  loading={departmentOptionsState.loading}
                   options={departmentOptions}
+                  onSearch={departmentOptionsState.onSearch}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {departmentOptionsState.hasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={departmentOptionsState.onLoadMore}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("public_registration.load_more_departments")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                   onChange={() => {
                     form.setFieldValue("jobTitleId", undefined);
                   }}
@@ -285,9 +337,36 @@ export function PublicRegistrationPage() {
                 <Select
                   allowClear
                   disabled={!selectedDepartmentId}
+                  showSearch
+                  filterOption={false}
                   placeholder={t("admin_users.placeholders.select_job_title")}
-                  loading={cascade.jobTitlesQuery.isLoading}
+                  loading={jobTitleOptionsState.loading}
                   options={jobTitleOptions}
+                  onSearch={jobTitleOptionsState.onSearch}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {jobTitleOptionsState.hasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={jobTitleOptionsState.onLoadMore}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("public_registration.load_more_job_titles")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 />
               </Form.Item>
               <Button type="primary" htmlType="submit" block loading={registerMutation.isPending}>

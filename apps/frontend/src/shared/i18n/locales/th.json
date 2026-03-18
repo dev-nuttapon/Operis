@@ -91,6 +91,9 @@
     "success_title": "ส่งคำขอลงทะเบียนสำเร็จ",
     "success_description": "คำขอลงทะเบียนของคุณถูกส่งเรียบร้อยแล้ว\nกรุณารอการอนุมัติจากผู้ดูแลระบบ",
     "go_login": "ไปหน้า Login",
+    "load_more_divisions": "โหลดเพิ่มอีก 5 ฝ่าย",
+    "load_more_departments": "โหลดเพิ่มอีก 5 แผนก",
+    "load_more_job_titles": "โหลดเพิ่มอีก 5 ตำแหน่งงาน",
     "notifications": {
       "submit_failed_title": "ไม่สามารถส่งคำขอลงทะเบียนได้",
       "submit_failed_description": "กรุณาตรวจสอบข้อมูลที่กรอก แล้วลองใหม่อีกครั้ง",

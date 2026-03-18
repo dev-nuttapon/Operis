@@ -1,15 +1,23 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { listDivisions } from "../api/usersApi";
+import { listDivisions, listPublicDivisions } from "../api/usersApi";
 
-export function useDivisionOptions({ enabled, pageSize = 10 }: { enabled: boolean; pageSize?: number }) {
+export function useDivisionOptions({
+  enabled,
+  pageSize = 10,
+  publicAccess = false,
+}: {
+  enabled: boolean;
+  pageSize?: number;
+  publicAccess?: boolean;
+}) {
   const [search, setSearch] = useState("");
 
   const divisionsQuery = useInfiniteQuery({
-    queryKey: ["division-options", { search, pageSize }],
+    queryKey: ["division-options", { publicAccess, search, pageSize }],
     enabled,
     queryFn: ({ signal, pageParam }) =>
-      listDivisions(
+      (publicAccess ? listPublicDivisions : listDivisions)(
         {
           page: pageParam as number,
           pageSize,

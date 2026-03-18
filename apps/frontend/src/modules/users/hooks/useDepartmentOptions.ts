@@ -1,33 +1,37 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { listDepartments } from "../api/usersApi";
+import { listDepartments, listPublicDepartmentsByDivision } from "../api/usersApi";
 
 export function useDepartmentOptions({
   enabled,
   divisionId,
   pageSize = 10,
+  publicAccess = false,
 }: {
   enabled: boolean;
   divisionId?: string;
   pageSize?: number;
+  publicAccess?: boolean;
 }) {
   const [search, setSearch] = useState("");
 
   const departmentsQuery = useInfiniteQuery({
-    queryKey: ["department-options", { divisionId, search, pageSize }],
+    queryKey: ["department-options", { divisionId, publicAccess, search, pageSize }],
     enabled: enabled && Boolean(divisionId),
-    queryFn: ({ signal, pageParam }) =>
-      listDepartments(
-        {
-          page: pageParam as number,
-          pageSize,
-          search,
-          sortBy: "displayOrder",
-          sortOrder: "asc",
-          divisionId,
-        },
-        signal,
-      ),
+    queryFn: ({ signal, pageParam }) => {
+      const input = {
+        page: pageParam as number,
+        pageSize,
+        search,
+        sortBy: "displayOrder",
+        sortOrder: "asc",
+        divisionId,
+      };
+
+      return publicAccess
+        ? listPublicDepartmentsByDivision(divisionId!, input, signal)
+        : listDepartments(input, signal);
+    },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       const loaded = allPages.reduce((sum, page) => sum + page.items.length, 0);

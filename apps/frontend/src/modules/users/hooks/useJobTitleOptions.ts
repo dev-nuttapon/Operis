@@ -1,33 +1,37 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { listJobTitles } from "../api/usersApi";
+import { listJobTitles, listPublicJobTitlesByDepartment } from "../api/usersApi";
 
 export function useJobTitleOptions({
   enabled,
   departmentId,
   pageSize = 10,
+  publicAccess = false,
 }: {
   enabled: boolean;
   departmentId?: string;
   pageSize?: number;
+  publicAccess?: boolean;
 }) {
   const [search, setSearch] = useState("");
 
   const jobTitlesQuery = useInfiniteQuery({
-    queryKey: ["job-title-options", { departmentId, search, pageSize }],
+    queryKey: ["job-title-options", { departmentId, publicAccess, search, pageSize }],
     enabled: enabled && Boolean(departmentId),
-    queryFn: ({ signal, pageParam }) =>
-      listJobTitles(
-        {
-          page: pageParam as number,
-          pageSize,
-          search,
-          sortBy: "displayOrder",
-          sortOrder: "asc",
-          departmentId,
-        },
-        signal,
-      ),
+    queryFn: ({ signal, pageParam }) => {
+      const input = {
+        page: pageParam as number,
+        pageSize,
+        search,
+        sortBy: "displayOrder",
+        sortOrder: "asc",
+        departmentId,
+      };
+
+      return publicAccess
+        ? listPublicJobTitlesByDepartment(departmentId!, input, signal)
+        : listJobTitles(input, signal);
+    },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       const loaded = allPages.reduce((sum, page) => sum + page.items.length, 0);

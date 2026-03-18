@@ -91,6 +91,9 @@
     "success_title": "Registration Request Submitted",
     "success_description": "Your registration request has been submitted successfully.\nPlease wait for approval from the administrator.",
     "go_login": "Go to Login",
+    "load_more_divisions": "Load 5 more divisions",
+    "load_more_departments": "Load 5 more departments",
+    "load_more_job_titles": "Load 5 more job titles",
     "notifications": {
       "submit_failed_title": "Unable to submit your registration request",
       "submit_failed_description": "Please review the information and try again.",

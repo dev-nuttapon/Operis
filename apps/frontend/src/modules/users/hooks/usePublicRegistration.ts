@@ -1,8 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  createRegistrationRequest,
-  listPublicDivisions,
-} from "../api/usersApi";
+import { useMutation } from "@tanstack/react-query";
+import { createRegistrationRequest } from "../api/usersApi";
 import type { CreateRegistrationRequestInput } from "../types/users";
 
 export function usePublicRegistration() {
@@ -10,14 +7,7 @@ export function usePublicRegistration() {
     mutationFn: (input: CreateRegistrationRequestInput) => createRegistrationRequest(input),
   });
 
-  const divisionsQuery = useQuery({
-    queryKey: ["public", "divisions"],
-    queryFn: ({ signal }) => listPublicDivisions(signal),
-    staleTime: 5 * 60_000,
-  });
-
   return {
-    divisionsQuery,
     registerMutation,
   };
 }
