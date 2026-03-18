@@ -186,7 +186,7 @@
     "master_project_roles": "Project Roles",
     "project_members": "Project Members",
     "project_org_chart": "Project Org Chart",
-    "project_workspace_prototype": "Project Workspace",
+    "project_workspace": "Project Workspace",
     "project_evidence": "Project Evidence",
     "project_compliance": "Project Compliance",
     "project_type_templates": "Project Type Templates",
@@ -742,57 +742,11 @@
     "primary_member": "Primary role",
     "summary": "{{count}} root node(s)"
   },
-  "project_workspace_prototype": {
+  "project_workspace": {
     "page_title": "Project Workspace",
-    "page_description": "Prototype workspace for testing project governance UX, role structures, evidence flow, and audit navigation.",
+    "page_description": "Project workspace for tracking governance, team structure, evidence, and audit trail.",
     "select_project_placeholder": "Select a project workspace",
-    "select_template_placeholder": "Select a workspace template",
-    "select_scenario_placeholder": "Select a prototype scenario",
     "back_to_projects": "Back to Projects",
-    "templates": {
-      "software_delivery": {
-        "label": "Software Delivery",
-        "description": "Use this template to evaluate roles such as PM, SWA, SWT, CM, QA, DEV, and release-related checkpoints."
-      },
-      "compliance_audit": {
-        "label": "Compliance Audit",
-        "description": "Use this template to prototype audit preparation, controlled evidence, approval flow, and corrective action structure."
-      },
-      "process_improvement": {
-        "label": "Process Improvement",
-        "description": "Use this template to test process rollout, pilot teams, improvement roles, and governance transitions."
-      }
-    },
-    "scenarios": {
-      "compact_team": {
-        "label": "Compact Team",
-        "description": "A small delivery team focused on core execution roles with lightweight governance."
-      },
-      "standard_team": {
-        "label": "Standard Team",
-        "description": "A balanced project team with architecture, quality, business analysis, and delivery coverage."
-      },
-      "release_readiness": {
-        "label": "Release Readiness",
-        "description": "A governance-heavy scenario focused on release gates, approvals, configuration control, and evidence readiness."
-      },
-      "audit_preparation": {
-        "label": "Audit Preparation",
-        "description": "A scenario centered on audit preparation, evidence consolidation, sign-off readiness, and controlled records."
-      },
-      "corrective_action": {
-        "label": "Corrective Action",
-        "description": "A scenario focused on remediation ownership, closure tracking, and controlled process updates."
-      },
-      "process_rollout": {
-        "label": "Process Rollout",
-        "description": "A scenario for organization-wide rollout planning, readiness review, and release of process assets."
-      },
-      "pilot_team": {
-        "label": "Pilot Team",
-        "description": "A smaller improvement team for piloting process changes before broader rollout."
-      }
-    },
     "sections": {
       "overview": "Overview",
       "team": "Team",
@@ -834,15 +788,13 @@
       "project_type": "Project Type",
       "owner": "Owner",
       "sponsor": "Sponsor",
-      "template": "Workspace Template",
-      "scenario": "Prototype Scenario",
       "methodology": "Methodology",
       "phase": "Phase",
-      "process_stages_title": "Prototype Process Stages",
-      "workspace_prompts_title": "Questions to Validate in This Scenario",
+      "process_stages_title": "Process Stages",
+      "workspace_prompts_title": "Follow-up Questions",
       "quick_actions_title": "Quick actions",
-      "callout_title": "Prototype focus",
-      "callout_description": "This workspace is intentionally driven by template and scenario presets so the team can validate navigation, terminology, and governance flow before committing to live section behavior.",
+      "callout_title": "Workspace focus",
+      "callout_description": "This workspace consolidates team, roles, and evidence so governance status is visible at a glance.",
       "workflow_preview_title": "Workflow Preview"
     },
     "team": {
@@ -858,7 +810,7 @@
     },
     "org_chart": {
       "title": "Project Reporting Structure",
-      "description": "Switch between hierarchy view and role-grouped view to validate which perspective is easier to use.",
+      "description": "Switch between hierarchy view and role-grouped view.",
       "tree_title": "Hierarchy View",
       "views": {
         "tree": "Tree",
@@ -894,7 +846,7 @@
     },
     "workflow": {
       "title": "Workflow Preview",
-      "description": "Use this section to validate how project roles, approval gates, and required evidence should flow before wiring live workflow behavior.",
+      "description": "Review how project roles, approval gates, and required evidence should flow.",
       "state_flow_title": "State Flow",
       "state_flow_description": "Use this view to validate whether the item should move through the right governance states for the selected project size.",
       "required_evidence_title": "Required Evidence by Stage",
@@ -954,7 +906,7 @@
       },
       "role_gap": {
         "title": "Role coverage still has gaps",
-        "detail": "At least one role in this scenario is intentionally marked as a gap so the team can test how compliance issues should guide users."
+        "detail": "Some project roles are still unassigned."
       },
       "org_chart": {
         "title": "Project org chart is defined",
@@ -1002,7 +954,7 @@
       "view_history": "Open audit view",
       "meta": "Updated {{updated}} · {{format}}",
       "snapshot_preview_title": "Snapshot Preview",
-      "snapshot_preview_description": "Use snapshots to validate what the auditor or project lead should see at a fixed point in time.",
+      "snapshot_preview_description": "Snapshots show what the auditor or project lead should see at a fixed point in time.",
       "snapshot_meta": "Cut-off: {{date}} · Owner: {{owner}}",
       "snapshots": {
         "title": "Snapshot Preview",
@@ -1024,8 +976,8 @@
       "modal": {
         "updated": "Last Updated",
         "format": "Format",
-        "usage": "Prototype Usage",
-        "usage_text": "Use this preview to validate what an evidence package should show before wiring live export and snapshot behavior."
+        "usage": "Usage",
+        "usage_text": "Use this preview to review evidence package details."
       }
     },
     "auditor_mode": {
@@ -1052,11 +1004,11 @@
       "compliance": "Compliance checklist",
       "evidence": "Evidence package",
       "audit": "Audit trail",
-      "prototype_notes_title": "Prototype Notes",
+      "prototype_notes_title": "Workspace Notes",
       "selected_project_meta": "Owner: {{owner}} · Phase: {{phase}}",
-      "prototype_notes_1": "The selected project only provides business context at the top of the workspace.",
-      "prototype_notes_2": "The main sections are driven by template and scenario presets so role patterns can be evaluated quickly.",
-      "prototype_notes_3": "Use these presets to validate terms such as SWT, SWA, CM, QA, and approval roles before wiring live project behavior."
+      "prototype_notes_1": "The selected project provides the business context for this workspace.",
+      "prototype_notes_2": "Core sections summarize current roles, team structure, and evidence status.",
+      "prototype_notes_3": "Use this view to prepare for audit and governance discussions."
     },
     "process_stages": {
       "software_delivery": {

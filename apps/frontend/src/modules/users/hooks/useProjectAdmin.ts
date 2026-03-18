@@ -15,7 +15,6 @@ import {
   listProjectAssignments,
   listProjectRoles,
   listProjects,
-  listUsers,
   updateProject,
   updateProjectAssignment,
   updateProjectRole,
@@ -35,11 +34,9 @@ import type {
 const projectsQueryKey = ["admin", "projects"];
 const projectRolesQueryKey = ["admin", "project-roles"];
 const projectAssignmentsQueryKey = ["admin", "project-assignments"];
-const projectMemberUsersQueryKey = ["admin", "project-member-users"];
 
 export function useProjectAdmin(input: {
   projectsEnabled?: boolean;
-  projectMemberUsersEnabled?: boolean;
   projects: ListProjectsInput;
   projectRoles: { projectId?: string; search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number };
   projectAssignments: ListProjectAssignmentsInput | null;
@@ -133,19 +130,11 @@ export function useProjectAdmin(input: {
     staleTime: 15_000,
   });
 
-  const projectMemberUsersQuery = useQuery({
-    queryKey: projectMemberUsersQueryKey,
-    enabled: input.projectMemberUsersEnabled ?? false,
-    queryFn: ({ signal }) => listUsers({ page: 1, pageSize: 100, sortBy: "createdAt", sortOrder: "desc" }, signal),
-    staleTime: 5 * 60_000,
-  });
-
   const invalidateProjects = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: projectsQueryKey }),
       queryClient.invalidateQueries({ queryKey: projectRolesQueryKey }),
       queryClient.invalidateQueries({ queryKey: projectAssignmentsQueryKey }),
-      queryClient.invalidateQueries({ queryKey: projectMemberUsersQueryKey }),
     ]);
   };
 
@@ -205,7 +194,6 @@ export function useProjectAdmin(input: {
     projectEvidenceRoleResponsibilitiesQuery,
     projectEvidenceAssignmentHistoryQuery,
     projectComplianceQuery,
-    projectMemberUsersQuery,
     createProjectMutation,
     updateProjectMutation,
     deleteProjectMutation,

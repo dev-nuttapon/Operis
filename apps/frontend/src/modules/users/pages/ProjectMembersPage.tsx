@@ -11,6 +11,7 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
+import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import type { ProjectAssignment, UpdateProjectAssignmentInput, User } from "../types/users";
 
 type ProjectMemberFormValues = {
@@ -33,6 +34,10 @@ function ProjectMemberForm({
   projectRoleOptions,
   reportingOptions,
   includeReason,
+  userOptionsLoading,
+  onUserSearch,
+  onUserLoadMore,
+  userHasMore,
 }: {
   form: FormInstance<ProjectMemberFormValues>;
   t: ReturnType<typeof useTranslation>["t"];
@@ -40,17 +45,85 @@ function ProjectMemberForm({
   projectRoleOptions: { label: string; value: string }[];
   reportingOptions: { label: string; value: string }[];
   includeReason: boolean;
+  userOptionsLoading?: boolean;
+  onUserSearch?: (value: string) => void;
+  onUserLoadMore?: () => void;
+  userHasMore?: boolean;
 }) {
   return (
     <Form form={form} layout="vertical" initialValues={{ isPrimary: false }}>
       <Form.Item name="userId" label={t("project_members.fields.user")} rules={[{ required: true }]}> 
-        <Select showSearch options={userOptions} placeholder={t("project_members.placeholders.user")} />
+        <Select
+          allowClear
+          showSearch
+          filterOption={false}
+          options={userOptions}
+          placeholder={t("project_members.placeholders.user")}
+          loading={userOptionsLoading}
+          onSearch={onUserSearch}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              {userHasMore ? (
+                <div style={{ padding: 8 }}>
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => onUserLoadMore?.()}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      color: "#1677ff",
+                      cursor: "pointer",
+                      padding: 4,
+                    }}
+                  >
+                    {t("projects.load_more_users")}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+        />
       </Form.Item>
       <Form.Item name="projectRoleId" label={t("project_members.fields.project_role")} rules={[{ required: true }]}> 
         <Select options={projectRoleOptions} placeholder={t("project_members.placeholders.project_role")} />
       </Form.Item>
       <Form.Item name="reportsToUserId" label={t("project_members.fields.reports_to")}> 
-        <Select allowClear showSearch options={reportingOptions} placeholder={t("project_members.placeholders.reports_to")} />
+        <Select
+          allowClear
+          showSearch
+          filterOption={false}
+          options={reportingOptions}
+          placeholder={t("project_members.placeholders.reports_to")}
+          loading={userOptionsLoading}
+          onSearch={onUserSearch}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              {userHasMore ? (
+                <div style={{ padding: 8 }}>
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => onUserLoadMore?.()}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      color: "#1677ff",
+                      cursor: "pointer",
+                      padding: 4,
+                    }}
+                  >
+                    {t("projects.load_more_users")}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+        />
       </Form.Item>
       <Form.Item name="period" label={t("project_members.fields.period")}> 
         <DatePicker.RangePicker style={{ width: "100%" }} />
@@ -92,7 +165,6 @@ export function ProjectMembersPage() {
     projectsQuery,
     projectRolesQuery,
     projectAssignmentsQuery,
-    projectMemberUsersQuery,
     createProjectAssignmentMutation,
     updateProjectAssignmentMutation,
     deleteProjectAssignmentMutation,
@@ -101,6 +173,7 @@ export function ProjectMembersPage() {
     projectRoles: { projectId: selectedProjectId, page: 1, pageSize: 100, sortBy: "displayOrder", sortOrder: "asc" },
     projectAssignments: selectedProjectId ? { projectId: selectedProjectId, ...paging } : null,
   });
+  const userOptionsState = useProjectUserOptions(canManageProjectMembers, toUserLabel);
 
   const handleError = (fallbackTitle: string, error: unknown) => {
     const presentation = getApiErrorPresentation(error, fallbackTitle);
@@ -109,21 +182,28 @@ export function ProjectMembersPage() {
 
   const projectOptions = (projectsQuery.data?.items ?? []).map((item) => ({ label: `${item.code} - ${item.name}`, value: item.id }));
   const projectRoleOptions = (projectRolesQuery.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }));
-  const userMap = new Map((projectMemberUsersQuery.data?.items ?? []).map((item) => [item.id, toUserLabel(item)]));
-  const userOptions = (projectMemberUsersQuery.data?.items ?? []).map((item) => ({ label: userMap.get(item.id) ?? item.id, value: item.id }));
-  const reportingOptions = (projectAssignmentsQuery.data?.items ?? [])
-    .filter((item) => item.id !== editTarget?.id)
-    .map((item) => ({
-      label: userMap.get(item.userId) ?? item.userDisplayName ?? item.userEmail ?? item.userId,
-      value: item.userId,
-    }));
+  const userOptions = useMemo(() => {
+    const base = [...userOptionsState.options];
+    const seen = new Set(base.map((item) => item.value));
+    const ensureOption = (value?: string, label?: string) => {
+      if (!value || seen.has(value)) return;
+      base.push({ value, label: label ?? value });
+      seen.add(value);
+    };
+    if (editTarget) {
+      ensureOption(editTarget.userId, editTarget.userDisplayName ?? editTarget.userEmail ?? editTarget.userId);
+      ensureOption(editTarget.reportsToUserId, editTarget.reportsToDisplayName ?? editTarget.reportsToUserId ?? undefined);
+    }
+    return base;
+  }, [editTarget, userOptionsState.options]);
+  const reportingOptions = userOptions;
 
   const columns = useMemo<ColumnsType<ProjectAssignment>>(
     () => [
       {
         title: t("project_members.columns.member"),
         dataIndex: "userDisplayName",
-        render: (_, record) => userMap.get(record.userId) ?? record.userDisplayName ?? record.userEmail ?? record.userId,
+        render: (_, record) => record.userDisplayName ?? record.userEmail ?? record.userId,
       },
       {
         title: t("project_members.columns.project_role"),
@@ -132,7 +212,7 @@ export function ProjectMembersPage() {
       {
         title: t("project_members.columns.reports_to"),
         dataIndex: "reportsToDisplayName",
-        render: (_, record) => (record.reportsToUserId ? userMap.get(record.reportsToUserId) ?? record.reportsToDisplayName ?? record.reportsToUserId : "-"),
+        render: (_, record) => (record.reportsToUserId ? record.reportsToDisplayName ?? record.reportsToUserId : "-"),
       },
       {
         title: t("project_members.columns.primary"),
@@ -339,11 +419,22 @@ export function ProjectMembersPage() {
         confirmLoading={createProjectAssignmentMutation.isPending}
         width={720}
       >
-        <ProjectMemberForm form={createForm} t={t} userOptions={userOptions} projectRoleOptions={projectRoleOptions} reportingOptions={reportingOptions} includeReason={false} />
+        <ProjectMemberForm
+          form={createForm}
+          t={t}
+          userOptions={userOptions}
+          projectRoleOptions={projectRoleOptions}
+          reportingOptions={reportingOptions}
+          includeReason={false}
+          userOptionsLoading={userOptionsState.loading}
+          onUserSearch={userOptionsState.onSearch}
+          onUserLoadMore={userOptionsState.onLoadMore}
+          userHasMore={userOptionsState.hasMore}
+        />
       </Modal>
 
       <Modal
-        title={editTarget ? t("project_members.edit_modal_title_with_name", { name: userMap.get(editTarget.userId) ?? editTarget.userDisplayName ?? editTarget.userEmail ?? editTarget.userId }) : t("project_members.edit_modal_title")}
+        title={editTarget ? t("project_members.edit_modal_title_with_name", { name: editTarget.userDisplayName ?? editTarget.userEmail ?? editTarget.userId }) : t("project_members.edit_modal_title")}
         open={editTarget !== null && canManageProjectMembers}
         onCancel={() => {
           setEditTarget(null);
@@ -355,7 +446,18 @@ export function ProjectMembersPage() {
         confirmLoading={updateProjectAssignmentMutation.isPending}
         width={720}
       >
-        <ProjectMemberForm form={editForm} t={t} userOptions={userOptions} projectRoleOptions={projectRoleOptions} reportingOptions={reportingOptions} includeReason />
+        <ProjectMemberForm
+          form={editForm}
+          t={t}
+          userOptions={userOptions}
+          projectRoleOptions={projectRoleOptions}
+          reportingOptions={reportingOptions}
+          includeReason
+          userOptionsLoading={userOptionsState.loading}
+          onUserSearch={userOptionsState.onSearch}
+          onUserLoadMore={userOptionsState.onLoadMore}
+          userHasMore={userOptionsState.hasMore}
+        />
       </Modal>
 
       <Modal

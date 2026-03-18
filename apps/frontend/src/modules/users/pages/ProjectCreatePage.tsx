@@ -35,7 +35,6 @@ export function ProjectCreatePage() {
 
   const { createProjectMutation } = useProjectAdmin({
     projectsEnabled: false,
-    projectMemberUsersEnabled: false,
     projects: { page: 1, pageSize: 10 },
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,

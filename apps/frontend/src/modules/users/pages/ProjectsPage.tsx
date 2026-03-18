@@ -56,7 +56,6 @@ export function ProjectsPage() {
 
   const { projectsQuery, updateProjectMutation, deleteProjectMutation } = useProjectAdmin({
     projectsEnabled: canViewProjectList,
-    projectMemberUsersEnabled: false,
     projects: { ...paging, assignedOnly: isMyProjectsPage && !canReadProjects },
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
