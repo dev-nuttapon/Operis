@@ -67,7 +67,9 @@ public interface IProjectQueries
     Task<PagedResult<ProjectListItem>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken);
     Task<ProjectResponse?> GetProjectAsync(Guid projectId, CancellationToken cancellationToken);
     Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ReferenceDataQuery query, CancellationToken cancellationToken);
+    Task<ProjectRoleResponse?> GetProjectRoleAsync(Guid projectRoleId, CancellationToken cancellationToken);
     Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken);
+    Task<ProjectAssignmentResponse?> GetProjectAssignmentAsync(Guid assignmentId, CancellationToken cancellationToken);
     Task<bool> HasProjectAccessAsync(Guid projectId, string userId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ProjectOrgChartNodeResponse>> GetProjectOrgChartAsync(Guid projectId, CancellationToken cancellationToken);
     Task<ProjectEvidenceResponse?> GetProjectEvidenceAsync(Guid projectId, CancellationToken cancellationToken);
@@ -248,6 +250,47 @@ public sealed class ProjectQueries(
         return new PagedResult<ProjectRoleResponse>(items, total, page, pageSize);
     }
 
+    public async Task<ProjectRoleResponse?> GetProjectRoleAsync(Guid projectRoleId, CancellationToken cancellationToken)
+    {
+        var result = await (
+                from role in dbContext.ProjectRoles.AsNoTracking()
+                where role.Id == projectRoleId && role.DeletedAt == null
+                join project in dbContext.Projects.AsNoTracking() on role.ProjectId equals project.Id into projectJoin
+                from project in projectJoin.DefaultIfEmpty()
+                select new ProjectRoleResponse(
+                    role.Id,
+                    role.ProjectId,
+                    project != null ? project.Name : null,
+                    role.Name,
+                    role.Code,
+                    role.Description,
+                    role.Responsibilities,
+                    role.AuthorityScope,
+                    role.CanCreateDocuments,
+                    role.CanReviewDocuments,
+                    role.CanApproveDocuments,
+                    role.CanReleaseDocuments,
+                    role.IsReviewRole,
+                    role.IsApprovalRole,
+                    role.DisplayOrder,
+                    role.CreatedAt,
+                    role.UpdatedAt,
+                    role.DeletedReason,
+                    role.DeletedBy,
+                    role.DeletedAt))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "get",
+            EntityType: "project_role",
+            EntityId: projectRoleId.ToString(),
+            StatusCode: result is null ? StatusCodes.Status404NotFound : StatusCodes.Status200OK));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return result;
+    }
+
     public async Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken)
     {
         var projectName = await dbContext.Projects.AsNoTracking()
@@ -328,6 +371,51 @@ public sealed class ProjectQueries(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new PagedResult<ProjectAssignmentResponse>(items, total, page, pageSize);
+    }
+
+    public async Task<ProjectAssignmentResponse?> GetProjectAssignmentAsync(Guid assignmentId, CancellationToken cancellationToken)
+    {
+        var result = await (
+                from assignment in dbContext.UserProjectAssignments.AsNoTracking()
+                where assignment.Id == assignmentId && assignment.Status != "Removed"
+                join user in dbContext.Users.AsNoTracking() on assignment.UserId equals user.Id into userJoin
+                from user in userJoin.DefaultIfEmpty()
+                join project in dbContext.Projects.AsNoTracking() on assignment.ProjectId equals project.Id into projectJoin
+                from project in projectJoin.DefaultIfEmpty()
+                join role in dbContext.ProjectRoles.AsNoTracking() on assignment.ProjectRoleId equals role.Id into roleJoin
+                from role in roleJoin.DefaultIfEmpty()
+                join reportsTo in dbContext.Users.AsNoTracking() on assignment.ReportsToUserId equals reportsTo.Id into reportsJoin
+                from reportsTo in reportsJoin.DefaultIfEmpty()
+                select new ProjectAssignmentResponse(
+                    assignment.Id,
+                    assignment.UserId,
+                    user != null ? user.Id : null,
+                    user != null ? user.Id : null,
+                    assignment.ProjectId,
+                    project != null && project.DeletedAt == null ? project.Name : string.Empty,
+                    assignment.ProjectRoleId,
+                    role != null && role.DeletedAt == null ? role.Name : string.Empty,
+                    assignment.ReportsToUserId,
+                    reportsTo != null ? reportsTo.Id : null,
+                    assignment.IsPrimary,
+                    assignment.Status,
+                    assignment.ChangeReason,
+                    assignment.ReplacedByAssignmentId,
+                    assignment.StartAt,
+                    assignment.EndAt,
+                    assignment.CreatedAt,
+                    assignment.UpdatedAt))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "get",
+            EntityType: "project_assignment",
+            EntityId: assignmentId.ToString(),
+            StatusCode: result is null ? StatusCodes.Status404NotFound : StatusCodes.Status200OK));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return result;
     }
 
     public async Task<IReadOnlyList<ProjectOrgChartNodeResponse>> GetProjectOrgChartAsync(Guid projectId, CancellationToken cancellationToken)

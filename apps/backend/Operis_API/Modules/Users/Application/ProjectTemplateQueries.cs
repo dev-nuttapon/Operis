@@ -10,7 +10,9 @@ namespace Operis_API.Modules.Users.Application;
 public interface IProjectTemplateQueries
 {
     Task<PagedResult<ProjectTypeTemplateResponse>> ListProjectTypeTemplatesAsync(ProjectListQuery query, CancellationToken cancellationToken);
+    Task<ProjectTypeTemplateResponse?> GetProjectTypeTemplateAsync(Guid templateId, CancellationToken cancellationToken);
     Task<PagedResult<ProjectTypeRoleRequirementResponse>> ListProjectTypeRoleRequirementsAsync(Guid templateId, string? search, string? sortBy, string? sortOrder, int page, int pageSize, CancellationToken cancellationToken);
+    Task<ProjectTypeRoleRequirementResponse?> GetProjectTypeRoleRequirementAsync(Guid requirementId, CancellationToken cancellationToken);
     Task<ProjectTypeTemplateResponse?> GetProjectTypeTemplateByProjectTypeAsync(string projectType, CancellationToken cancellationToken);
 }
 
@@ -37,6 +39,15 @@ public sealed class ProjectTemplateQueries(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new PagedResult<ProjectTypeTemplateResponse>(items, total, page, pageSize);
+    }
+
+    public Task<ProjectTypeTemplateResponse?> GetProjectTypeTemplateAsync(Guid templateId, CancellationToken cancellationToken)
+    {
+        return dbContext.ProjectTypeTemplates
+            .AsNoTracking()
+            .Where(x => x.Id == templateId && x.DeletedAt == null)
+            .Select(ToTemplateResponseProjection())
+            .FirstOrDefaultAsync(cancellationToken)!;
     }
 
     public async Task<PagedResult<ProjectTypeRoleRequirementResponse>> ListProjectTypeRoleRequirementsAsync(Guid templateId, string? search, string? sortBy, string? sortOrder, int page, int pageSize, CancellationToken cancellationToken)
@@ -78,6 +89,28 @@ public sealed class ProjectTemplateQueries(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new PagedResult<ProjectTypeRoleRequirementResponse>(items, total, normalizedPage, normalizedPageSize);
+    }
+
+    public Task<ProjectTypeRoleRequirementResponse?> GetProjectTypeRoleRequirementAsync(Guid requirementId, CancellationToken cancellationToken)
+    {
+        return (
+            from requirement in dbContext.ProjectTypeRoleRequirements.AsNoTracking()
+            where requirement.Id == requirementId && requirement.DeletedAt == null
+            join template in dbContext.ProjectTypeTemplates.AsNoTracking() on requirement.ProjectTypeTemplateId equals template.Id
+            select new ProjectTypeRoleRequirementResponse(
+                requirement.Id,
+                requirement.ProjectTypeTemplateId,
+                template.ProjectType,
+                requirement.RoleName,
+                requirement.RoleCode,
+                requirement.Description,
+                requirement.DisplayOrder,
+                requirement.CreatedAt,
+                requirement.UpdatedAt,
+                requirement.DeletedReason,
+                requirement.DeletedBy,
+                requirement.DeletedAt))
+            .FirstOrDefaultAsync(cancellationToken)!;
     }
 
     public Task<ProjectTypeTemplateResponse?> GetProjectTypeTemplateByProjectTypeAsync(string projectType, CancellationToken cancellationToken)

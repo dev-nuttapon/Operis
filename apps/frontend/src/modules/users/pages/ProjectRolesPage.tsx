@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Card, Checkbox, Form, Input, InputNumber, Modal, Select, Space, Table, Typography, Skeleton, Flex, Grid } from "antd";
-import type { FormInstance } from "antd";
+import { Alert, App, Button, Card, Form, Input, Modal, Select, Space, Table, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SolutionOutlined } from "@ant-design/icons";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { permissions } from "../../../shared/authz/permissions";
@@ -12,116 +11,14 @@ import { usePermissions } from "../../../shared/authz/usePermissions";
 import { toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectOptions } from "../hooks/useProjectOptions";
-import type { CreateProjectRoleInput, ProjectRole, UpdateProjectRoleInput } from "../types/users";
+import type { ProjectRole } from "../types/users";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
-
-type ProjectRoleFormValues = {
-  projectId: string;
-  name: string;
-  code?: string;
-  description?: string;
-  responsibilities?: string;
-  authorityScope?: string;
-  canCreateDocuments: boolean;
-  canReviewDocuments: boolean;
-  canApproveDocuments: boolean;
-  canReleaseDocuments: boolean;
-  isReviewRole: boolean;
-  isApprovalRole: boolean;
-  displayOrder: number;
-};
-
-function toProjectRoleInitialValues(record: ProjectRole, projectId?: string): ProjectRoleFormValues {
-  return {
-    projectId: record.projectId ?? projectId ?? "",
-    name: record.name,
-    code: record.code ?? undefined,
-    description: record.description ?? undefined,
-    responsibilities: record.responsibilities ?? undefined,
-    authorityScope: record.authorityScope ?? undefined,
-    canCreateDocuments: record.canCreateDocuments,
-    canReviewDocuments: record.canReviewDocuments,
-    canApproveDocuments: record.canApproveDocuments,
-    canReleaseDocuments: record.canReleaseDocuments,
-    isReviewRole: record.isReviewRole,
-    isApprovalRole: record.isApprovalRole,
-    displayOrder: record.displayOrder,
-  };
-}
-
-function ProjectRoleForm({
-  form,
-  t,
-  projectOptions,
-}: {
-  form: FormInstance<ProjectRoleFormValues>;
-  t: ReturnType<typeof useTranslation>["t"];
-  projectOptions: { label: string; value: string }[];
-}) {
-  return (
-    <Form
-      form={form}
-      layout="vertical"
-      initialValues={{
-        isReviewRole: false,
-        isApprovalRole: false,
-        canCreateDocuments: false,
-        canReviewDocuments: false,
-        canApproveDocuments: false,
-        canReleaseDocuments: false,
-      }}
-    >
-      <Form.Item name="projectId" label={t("project_roles.fields.project")} rules={[{ required: true }]}> 
-        <Select options={projectOptions} />
-      </Form.Item>
-      <Form.Item name="name" label={t("project_roles.fields.name")} rules={[{ required: true }]}> 
-        <Input placeholder={t("project_roles.placeholders.name")} />
-      </Form.Item>
-      <Form.Item name="code" label={t("project_roles.fields.code")}> 
-        <Input placeholder={t("project_roles.placeholders.code")} />
-      </Form.Item>
-      <Form.Item name="description" label={t("project_roles.fields.description")}> 
-        <Input.TextArea rows={3} placeholder={t("project_roles.placeholders.description")} />
-      </Form.Item>
-      <Form.Item name="responsibilities" label={t("project_roles.fields.responsibilities")}> 
-        <Input.TextArea rows={4} placeholder={t("project_roles.placeholders.responsibilities")} />
-      </Form.Item>
-      <Form.Item name="authorityScope" label={t("project_roles.fields.authority_scope")}> 
-        <Input.TextArea rows={3} placeholder={t("project_roles.placeholders.authority_scope")} />
-      </Form.Item>
-      <Form.Item label={t("project_roles.fields.document_permissions")}>
-        <Space direction="vertical">
-          <Form.Item name="canCreateDocuments" valuePropName="checked" noStyle>
-            <Checkbox>{t("project_roles.fields.can_create_documents")}</Checkbox>
-          </Form.Item>
-          <Form.Item name="canReviewDocuments" valuePropName="checked" noStyle>
-            <Checkbox>{t("project_roles.fields.can_review_documents")}</Checkbox>
-          </Form.Item>
-          <Form.Item name="canApproveDocuments" valuePropName="checked" noStyle>
-            <Checkbox>{t("project_roles.fields.can_approve_documents")}</Checkbox>
-          </Form.Item>
-          <Form.Item name="canReleaseDocuments" valuePropName="checked" noStyle>
-            <Checkbox>{t("project_roles.fields.can_release_documents")}</Checkbox>
-          </Form.Item>
-        </Space>
-      </Form.Item>
-      <Form.Item name="displayOrder" label={t("project_roles.fields.display_order")} rules={[{ required: true }]}> 
-        <InputNumber min={0} style={{ width: "100%" }} />
-      </Form.Item>
-      <Form.Item name="isReviewRole" valuePropName="checked"> 
-        <Checkbox>{t("project_roles.fields.is_review_role")}</Checkbox>
-      </Form.Item>
-      <Form.Item name="isApprovalRole" valuePropName="checked"> 
-        <Checkbox>{t("project_roles.fields.is_approval_role")}</Checkbox>
-      </Form.Item>
-    </Form>
-  );
-}
 
 export function ProjectRolesPage() {
   const { t } = useTranslation();
   const { notification } = App.useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const [searchParams] = useSearchParams();
@@ -137,11 +34,7 @@ export function ProjectRolesPage() {
     sortOrder: "asc" as "asc" | "desc",
   });
   const [searchInput, setSearchInput] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<ProjectRole | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectRole | null>(null);
-  const [createForm] = Form.useForm<ProjectRoleFormValues>();
-  const [editForm] = Form.useForm<ProjectRoleFormValues>();
   const [deleteForm] = Form.useForm();
 
   const debouncedSearch = useDebouncedValue(searchInput, 300);
@@ -156,7 +49,7 @@ export function ProjectRolesPage() {
       setSelectedProjectId(projectId);
     }
   }, [searchParams]);
-  const { projectRolesQuery, createProjectRoleMutation, updateProjectRoleMutation, deleteProjectRoleMutation } = useProjectAdmin({
+  const { projectRolesQuery, deleteProjectRoleMutation } = useProjectAdmin({
     projectsEnabled: false,
     projects: { page: 1, pageSize: 1 },
     projectRoles: { ...paging, search: debouncedSearch, projectId: selectedProjectId },
@@ -223,8 +116,9 @@ export function ProjectRolesPage() {
                 <Button
                   icon={<EditOutlined />}
                   onClick={() => {
-                    setEditTarget(record);
-                    editForm.setFieldsValue(toProjectRoleInitialValues(record, selectedProjectId));
+                    navigate(`/app/admin/project-roles/${record.id}/edit?projectId=${record.projectId ?? selectedProjectId ?? ""}`, {
+                      state: { from: `${location.pathname}${location.search}` },
+                    });
                   }}
                 >
                   {t("common.actions.edit")}
@@ -245,67 +139,8 @@ export function ProjectRolesPage() {
         ),
       },
     ],
-    [canManageProjectRoles, deleteForm, editForm, selectedProjectId, t],
+    [canManageProjectRoles, deleteForm, location.pathname, location.search, navigate, selectedProjectId, t],
   );
-
-  const createRole = (values: ProjectRoleFormValues) => {
-    const payload: CreateProjectRoleInput = {
-      projectId: values.projectId,
-      name: values.name,
-      code: values.code,
-      description: values.description,
-      responsibilities: values.responsibilities,
-      authorityScope: values.authorityScope,
-      canCreateDocuments: values.canCreateDocuments,
-      canReviewDocuments: values.canReviewDocuments,
-      canApproveDocuments: values.canApproveDocuments,
-      canReleaseDocuments: values.canReleaseDocuments,
-      isReviewRole: values.isReviewRole,
-      isApprovalRole: values.isApprovalRole,
-      displayOrder: values.displayOrder,
-    };
-
-    createProjectRoleMutation.mutate(payload, {
-      onSuccess: () => {
-        setCreateOpen(false);
-        createForm.resetFields();
-        notification.success({ message: t("project_roles.messages.created", { name: values.name }) });
-      },
-      onError: (error) => handleError(t("project_roles.messages.create_failed"), error),
-    });
-  };
-
-  const updateRole = (values: ProjectRoleFormValues) => {
-    if (!editTarget) {
-      return;
-    }
-
-    const payload: UpdateProjectRoleInput = {
-      id: editTarget.id,
-      projectId: values.projectId,
-      name: values.name,
-      code: values.code,
-      description: values.description,
-      responsibilities: values.responsibilities,
-      authorityScope: values.authorityScope,
-      canCreateDocuments: values.canCreateDocuments,
-      canReviewDocuments: values.canReviewDocuments,
-      canApproveDocuments: values.canApproveDocuments,
-      canReleaseDocuments: values.canReleaseDocuments,
-      isReviewRole: values.isReviewRole,
-      isApprovalRole: values.isApprovalRole,
-      displayOrder: values.displayOrder,
-    };
-
-    updateProjectRoleMutation.mutate(payload, {
-      onSuccess: () => {
-        setEditTarget(null);
-        editForm.resetFields();
-        notification.success({ message: t("project_roles.messages.updated", { name: values.name }) });
-      },
-      onError: (error) => handleError(t("project_roles.messages.update_failed"), error),
-    });
-  };
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -400,16 +235,9 @@ export function ProjectRolesPage() {
                       icon={<PlusOutlined />}
                       size="large"
                       onClick={() => {
-                        createForm.setFieldsValue({
-                          projectId: selectedProjectId,
-                          isReviewRole: false,
-                          isApprovalRole: false,
-                          canCreateDocuments: false,
-                          canReviewDocuments: false,
-                          canApproveDocuments: false,
-                          canReleaseDocuments: false,
+                        navigate(`/app/admin/project-roles/new?projectId=${selectedProjectId}`, {
+                          state: { from: `${location.pathname}${location.search}` },
                         });
-                        setCreateOpen(true);
                       }}
                       block={isMobile}
                     >
@@ -451,38 +279,6 @@ export function ProjectRolesPage() {
           )}
         </Space>
       </Card>
-
-      <Modal
-        title={t("project_roles.create_modal_title")}
-        open={createOpen && canManageProjectRoles}
-        onCancel={() => {
-          setCreateOpen(false);
-          createForm.resetFields();
-        }}
-        onOk={() => {
-          createForm.validateFields().then(createRole).catch(() => undefined);
-        }}
-        confirmLoading={createProjectRoleMutation.isPending}
-        width={720}
-      >
-        <ProjectRoleForm form={createForm} t={t} projectOptions={projectOptions} />
-      </Modal>
-
-      <Modal
-        title={editTarget ? t("project_roles.edit_modal_title_with_name", { name: editTarget.name }) : t("project_roles.edit_modal_title")}
-        open={editTarget !== null && canManageProjectRoles}
-        onCancel={() => {
-          setEditTarget(null);
-          editForm.resetFields();
-        }}
-        onOk={() => {
-          editForm.validateFields().then(updateRole).catch(() => undefined);
-        }}
-        confirmLoading={updateProjectRoleMutation.isPending}
-        width={720}
-      >
-        <ProjectRoleForm form={editForm} t={t} projectOptions={projectOptions} />
-      </Modal>
 
       <Modal
         title={deleteTarget ? t("project_roles.delete_modal_title_with_name", { name: deleteTarget.name }) : t("project_roles.delete_modal_title")}

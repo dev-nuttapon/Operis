@@ -59,11 +59,26 @@ const ProjectsPage = lazy(() =>
 const ProjectCreatePage = lazy(() =>
   import("../modules/users/pages/ProjectCreatePage").then((module) => ({ default: module.ProjectCreatePage }))
 );
+const ProjectEditPage = lazy(() =>
+  import("../modules/users/pages/ProjectEditPage").then((module) => ({ default: module.ProjectEditPage }))
+);
 const ProjectRolesPage = lazy(() =>
   import("../modules/users/pages/ProjectRolesPage").then((module) => ({ default: module.ProjectRolesPage }))
 );
+const ProjectRoleCreatePage = lazy(() =>
+  import("../modules/users/pages/ProjectRoleCreatePage").then((module) => ({ default: module.ProjectRoleCreatePage }))
+);
+const ProjectRoleEditPage = lazy(() =>
+  import("../modules/users/pages/ProjectRoleEditPage").then((module) => ({ default: module.ProjectRoleEditPage }))
+);
 const ProjectMembersPage = lazy(() =>
   import("../modules/users/pages/ProjectMembersPage").then((module) => ({ default: module.ProjectMembersPage }))
+);
+const ProjectMemberCreatePage = lazy(() =>
+  import("../modules/users/pages/ProjectMemberCreatePage").then((module) => ({ default: module.ProjectMemberCreatePage }))
+);
+const ProjectMemberEditPage = lazy(() =>
+  import("../modules/users/pages/ProjectMemberEditPage").then((module) => ({ default: module.ProjectMemberEditPage }))
 );
 const ProjectOrgChartPage = lazy(() =>
   import("../modules/users/pages/ProjectOrgChartPage").then((module) => ({ default: module.ProjectOrgChartPage }))
@@ -76,6 +91,18 @@ const ProjectCompliancePage = lazy(() =>
 );
 const ProjectTypeTemplatesPage = lazy(() =>
   import("../modules/users/pages/ProjectTypeTemplatesPage").then((module) => ({ default: module.ProjectTypeTemplatesPage }))
+);
+const ProjectTypeTemplateCreatePage = lazy(() =>
+  import("../modules/users/pages/ProjectTypeTemplateCreatePage").then((module) => ({ default: module.ProjectTypeTemplateCreatePage }))
+);
+const ProjectTypeTemplateEditPage = lazy(() =>
+  import("../modules/users/pages/ProjectTypeTemplateEditPage").then((module) => ({ default: module.ProjectTypeTemplateEditPage }))
+);
+const ProjectTypeRoleRequirementCreatePage = lazy(() =>
+  import("../modules/users/pages/ProjectTypeRoleRequirementCreatePage").then((module) => ({ default: module.ProjectTypeRoleRequirementCreatePage }))
+);
+const ProjectTypeRoleRequirementEditPage = lazy(() =>
+  import("../modules/users/pages/ProjectTypeRoleRequirementEditPage").then((module) => ({ default: module.ProjectTypeRoleRequirementEditPage }))
 );
 const ProjectWorkspacePrototypePage = lazy(() =>
   import("../modules/users/pages/ProjectWorkspacePrototypePage").then((module) => ({ default: module.ProjectWorkspacePrototypePage }))
@@ -122,6 +149,7 @@ export function AppRouter() {
                 <Route path="documents/:documentId/versions/new" element={<DocumentVersionUploadPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="projects/new" element={<ProjectCreatePage />} />
+                <Route path="projects/:projectId/edit" element={<ProjectEditPage />} />
               <Route path="workflows" element={<WorkflowDefinitionsPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
               <Route path="admin/users/new" element={<AdminUserCreatePage />} />
@@ -132,13 +160,22 @@ export function AppRouter() {
                 <Route path="admin/master/positions" element={<AdminUsersPage />} />
                 <Route path="admin/projects" element={<ProjectsPage />} />
                 <Route path="admin/projects/new" element={<ProjectCreatePage />} />
+                <Route path="admin/projects/:projectId/edit" element={<ProjectEditPage />} />
                 <Route path="admin/project-roles" element={<ProjectRolesPage />} />
+                <Route path="admin/project-roles/new" element={<ProjectRoleCreatePage />} />
+                <Route path="admin/project-roles/:projectRoleId/edit" element={<ProjectRoleEditPage />} />
                 <Route path="admin/project-members" element={<ProjectMembersPage />} />
+                <Route path="admin/project-members/new" element={<ProjectMemberCreatePage />} />
+                <Route path="admin/project-members/:assignmentId/edit" element={<ProjectMemberEditPage />} />
                 <Route path="admin/project-org-chart" element={<ProjectOrgChartPage />} />
                 <Route path="projects/:projectId/workspace" element={<ProjectWorkspacePrototypePage />} />
                 <Route path="admin/project-evidence" element={<ProjectEvidencePage />} />
                 <Route path="admin/project-compliance" element={<ProjectCompliancePage />} />
                 <Route path="admin/project-type-templates" element={<ProjectTypeTemplatesPage />} />
+                <Route path="admin/project-type-templates/new" element={<ProjectTypeTemplateCreatePage />} />
+                <Route path="admin/project-type-templates/:templateId/edit" element={<ProjectTypeTemplateEditPage />} />
+                <Route path="admin/project-type-templates/:templateId/role-requirements/new" element={<ProjectTypeRoleRequirementCreatePage />} />
+                <Route path="admin/project-type-templates/:templateId/role-requirements/:requirementId/edit" element={<ProjectTypeRoleRequirementEditPage />} />
                 <Route path="admin/invitations" element={<AdminUsersPage />} />
                 <Route path="admin/registrations" element={<AdminUsersPage />} />
                 <Route path="admin/activity-logs" element={<ActivityLogsPage />} />

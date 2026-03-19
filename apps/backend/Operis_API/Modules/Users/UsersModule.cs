@@ -108,6 +108,9 @@ public sealed class UsersModule : IModule
             .AllowAnonymous()
             .WithName("Users_ListProjectRoles");
 
+        group.MapGet("/project-roles/{projectRoleId:guid}", GetProjectRoleAsync)
+            .WithName("Users_GetProjectRole");
+
         group.MapGet("/projects", ListProjectsAsync)
             .WithName("Users_ListProjects");
 
@@ -116,6 +119,9 @@ public sealed class UsersModule : IModule
 
         group.MapGet("/project-type-templates", ListProjectTypeTemplatesAsync)
             .WithName("Users_ListProjectTypeTemplates");
+
+        group.MapGet("/project-type-templates/{templateId:guid}", GetProjectTypeTemplateAsync)
+            .WithName("Users_GetProjectTypeTemplate");
 
         group.MapPost("/project-type-templates", CreateProjectTypeTemplateAsync)
             .WithName("Users_CreateProjectTypeTemplate");
@@ -128,6 +134,9 @@ public sealed class UsersModule : IModule
 
         group.MapGet("/project-type-role-requirements", ListProjectTypeRoleRequirementsAsync)
             .WithName("Users_ListProjectTypeRoleRequirements");
+
+        group.MapGet("/project-type-role-requirements/{requirementId:guid}", GetProjectTypeRoleRequirementAsync)
+            .WithName("Users_GetProjectTypeRoleRequirement");
 
         group.MapPost("/project-type-role-requirements", CreateProjectTypeRoleRequirementAsync)
             .WithName("Users_CreateProjectTypeRoleRequirement");
@@ -158,6 +167,9 @@ public sealed class UsersModule : IModule
 
         group.MapGet("/project-assignments", ListProjectAssignmentsAsync)
             .WithName("Users_ListProjectAssignments");
+
+        group.MapGet("/project-assignments/{assignmentId:guid}", GetProjectAssignmentAsync)
+            .WithName("Users_GetProjectAssignment");
 
         group.MapGet("/projects/{projectId:guid}/org-chart", GetProjectOrgChartAsync)
             .WithName("Users_GetProjectOrgChart");
@@ -558,6 +570,15 @@ public sealed class UsersModule : IModule
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> GetProjectRoleAsync(
+        IProjectQueries queries,
+        Guid projectRoleId,
+        CancellationToken cancellationToken)
+    {
+        var result = await queries.GetProjectRoleAsync(projectRoleId, cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
+    }
+
     private static async Task<IResult> ListProjectsAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
@@ -622,6 +643,22 @@ public sealed class UsersModule : IModule
             new ProjectListQuery(search, sortBy, sortOrder, Page: page, PageSize: pageSize),
             cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetProjectTypeTemplateAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IProjectTemplateQueries queries,
+        Guid templateId,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetProjectTypeTemplateAsync(templateId, cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
     }
 
     private static async Task<IResult> CreateProjectTypeTemplateAsync(
@@ -700,6 +737,22 @@ public sealed class UsersModule : IModule
 
         var result = await queries.ListProjectTypeRoleRequirementsAsync(templateId, search, sortBy, sortOrder, page, pageSize, cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetProjectTypeRoleRequirementAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IProjectTemplateQueries queries,
+        Guid requirementId,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageTemplates))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetProjectTypeRoleRequirementAsync(requirementId, cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
     }
 
     private static async Task<IResult> CreateProjectTypeRoleRequirementAsync(
@@ -899,6 +952,27 @@ public sealed class UsersModule : IModule
         }
 
         var result = await queries.ListProjectAssignmentsAsync(new ProjectAssignmentListQuery(projectId, search, sortBy, sortOrder, page, pageSize), cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetProjectAssignmentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IProjectQueries queries,
+        Guid assignmentId,
+        CancellationToken cancellationToken)
+    {
+        var result = await queries.GetProjectAssignmentAsync(assignmentId, cancellationToken);
+        if (result is null)
+        {
+            return NotFoundWithCode();
+        }
+
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, result.ProjectId, cancellationToken))
+        {
+            return Results.Forbid();
+        }
+
         return Results.Ok(result);
     }
 

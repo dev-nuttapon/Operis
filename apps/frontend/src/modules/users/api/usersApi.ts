@@ -298,6 +298,10 @@ export function listProjectRoles(input?: ListQueryInput, signal?: AbortSignal) {
   return apiRequest<PaginatedResult<ProjectRole>>(`/api/v1/users/project-roles${toListQuery(input)}`, { signal });
 }
 
+export function getProjectRole(projectRoleId: string, signal?: AbortSignal) {
+  return apiRequest<ProjectRole>(`/api/v1/users/project-roles/${encodeURIComponent(projectRoleId)}`, { signal });
+}
+
 export function listPublicJobTitlesByDepartment(departmentId: string, input?: ListQueryInput, signal?: AbortSignal) {
   const query = toListQuery({ ...(input ?? { page: 1, pageSize: 10 }), departmentId });
   return publicApiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/job-titles${query}`, { signal });
@@ -320,6 +324,10 @@ export function getProject(id: string, signal?: AbortSignal) {
 
 export function listProjectTypeTemplates(input?: ListQueryInput, signal?: AbortSignal) {
   return apiRequest<PaginatedResult<ProjectTypeTemplate>>(`/api/v1/users/project-type-templates${toListQuery(input)}`, { signal });
+}
+
+export function getProjectTypeTemplate(templateId: string, signal?: AbortSignal) {
+  return apiRequest<ProjectTypeTemplate>(`/api/v1/users/project-type-templates/${encodeURIComponent(templateId)}`, { signal });
 }
 
 export function createProjectTypeTemplate(input: CreateProjectTypeTemplateInput) {
@@ -363,6 +371,10 @@ export function listProjectTypeRoleRequirements(input: { templateId: string } & 
   if (input.sortBy) params.set("sortBy", input.sortBy);
   if (input.sortOrder) params.set("sortOrder", input.sortOrder);
   return apiRequest<PaginatedResult<ProjectTypeRoleRequirement>>(`/api/v1/users/project-type-role-requirements?${params.toString()}`, { signal });
+}
+
+export function getProjectTypeRoleRequirement(requirementId: string, signal?: AbortSignal) {
+  return apiRequest<ProjectTypeRoleRequirement>(`/api/v1/users/project-type-role-requirements/${encodeURIComponent(requirementId)}`, { signal });
 }
 
 export function createProjectTypeRoleRequirement(input: CreateProjectTypeRoleRequirementInput) {
@@ -485,6 +497,10 @@ export function listProjectAssignments(input: ListProjectAssignmentsInput, signa
   if (input.sortBy) params.set("sortBy", input.sortBy);
   if (input.sortOrder) params.set("sortOrder", input.sortOrder);
   return apiRequest<PaginatedResult<ProjectAssignment>>(`/api/v1/users/project-assignments?${params.toString()}`, { signal });
+}
+
+export function getProjectAssignment(assignmentId: string, signal?: AbortSignal) {
+  return apiRequest<ProjectAssignment>(`/api/v1/users/project-assignments/${encodeURIComponent(assignmentId)}`, { signal });
 }
 
 export function getProjectOrgChart(projectId: string, signal?: AbortSignal) {
