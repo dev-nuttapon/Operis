@@ -189,14 +189,6 @@ export function MainLayout() {
                   label: tr('common.master_project_structure'),
                   children: [
                     {
-                      key: '/app/admin/projects',
-                      label: tr('common.projects'),
-                    },
-                    {
-                      key: '/app/admin/project-type-templates',
-                      label: tr('common.project_type_templates'),
-                    },
-                    {
                       key: '/app/admin/project-roles',
                       label: tr('common.master_project_roles'),
                     },
@@ -207,14 +199,6 @@ export function MainLayout() {
                     {
                       key: '/app/admin/project-org-chart',
                       label: tr('common.project_org_chart'),
-                    },
-                    {
-                      key: '/app/admin/project-evidence',
-                      label: tr('common.project_evidence'),
-                    },
-                    {
-                      key: '/app/admin/project-compliance',
-                      label: tr('common.project_compliance'),
                     },
                   ],
                 },
