@@ -66,6 +66,10 @@ export function ProjectForm({
   onUserSearch,
   onUserLoadMore,
   userHasMore,
+  projectTypeOptionsLoading,
+  onProjectTypeSearch,
+  onProjectTypeLoadMore,
+  projectTypeHasMore,
 }: {
   form: FormInstance<ProjectFormValues>;
   t: (key: string) => string;

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Flex, Spin } from "antd";
 import { ProtectedRoute } from "../shared/components/ProtectedRoute";
 import { MainLayout } from "../shared/components/layouts/MainLayout";
+import { AppErrorBoundary } from "../shared/components/AppErrorBoundary";
 
 const DocumentDashboardPage = lazy(() =>
   import("../modules/documents/pages/DocumentDashboardPage").then((module) => ({ default: module.DocumentDashboardPage }))
@@ -95,52 +96,54 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<PublicRegistrationPage />} />
-          <Route path="/register/setup-password/:token" element={<RegistrationPasswordSetupPage />} />
-          <Route path="/invite/:token" element={<InvitationAcceptPage />} />
+        <AppErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<PublicRegistrationPage />} />
+            <Route path="/register/setup-password/:token" element={<RegistrationPasswordSetupPage />} />
+            <Route path="/invite/:token" element={<InvitationAcceptPage />} />
 
-          <Route path="/app" element={<ProtectedRoute />}>
-            <Route element={<MainLayout />}>
-              <Route index element={<Navigate to="documents" replace />} />
-              <Route path="documents" element={<DocumentDashboardPage />} />
-              <Route path="documents/templates" element={<DocumentTemplatesPage />} />
-              <Route path="document-templates" element={<DocumentTemplatesPage />} />
-              <Route path="document-templates/new" element={<DocumentTemplateCreatePage />} />
-              <Route path="document-templates/:templateId/edit" element={<DocumentTemplateEditPage />} />
-              <Route path="document-templates/:templateId/history" element={<DocumentTemplateHistoryPage />} />
-              <Route path="documents/upload" element={<DocumentUploadPage />} />
-              <Route path="documents/:documentId/versions" element={<DocumentVersionsPage />} />
-              <Route path="documents/:documentId/history" element={<DocumentHistoryPage />} />
-              <Route path="documents/:documentId/versions/new" element={<DocumentVersionUploadPage />} />
-              <Route path="projects" element={<ProjectsPage />} />
-              <Route path="projects/new" element={<ProjectCreatePage />} />
-              <Route path="workflows" element={<WorkflowDefinitionsPage />} />
-              <Route path="admin/users" element={<AdminUsersPage />} />
-              <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
-              <Route path="admin/master/divisions" element={<AdminUsersPage />} />
-              <Route path="admin/master/departments" element={<AdminUsersPage />} />
-              <Route path="admin/master/positions" element={<AdminUsersPage />} />
-              <Route path="admin/projects" element={<ProjectsPage />} />
-              <Route path="admin/projects/new" element={<ProjectCreatePage />} />
-              <Route path="admin/project-roles" element={<ProjectRolesPage />} />
-              <Route path="admin/project-members" element={<ProjectMembersPage />} />
-              <Route path="admin/project-org-chart" element={<ProjectOrgChartPage />} />
-              <Route path="projects/:projectId/workspace" element={<ProjectWorkspacePrototypePage />} />
-              <Route path="admin/project-evidence" element={<ProjectEvidencePage />} />
-              <Route path="admin/project-compliance" element={<ProjectCompliancePage />} />
-              <Route path="admin/project-type-templates" element={<ProjectTypeTemplatesPage />} />
-              <Route path="admin/invitations" element={<AdminUsersPage />} />
-              <Route path="admin/registrations" element={<AdminUsersPage />} />
-              <Route path="admin/activity-logs" element={<ActivityLogsPage />} />
-              <Route path="admin/audit-logs" element={<AuditLogsPage />} />
+            <Route path="/app" element={<ProtectedRoute />}>
+              <Route element={<MainLayout />}>
+                <Route index element={<Navigate to="documents" replace />} />
+                <Route path="documents" element={<DocumentDashboardPage />} />
+                <Route path="documents/templates" element={<DocumentTemplatesPage />} />
+                <Route path="document-templates" element={<DocumentTemplatesPage />} />
+                <Route path="document-templates/new" element={<DocumentTemplateCreatePage />} />
+                <Route path="document-templates/:templateId/edit" element={<DocumentTemplateEditPage />} />
+                <Route path="document-templates/:templateId/history" element={<DocumentTemplateHistoryPage />} />
+                <Route path="documents/upload" element={<DocumentUploadPage />} />
+                <Route path="documents/:documentId/versions" element={<DocumentVersionsPage />} />
+                <Route path="documents/:documentId/history" element={<DocumentHistoryPage />} />
+                <Route path="documents/:documentId/versions/new" element={<DocumentVersionUploadPage />} />
+                <Route path="projects" element={<ProjectsPage />} />
+                <Route path="projects/new" element={<ProjectCreatePage />} />
+                <Route path="workflows" element={<WorkflowDefinitionsPage />} />
+                <Route path="admin/users" element={<AdminUsersPage />} />
+                <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
+                <Route path="admin/master/divisions" element={<AdminUsersPage />} />
+                <Route path="admin/master/departments" element={<AdminUsersPage />} />
+                <Route path="admin/master/positions" element={<AdminUsersPage />} />
+                <Route path="admin/projects" element={<ProjectsPage />} />
+                <Route path="admin/projects/new" element={<ProjectCreatePage />} />
+                <Route path="admin/project-roles" element={<ProjectRolesPage />} />
+                <Route path="admin/project-members" element={<ProjectMembersPage />} />
+                <Route path="admin/project-org-chart" element={<ProjectOrgChartPage />} />
+                <Route path="projects/:projectId/workspace" element={<ProjectWorkspacePrototypePage />} />
+                <Route path="admin/project-evidence" element={<ProjectEvidencePage />} />
+                <Route path="admin/project-compliance" element={<ProjectCompliancePage />} />
+                <Route path="admin/project-type-templates" element={<ProjectTypeTemplatesPage />} />
+                <Route path="admin/invitations" element={<AdminUsersPage />} />
+                <Route path="admin/registrations" element={<AdminUsersPage />} />
+                <Route path="admin/activity-logs" element={<ActivityLogsPage />} />
+                <Route path="admin/audit-logs" element={<AuditLogsPage />} />
+              </Route>
             </Route>
-          </Route>
 
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </AppErrorBoundary>
       </Suspense>
     </BrowserRouter>
   );

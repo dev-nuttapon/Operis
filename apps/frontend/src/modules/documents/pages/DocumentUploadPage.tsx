@@ -1,6 +1,6 @@
 import { App, Button, Card, Form, Input, Space, Typography, Alert, Flex, Grid } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeftOutlined, UploadOutlined } from "@ant-design/icons";
+import { useLocation, useNavigate } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
 import { useCreateDocument } from "../hooks/useDocuments";
@@ -10,10 +10,15 @@ import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient
 
 const { Title, Paragraph } = Typography;
 
+type LocationState = {
+  from?: string;
+};
+
 export function DocumentUploadPage() {
   const { notification } = App.useApp();
   const language = useI18nLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const permissionState = usePermissions();
@@ -21,6 +26,8 @@ export function DocumentUploadPage() {
   const createDocumentMutation = useCreateDocument();
   const [form] = Form.useForm();
   const tr = (key: string) => i18n.t(key, { lng: language });
+  const locationState = location.state as LocationState | null;
+  const backTarget = locationState?.from ?? "/app/documents";
 
   const handleSubmit = async () => {
     if (!canUploadDocuments) {
@@ -54,6 +61,12 @@ export function DocumentUploadPage() {
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backTarget)} block={isMobile}>
+          {tr("documents.upload_page.back_action")}
+        </Button>
+      </Space>
+
       <Card variant="borderless">
         <Space align="start" size={16}>
           <div

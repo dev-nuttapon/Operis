@@ -253,7 +253,7 @@ export function DocumentTemplateEditPage() {
                 locale={{ emptyText: t("documents.templates.empty_selection") }}
               />
             </Form>
-            <Flex justify="flex-end">
+            <Flex justify="flex-start">
               <Button
                 type="primary"
                 icon={<SaveOutlined />}

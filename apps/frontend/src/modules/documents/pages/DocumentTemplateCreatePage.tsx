@@ -194,7 +194,7 @@ export function DocumentTemplateCreatePage() {
                 locale={{ emptyText: t("documents.templates.empty_selection") }}
               />
             </Form>
-            <Flex justify="flex-end">
+            <Flex justify="flex-start">
               <Button
                 type="primary"
                 icon={<SaveOutlined />}

@@ -23,11 +23,13 @@ export function useProjectTypeOptions({ enabled, pageSize = 10 }: { enabled: boo
       ),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
-      const loaded = allPages.reduce((sum, page) => sum + page.items.length, 0);
-      if (lastPage.total && loaded < lastPage.total) {
+      const loaded = allPages.reduce((sum, page) => sum + (Array.isArray(page.items) ? page.items.length : 0), 0);
+      const total = typeof lastPage.total === "number" ? lastPage.total : 0;
+      const lastItemsCount = Array.isArray(lastPage.items) ? lastPage.items.length : 0;
+      if (total > 0 && loaded < total) {
         return allPages.length + 1;
       }
-      return lastPage.items.length === pageSize ? allPages.length + 1 : undefined;
+      return lastItemsCount === pageSize ? allPages.length + 1 : undefined;
     },
     staleTime: 60_000,
   });

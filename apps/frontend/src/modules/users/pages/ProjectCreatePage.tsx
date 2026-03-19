@@ -46,6 +46,8 @@ export function ProjectCreatePage() {
   const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
 
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
+  // Page must remain usable even if dropdown option APIs fail.
+  // Selects should degrade gracefully to empty options instead of crashing the route.
   const projectTypeOptions = useMemo(() => {
     const templateOptions = projectTypeOptionsState.options;
     return templateOptions.length > 0 ? templateOptions : [
