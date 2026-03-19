@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Typography, Card, Button, Space, Divider, Table, Alert, Dropdown, Modal, Form, Input, Tag, Skeleton } from "antd";
+import { Typography, Card, Button, Space, Table, Alert, Dropdown, Modal, Form, Input, Tag, Skeleton } from "antd";
 import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, MoreOutlined, FileTextOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
@@ -184,58 +184,77 @@ export function DocumentDashboardPage() {
   };
 
   return (
-    <Card bordered={false} style={{ borderRadius: 16 }}>
-      <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
-        <Title level={2} style={{ margin: 0 }}>{tr("documents.page_title")}</Title>
-      </Space>
-      <Paragraph>
-        {tr("documents.welcome")}
-      </Paragraph>
-
-      <Divider />
-
-      {!canOperateDocuments ? (
-        <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
-      ) : (
-        <Space style={{ width: "100%", justifyContent: "flex-end", marginBottom: 16 }}>
-          <Button icon={<FileTextOutlined />} onClick={() => navigate("/app/documents/templates")}>
-            {tr("documents.templates.action")}
-          </Button>
-          <Button
-            type="primary"
-            icon={<UploadOutlined />}
-            disabled={!canUploadDocuments}
-            onClick={() => navigate("/app/documents/upload")}
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Card variant="borderless">
+        <Space align="start" size={16}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              color: "#fff",
+            }}
           >
-            {tr("documents.upload.action")}
-          </Button>
+            <FileTextOutlined />
+          </div>
+          <div>
+            <Title level={3} style={{ margin: 0 }}>
+              {tr("documents.page_title")}
+            </Title>
+            <Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
+              {tr("documents.welcome")}
+            </Paragraph>
+          </div>
         </Space>
-      )}
+      </Card>
 
-      <Title level={4} style={{ marginTop: 0 }}>
-        {tr("documents.list_title")}
-      </Title>
-      {documentsQuery.isLoading && (documentsQuery.data?.items?.length ?? 0) === 0 ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : (
-        <Table<DocumentListItemView>
-          rowKey="id"
-          loading={documentsQuery.isLoading}
-          columns={latestDocumentColumns}
-          dataSource={canReadDocuments ? (documentsQuery.data?.items ?? []) : []}
-          pagination={{
-            current: documentsQuery.data?.page ?? paging.page,
-            pageSize: documentsQuery.data?.pageSize ?? paging.pageSize,
-            total: documentsQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 25, 50, 100],
-            onChange: (page, pageSize) => setPaging({ page, pageSize }),
-          }}
-          scroll={{ x: "max-content" }}
-          locale={{ emptyText: !canReadDocuments ? tr("documents.read_only_title") : documentsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
-          style={{ marginBottom: 24 }}
-        />
-      )}
+      <Card variant="borderless">
+        {!canOperateDocuments ? (
+          <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
+        ) : (
+          <Space style={{ width: "100%", justifyContent: "flex-end", marginBottom: 16 }}>
+            <Button icon={<FileTextOutlined />} onClick={() => navigate("/app/documents/templates")}>
+              {tr("documents.templates.action")}
+            </Button>
+            <Button
+              type="primary"
+              icon={<UploadOutlined />}
+              disabled={!canUploadDocuments}
+              onClick={() => navigate("/app/documents/upload")}
+            >
+              {tr("documents.upload.action")}
+            </Button>
+          </Space>
+        )}
+
+        <Title level={4} style={{ marginTop: 0 }}>
+          {tr("documents.list_title")}
+        </Title>
+        {documentsQuery.isLoading && (documentsQuery.data?.items?.length ?? 0) === 0 ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : (
+          <Table<DocumentListItemView>
+            rowKey="id"
+            loading={documentsQuery.isLoading}
+            columns={latestDocumentColumns}
+            dataSource={canReadDocuments ? (documentsQuery.data?.items ?? []) : []}
+            pagination={{
+              current: documentsQuery.data?.page ?? paging.page,
+              pageSize: documentsQuery.data?.pageSize ?? paging.pageSize,
+              total: documentsQuery.data?.total ?? 0,
+              showSizeChanger: true,
+              pageSizeOptions: [10, 25, 50, 100],
+              onChange: (page, pageSize) => setPaging({ page, pageSize }),
+            }}
+            scroll={{ x: "max-content" }}
+            locale={{ emptyText: !canReadDocuments ? tr("documents.read_only_title") : documentsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
+            style={{ marginBottom: 24 }}
+          />
+        )}
+      </Card>
 
       <Modal
         open={editModalOpen}
@@ -284,6 +303,6 @@ export function DocumentDashboardPage() {
           <Alert type="warning" message={tr("documents.actions.delete.confirm_description")} showIcon />
         </Form>
       </Modal>
-    </Card>
+    </Space>
   );
 }
