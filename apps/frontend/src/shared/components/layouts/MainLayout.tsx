@@ -51,7 +51,6 @@ export function MainLayout() {
     permissions.masterData.read,
     permissions.projects.read,
     permissions.activityLogs.read,
-    permissions.auditLogs.read,
   );
   const hasDocumentAccess = permissionState.hasAnyPermission(
     permissions.documents.read,
@@ -225,10 +224,6 @@ export function MainLayout() {
               key: '/app/admin/activity-logs',
               label: tr('common.activity_logs'),
             },
-            {
-              key: '/app/admin/audit-logs',
-              label: tr('common.audit_logs'),
-            },
           ],
         }]
       : []),
@@ -317,7 +312,6 @@ export function MainLayout() {
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
     if (path.includes('admin/registrations')) return tr('common.registration_approvals');
     if (path.includes('admin/activity-logs')) return tr('common.activity_logs');
-    if (path.includes('admin/audit-logs')) return tr('common.audit_logs');
     return tr('common.dashboard');
   };
 
@@ -633,10 +627,6 @@ function getOpenKeys(path: string) {
     return ['/app/admin', '/app/admin/master'];
   }
 
-  if (path.startsWith('/app/admin/audit-logs')) {
-    return ['/app/admin'];
-  }
-
   if (
     path.startsWith('/app/admin/users') ||
     path.startsWith('/app/admin/invitations') ||
@@ -727,10 +717,6 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/admin/activity-logs')) {
     return '/app/admin/activity-logs';
-  }
-
-  if (path.startsWith('/app/admin/audit-logs')) {
-    return '/app/admin/audit-logs';
   }
 
   if (path.startsWith('/app/admin/master')) {

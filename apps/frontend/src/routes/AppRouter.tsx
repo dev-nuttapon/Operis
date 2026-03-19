@@ -83,9 +83,6 @@ const ProjectWorkspacePrototypePage = lazy(() =>
 const ActivityLogsPage = lazy(() =>
   import("../modules/activities/pages/ActivityLogsPage").then((module) => ({ default: module.ActivityLogsPage }))
 );
-const AuditLogsPage = lazy(() =>
-  import("../modules/audits/pages/AuditLogsPage").then((module) => ({ default: module.AuditLogsPage }))
-);
 const WorkflowDefinitionsPage = lazy(() =>
   import("../modules/workflows/pages/WorkflowDefinitionsPage").then((module) => ({ default: module.WorkflowDefinitionsPage }))
 );
@@ -145,7 +142,6 @@ export function AppRouter() {
                 <Route path="admin/invitations" element={<AdminUsersPage />} />
                 <Route path="admin/registrations" element={<AdminUsersPage />} />
                 <Route path="admin/activity-logs" element={<ActivityLogsPage />} />
-                <Route path="admin/audit-logs" element={<AuditLogsPage />} />
               </Route>
             </Route>
 
