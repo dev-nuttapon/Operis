@@ -346,6 +346,9 @@ export function ProjectEditPage() {
               justify="flex-start"
               style={{ width: "100%" }}
             >
+              <Button onClick={() => navigate(backTarget)} block={isMobile}>
+                {t("projects.edit_page_cancel")}
+              </Button>
               <Button
                 type="primary"
                 icon={<SaveOutlined />}

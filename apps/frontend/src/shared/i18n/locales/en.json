@@ -570,6 +570,7 @@
     "edit_page_description": "Update the project details before continuing work.",
     "edit_page_back": "Back",
     "edit_page_submit": "Save",
+    "edit_page_cancel": "Cancel",
     "load_more_users": "Load 5 more",
     "load_more_projects": "Load 10 more projects",
     "load_more_roles": "Load 10 more roles",

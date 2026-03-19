@@ -570,6 +570,7 @@
     "edit_page_description": "ปรับข้อมูลโครงการก่อนดำเนินงานต่อ",
     "edit_page_back": "กลับ",
     "edit_page_submit": "บันทึก",
+    "edit_page_cancel": "ยกเลิก",
     "load_more_users": "โหลดเพิ่มอีก 5 รายชื่อ",
     "load_more_projects": "โหลดเพิ่มอีก 10 โครงการ",
     "load_more_roles": "โหลดเพิ่มอีก 10 ตำแหน่ง",
