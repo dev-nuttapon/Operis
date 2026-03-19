@@ -40,7 +40,6 @@ export function ProjectEditPage() {
   const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
   const canEditMembers = canManageProjectMembers || canManageProjects;
   const canLoadProjectRoles = canEditMembers;
-  const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
 
   const defaultBackTarget = "/app/projects";
   const backTarget = locationState?.from ?? defaultBackTarget;

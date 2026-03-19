@@ -136,6 +136,7 @@ export function useProjectAdmin(input: {
       queryClient.invalidateQueries({ queryKey: projectsQueryKey }),
       queryClient.invalidateQueries({ queryKey: projectDetailQueryKey }),
       queryClient.invalidateQueries({ queryKey: projectRolesQueryKey }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "project-role-detail"] }),
       queryClient.invalidateQueries({ queryKey: projectAssignmentsQueryKey }),
     ]);
   };
