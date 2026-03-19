@@ -232,7 +232,6 @@ public sealed class ProjectCommands(
         var entity = new ProjectRoleEntity
         {
             Id = Guid.NewGuid(),
-            ProjectId = null,
             Name = name,
             Code = code,
             Description = NormalizeOptional(request.Description, 500),
@@ -288,7 +287,6 @@ public sealed class ProjectCommands(
         }
 
         var before = ToProjectRoleState(entity);
-        entity.ProjectId = null;
         entity.Name = name;
         entity.Code = code;
         entity.Description = NormalizeOptional(request.Description, 500);
@@ -676,7 +674,6 @@ public sealed class ProjectCommands(
     private static object ToProjectRoleState(ProjectRoleEntity entity) => new
     {
         entity.Id,
-        entity.ProjectId,
         entity.Name,
         entity.Code,
         entity.Description,
@@ -710,8 +707,8 @@ public sealed class ProjectCommands(
     private static ProjectRoleResponse ToProjectRoleResponse(ProjectRoleEntity entity, string? projectName) =>
         new(
             entity.Id,
-            entity.ProjectId,
-            projectName,
+            null,
+            null,
             entity.Name,
             entity.Code,
         entity.Description,

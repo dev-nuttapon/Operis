@@ -277,7 +277,6 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.ToTable("project_roles");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
-            entity.Property(x => x.ProjectId).HasColumnName("project_id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
             entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(80);
             entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
@@ -289,7 +288,6 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
             entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
-            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
             entity.HasIndex(x => x.Code).IsUnique().HasFilter("\"deleted_at\" IS NULL AND \"code\" IS NOT NULL");
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });

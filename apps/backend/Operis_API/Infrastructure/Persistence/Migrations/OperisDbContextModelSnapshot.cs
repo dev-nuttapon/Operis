@@ -955,10 +955,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("name");
 
-                    b.Property<Guid?>("ProjectId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_id");
-
                     b.Property<string>("Responsibilities")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)")
@@ -2018,14 +2014,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasOne("Operis_API.Modules.Users.Infrastructure.UserEntity", null)
                         .WithMany()
                         .HasForeignKey("SponsorUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ProjectRoleEntity", b =>
-                {
-                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 

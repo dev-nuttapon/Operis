@@ -205,14 +205,11 @@ public sealed class ProjectQueries(
 
         source = ApplyProjectRoleSorting(source, query.SortBy, query.SortOrder);
         var total = await source.CountAsync(cancellationToken);
-        var items = await (
-            from role in source
-            join project in dbContext.Projects.AsNoTracking() on role.ProjectId equals project.Id into projectJoin
-            from project in projectJoin.DefaultIfEmpty()
-            select new ProjectRoleResponse(
+        var items = await source
+            .Select(role => new ProjectRoleResponse(
                 role.Id,
-                role.ProjectId,
-                project != null ? project.Name : null,
+                null,
+                null,
                 role.Name,
                 role.Code,
                 role.Description,
@@ -241,26 +238,24 @@ public sealed class ProjectQueries(
 
     public async Task<ProjectRoleResponse?> GetProjectRoleAsync(Guid projectRoleId, CancellationToken cancellationToken)
     {
-        var result = await (
-                from role in dbContext.ProjectRoles.AsNoTracking()
-                where role.Id == projectRoleId && role.DeletedAt == null
-                join project in dbContext.Projects.AsNoTracking() on role.ProjectId equals project.Id into projectJoin
-                from project in projectJoin.DefaultIfEmpty()
-                select new ProjectRoleResponse(
-                    role.Id,
-                    role.ProjectId,
-                    project != null ? project.Name : null,
-                    role.Name,
-                    role.Code,
-                    role.Description,
-                    role.Responsibilities,
-                    role.AuthorityScope,
-                    role.DisplayOrder,
-                    role.CreatedAt,
-                    role.UpdatedAt,
-                    role.DeletedReason,
-                    role.DeletedBy,
-                    role.DeletedAt))
+        var result = await dbContext.ProjectRoles
+            .AsNoTracking()
+            .Where(role => role.Id == projectRoleId && role.DeletedAt == null)
+            .Select(role => new ProjectRoleResponse(
+                role.Id,
+                null,
+                null,
+                role.Name,
+                role.Code,
+                role.Description,
+                role.Responsibilities,
+                role.AuthorityScope,
+                role.DisplayOrder,
+                role.CreatedAt,
+                role.UpdatedAt,
+                role.DeletedReason,
+                role.DeletedBy,
+                role.DeletedAt))
             .SingleOrDefaultAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -508,23 +503,30 @@ public sealed class ProjectQueries(
                 x.EndAt))
             .ToList();
 
-        var roleRows = await dbContext.ProjectRoles
-            .AsNoTracking()
-            .Where(x => x.ProjectId == projectId && x.DeletedAt == null)
-            .OrderBy(x => x.DisplayOrder)
-            .ThenBy(x => x.Name)
-            .Select(x => new
-            {
-                x.Id,
-                x.Name,
-                x.Code,
-                x.Description,
-                x.Responsibilities,
-                x.AuthorityScope
-            })
-            .ToListAsync(cancellationToken);
+        var roleIds = assignments
+            .Select(x => x.ProjectRoleId)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToArray();
 
-        var roleIds = roleRows.Select(x => x.Id).ToArray();
+        var roleRows = roleIds.Length == 0
+            ? []
+            : await dbContext.ProjectRoles
+                .AsNoTracking()
+                .Where(x => roleIds.Contains(x.Id) && x.DeletedAt == null)
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Name,
+                    x.Code,
+                    x.Description,
+                    x.Responsibilities,
+                    x.AuthorityScope
+                })
+                .ToListAsync(cancellationToken);
+
         var roleMemberCounts = roleIds.Length == 0
             ? new Dictionary<Guid, int>()
             : await dbContext.UserProjectAssignments
@@ -629,9 +631,16 @@ public sealed class ProjectQueries(
         }
 
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var assignedRoleIds = await dbContext.UserProjectAssignments
+            .AsNoTracking()
+            .Where(assignment => assignment.ProjectId == query.ProjectId)
+            .Select(assignment => assignment.ProjectRoleId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
         var source = dbContext.ProjectRoles
             .AsNoTracking()
-            .Where(x => x.ProjectId == query.ProjectId && x.DeletedAt == null);
+            .Where(x => assignedRoleIds.Contains(x.Id) && x.DeletedAt == null);
         var total = await source.CountAsync(cancellationToken);
 
         var roles = await source
@@ -761,21 +770,30 @@ public sealed class ProjectQueries(
                 assignment.EndAt))
             .ToListAsync(cancellationToken);
 
-        var roleRows = await dbContext.ProjectRoles
+        var assignedRoleIds = await dbContext.UserProjectAssignments
             .AsNoTracking()
-            .Where(x => x.ProjectId == projectId && x.DeletedAt == null)
-            .OrderBy(x => x.DisplayOrder)
-            .ThenBy(x => x.Name)
-            .Select(x => new
-            {
-                x.Id,
-                x.Name,
-                x.Code,
-                x.Description,
-                x.Responsibilities,
-                x.AuthorityScope
-            })
+            .Where(assignment => assignment.ProjectId == projectId)
+            .Select(assignment => assignment.ProjectRoleId)
+            .Distinct()
             .ToListAsync(cancellationToken);
+
+        var roleRows = assignedRoleIds.Count == 0
+            ? []
+            : await dbContext.ProjectRoles
+                .AsNoTracking()
+                .Where(x => assignedRoleIds.Contains(x.Id) && x.DeletedAt == null)
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Name,
+                    x.Code,
+                    x.Description,
+                    x.Responsibilities,
+                    x.AuthorityScope
+                })
+                .ToListAsync(cancellationToken);
 
         var roleIds = roleRows.Select(x => x.Id).ToArray();
         var roleMemberCounts = roleIds.Length == 0
@@ -937,17 +955,6 @@ public sealed class ProjectQueries(
             return null;
         }
 
-        var roleFacts = await dbContext.ProjectRoles
-            .AsNoTracking()
-            .Where(x => x.ProjectId == projectId && x.DeletedAt == null)
-            .Select(x => new
-            {
-                x.Id,
-                x.Name,
-                x.Code
-            })
-            .ToListAsync(cancellationToken);
-
         var assignments = await dbContext.UserProjectAssignments
             .AsNoTracking()
             .Where(x => x.ProjectId == projectId && x.Status == "Active")
@@ -959,6 +966,24 @@ public sealed class ProjectQueries(
                 x.IsPrimary
             })
             .ToListAsync(cancellationToken);
+
+        var assignedRoleIds = assignments
+            .Select(x => x.ProjectRoleId)
+            .Distinct()
+            .ToList();
+
+        var roleFacts = assignedRoleIds.Count == 0
+            ? []
+            : await dbContext.ProjectRoles
+                .AsNoTracking()
+                .Where(x => assignedRoleIds.Contains(x.Id) && x.DeletedAt == null)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Name,
+                    x.Code
+                })
+                .ToListAsync(cancellationToken);
 
         var template = await dbContext.ProjectTypeTemplates
             .AsNoTracking()
@@ -1001,8 +1026,8 @@ public sealed class ProjectQueries(
         var hasPlannedPeriod = project.PlannedStartAt.HasValue && project.PlannedEndAt.HasValue && project.PlannedStartAt <= project.PlannedEndAt;
         var hasActiveMembers = assignments.Count > 0;
         var hasReportingRoot = assignments.Any(x => string.IsNullOrWhiteSpace(x.ReportsToUserId));
-        var assignedRoleIds = assignments.Select(x => x.ProjectRoleId).ToHashSet();
-        var assignedRoles = roleFacts.Where(x => assignedRoleIds.Contains(x.Id)).ToList();
+        var assignedRoleIdSet = assignedRoleIds.ToHashSet();
+        var assignedRoles = roleFacts.Where(x => assignedRoleIdSet.Contains(x.Id)).ToList();
         var hasPrimaryAssignment = assignments.Any(x => x.IsPrimary);
 
         List<ProjectComplianceCheckResponse> checks =
@@ -1228,6 +1253,7 @@ public sealed class ProjectQueries(
                    assignment.UserId,
                    user != null ? user.Id : null,
                    user != null ? user.Id : null,
+                   assignment.ProjectRoleId,
                    role != null ? role.Name : string.Empty,
                    assignment.Status,
                    assignment.ChangeReason,
@@ -1245,6 +1271,7 @@ sealed record ProjectEvidenceAssignmentRow(
     string UserId,
     string? UserEmail,
     string? UserDisplayName,
+    Guid ProjectRoleId,
     string ProjectRoleName,
     string Status,
     string? ChangeReason,
