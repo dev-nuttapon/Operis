@@ -54,13 +54,6 @@ public sealed record CreateProjectRoleRequest(
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
-    bool CanCreateDocuments,
-    bool CanReviewDocuments,
-    bool CanApproveDocuments,
-    bool CanReleaseDocuments,
-    bool IsPeerReviewRole,
-    bool IsReviewRole,
-    bool IsApprovalRole,
     int DisplayOrder);
 public sealed record CreateProjectTypeTemplateRequest(
     string ProjectType,
@@ -103,13 +96,6 @@ public sealed record UpdateProjectRoleRequest(
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
-    bool CanCreateDocuments,
-    bool CanReviewDocuments,
-    bool CanApproveDocuments,
-    bool CanReleaseDocuments,
-    bool IsPeerReviewRole,
-    bool IsReviewRole,
-    bool IsApprovalRole,
     int DisplayOrder);
 public sealed record CreateProjectAssignmentRequest(string UserId, Guid ProjectId, Guid ProjectRoleId, string? ReportsToUserId, bool IsPrimary, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
 public sealed record UpdateProjectAssignmentRequest(string UserId, Guid ProjectId, Guid ProjectRoleId, string? ReportsToUserId, bool IsPrimary, DateTimeOffset? StartAt, DateTimeOffset? EndAt, string Reason);
@@ -264,13 +250,6 @@ public sealed record ProjectRoleResponse(
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
-    bool CanCreateDocuments,
-    bool CanReviewDocuments,
-    bool CanApproveDocuments,
-    bool CanReleaseDocuments,
-    bool IsPeerReviewRole,
-    bool IsReviewRole,
-    bool IsApprovalRole,
     int DisplayOrder,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
@@ -362,13 +341,6 @@ public sealed record ProjectRoleResponsibilityRowResponse(
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
-    bool CanCreateDocuments,
-    bool CanReviewDocuments,
-    bool CanApproveDocuments,
-    bool CanReleaseDocuments,
-    bool IsPeerReviewRole,
-    bool IsReviewRole,
-    bool IsApprovalRole,
     int MemberCount);
 
 public sealed record ProjectAssignmentHistoryRowResponse(

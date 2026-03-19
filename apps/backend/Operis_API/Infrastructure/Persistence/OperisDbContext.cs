@@ -283,13 +283,6 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
             entity.Property(x => x.Responsibilities).HasColumnName("responsibilities").HasMaxLength(2000);
             entity.Property(x => x.AuthorityScope).HasColumnName("authority_scope").HasMaxLength(500);
-            entity.Property(x => x.CanCreateDocuments).HasColumnName("can_create_documents");
-            entity.Property(x => x.CanReviewDocuments).HasColumnName("can_review_documents");
-            entity.Property(x => x.CanApproveDocuments).HasColumnName("can_approve_documents");
-            entity.Property(x => x.CanReleaseDocuments).HasColumnName("can_release_documents");
-            entity.Property(x => x.IsPeerReviewRole).HasColumnName("is_peer_review_role");
-            entity.Property(x => x.IsReviewRole).HasColumnName("is_review_role");
-            entity.Property(x => x.IsApprovalRole).HasColumnName("is_approval_role");
             entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");

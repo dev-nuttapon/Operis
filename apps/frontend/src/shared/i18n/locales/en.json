@@ -755,14 +755,6 @@
       "description": "Role description",
       "responsibilities": "Responsibilities",
       "authority_scope": "Authority scope",
-      "document_permissions": "Document permissions",
-      "can_create_documents": "Can create project documents",
-      "can_review_documents": "Can review project documents",
-      "can_approve_documents": "Can approve project documents",
-      "can_release_documents": "Can release project documents",
-      "is_peer_review_role": "Use as peer review role",
-      "is_review_role": "Use as review role",
-      "is_approval_role": "Use as approval role",
       "display_order": "Display order"
     },
     "placeholders": {
@@ -776,16 +768,7 @@
     "columns": {
       "name": "Role Name",
       "code": "Code",
-      "review_role": "Review",
-      "approval_role": "Approval",
-      "document_permissions": "Document Permissions",
       "display_order": "Display Order"
-    },
-    "permissions": {
-      "create": "Create",
-      "review": "Review",
-      "approve": "Approve",
-      "release": "Release"
     },
     "messages": {
       "created": "Created project role {{name}}",

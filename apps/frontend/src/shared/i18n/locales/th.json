@@ -755,14 +755,6 @@
       "description": "คำอธิบายบทบาท",
       "responsibilities": "ความรับผิดชอบ",
       "authority_scope": "ขอบเขตอำนาจ",
-      "document_permissions": "สิทธิ์งานเอกสาร",
-      "can_create_documents": "สร้างเอกสารในโครงการได้",
-      "can_review_documents": "ทบทวนเอกสารในโครงการได้",
-      "can_approve_documents": "อนุมัติเอกสารในโครงการได้",
-      "can_release_documents": "ปล่อยใช้เอกสารในโครงการได้",
-      "is_peer_review_role": "ใช้เป็นบทบาทตรวจร่วม",
-      "is_review_role": "ใช้เป็นบทบาททบทวน",
-      "is_approval_role": "ใช้เป็นบทบาทอนุมัติ",
       "display_order": "ลำดับ"
     },
     "placeholders": {
@@ -776,16 +768,7 @@
     "columns": {
       "name": "ชื่อตำแหน่ง",
       "code": "รหัส",
-      "review_role": "ทบทวน",
-      "approval_role": "อนุมัติ",
-      "document_permissions": "สิทธิ์เอกสาร",
       "display_order": "ลำดับ"
-    },
-    "permissions": {
-      "create": "Create",
-      "review": "Review",
-      "approve": "Approve",
-      "release": "Release"
     },
     "messages": {
       "created": "สร้างตำแหน่งในโครงการ {{name}} แล้ว",

@@ -223,13 +223,6 @@ public sealed class ProjectQueries(
                 role.Description,
                 role.Responsibilities,
                 role.AuthorityScope,
-                role.CanCreateDocuments,
-                role.CanReviewDocuments,
-                role.CanApproveDocuments,
-                role.CanReleaseDocuments,
-                role.IsPeerReviewRole,
-                role.IsReviewRole,
-                role.IsApprovalRole,
                 role.DisplayOrder,
                 role.CreatedAt,
                 role.UpdatedAt,
@@ -267,13 +260,6 @@ public sealed class ProjectQueries(
                     role.Description,
                     role.Responsibilities,
                     role.AuthorityScope,
-                    role.CanCreateDocuments,
-                    role.CanReviewDocuments,
-                    role.CanApproveDocuments,
-                    role.CanReleaseDocuments,
-                    role.IsPeerReviewRole,
-                    role.IsReviewRole,
-                    role.IsApprovalRole,
                     role.DisplayOrder,
                     role.CreatedAt,
                     role.UpdatedAt,
@@ -539,13 +525,7 @@ public sealed class ProjectQueries(
                 x.Code,
                 x.Description,
                 x.Responsibilities,
-                x.AuthorityScope,
-                x.CanCreateDocuments,
-                x.CanReviewDocuments,
-                x.CanApproveDocuments,
-                x.CanReleaseDocuments,
-                x.IsReviewRole,
-                x.IsApprovalRole,
+                x.AuthorityScope
             })
             .ToListAsync(cancellationToken);
 
@@ -567,12 +547,6 @@ public sealed class ProjectQueries(
                 x.Description,
                 x.Responsibilities,
                 x.AuthorityScope,
-                x.CanCreateDocuments,
-                x.CanReviewDocuments,
-                x.CanApproveDocuments,
-                x.CanReleaseDocuments,
-                x.IsReviewRole,
-                x.IsApprovalRole,
                 roleMemberCounts.TryGetValue(x.Id, out var count) ? count : 0))
             .ToList();
 
@@ -677,13 +651,7 @@ public sealed class ProjectQueries(
                 x.Code,
                 x.Description,
                 x.Responsibilities,
-                x.AuthorityScope,
-                x.CanCreateDocuments,
-                x.CanReviewDocuments,
-                x.CanApproveDocuments,
-                x.CanReleaseDocuments,
-                x.IsReviewRole,
-                x.IsApprovalRole,
+                x.AuthorityScope
             })
             .ToListAsync(cancellationToken);
 
@@ -705,12 +673,6 @@ public sealed class ProjectQueries(
                 x.Description,
                 x.Responsibilities,
                 x.AuthorityScope,
-                x.CanCreateDocuments,
-                x.CanReviewDocuments,
-                x.CanApproveDocuments,
-                x.CanReleaseDocuments,
-                x.IsReviewRole,
-                x.IsApprovalRole,
                 memberCounts.TryGetValue(x.Id, out var count) ? count : 0))
             .ToList();
 
@@ -816,13 +778,7 @@ public sealed class ProjectQueries(
                 x.Code,
                 x.Description,
                 x.Responsibilities,
-                x.AuthorityScope,
-                x.CanCreateDocuments,
-                x.CanReviewDocuments,
-                x.CanApproveDocuments,
-                x.CanReleaseDocuments,
-                x.IsReviewRole,
-                x.IsApprovalRole,
+                x.AuthorityScope
             })
             .ToListAsync(cancellationToken);
 
@@ -844,12 +800,6 @@ public sealed class ProjectQueries(
                 x.Description,
                 x.Responsibilities,
                 x.AuthorityScope,
-                x.CanCreateDocuments,
-                x.CanReviewDocuments,
-                x.CanApproveDocuments,
-                x.CanReleaseDocuments,
-                x.IsReviewRole,
-                x.IsApprovalRole,
                 roleMemberCounts.TryGetValue(x.Id, out var count) ? count : 0))
             .ToList();
 
@@ -886,7 +836,7 @@ public sealed class ProjectQueries(
         }
 
         var builder = new StringBuilder();
-        builder.AppendLine("Section,Member,Email,Role,Reports To,Primary,Status,Reason,Start At,End At,Created At,Updated At,Role Code,Description,Responsibilities,Authority Scope,Can Create,Can Review,Can Approve,Can Release,Is Review Role,Is Approval Role,Member Count");
+        builder.AppendLine("Section,Member,Email,Role,Reports To,Primary,Status,Reason,Start At,End At,Created At,Updated At,Role Code,Description,Responsibilities,Authority Scope,Member Count");
 
         foreach (var row in teamRegister)
         {
@@ -901,13 +851,6 @@ public sealed class ProjectQueries(
                 Csv(null),
                 Csv(row.StartAt.ToString("O")),
                 Csv(row.EndAt?.ToString("O")),
-                Csv(null),
-                Csv(null),
-                Csv(null),
-                Csv(null),
-                Csv(null),
-                Csv(null),
-                Csv(null),
                 Csv(null),
                 Csv(null),
                 Csv(null),
@@ -935,12 +878,6 @@ public sealed class ProjectQueries(
                 Csv(row.Description),
                 Csv(row.Responsibilities),
                 Csv(row.AuthorityScope),
-                Csv(row.CanCreateDocuments ? "Yes" : "No"),
-                Csv(row.CanReviewDocuments ? "Yes" : "No"),
-                Csv(row.CanApproveDocuments ? "Yes" : "No"),
-                Csv(row.CanReleaseDocuments ? "Yes" : "No"),
-                Csv(row.IsReviewRole ? "Yes" : "No"),
-                Csv(row.IsApprovalRole ? "Yes" : "No"),
                 Csv(row.MemberCount.ToString())));
         }
 
@@ -959,12 +896,6 @@ public sealed class ProjectQueries(
                 Csv(row.EndAt?.ToString("O")),
                 Csv(row.CreatedAt.ToString("O")),
                 Csv(row.UpdatedAt?.ToString("O")),
-                Csv(null),
-                Csv(null),
-                Csv(null),
-                Csv(null),
-                Csv(null),
-                Csv(null),
                 Csv(null),
                 Csv(null),
                 Csv(null),
@@ -1018,13 +949,7 @@ public sealed class ProjectQueries(
             {
                 x.Id,
                 x.Name,
-                x.Code,
-                x.CanCreateDocuments,
-                x.CanReviewDocuments,
-                x.CanApproveDocuments,
-                x.CanReleaseDocuments,
-                x.IsReviewRole,
-                x.IsApprovalRole
+                x.Code
             })
             .ToListAsync(cancellationToken);
 
@@ -1050,11 +975,7 @@ public sealed class ProjectQueries(
                 x.RequirePlannedPeriod,
                 x.RequireActiveTeam,
                 x.RequirePrimaryAssignment,
-                x.RequireReportingRoot,
-                x.RequireDocumentCreator,
-                x.RequireReviewer,
-                x.RequireApprover,
-                x.RequireReleaseRole
+                x.RequireReportingRoot
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -1082,19 +1003,11 @@ public sealed class ProjectQueries(
         var requireActiveTeam = template?.RequireActiveTeam ?? true;
         var requirePrimaryAssignment = template?.RequirePrimaryAssignment ?? true;
         var requireReportingRoot = template?.RequireReportingRoot ?? true;
-        var requireDocumentCreator = template?.RequireDocumentCreator ?? true;
-        var requireReviewer = template?.RequireReviewer ?? true;
-        var requireApprover = template?.RequireApprover ?? true;
-        var requireReleaseRole = template?.RequireReleaseRole ?? false;
         var hasPlannedPeriod = project.PlannedStartAt.HasValue && project.PlannedEndAt.HasValue && project.PlannedStartAt <= project.PlannedEndAt;
         var hasActiveMembers = assignments.Count > 0;
         var hasReportingRoot = assignments.Any(x => string.IsNullOrWhiteSpace(x.ReportsToUserId));
         var assignedRoleIds = assignments.Select(x => x.ProjectRoleId).ToHashSet();
         var assignedRoles = roleFacts.Where(x => assignedRoleIds.Contains(x.Id)).ToList();
-        var hasDocumentCreator = assignedRoles.Any(x => x.CanCreateDocuments);
-        var hasReviewer = assignedRoles.Any(x => x.CanReviewDocuments || x.IsReviewRole);
-        var hasApprover = assignedRoles.Any(x => x.CanApproveDocuments || x.IsApprovalRole);
-        var hasReleaseRole = assignedRoles.Any(x => x.CanReleaseDocuments);
         var hasPrimaryAssignment = assignments.Any(x => x.IsPrimary);
 
         List<ProjectComplianceCheckResponse> checks =
@@ -1152,35 +1065,35 @@ public sealed class ProjectQueries(
             BuildComplianceCheck(
                 code: "document_creator_role",
                 title: "Document creator role assigned",
-                description: "An active role should be able to create project documents.",
-                severity: requireDocumentCreator ? "error" : "info",
-                isPassing: !requireDocumentCreator || hasDocumentCreator,
-                passedDetail: "Document creation capability covered.",
-                failedDetail: requireDocumentCreator ? "Assign a role with document creation permission to an active member." : "Document creator role not required."),
+                description: "Document roles are defined in workflow configuration.",
+                severity: "info",
+                isPassing: true,
+                passedDetail: "Workflow configuration will define document roles.",
+                failedDetail: null),
             BuildComplianceCheck(
                 code: "review_role_assigned",
                 title: "Review role assigned",
-                description: "An active role should be able to review project deliverables.",
-                severity: requireReviewer ? "warning" : "info",
-                isPassing: !requireReviewer || hasReviewer,
-                passedDetail: "Review capability covered.",
-                failedDetail: requireReviewer ? "Assign a review-capable role to an active member." : "Review role not required."),
+                description: "Document roles are defined in workflow configuration.",
+                severity: "info",
+                isPassing: true,
+                passedDetail: "Workflow configuration will define review roles.",
+                failedDetail: null),
             BuildComplianceCheck(
                 code: "approval_role_assigned",
                 title: "Approval role assigned",
-                description: "An active role should be able to approve project deliverables.",
-                severity: requireApprover ? "warning" : "info",
-                isPassing: !requireApprover || hasApprover,
-                passedDetail: "Approval capability covered.",
-                failedDetail: requireApprover ? "Assign an approval-capable role to an active member." : "Approval role not required."),
+                description: "Document roles are defined in workflow configuration.",
+                severity: "info",
+                isPassing: true,
+                passedDetail: "Workflow configuration will define approval roles.",
+                failedDetail: null),
             BuildComplianceCheck(
                 code: "release_role_assigned",
                 title: "Release role assigned",
-                description: "An active role should be able to release controlled documents when required.",
-                severity: requireReleaseRole ? "warning" : "info",
-                isPassing: !requireReleaseRole || hasReleaseRole,
-                passedDetail: "Release capability covered.",
-                failedDetail: requireReleaseRole ? "Assign a release-capable role for controlled releases." : "Release role not required.")
+                description: "Document roles are defined in workflow configuration.",
+                severity: "info",
+                isPassing: true,
+                passedDetail: "Workflow configuration will define release roles.",
+                failedDetail: null)
         ];
 
         foreach (var requirement in templateRoleRequirements)

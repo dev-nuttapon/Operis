@@ -193,10 +193,6 @@ export function MainLayout() {
                       label: tr('common.master_project_roles'),
                     },
                     {
-                      key: '/app/admin/project-members',
-                      label: tr('common.project_members'),
-                    },
-                    {
                       key: '/app/admin/project-org-chart',
                       label: tr('common.project_org_chart'),
                     },
@@ -285,7 +281,6 @@ export function MainLayout() {
     if (path.includes('admin/master/departments')) return tr('common.master_departments');
     if (path.includes('admin/master/positions')) return tr('common.master_positions');
     if (path.includes('admin/project-roles')) return tr('common.master_project_roles');
-    if (path.includes('admin/project-members')) return tr('common.project_members');
     if (path.includes('admin/project-org-chart')) return tr('common.project_org_chart');
     if (path.includes('/projects/') && path.includes('/workspace')) return tr('common.project_workspace');
     if (path.includes('admin/master')) return tr('common.master_data_management');
@@ -589,7 +584,6 @@ function getOpenKeys(path: string) {
 
   if (
     path.startsWith('/app/admin/project-roles') ||
-    path.startsWith('/app/admin/project-members') ||
     path.startsWith('/app/admin/project-org-chart')
   ) {
     return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
@@ -665,10 +659,6 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/admin/project-roles')) {
     return '/app/admin/project-roles';
-  }
-
-  if (path.startsWith('/app/admin/project-members')) {
-    return '/app/admin/project-members';
   }
 
   if (path.startsWith('/app/admin/project-org-chart')) {

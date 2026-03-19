@@ -79,30 +79,6 @@ export function ProjectRolesPage() {
         render: (value: string | null) => value ?? "-",
       },
       {
-        title: t("project_roles.columns.review_role"),
-        dataIndex: "isReviewRole",
-        render: (value: boolean) => (value ? t("common.actions.yes") : t("common.actions.no")),
-      },
-      {
-        title: t("project_roles.columns.approval_role"),
-        dataIndex: "isApprovalRole",
-        render: (value: boolean) => (value ? t("common.actions.yes") : t("common.actions.no")),
-      },
-      {
-        title: t("project_roles.columns.document_permissions"),
-        key: "documentPermissions",
-        render: (_, record) => {
-          const labels = [
-            record.canCreateDocuments ? t("project_roles.permissions.create") : null,
-            record.canReviewDocuments ? t("project_roles.permissions.review") : null,
-            record.canApproveDocuments ? t("project_roles.permissions.approve") : null,
-            record.canReleaseDocuments ? t("project_roles.permissions.release") : null,
-          ].filter(Boolean) as string[];
-
-          return labels.length > 0 ? labels.join(", ") : "-";
-        },
-      },
-      {
         title: t("project_roles.columns.display_order"),
         dataIndex: "displayOrder",
         sorter: true,

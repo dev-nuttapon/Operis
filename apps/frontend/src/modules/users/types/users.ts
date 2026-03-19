@@ -341,13 +341,6 @@ export interface ProjectRole {
   description: string | null;
   responsibilities: string | null;
   authorityScope: string | null;
-  canCreateDocuments: boolean;
-  canReviewDocuments: boolean;
-  canApproveDocuments: boolean;
-  canReleaseDocuments: boolean;
-  isPeerReviewRole: boolean;
-  isReviewRole: boolean;
-  isApprovalRole: boolean;
   displayOrder: number;
   createdAt: string;
   updatedAt: string | null;
@@ -412,13 +405,6 @@ export interface ProjectRoleResponsibilityRow {
   description: string | null;
   responsibilities: string | null;
   authorityScope: string | null;
-  canCreateDocuments: boolean;
-  canReviewDocuments: boolean;
-  canApproveDocuments: boolean;
-  canReleaseDocuments: boolean;
-  isPeerReviewRole: boolean;
-  isReviewRole: boolean;
-  isApprovalRole: boolean;
   memberCount: number;
 }
 
@@ -484,13 +470,6 @@ export interface CreateProjectRoleInput {
   description?: string;
   responsibilities?: string;
   authorityScope?: string;
-  canCreateDocuments: boolean;
-  canReviewDocuments: boolean;
-  canApproveDocuments: boolean;
-  canReleaseDocuments: boolean;
-  isPeerReviewRole: boolean;
-  isReviewRole: boolean;
-  isApprovalRole: boolean;
   displayOrder: number;
 }
 

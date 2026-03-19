@@ -835,22 +835,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("authority_scope");
 
-                    b.Property<bool>("CanApproveDocuments")
-                        .HasColumnType("boolean")
-                        .HasColumnName("can_approve_documents");
-
-                    b.Property<bool>("CanCreateDocuments")
-                        .HasColumnType("boolean")
-                        .HasColumnName("can_create_documents");
-
-                    b.Property<bool>("CanReleaseDocuments")
-                        .HasColumnType("boolean")
-                        .HasColumnName("can_release_documents");
-
-                    b.Property<bool>("CanReviewDocuments")
-                        .HasColumnType("boolean")
-                        .HasColumnName("can_review_documents");
-
                     b.Property<string>("Code")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)")
@@ -882,18 +866,6 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer")
                         .HasColumnName("display_order");
-
-                    b.Property<bool>("IsPeerReviewRole")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_peer_review_role");
-
-                    b.Property<bool>("IsApprovalRole")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_approval_role");
-
-                    b.Property<bool>("IsReviewRole")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_review_role");
 
                     b.Property<string>("Name")
                         .IsRequired()

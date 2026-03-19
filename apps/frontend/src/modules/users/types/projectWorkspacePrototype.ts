@@ -34,9 +34,6 @@ export interface ProjectWorkspacePrototypeRole {
   code: string;
   responsibility: string;
   authority: string;
-  review: boolean;
-  approval: boolean;
-  release: boolean;
   memberCount: number;
 }
 

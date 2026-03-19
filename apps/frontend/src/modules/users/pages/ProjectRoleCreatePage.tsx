@@ -56,13 +56,6 @@ export function ProjectRoleCreatePage() {
       description: values.description,
       responsibilities: values.responsibilities,
       authorityScope: values.authorityScope,
-      canCreateDocuments: values.canCreateDocuments,
-      canReviewDocuments: values.canReviewDocuments,
-      canApproveDocuments: values.canApproveDocuments,
-      canReleaseDocuments: values.canReleaseDocuments,
-      isPeerReviewRole: values.isPeerReviewRole,
-      isReviewRole: values.isReviewRole,
-      isApprovalRole: values.isApprovalRole,
       displayOrder: values.displayOrder,
     };
 

@@ -244,13 +244,6 @@ public sealed class ProjectCommands(
             Description = NormalizeOptional(request.Description, 500),
             Responsibilities = NormalizeOptional(request.Responsibilities, 2000),
             AuthorityScope = NormalizeOptional(request.AuthorityScope, 500),
-            CanCreateDocuments = request.CanCreateDocuments,
-            CanReviewDocuments = request.CanReviewDocuments,
-            CanApproveDocuments = request.CanApproveDocuments,
-            CanReleaseDocuments = request.CanReleaseDocuments,
-            IsPeerReviewRole = request.IsPeerReviewRole,
-            IsReviewRole = request.IsReviewRole,
-            IsApprovalRole = request.IsApprovalRole,
             DisplayOrder = request.DisplayOrder,
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -313,13 +306,6 @@ public sealed class ProjectCommands(
         entity.Description = NormalizeOptional(request.Description, 500);
         entity.Responsibilities = NormalizeOptional(request.Responsibilities, 2000);
         entity.AuthorityScope = NormalizeOptional(request.AuthorityScope, 500);
-        entity.CanCreateDocuments = request.CanCreateDocuments;
-        entity.CanReviewDocuments = request.CanReviewDocuments;
-        entity.CanApproveDocuments = request.CanApproveDocuments;
-        entity.CanReleaseDocuments = request.CanReleaseDocuments;
-        entity.IsPeerReviewRole = request.IsPeerReviewRole;
-        entity.IsReviewRole = request.IsReviewRole;
-        entity.IsApprovalRole = request.IsApprovalRole;
         entity.DisplayOrder = request.DisplayOrder;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project_role", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Before: before, After: ToProjectRoleState(entity)));
@@ -708,13 +694,6 @@ public sealed class ProjectCommands(
         entity.Description,
         entity.Responsibilities,
         entity.AuthorityScope,
-        entity.CanCreateDocuments,
-        entity.CanReviewDocuments,
-        entity.CanApproveDocuments,
-        entity.CanReleaseDocuments,
-        entity.IsPeerReviewRole,
-        entity.IsReviewRole,
-        entity.IsApprovalRole,
         entity.DisplayOrder,
         entity.CreatedAt,
         entity.UpdatedAt,
@@ -750,13 +729,6 @@ public sealed class ProjectCommands(
         entity.Description,
         entity.Responsibilities,
         entity.AuthorityScope,
-        entity.CanCreateDocuments,
-        entity.CanReviewDocuments,
-        entity.CanApproveDocuments,
-        entity.CanReleaseDocuments,
-        entity.IsPeerReviewRole,
-        entity.IsReviewRole,
-        entity.IsApprovalRole,
         entity.DisplayOrder,
             entity.CreatedAt,
             entity.UpdatedAt,

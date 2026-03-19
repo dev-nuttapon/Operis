@@ -393,12 +393,6 @@ export function updateProjectRole(input: UpdateProjectRoleInput) {
       description: input.description,
       responsibilities: input.responsibilities,
       authorityScope: input.authorityScope,
-      canCreateDocuments: input.canCreateDocuments,
-      canReviewDocuments: input.canReviewDocuments,
-      canApproveDocuments: input.canApproveDocuments,
-      canReleaseDocuments: input.canReleaseDocuments,
-      isReviewRole: input.isReviewRole,
-      isApprovalRole: input.isApprovalRole,
       displayOrder: input.displayOrder,
     },
   });

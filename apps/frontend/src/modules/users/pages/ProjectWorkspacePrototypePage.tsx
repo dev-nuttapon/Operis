@@ -324,9 +324,6 @@ export function ProjectWorkspacePrototypePage() {
         code: row.code ?? "-",
         responsibility: row.responsibilities ?? row.description ?? "-",
         authority: row.authorityScope ?? "-",
-        review: row.canReviewDocuments,
-        approval: row.canApproveDocuments,
-        release: row.canReleaseDocuments,
         memberCount: row.memberCount,
       })),
     [projectEvidenceRoleResponsibilitiesQuery.data?.items],
@@ -343,21 +340,7 @@ export function ProjectWorkspacePrototypePage() {
       })),
     [projectEvidenceAssignmentHistoryQuery.data?.items, i18n.language],
   );
-  const workflowSteps = useMemo(() => {
-    const steps: { roleCode: string; action: string; output: string }[] = [];
-    for (const role of roleTableRows) {
-      if (role.review) {
-        steps.push({ roleCode: role.code, action: t("project_workspace.roles.permissions.review"), output: role.name });
-      }
-      if (role.approval) {
-        steps.push({ roleCode: role.code, action: t("project_workspace.roles.permissions.approval"), output: role.name });
-      }
-      if (role.release) {
-        steps.push({ roleCode: role.code, action: t("project_workspace.roles.permissions.release"), output: role.name });
-      }
-    }
-    return steps;
-  }, [roleTableRows, t]);
+  const workflowSteps = useMemo(() => [], []);
   const workflowPreviewSteps = useMemo(
     () =>
       workflowSteps.map((step, index) => ({
@@ -430,17 +413,6 @@ export function ProjectWorkspacePrototypePage() {
   const roleColumns: ColumnsType<ProjectWorkspacePrototypeRole> = [
     { title: t("project_workspace.roles.columns.role"), dataIndex: "name" },
     { title: t("project_workspace.roles.columns.code"), dataIndex: "code" },
-    {
-      title: t("project_workspace.roles.columns.permissions"),
-      key: "permissions",
-      render: (_, record) => (
-        <Space wrap size={[4, 4]}>
-          {record.review ? <Tag color="processing">{t("project_workspace.roles.permissions.review")}</Tag> : null}
-          {record.approval ? <Tag color="success">{t("project_workspace.roles.permissions.approval")}</Tag> : null}
-          {record.release ? <Tag color="purple">{t("project_workspace.roles.permissions.release")}</Tag> : null}
-        </Space>
-      ),
-    },
     { title: t("project_workspace.roles.columns.members"), dataIndex: "memberCount" },
     {
       title: t("project_workspace.roles.columns.actions"),
@@ -1233,11 +1205,6 @@ export function ProjectWorkspacePrototypePage() {
                 {selectedRole.memberCount}
               </Descriptions.Item>
             </Descriptions>
-            <Space wrap>
-              {selectedRole.review ? <Tag color="processing">{t("project_workspace.roles.permissions.review")}</Tag> : null}
-              {selectedRole.approval ? <Tag color="success">{t("project_workspace.roles.permissions.approval")}</Tag> : null}
-              {selectedRole.release ? <Tag color="purple">{t("project_workspace.roles.permissions.release")}</Tag> : null}
-            </Space>
             <Flex gap={8} wrap>
               <Button type="link" onClick={() => {
                 setSelectedRole(null);
