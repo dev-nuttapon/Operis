@@ -36,6 +36,8 @@ public sealed class DocumentsModule : IModule
 
         group.MapGet("/", ListDocumentsAsync)
             .WithName("Documents_List");
+        group.MapPost("/lookup", LookupDocumentsAsync)
+            .WithName("Documents_Lookup");
         group.MapPost("/", CreateDocumentAsync)
             .WithName("Documents_Upload");
         group.MapGet("/{documentId:guid}/versions", ListDocumentVersionsAsync)
@@ -86,6 +88,28 @@ public sealed class DocumentsModule : IModule
         }
 
         var items = await queries.ListDocumentsAsync(new DocumentListQuery(search, page, pageSize), cancellationToken);
+        return Results.Ok(items);
+    }
+
+    private static async Task<IResult> LookupDocumentsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentQueries queries,
+        DocumentLookupRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var documentIds = request.DocumentIds ?? Array.Empty<Guid>();
+        if (documentIds.Count == 0)
+        {
+            return Results.Ok(Array.Empty<DocumentListItem>());
+        }
+
+        var items = await queries.GetDocumentsByIdsAsync(documentIds, cancellationToken);
         return Results.Ok(items);
     }
 

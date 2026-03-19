@@ -1,6 +1,6 @@
 import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid, Divider, Table, Transfer, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,8 @@ import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { downloadDocument, useDocumentTemplate, useDocumentTemplates, useDocumentsByIds } from "../../documents";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type LocationState = {
   from?: string;
@@ -47,6 +49,9 @@ export function ProjectEditPage() {
   const [editForm] = Form.useForm<ProjectFormValues>();
   const [memberTargetKeys, setMemberTargetKeys] = useState<string[]>([]);
   const [memberRoleByUserId, setMemberRoleByUserId] = useState<Record<string, string>>({});
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const debouncedTemplateSearch = useDebouncedValue(templateSearch, 300);
 
   const { projectDetailQuery, updateProjectMutation, projectAssignmentsQuery, createProjectAssignmentMutation, updateProjectAssignmentMutation, deleteProjectAssignmentMutation } = useProjectAdmin({
     projectsEnabled: false,
@@ -59,6 +64,19 @@ export function ProjectEditPage() {
   const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
   const projectRoleOptionsState = useProjectRoleOptions({ enabled: canLoadProjectRoles, projectId });
+  const templateListState = useDocumentTemplates(
+    { page: 1, pageSize: 25, search: debouncedTemplateSearch || undefined },
+    canManageProjects,
+  );
+  const templateDetailState = useDocumentTemplate(selectedTemplateId, Boolean(selectedTemplateId));
+  const templateDocumentIds =
+    (templateDetailState.data?.documentIds
+      ?? (templateDetailState.data as { DocumentIds?: string[] } | null)?.DocumentIds
+      ?? []) as string[];
+  const templateDocumentsState = useDocumentsByIds(
+    templateDocumentIds,
+    Boolean(templateDocumentIds.length),
+  );
   const projectTypeOptions = useMemo(() => {
     const templateOptions = projectTypeOptionsState.options;
     return templateOptions.length > 0 ? templateOptions : [
@@ -242,6 +260,57 @@ export function ProjectEditPage() {
     [canEditMembers, memberRoleByUserId, memberTargetKeys, projectRoleOptionsState, t],
   );
 
+  const projectDocumentColumns = useMemo<ColumnsType<{ id: string; name: string; version: string; revision: number | null; publishedVersion: string; publishedRevision: number | null; canDownload: boolean }>>(
+    () => [
+      { title: t("projects.documents_section.columns.name"), dataIndex: "name" },
+      { title: t("projects.documents_section.columns.version"), dataIndex: "version" },
+      { title: t("projects.documents_section.columns.revision"), dataIndex: "revision" },
+      { title: t("projects.documents_section.columns.published_version"), dataIndex: "publishedVersion" },
+      { title: t("projects.documents_section.columns.published_revision"), dataIndex: "publishedRevision" },
+      {
+        title: t("projects.documents_section.columns.actions"),
+        dataIndex: "actions",
+        align: "center",
+        render: (_value, record) => (
+          <Button
+            size="small"
+            icon={<DownloadOutlined />}
+            disabled={!record.canDownload}
+            onClick={() => void downloadDocument(record.id)}
+          >
+            {t("projects.documents_section.actions.download")}
+          </Button>
+        ),
+      },
+    ],
+    [t],
+  );
+
+  const templateOptions = useMemo(
+    () => (templateListState.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })),
+    [templateListState.data],
+  );
+
+  const projectDocuments = useMemo(() => {
+    const documents = templateDocumentsState.data ?? [];
+    if (!templateDocumentIds.length) {
+      return [];
+    }
+    const byId = new Map(documents.map((doc) => [doc.id, doc] as const));
+    return templateDocumentIds
+      .map((id) => byId.get(id))
+      .filter((doc): doc is NonNullable<typeof doc> => Boolean(doc))
+      .map((doc) => ({
+        id: doc.id,
+        name: doc.documentName,
+        version: doc.versionCode ?? "-",
+        revision: doc.revision ?? null,
+        publishedVersion: doc.publishedVersionCode ?? "-",
+        publishedRevision: doc.publishedRevision ?? null,
+        canDownload: Boolean(doc.publishedVersionCode),
+      }));
+  }, [templateDocumentIds, templateDocumentsState.data]);
+
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Space style={{ width: "100%", justifyContent: "flex-start" }}>
@@ -338,6 +407,42 @@ export function ProjectEditPage() {
               locale={{ emptyText: t("projects.members.empty") }}
               scroll={{ x: "max-content" }}
             />
+            <Divider style={{ margin: "16px 0" }} />
+            <Typography.Title level={5} style={{ marginBottom: 12 }}>
+              {t("projects.documents_section.title")}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+              {t("projects.documents_section.description")}
+            </Typography.Paragraph>
+            <Form layout="vertical">
+              <Form.Item label={t("projects.documents_section.template_label")}>
+                <Select
+                  allowClear
+                  showSearch
+                  filterOption={false}
+                  placeholder={t("projects.documents_section.template_placeholder")}
+                  options={templateOptions}
+                  value={selectedTemplateId}
+                  loading={templateListState.isLoading}
+                  onSearch={setTemplateSearch}
+                  onChange={(value) => setSelectedTemplateId(value ?? null)}
+                  notFoundContent={<Typography.Text type="secondary">{t("projects.documents_section.no_templates")}</Typography.Text>}
+                />
+              </Form.Item>
+            </Form>
+            <Table
+              rowKey="id"
+              pagination={false}
+              dataSource={projectDocuments}
+              columns={projectDocumentColumns}
+              loading={templateDocumentsState.isLoading}
+              locale={{
+                emptyText: selectedTemplateId
+                  ? t("projects.documents_section.empty")
+                  : t("projects.documents_section.empty_select_template"),
+              }}
+              scroll={{ x: "max-content" }}
+            />
             <Flex
               gap={12}
               wrap={!isMobile}
@@ -346,9 +451,6 @@ export function ProjectEditPage() {
               justify="flex-start"
               style={{ width: "100%" }}
             >
-              <Button onClick={() => navigate(backTarget)} block={isMobile}>
-                {t("projects.edit_page_cancel")}
-              </Button>
               <Button
                 type="primary"
                 icon={<SaveOutlined />}
@@ -357,6 +459,9 @@ export function ProjectEditPage() {
                 block={isMobile}
               >
                 {t("projects.edit_page_submit")}
+              </Button>
+              <Button onClick={() => navigate(backTarget)} block={isMobile}>
+                {t("projects.edit_page_cancel")}
               </Button>
             </Flex>
           </>

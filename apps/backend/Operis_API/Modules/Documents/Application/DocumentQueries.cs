@@ -69,6 +69,59 @@ public sealed class DocumentQueries(
         return new PagedResult<DocumentListItem>(items, total, page, pageSize);
     }
 
+    public async Task<IReadOnlyList<DocumentListItem>> GetDocumentsByIdsAsync(IReadOnlyList<Guid> documentIds, CancellationToken cancellationToken)
+    {
+        if (documentIds.Count == 0)
+        {
+            return Array.Empty<DocumentListItem>();
+        }
+
+        var baseQuery = dbContext.Documents
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && documentIds.Contains(x.Id));
+
+        var items = await baseQuery
+            .OrderByDescending(x => x.UploadedAt)
+            .GroupJoin(
+                dbContext.DocumentVersions.AsNoTracking().Where(x => !x.IsDeleted),
+                document => document.Id,
+                version => version.DocumentId,
+                (document, versions) => new
+                {
+                    document,
+                    latest = versions
+                        .OrderByDescending(version => version.Revision)
+                        .ThenByDescending(version => version.UploadedAt)
+                        .FirstOrDefault(),
+                    published = versions
+                        .Where(version => document.PublishedVersionId != null && version.Id == document.PublishedVersionId)
+                        .FirstOrDefault()
+                })
+            .Select(x => new DocumentListItem(
+                x.document.Id,
+                x.document.DocumentName,
+                x.latest != null ? x.latest.FileName : string.Empty,
+                x.latest != null ? x.latest.ContentType : "application/octet-stream",
+                x.latest != null ? x.latest.SizeBytes : 0,
+                x.latest != null ? x.latest.UploadedByUserId : x.document.UploadedByUserId,
+                x.latest != null ? x.latest.UploadedAt : x.document.UploadedAt,
+                x.latest != null ? x.latest.VersionCode : null,
+                x.latest != null ? x.latest.Revision : null,
+                x.published != null ? x.published.VersionCode : null,
+                x.published != null ? x.published.Revision : null))
+            .ToListAsync(cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "documents",
+            Action: "lookup",
+            EntityType: "document",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { count = items.Count, documentIds }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return items;
+    }
+
     public async Task<PagedResult<DocumentVersionListItem>> ListDocumentVersionsAsync(DocumentVersionListQuery query, CancellationToken cancellationToken)
     {
         var publishedVersionId = await dbContext.Documents

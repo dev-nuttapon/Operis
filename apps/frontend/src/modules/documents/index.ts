@@ -1,6 +1,7 @@
 export * from "./api/documentsApi";
 export * from "./hooks/useDocuments";
 export * from "./hooks/useDocumentDashboard";
+export * from "./hooks/useDocumentTemplates";
 export * from "./pages/DocumentDashboardPage";
 export * from "./pages/DocumentHistoryPage";
 export * from "./pages/DocumentTemplateHistoryPage";

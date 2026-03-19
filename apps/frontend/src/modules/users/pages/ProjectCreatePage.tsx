@@ -1,6 +1,6 @@
 import { App, Button, Card, Form, Space, Typography, Alert, Flex, Grid, Divider, Table, Transfer, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, CloseOutlined, FolderOpenOutlined, SaveOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CloseOutlined, FolderOpenOutlined, SaveOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,8 @@ import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { downloadDocument, useDocumentTemplate, useDocumentTemplates, useDocumentsByIds } from "../../documents";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type LocationState = {
   from?: string;
@@ -40,6 +42,9 @@ export function ProjectCreatePage() {
   const [createForm] = Form.useForm<ProjectFormValues>();
   const [memberTargetKeys, setMemberTargetKeys] = useState<string[]>([]);
   const [memberRoleByUserId, setMemberRoleByUserId] = useState<Record<string, string>>({});
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const debouncedTemplateSearch = useDebouncedValue(templateSearch, 300);
 
   const { createProjectMutation, createProjectAssignmentMutation } = useProjectAdmin({
     projectsEnabled: false,
@@ -51,6 +56,19 @@ export function ProjectCreatePage() {
 
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
   const projectRoleOptionsState = useProjectRoleOptions({ enabled: canEditMembers, allowWithoutProjectId: true });
+  const templateListState = useDocumentTemplates(
+    { page: 1, pageSize: 25, search: debouncedTemplateSearch || undefined },
+    canManageProjects,
+  );
+  const templateDetailState = useDocumentTemplate(selectedTemplateId, Boolean(selectedTemplateId));
+  const templateDocumentIds =
+    (templateDetailState.data?.documentIds
+      ?? (templateDetailState.data as { DocumentIds?: string[] } | null)?.DocumentIds
+      ?? []) as string[];
+  const templateDocumentsState = useDocumentsByIds(
+    templateDocumentIds,
+    Boolean(templateDocumentIds.length),
+  );
   // Page must remain usable even if dropdown option APIs fail.
   // Selects should degrade gracefully to empty options instead of crashing the route.
   const projectTypeOptions = useMemo(() => {
@@ -153,13 +171,56 @@ export function ProjectCreatePage() {
     [canEditMembers, memberRoleByUserId, projectRoleOptionsState.options, t],
   );
 
-  const projectDocumentColumns = useMemo<ColumnsType<{ id: string; name: string; source: string }>>(
+  const projectDocumentColumns = useMemo<ColumnsType<{ id: string; name: string; version: string; revision: number | null; publishedVersion: string; publishedRevision: number | null; canDownload: boolean }>>(
     () => [
       { title: t("projects.documents_section.columns.name"), dataIndex: "name" },
-      { title: t("projects.documents_section.columns.source"), dataIndex: "source" },
+      { title: t("projects.documents_section.columns.version"), dataIndex: "version" },
+      { title: t("projects.documents_section.columns.revision"), dataIndex: "revision" },
+      { title: t("projects.documents_section.columns.published_version"), dataIndex: "publishedVersion" },
+      { title: t("projects.documents_section.columns.published_revision"), dataIndex: "publishedRevision" },
+      {
+        title: t("projects.documents_section.columns.actions"),
+        dataIndex: "actions",
+        align: "center",
+        render: (_value, record) => (
+          <Button
+            size="small"
+            icon={<DownloadOutlined />}
+            disabled={!record.canDownload}
+            onClick={() => void downloadDocument(record.id)}
+          >
+            {t("projects.documents_section.actions.download")}
+          </Button>
+        ),
+      },
     ],
     [t],
   );
+
+  const templateOptions = useMemo(
+    () => (templateListState.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })),
+    [templateListState.data],
+  );
+
+  const projectDocuments = useMemo(() => {
+    const documents = templateDocumentsState.data ?? [];
+    if (!templateDocumentIds.length) {
+      return [];
+    }
+    const byId = new Map(documents.map((doc) => [doc.id, doc] as const));
+    return templateDocumentIds
+      .map((id) => byId.get(id))
+      .filter((doc): doc is NonNullable<typeof doc> => Boolean(doc))
+      .map((doc) => ({
+        id: doc.id,
+        name: doc.documentName,
+        version: doc.versionCode ?? "-",
+        revision: doc.revision ?? null,
+        publishedVersion: doc.publishedVersionCode ?? "-",
+        publishedRevision: doc.publishedRevision ?? null,
+        canDownload: Boolean(doc.publishedVersionCode),
+      }));
+  }, [templateDocumentIds, templateDocumentsState.data]);
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -260,12 +321,33 @@ export function ProjectCreatePage() {
             <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
               {t("projects.documents_section.create_hint")}
             </Typography.Paragraph>
+            <Form layout="vertical">
+              <Form.Item label={t("projects.documents_section.template_label")}>
+                <Select
+                  allowClear
+                  showSearch
+                  filterOption={false}
+                  placeholder={t("projects.documents_section.template_placeholder")}
+                  options={templateOptions}
+                  value={selectedTemplateId}
+                  loading={templateListState.isLoading}
+                  onSearch={setTemplateSearch}
+                  onChange={(value) => setSelectedTemplateId(value ?? null)}
+                  notFoundContent={<Typography.Text type="secondary">{t("projects.documents_section.no_templates")}</Typography.Text>}
+                />
+              </Form.Item>
+            </Form>
             <Table
               rowKey="id"
               pagination={false}
-              dataSource={[]}
+              dataSource={projectDocuments}
               columns={projectDocumentColumns}
-              locale={{ emptyText: t("projects.documents_section.empty") }}
+              loading={templateDocumentsState.isLoading}
+              locale={{
+                emptyText: selectedTemplateId
+                  ? t("projects.documents_section.empty")
+                  : t("projects.documents_section.empty_select_template"),
+              }}
               scroll={{ x: "max-content" }}
             />
             <Flex
@@ -277,13 +359,6 @@ export function ProjectCreatePage() {
               style={{ width: "100%" }}
             >
               <Button
-                icon={<CloseOutlined />}
-                onClick={() => navigate(locationState?.from ?? "/app/projects")}
-                block={isMobile}
-              >
-                {t("common.actions.cancel")}
-              </Button>
-              <Button
                 type="primary"
                 icon={<SaveOutlined />}
                 loading={createProjectMutation.isPending}
@@ -291,6 +366,13 @@ export function ProjectCreatePage() {
                 block={isMobile}
               >
                 {t("projects.create_page_submit")}
+              </Button>
+              <Button
+                icon={<CloseOutlined />}
+                onClick={() => navigate(locationState?.from ?? "/app/projects")}
+                block={isMobile}
+              >
+                {t("common.actions.cancel")}
               </Button>
             </Flex>
           </>

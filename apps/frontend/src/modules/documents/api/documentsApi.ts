@@ -25,6 +25,10 @@ export type DocumentListInput = {
   search?: string;
 };
 
+export interface DocumentLookupRequest {
+  documentIds: string[];
+}
+
 export function listDocuments(input?: DocumentListInput, signal?: AbortSignal) {
   const params = new URLSearchParams();
   if (input?.page) params.set("page", String(input.page));
@@ -32,6 +36,14 @@ export function listDocuments(input?: DocumentListInput, signal?: AbortSignal) {
   if (input?.search) params.set("search", input.search);
   const query = params.toString();
   return apiRequest<PaginatedResult<DocumentListItem>>(`/api/v1/documents${query ? `?${query}` : ""}`, { signal });
+}
+
+export function lookupDocumentsByIds(documentIds: string[], signal?: AbortSignal) {
+  return apiRequest<DocumentListItem[]>("/api/v1/documents/lookup", {
+    method: "POST",
+    body: { documentIds } satisfies DocumentLookupRequest,
+    signal,
+  });
 }
 
 export function createDocument(payload: DocumentCreateRequest, signal?: AbortSignal) {

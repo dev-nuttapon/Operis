@@ -7,6 +7,7 @@ import {
   listDocumentHistory,
   listDocumentVersions,
   listDocuments,
+  lookupDocumentsByIds,
   publishDocumentVersion,
   unpublishDocumentVersion,
   updateDocument,
@@ -21,6 +22,16 @@ export function useDocuments(input?: DocumentListInput, enabled = true) {
     queryFn: ({ signal }) => listDocuments(input, signal),
     staleTime: 15_000,
     enabled,
+  });
+}
+
+export function useDocumentsByIds(documentIds: string[] | null, enabled = true) {
+  return useQuery({
+    queryKey: ["documents", "lookup", documentIds],
+    queryFn: ({ signal }) =>
+      documentIds && documentIds.length > 0 ? lookupDocumentsByIds(documentIds, signal) : Promise.resolve([]),
+    enabled: enabled && Boolean(documentIds && documentIds.length > 0),
+    staleTime: 15_000,
   });
 }
 
