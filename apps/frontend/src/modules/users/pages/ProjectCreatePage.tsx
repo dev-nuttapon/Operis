@@ -1,6 +1,7 @@
-import { App, Button, Card, Form, Space, Typography, Alert, Flex, Grid } from "antd";
-import { ArrowLeftOutlined, CloseOutlined, FolderOpenOutlined, SaveOutlined, TeamOutlined } from "@ant-design/icons";
-import { useMemo } from "react";
+import { App, Button, Card, Form, Space, Typography, Alert, Flex, Grid, Divider, Table, Transfer, Select } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { ArrowLeftOutlined, CloseOutlined, FolderOpenOutlined, SaveOutlined } from "@ant-design/icons";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { permissions } from "../../../shared/authz/permissions";
@@ -9,6 +10,7 @@ import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectTypeOptions } from "../hooks/useProjectTypeOptions";
 import { ProjectForm, normalizeProjectPayload, type ProjectFormValues } from "../components/projects/ProjectForm";
 import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
+import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 
@@ -33,11 +35,13 @@ export function ProjectCreatePage() {
   const locationState = location.state as LocationState | null;
   const permissionState = usePermissions();
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
-  const canManageProjectRoles = permissionState.hasPermission(permissions.projects.manageRoles);
   const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
+  const canEditMembers = canManageProjects || canManageProjectMembers;
   const [createForm] = Form.useForm<ProjectFormValues>();
+  const [memberTargetKeys, setMemberTargetKeys] = useState<string[]>([]);
+  const [memberRoleByUserId, setMemberRoleByUserId] = useState<Record<string, string>>({});
 
-  const { createProjectMutation } = useProjectAdmin({
+  const { createProjectMutation, createProjectAssignmentMutation } = useProjectAdmin({
     projectsEnabled: false,
     projects: { page: 1, pageSize: 10 },
     projectRoles: { page: 1, pageSize: 10 },
@@ -46,6 +50,7 @@ export function ProjectCreatePage() {
   const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
 
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
+  const projectRoleOptionsState = useProjectRoleOptions({ enabled: canEditMembers, allowWithoutProjectId: true });
   // Page must remain usable even if dropdown option APIs fail.
   // Selects should degrade gracefully to empty options instead of crashing the route.
   const projectTypeOptions = useMemo(() => {
@@ -60,8 +65,25 @@ export function ProjectCreatePage() {
 
   const handleSubmit = async (redirectToMembers?: boolean) => {
     const values = await createForm.validateFields();
+    const missingRole = memberTargetKeys.find((userId) => !memberRoleByUserId[userId]);
+    if (missingRole) {
+      notification.error({ message: t("projects.members.validation.role_required") });
+      return;
+    }
     createProjectMutation.mutate(normalizeProjectPayload(values), {
-      onSuccess: (project) => {
+      onSuccess: async (project) => {
+        if (canEditMembers && memberTargetKeys.length > 0) {
+          await Promise.all(
+            memberTargetKeys.map((userId) =>
+              createProjectAssignmentMutation.mutateAsync({
+                userId,
+                projectId: project.id,
+                projectRoleId: memberRoleByUserId[userId],
+                isPrimary: false,
+              }),
+            ),
+          );
+        }
         notification.success({ message: t("projects.messages.created", { name: values.name }) });
         if (redirectToMembers) {
           navigate(`/app/admin/project-members?projectId=${project.id}`, { state: { from: "/app/projects/new" } });
@@ -75,6 +97,58 @@ export function ProjectCreatePage() {
       },
     });
   };
+
+  const memberTransferData = useMemo(
+    () =>
+      userOptionsState.items.map((user) => ({
+        key: user.id,
+        title: toUserLabel(user),
+        description: user.keycloak?.email ?? user.keycloak?.username ?? user.id,
+        meta: user,
+      })),
+    [userOptionsState.items],
+  );
+
+  const selectedMembers = useMemo(() => {
+    if (memberTargetKeys.length === 0) return [];
+    const userById = new Map(memberTransferData.map((item) => [item.key, item.meta] as const));
+    return memberTargetKeys.map((userId) => {
+      const user = userById.get(userId);
+      return {
+        id: userId,
+        name: user ? toUserLabel(user) : userId,
+        email: user?.keycloak?.email ?? user?.keycloak?.username ?? "-",
+        roleId: memberRoleByUserId[userId] ?? null,
+      };
+    });
+  }, [memberRoleByUserId, memberTargetKeys, memberTransferData]);
+
+  const memberColumns = useMemo<ColumnsType<{ id: string; name: string; email: string; roleId: string | null }>>(
+    () => [
+      { title: t("projects.members.columns.name"), dataIndex: "name" },
+      { title: t("projects.members.columns.email"), dataIndex: "email" },
+      {
+        title: t("projects.members.columns.role"),
+        dataIndex: "roleId",
+        render: (_value, record) => (
+          <Select
+            disabled={!canEditMembers}
+            allowClear
+            placeholder={t("projects.members.placeholders.role")}
+            options={projectRoleOptionsState.options}
+            value={memberRoleByUserId[record.id]}
+            onChange={(value) =>
+              setMemberRoleByUserId((current) => ({
+                ...current,
+                [record.id]: value ?? "",
+              }))
+            }
+          />
+        ),
+      },
+    ],
+    [canEditMembers, memberRoleByUserId, projectRoleOptionsState.options, t],
+  );
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -119,6 +193,55 @@ export function ProjectCreatePage() {
               onProjectTypeLoadMore={projectTypeOptionsState.onLoadMore}
               projectTypeHasMore={projectTypeOptionsState.hasMore}
             />
+            <Divider style={{ margin: "8px 0 16px" }} />
+            <Typography.Title level={5} style={{ marginBottom: 12 }}>
+              {t("projects.members_section.title")}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+              {t("projects.members_section.create_hint")}
+            </Typography.Paragraph>
+            <Transfer
+              dataSource={memberTransferData}
+              titles={[t("projects.members.transfer.available"), t("projects.members.transfer.selected")]}
+              targetKeys={memberTargetKeys}
+              onChange={(nextTargetKeys) => {
+                const nextKeys = nextTargetKeys.map((key) => String(key));
+                setMemberTargetKeys(nextKeys);
+                setMemberRoleByUserId((current) => {
+                  const next = { ...current };
+                  Object.keys(next).forEach((key) => {
+                    if (!nextKeys.includes(key)) {
+                      delete next[key];
+                    }
+                  });
+                  return next;
+                });
+              }}
+              render={(item) => item.title}
+              listStyle={{ width: 260, height: 320 }}
+              showSearch
+              disabled={!canEditMembers}
+              onSearch={(direction, value) => {
+                if (direction === "left") {
+                  userOptionsState.onSearch(value);
+                }
+              }}
+              footer={(props) =>
+                props.direction === "left" && userOptionsState.hasMore ? (
+                  <Button type="link" onClick={() => userOptionsState.onLoadMore?.()}>
+                    {t("projects.load_more_users")}
+                  </Button>
+                ) : null
+              }
+            />
+            <Table
+              rowKey="id"
+              pagination={false}
+              dataSource={selectedMembers}
+              columns={memberColumns}
+              locale={{ emptyText: t("projects.members.empty") }}
+              scroll={{ x: "max-content" }}
+            />
             <Flex
               gap={12}
               wrap={!isMobile}
@@ -146,32 +269,6 @@ export function ProjectCreatePage() {
             </Flex>
           </>
         )}
-      </Card>
-
-      <Card variant="borderless">
-        <Space align="start" size={16}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(14, 165, 233, 0.15)", color: "#38bdf8" }}>
-            <TeamOutlined />
-          </div>
-          <div style={{ flex: 1 }}>
-            <Typography.Title level={4} style={{ margin: 0 }}>
-              {t("projects.members_section.title")}
-            </Typography.Title>
-            <Typography.Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
-              {t("projects.members_section.description")}
-            </Typography.Paragraph>
-          </div>
-          {canManageProjectMembers ? (
-            <Button
-              icon={<TeamOutlined />}
-              loading={createProjectMutation.isPending}
-              onClick={() => void handleSubmit(true)}
-              block={isMobile}
-            >
-              {t("projects.actions.manage_members")}
-            </Button>
-          ) : null}
-        </Space>
       </Card>
     </Space>
   );

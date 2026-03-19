@@ -1,6 +1,7 @@
-import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid } from "antd";
-import { ArrowLeftOutlined, EditOutlined, SaveOutlined, TeamOutlined } from "@ant-design/icons";
-import { useEffect, useMemo } from "react";
+import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid, Divider, Table, Transfer, Select } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { permissions } from "../../../shared/authz/permissions";
@@ -9,6 +10,7 @@ import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectTypeOptions } from "../hooks/useProjectTypeOptions";
 import { ProjectForm, normalizeProjectPayload, toInitialValues, type ProjectFormValues } from "../components/projects/ProjectForm";
 import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
+import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 
@@ -36,22 +38,28 @@ export function ProjectEditPage() {
   const permissionState = usePermissions();
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
   const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
+  const canEditMembers = canManageProjectMembers || canManageProjects;
+  const canLoadProjectRoles = canEditMembers;
+  const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
 
   const defaultBackTarget = "/app/projects";
   const backTarget = locationState?.from ?? defaultBackTarget;
 
   const [editForm] = Form.useForm<ProjectFormValues>();
+  const [memberTargetKeys, setMemberTargetKeys] = useState<string[]>([]);
+  const [memberRoleByUserId, setMemberRoleByUserId] = useState<Record<string, string>>({});
 
-  const { projectDetailQuery, updateProjectMutation } = useProjectAdmin({
+  const { projectDetailQuery, updateProjectMutation, projectAssignmentsQuery, createProjectAssignmentMutation, updateProjectAssignmentMutation, deleteProjectAssignmentMutation } = useProjectAdmin({
     projectsEnabled: false,
     projects: { page: 1, pageSize: 1 },
     projectDetailId: projectId,
     projectRoles: { page: 1, pageSize: 1 },
-    projectAssignments: null,
+    projectAssignments: projectId ? { projectId, page: 1, pageSize: 200 } : null,
   });
 
   const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
+  const projectRoleOptionsState = useProjectRoleOptions({ enabled: canLoadProjectRoles, projectId });
   const projectTypeOptions = useMemo(() => {
     const templateOptions = projectTypeOptionsState.options;
     return templateOptions.length > 0 ? templateOptions : [
@@ -68,23 +76,169 @@ export function ProjectEditPage() {
     }
   }, [editForm, projectDetailQuery.data]);
 
+  useEffect(() => {
+    if (!projectAssignmentsQuery.data) {
+      return;
+    }
+    const assignments = projectAssignmentsQuery.data.items ?? [];
+    setMemberTargetKeys(assignments.map((assignment) => assignment.userId));
+    setMemberRoleByUserId(() => {
+      const next: Record<string, string> = {};
+      assignments.forEach((assignment) => {
+        next[assignment.userId] = assignment.projectRoleId;
+      });
+      return next;
+    });
+  }, [projectAssignmentsQuery.data]);
+
   const handleSubmit = async () => {
     if (!projectId) return;
     const values = await editForm.validateFields();
-    updateProjectMutation.mutate(
-      { id: projectId, ...normalizeProjectPayload(values) },
-      {
-        onSuccess: () => {
-          notification.success({ message: t("projects.messages.updated", { name: values.name }) });
-          navigate(backTarget);
-        },
-        onError: (error) => {
-          const presentation = getApiErrorPresentation(error, t("projects.messages.update_failed"));
-          notification.error({ message: presentation.title, description: presentation.description });
-        },
-      },
-    );
+    const missingRole = memberTargetKeys.find((userId) => !memberRoleByUserId[userId]);
+    if (missingRole) {
+      notification.error({ message: t("projects.members.validation.role_required") });
+      return;
+    }
+    try {
+      await updateProjectMutation.mutateAsync({ id: projectId, ...normalizeProjectPayload(values) });
+
+      if (canEditMembers) {
+        const currentAssignments = projectAssignmentsQuery.data?.items ?? [];
+        const assignmentByUserId = new Map(currentAssignments.map((assignment) => [assignment.userId, assignment]));
+
+        const desiredUserIds = new Set(memberTargetKeys);
+        const createPayloads = memberTargetKeys
+          .filter((userId) => !assignmentByUserId.has(userId))
+          .map((userId) => ({
+            userId,
+            projectId,
+            projectRoleId: memberRoleByUserId[userId],
+            isPrimary: false,
+          }));
+
+        const updatePayloads = memberTargetKeys
+          .filter((userId) => assignmentByUserId.has(userId))
+          .map((userId) => {
+            const assignment = assignmentByUserId.get(userId)!;
+            return {
+              id: assignment.id,
+              userId,
+              projectId,
+              projectRoleId: memberRoleByUserId[userId],
+              reportsToUserId: assignment.reportsToUserId ?? undefined,
+              isPrimary: assignment.isPrimary,
+              startAt: assignment.startAt ?? undefined,
+              endAt: assignment.endAt ?? undefined,
+              reason: t("projects.members.reasons.updated"),
+            };
+          })
+          .filter((payload) => {
+            const assignment = assignmentByUserId.get(payload.userId)!;
+            return assignment.projectRoleId !== payload.projectRoleId;
+          });
+
+        const deletePayloads = currentAssignments.filter((assignment) => !desiredUserIds.has(assignment.userId));
+
+        await Promise.all(createPayloads.map((payload) => createProjectAssignmentMutation.mutateAsync(payload)));
+        await Promise.all(updatePayloads.map((payload) => updateProjectAssignmentMutation.mutateAsync(payload)));
+        await Promise.all(deletePayloads.map((assignment) =>
+          deleteProjectAssignmentMutation.mutateAsync({ id: assignment.id, input: { reason: t("projects.members.reasons.removed") } })
+        ));
+      }
+
+      notification.success({ message: t("projects.messages.updated", { name: values.name }) });
+      navigate(backTarget);
+    } catch (error) {
+      const presentation = getApiErrorPresentation(error, t("projects.messages.update_failed"));
+      notification.error({ message: presentation.title, description: presentation.description });
+    }
   };
+
+  const memberTransferData = useMemo(
+    () =>
+      userOptionsState.items.map((user) => ({
+        key: user.id,
+        title: toUserLabel(user),
+        description: user.keycloak?.email ?? user.keycloak?.username ?? user.id,
+        meta: user,
+      })),
+    [userOptionsState.items],
+  );
+
+  const selectedMembers = useMemo(() => {
+    if (memberTargetKeys.length === 0) return [];
+    const userById = new Map(memberTransferData.map((item) => [item.key, item.meta] as const));
+    return memberTargetKeys.map((userId) => {
+      const user = userById.get(userId);
+      return {
+        id: userId,
+        name: user ? toUserLabel(user) : userId,
+        email: user?.keycloak?.email ?? user?.keycloak?.username ?? "-",
+        roleId: memberRoleByUserId[userId] ?? null,
+      };
+    });
+  }, [memberRoleByUserId, memberTargetKeys, memberTransferData]);
+
+  const memberColumns = useMemo<ColumnsType<{ id: string; name: string; email: string; roleId: string | null }>>(
+    () => [
+      { title: t("projects.members.columns.name"), dataIndex: "name" },
+      { title: t("projects.members.columns.email"), dataIndex: "email" },
+      {
+        title: t("projects.members.columns.role"),
+        dataIndex: "roleId",
+        render: (_value, record) => (
+          <Select
+            allowClear
+            disabled={!canEditMembers}
+            placeholder={t("projects.members.placeholders.role")}
+            options={projectRoleOptionsState.options}
+            value={memberRoleByUserId[record.id]}
+            onChange={(value) =>
+              setMemberRoleByUserId((current) => ({
+                ...current,
+                [record.id]: value ?? "",
+              }))
+            }
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                {projectRoleOptionsState.hasMore ? (
+                  <div style={{ padding: 8 }}>
+                    <Button type="link" onClick={() => projectRoleOptionsState.onLoadMore?.()}>
+                      {t("projects.load_more_roles")}
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            )}
+          />
+        ),
+      },
+      {
+        title: "",
+        key: "remove",
+        align: "center",
+        render: (_, record) => (
+          <Button
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() => {
+              const nextKeys = memberTargetKeys.filter((key) => key !== record.id);
+              setMemberTargetKeys(nextKeys);
+              setMemberRoleByUserId((current) => {
+                const next = { ...current };
+                delete next[record.id];
+                return next;
+              });
+            }}
+          >
+            {t("projects.members.actions.remove")}
+          </Button>
+        ),
+      },
+    ],
+    [canEditMembers, memberRoleByUserId, memberTargetKeys, projectRoleOptionsState, t],
+  );
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -133,6 +287,55 @@ export function ProjectEditPage() {
               onProjectTypeLoadMore={projectTypeOptionsState.onLoadMore}
               projectTypeHasMore={projectTypeOptionsState.hasMore}
             />
+            <Divider style={{ margin: "8px 0 16px" }} />
+            <Typography.Title level={5} style={{ marginBottom: 12 }}>
+              {t("projects.members_section.title")}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+              {t("projects.members_section.description")}
+            </Typography.Paragraph>
+            <Transfer
+              dataSource={memberTransferData}
+              titles={[t("projects.members.transfer.available"), t("projects.members.transfer.selected")]}
+              targetKeys={memberTargetKeys}
+              onChange={(nextTargetKeys) => {
+                const nextKeys = nextTargetKeys.map((key) => String(key));
+                setMemberTargetKeys(nextKeys);
+                setMemberRoleByUserId((current) => {
+                  const next = { ...current };
+                  Object.keys(next).forEach((key) => {
+                    if (!nextKeys.includes(key)) {
+                      delete next[key];
+                    }
+                  });
+                  return next;
+                });
+              }}
+              render={(item) => item.title}
+              listStyle={{ width: 260, height: 320 }}
+              showSearch
+              disabled={!canEditMembers}
+              onSearch={(direction, value) => {
+                if (direction === "left") {
+                  userOptionsState.onSearch(value);
+                }
+              }}
+              footer={(props) =>
+                props.direction === "left" && userOptionsState.hasMore ? (
+                  <Button type="link" onClick={() => userOptionsState.onLoadMore?.()}>
+                    {t("projects.load_more_users")}
+                  </Button>
+                ) : null
+              }
+            />
+            <Table
+              rowKey="id"
+              pagination={false}
+              dataSource={selectedMembers}
+              columns={memberColumns}
+              locale={{ emptyText: t("projects.members.empty") }}
+              scroll={{ x: "max-content" }}
+            />
             <Flex
               gap={12}
               wrap={!isMobile}
@@ -153,33 +356,6 @@ export function ProjectEditPage() {
             </Flex>
           </>
         )}
-      </Card>
-
-      <Card variant="borderless">
-        <Space align="start" size={16}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(14, 165, 233, 0.15)", color: "#38bdf8" }}>
-            <TeamOutlined />
-          </div>
-          <div style={{ flex: 1 }}>
-            <Typography.Title level={4} style={{ margin: 0 }}>
-              {t("projects.members_section.title")}
-            </Typography.Title>
-            <Typography.Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
-              {t("projects.members_section.description")}
-            </Typography.Paragraph>
-          </div>
-          {canManageProjectMembers ? (
-            <Button
-              icon={<TeamOutlined />}
-              onClick={() =>
-                navigate(`/app/admin/project-members?projectId=${projectId}`, { state: { from: `${location.pathname}${location.search}` } })
-              }
-              block={isMobile}
-            >
-              {t("projects.actions.manage_members")}
-            </Button>
-          ) : null}
-        </Space>
       </Card>
     </Space>
   );

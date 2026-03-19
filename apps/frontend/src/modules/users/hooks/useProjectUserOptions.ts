@@ -29,10 +29,9 @@ export function useProjectUserOptions(enabled: boolean, toLabel: (user: User) =>
     staleTime: 60_000,
   });
 
-  const options = useMemo(() => {
-    const items = usersQuery.data?.pages.flatMap((page) => page.items) ?? [];
-    return items.map((item) => ({ label: toLabel(item), value: item.id }));
-  }, [toLabel, usersQuery.data]);
+  const items = useMemo(() => usersQuery.data?.pages.flatMap((page) => page.items) ?? [], [usersQuery.data]);
+
+  const options = useMemo(() => items.map((item) => ({ label: toLabel(item), value: item.id })), [items, toLabel]);
 
   const hasMore = Boolean(usersQuery.hasNextPage);
 
@@ -48,6 +47,7 @@ export function useProjectUserOptions(enabled: boolean, toLabel: (user: User) =>
 
   const result = useMemo(
     () => ({
+      items,
       options,
       search,
       hasMore,
@@ -55,7 +55,7 @@ export function useProjectUserOptions(enabled: boolean, toLabel: (user: User) =>
       onSearch: handleSearch,
       onLoadMore: loadMore,
     }),
-    [hasMore, options, search, usersQuery.isFetching],
+    [hasMore, items, options, search, usersQuery.isFetching],
   );
 
   return result;

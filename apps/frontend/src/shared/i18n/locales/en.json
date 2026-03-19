@@ -581,7 +581,33 @@
     },
     "members_section": {
       "title": "Project members",
-      "description": "Select project members and assign their project roles."
+      "description": "Select project members and assign their project roles.",
+      "create_hint": "Save the project first to assign project members and roles."
+    },
+    "members": {
+      "empty": "No project members selected yet.",
+      "columns": {
+        "name": "Member",
+        "email": "Email",
+        "role": "Project role"
+      },
+      "placeholders": {
+        "role": "Select project role"
+      },
+      "transfer": {
+        "available": "Available members",
+        "selected": "Selected members"
+      },
+      "actions": {
+        "remove": "Remove"
+      },
+      "validation": {
+        "role_required": "Please select a project role for every member."
+      },
+      "reasons": {
+        "updated": "Updated from project form",
+        "removed": "Removed from project form"
+      }
     },
     "edit_modal_title": "Edit Project",
     "edit_modal_title_with_name": "Edit project {{name}}",

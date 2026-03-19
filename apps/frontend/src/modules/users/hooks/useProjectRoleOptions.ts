@@ -7,17 +7,19 @@ export function useProjectRoleOptions({
   enabled,
   projectId,
   pageSize = 10,
+  allowWithoutProjectId = false,
 }: {
   enabled: boolean;
   projectId?: string;
   pageSize?: number;
+  allowWithoutProjectId?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
 
   const rolesQuery = useInfiniteQuery({
     queryKey: ["project-role-options", { projectId, search: debouncedSearch, pageSize }],
-    enabled: enabled && Boolean(projectId),
+    enabled: enabled && (allowWithoutProjectId || Boolean(projectId)),
     queryFn: ({ signal, pageParam }) =>
       listProjectRoles(
         {
