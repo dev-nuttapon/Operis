@@ -84,6 +84,9 @@ function toListQuery(input?: ListQueryInput) {
 export function listUsers(input?: ListUsersInput, signal?: AbortSignal) {
   const params = new URLSearchParams();
   if (input?.status) params.set("status", input.status);
+  if (input?.divisionId) params.set("divisionId", input.divisionId);
+  if (input?.departmentId) params.set("departmentId", input.departmentId);
+  if (input?.jobTitleId) params.set("jobTitleId", input.jobTitleId);
   if (input?.page) params.set("page", String(input.page));
   if (input?.pageSize) params.set("pageSize", String(input.pageSize));
   if (input?.search) params.set("search", input.search);

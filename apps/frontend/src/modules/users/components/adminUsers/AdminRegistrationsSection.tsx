@@ -1,18 +1,14 @@
 import { useEffect, useState } from "react";
-import { Button, Card, DatePicker, Divider, Input, Select, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
+import { Button, Card, Divider, Input, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { permissions } from "../../../../shared/authz/permissions";
 import { usePermissions } from "../../../../shared/authz/usePermissions";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
-import dayjs from "dayjs";
-import type { Dayjs } from "dayjs";
 import {
   formatDate,
-  registrationStatusOptions,
   toApiSortOrder,
-  toRange,
 } from "../../utils/adminUsersPresentation";
 import type { RegistrationRequest, RegistrationRequestStatus } from "../../types/users";
 
@@ -164,25 +160,6 @@ export function AdminRegistrationsSection({
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           onSearch={(value) => setSearchInput(value)}
-        />
-        <Select
-          allowClear
-          style={{ width: isMobile ? "100%" : 180 }}
-          placeholder={t("admin_users.placeholders.select_status")}
-          options={registrationStatusOptions}
-          value={paging.status}
-          onChange={(value) => setPaging((current) => ({ ...current, page: 1, status: value }))}
-        />
-        <DatePicker.RangePicker
-          style={{ width: isMobile ? "100%" : undefined }}
-          value={[
-            paging.from ? dayjs(paging.from) : null,
-            paging.to ? dayjs(paging.to) : null,
-          ]}
-          onChange={(range) => {
-            const normalized = toRange(range as [Dayjs | null, Dayjs | null] | undefined);
-            setPaging((current) => ({ ...current, page: 1, ...normalized }));
-          }}
         />
       </Flex>
       {loading && data.length === 0 ? (

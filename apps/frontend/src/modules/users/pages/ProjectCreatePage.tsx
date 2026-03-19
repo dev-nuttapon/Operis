@@ -83,6 +83,12 @@ export function ProjectCreatePage() {
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(locationState?.from ?? "/app/projects")} block={isMobile}>
+          {t("projects.create_page_back")}
+        </Button>
+      </Space>
+
       <Card variant="borderless">
         <Space align="start" size={16}>
           <div style={{ width: 48, height: 48, borderRadius: 14, display: "grid", placeItems: "center", background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)", color: "#fff" }}>
@@ -123,12 +129,9 @@ export function ProjectCreatePage() {
               wrap={!isMobile}
               vertical={isMobile}
               align={isMobile ? "stretch" : "center"}
-              justify="space-between"
+              justify="flex-start"
               style={{ width: "100%" }}
             >
-              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(locationState?.from ?? "/app/projects")} block={isMobile}>
-                {t("projects.create_page_back")}
-              </Button>
               <Button
                 type="primary"
                 icon={<SaveOutlined />}

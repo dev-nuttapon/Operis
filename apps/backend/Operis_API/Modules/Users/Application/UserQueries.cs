@@ -26,6 +26,25 @@ public sealed class UserQueries(
             baseQuery = baseQuery.Where(x => x.Status == query.Status.Value);
         }
 
+        if (query.JobTitleId.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.JobTitleId == query.JobTitleId.Value);
+        }
+
+        if (query.DepartmentId.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.DepartmentId == query.DepartmentId.Value);
+        }
+
+        if (!query.DepartmentId.HasValue && query.DivisionId.HasValue)
+        {
+            var departmentIds = await dbContext.Departments
+                .Where(x => x.DeletedAt == null && x.DivisionId == query.DivisionId.Value)
+                .Select(x => x.Id)
+                .ToArrayAsync(cancellationToken);
+            baseQuery = baseQuery.Where(x => x.DepartmentId.HasValue && departmentIds.Contains(x.DepartmentId.Value));
+        }
+
         if (query.From.HasValue)
         {
             baseQuery = baseQuery.Where(x => x.CreatedAt >= query.From.Value);
@@ -88,6 +107,9 @@ public sealed class UserQueries(
                 total,
                 includeIdentity = query.IncludeIdentity,
                 query.Status,
+                query.DivisionId,
+                query.DepartmentId,
+                query.JobTitleId,
                 query.From,
                 query.To,
                 page = normalizedPage,

@@ -242,6 +242,9 @@ public sealed class UsersModule : IModule
         IUserQueries queries,
         bool includeIdentity = true,
         UserStatus? status = null,
+        Guid? divisionId = null,
+        Guid? departmentId = null,
+        Guid? jobTitleId = null,
         DateTimeOffset? from = null,
         DateTimeOffset? to = null,
         string? search = null,
@@ -257,7 +260,7 @@ public sealed class UsersModule : IModule
         }
 
         var result = await queries.ListUsersAsync(
-            new UserListQuery(includeIdentity, status, from, to, search, sortBy, sortOrder, page, pageSize),
+            new UserListQuery(includeIdentity, status, divisionId, departmentId, jobTitleId, from, to, search, sortBy, sortOrder, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
     }

@@ -4,6 +4,9 @@ export type InvitationStatus = "Pending" | "Accepted" | "Rejected" | "Expired" |
 
 export interface ListUsersInput {
   status?: UserStatus;
+  divisionId?: string;
+  departmentId?: string;
+  jobTitleId?: string;
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
