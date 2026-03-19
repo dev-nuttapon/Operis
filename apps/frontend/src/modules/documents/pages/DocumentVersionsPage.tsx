@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Divider, Dropdown, Modal, Space, Table, Tag, Typography, Skeleton } from "antd";
+import { Alert, Button, Card, Dropdown, Modal, Space, Table, Tag, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined, BranchesOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
@@ -159,63 +159,91 @@ export function DocumentVersionsPage() {
 
 
   return (
-    <Card bordered={false} style={{ borderRadius: 16 }}>
-      <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
-        <div>
-          <Title level={2} style={{ margin: 0 }}>{tr("documents.versions_page.title")}</Title>
-          <Text type="secondary">{documentLabel}</Text>
-        </div>
-        <Space>
-          {canManageVersions ? (
-            <Button icon={<UploadOutlined />} onClick={() => navigate(`/app/documents/${documentId}/versions/new`, { state: { documentName: documentLabel } })}>
-              {tr("documents.versions_page.actions.add_version")}
-            </Button>
-          ) : null}
-          <Button
-            icon={<FileTextOutlined />}
-            onClick={() =>
-              navigate(`/app/documents/${documentId}/history`, {
-                state: { documentName: documentLabel, from: `/app/documents/${documentId}/versions` },
-              })
-            }
-          >
-            {tr("documents.history_page.open_action")}
-          </Button>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")}>
-            {tr("documents.versions_page.back_action")}
-          </Button>
-        </Space>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")}>
+          {tr("documents.versions_page.back_action")}
+        </Button>
       </Space>
 
-      <Paragraph type="secondary">{tr("documents.versions_page.description")}</Paragraph>
+      <Card variant="borderless">
+        <Space style={{ width: "100%", justifyContent: "space-between" }} align="start">
+          <Space align="start" size={16}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                display: "grid",
+                placeItems: "center",
+                background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+                color: "#fff",
+              }}
+            >
+              <BranchesOutlined />
+            </div>
+            <div>
+              <Title level={3} style={{ margin: 0 }}>
+                {tr("documents.versions_page.title")}
+              </Title>
+              <Text type="secondary">{documentLabel}</Text>
+              <Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
+                {tr("documents.versions_page.description")}
+              </Paragraph>
+            </div>
+          </Space>
+        </Space>
+      </Card>
 
-      <Divider />
+      <Card variant="borderless">
+        <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
+          <Title level={4} style={{ margin: 0 }}>
+            {tr("documents.versions_page.list_title")}
+          </Title>
+          <Space>
+            {canManageVersions ? (
+              <Button icon={<UploadOutlined />} onClick={() => navigate(`/app/documents/${documentId}/versions/new`, { state: { documentName: documentLabel } })}>
+                {tr("documents.versions_page.actions.add_version")}
+              </Button>
+            ) : null}
+            <Button
+              icon={<FileTextOutlined />}
+              onClick={() =>
+                navigate(`/app/documents/${documentId}/history`, {
+                  state: { documentName: documentLabel, from: `/app/documents/${documentId}/versions` },
+                })
+              }
+            >
+              {tr("documents.history_page.open_action")}
+            </Button>
+          </Space>
+        </Space>
+        {!canReadDocuments ? (
+          <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
+        ) : null}
 
-      {!canReadDocuments ? (
-        <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
-      ) : null}
+        {versionsQuery.isLoading && (versionsQuery.data?.items?.length ?? 0) === 0 ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : (
+          <Table<DocumentVersionListItem>
+            rowKey="id"
+            loading={versionsQuery.isLoading}
+            columns={columns}
+            dataSource={versionsQuery.data?.items ?? []}
+            pagination={{
+              current: versionsQuery.data?.page ?? paging.page,
+              pageSize: versionsQuery.data?.pageSize ?? paging.pageSize,
+              total: versionsQuery.data?.total ?? 0,
+              showSizeChanger: true,
+              pageSizeOptions: [10, 25, 50, 100],
+              onChange: (page, pageSize) => setPaging({ page, pageSize }),
+            }}
+            scroll={{ x: "max-content" }}
+            locale={{ emptyText: versionsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
+          />
+        )}
+      </Card>
 
-      {versionsQuery.isLoading && (versionsQuery.data?.items?.length ?? 0) === 0 ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : (
-        <Table<DocumentVersionListItem>
-          rowKey="id"
-          loading={versionsQuery.isLoading}
-          columns={columns}
-          dataSource={versionsQuery.data?.items ?? []}
-          pagination={{
-            current: versionsQuery.data?.page ?? paging.page,
-            pageSize: versionsQuery.data?.pageSize ?? paging.pageSize,
-            total: versionsQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 25, 50, 100],
-            onChange: (page, pageSize) => setPaging({ page, pageSize }),
-          }}
-          scroll={{ x: "max-content" }}
-          locale={{ emptyText: versionsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
-        />
-      )}
-
-    </Card>
+    </Space>
   );
 }

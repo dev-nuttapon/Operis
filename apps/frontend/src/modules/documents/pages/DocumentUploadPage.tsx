@@ -1,5 +1,5 @@
-import { App, Button, Card, Divider, Form, Input, Space, Typography, Alert } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { App, Button, Card, Form, Input, Space, Typography, Alert } from "antd";
+import { ArrowLeftOutlined, UploadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
@@ -51,38 +51,61 @@ export function DocumentUploadPage() {
   };
 
   return (
-    <Card bordered={false} style={{ borderRadius: 16 }}>
-      <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
-        <Title level={2} style={{ margin: 0 }}>{tr("documents.upload_page.title")}</Title>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")}>
           {tr("documents.upload_page.back_action")}
         </Button>
       </Space>
 
-      <Paragraph type="secondary">{tr("documents.upload_page.description")}</Paragraph>
-
-      <Divider />
-
-      {!canUploadDocuments ? (
-        <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
-      ) : null}
-
-      <Form form={form} layout="vertical" disabled={!canUploadDocuments}>
-        <Form.Item
-          name="documentName"
-          label={tr("documents.upload_page.fields.document_name")}
-          rules={[{ required: true, message: tr("documents.upload_page.fields.document_name_required") }]}
-        >
-          <Input placeholder={tr("documents.upload_page.fields.document_name_placeholder")} />
-        </Form.Item>
-
-        <Space>
-          <Button type="primary" onClick={handleSubmit} loading={createDocumentMutation.isPending} disabled={!canUploadDocuments}>
-            {tr("documents.upload_page.actions.submit")}
-          </Button>
-          <Button onClick={() => navigate("/app/documents")}>{tr("documents.upload_page.actions.cancel")}</Button>
+      <Card variant="borderless">
+        <Space align="start" size={16}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              color: "#fff",
+            }}
+          >
+            <UploadOutlined />
+          </div>
+          <div>
+            <Title level={3} style={{ margin: 0 }}>
+              {tr("documents.upload_page.title")}
+            </Title>
+            <Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
+              {tr("documents.upload_page.description")}
+            </Paragraph>
+          </div>
         </Space>
-      </Form>
-    </Card>
+      </Card>
+
+      <Card variant="borderless">
+        {!canUploadDocuments ? (
+          <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
+        ) : null}
+
+        <Form form={form} layout="vertical" disabled={!canUploadDocuments}>
+          <Form.Item
+            name="documentName"
+            label={tr("documents.upload_page.fields.document_name")}
+            rules={[{ required: true, message: tr("documents.upload_page.fields.document_name_required") }]}
+          >
+            <Input placeholder={tr("documents.upload_page.fields.document_name_placeholder")} />
+          </Form.Item>
+
+          <Space>
+            <Button type="primary" onClick={handleSubmit} loading={createDocumentMutation.isPending} disabled={!canUploadDocuments}>
+              {tr("documents.upload_page.actions.submit")}
+            </Button>
+            <Button onClick={() => navigate("/app/documents")}>{tr("documents.upload_page.actions.cancel")}</Button>
+          </Space>
+        </Form>
+      </Card>
+    </Space>
   );
 }

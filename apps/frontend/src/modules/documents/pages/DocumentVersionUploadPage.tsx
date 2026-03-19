@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Alert, App, Button, Card, Divider, Form, Input, Space, Typography } from "antd";
+import { Alert, App, Button, Card, Form, Input, Space, Typography } from "antd";
 import { ArrowLeftOutlined, UploadOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
@@ -101,61 +101,85 @@ export function DocumentVersionUploadPage() {
   };
 
   return (
-    <Card bordered={false} style={{ borderRadius: 16 }}>
-      <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
-        <Title level={2} style={{ margin: 0 }}>{tr("documents.version_page.title")}</Title>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")}>
           {tr("documents.version_page.back_action")}
         </Button>
       </Space>
 
-      <Paragraph type="secondary">{tr("documents.version_page.description")}</Paragraph>
-
-      <Divider />
-
-      {!canManageVersions ? (
-        <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
-      ) : null}
-
-      <Form form={form} layout="vertical" disabled={!canManageVersions}>
-        <Form.Item label={tr("documents.version_page.fields.document_name")}>
-          <Input value={documentLabel} disabled />
-        </Form.Item>
-
-        <Form.Item
-          name="versionCode"
-          label={tr("documents.version_page.fields.version_code")}
-          rules={[{ required: true, message: tr("documents.version_page.fields.version_code_required") }]}
-        >
-          <Input placeholder={tr("documents.version_page.fields.version_code_placeholder")} />
-        </Form.Item>
-
-        <Form.Item label={tr("documents.version_page.fields.file")}>
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={allowedDocumentExtensions.join(",")}
-              style={{ display: "none" }}
-              onChange={handleFileSelected}
-            />
-            <Button icon={<UploadOutlined />} onClick={handlePickFile} disabled={!canManageVersions}>
-              {tr("documents.version_page.actions.pick_file")}
-            </Button>
-            <Text type="secondary">
-              {selectedFile ? selectedFile.name : tr("documents.version_page.fields.file_required")}
-            </Text>
-            <Text type="secondary">{tr("documents.upload.allowed_file_types")}</Text>
-          </Space>
-        </Form.Item>
-
-        <Space>
-          <Button type="primary" onClick={handleSubmit} loading={createVersionMutation.isPending} disabled={!canManageVersions}>
-            {tr("documents.version_page.actions.submit")}
-          </Button>
-          <Button onClick={() => navigate("/app/documents")}>{tr("documents.version_page.actions.cancel")}</Button>
+      <Card variant="borderless">
+        <Space align="start" size={16}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              color: "#fff",
+            }}
+          >
+            <UploadOutlined />
+          </div>
+          <div>
+            <Title level={3} style={{ margin: 0 }}>
+              {tr("documents.version_page.title")}
+            </Title>
+            <Text type="secondary">{documentLabel}</Text>
+            <Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
+              {tr("documents.version_page.description")}
+            </Paragraph>
+          </div>
         </Space>
-      </Form>
-    </Card>
+      </Card>
+
+      <Card variant="borderless">
+        {!canManageVersions ? (
+          <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
+        ) : null}
+
+        <Form form={form} layout="vertical" disabled={!canManageVersions}>
+          <Form.Item label={tr("documents.version_page.fields.document_name")}>
+            <Input value={documentLabel} disabled />
+          </Form.Item>
+
+          <Form.Item
+            name="versionCode"
+            label={tr("documents.version_page.fields.version_code")}
+            rules={[{ required: true, message: tr("documents.version_page.fields.version_code_required") }]}
+          >
+            <Input placeholder={tr("documents.version_page.fields.version_code_placeholder")} />
+          </Form.Item>
+
+          <Form.Item label={tr("documents.version_page.fields.file")}>
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={allowedDocumentExtensions.join(",")}
+                style={{ display: "none" }}
+                onChange={handleFileSelected}
+              />
+              <Button icon={<UploadOutlined />} onClick={handlePickFile} disabled={!canManageVersions}>
+                {tr("documents.version_page.actions.pick_file")}
+              </Button>
+              <Text type="secondary">
+                {selectedFile ? selectedFile.name : tr("documents.version_page.fields.file_required")}
+              </Text>
+              <Text type="secondary">{tr("documents.upload.allowed_file_types")}</Text>
+            </Space>
+          </Form.Item>
+
+          <Space>
+            <Button type="primary" onClick={handleSubmit} loading={createVersionMutation.isPending} disabled={!canManageVersions}>
+              {tr("documents.version_page.actions.submit")}
+            </Button>
+            <Button onClick={() => navigate("/app/documents")}>{tr("documents.version_page.actions.cancel")}</Button>
+          </Space>
+        </Form>
+      </Card>
+    </Space>
   );
 }
