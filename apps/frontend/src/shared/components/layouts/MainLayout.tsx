@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Layout, Menu, Button, Typography, Flex, theme, Avatar, Dropdown } from 'antd';
+import { Layout, Menu, Button, Typography, Flex, theme, Avatar, Dropdown, Grid, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   FileTextOutlined,
+  MenuOutlined,
   BulbOutlined,
   BulbFilled,
   LogoutOutlined,
@@ -29,9 +30,12 @@ const { useToken } = theme;
 
 export function MainLayout() {
   const { token } = useToken();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.lg;
   const language = useI18nLanguage();
   const tr = (key: string) => i18n.t(key, { lng: language });
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   const notificationRef = useRef<HTMLDivElement | null>(null);
@@ -327,84 +331,138 @@ export function MainLayout() {
     setOpenKeys(keys);
   };
 
+  const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
+    navigate(key);
+    if (isMobile) {
+      setMobileMenuOpen(false);
+    }
+  };
+
+  const menuNode = (
+    <Menu
+      theme={isDarkMode ? 'dark' : 'light'}
+      mode="inline"
+      selectedKeys={[getSelectedMenuKey(location.pathname)]}
+      openKeys={openKeys}
+      onOpenChange={handleMenuOpenChange}
+      onClick={handleMenuClick}
+      items={menuItems}
+      style={{ borderRight: 0, marginTop: 16, background: 'transparent' }}
+    />
+  );
+
   return (
     <Layout style={{ minHeight: '100vh', background: token.colorBgBase }}>
-      <Sider 
-        trigger={null} 
-        collapsible 
-        collapsed={collapsed}
-        theme={isDarkMode ? 'dark' : 'light'}
-        width={240}
-        style={{ 
-          background: token.colorBgContainer,
-          borderRight: `1px solid ${token.colorBorderSecondary}`,
-          position: 'relative',
-        }}
-      >
-        <div 
+      {!isMobile ? (
+        <Sider 
+          trigger={null} 
+          collapsible 
+          collapsed={collapsed}
+          theme={isDarkMode ? 'dark' : 'light'}
+          width={240}
           style={{ 
-            height: 64, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            padding: '0 16px',
-            borderBottom: `1px solid ${token.colorBorderSecondary}` 
+            background: token.colorBgContainer,
+            borderRight: `1px solid ${token.colorBorderSecondary}`,
+            position: 'relative',
           }}
         >
-          {!collapsed && (
-            <Typography.Text style={{ fontWeight: 700, fontSize: 16 }}>
-              {tr('common.application_name')}
-            </Typography.Text>
-          )}
-          <Button
-            type="text"
-            icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
+          <div 
             style={{ 
-              fontSize: '12px', 
-              width: 24, 
-              height: 24,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              height: 64, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              padding: '0 16px',
+              borderBottom: `1px solid ${token.colorBorderSecondary}` 
             }}
-          />
-        </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)' }}>
-          <div style={{ flex: 1 }}>
-            <Menu
-              theme={isDarkMode ? 'dark' : 'light'}
-              mode="inline"
-              selectedKeys={[getSelectedMenuKey(location.pathname)]}
-              openKeys={openKeys}
-              onOpenChange={handleMenuOpenChange}
-              onClick={({ key }) => navigate(key)}
-              items={menuItems}
-              style={{ borderRight: 0, marginTop: 16, background: 'transparent' }}
+          >
+            {!collapsed && (
+              <Typography.Text style={{ fontWeight: 700, fontSize: 16 }}>
+                {tr('common.application_name')}
+              </Typography.Text>
+            )}
+            <Button
+              type="text"
+              icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ 
+                fontSize: '12px', 
+                width: 24, 
+                height: 24,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             />
           </div>
           
-          <div style={{ padding: '16px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
-            {!collapsed ? (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {tr('common.version')}
-              </Typography.Text>
-            ) : (
-              <div style={{ textAlign: 'center' }}>
-                <Avatar size="small" style={{ backgroundColor: avatarBg, color: avatarText }}>
-                  {avatarInitial}
-                </Avatar>
-              </div>
-            )}
+          <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)' }}>
+            <div style={{ flex: 1 }}>
+              {menuNode}
+            </div>
+            
+            <div style={{ padding: '16px', borderTop: `1px solid ${token.colorBorderSecondary}` }}>
+              {!collapsed ? (
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {tr('common.version')}
+                </Typography.Text>
+              ) : (
+                <div style={{ textAlign: 'center' }}>
+                  <Avatar size="small" style={{ backgroundColor: avatarBg, color: avatarText }}>
+                    {avatarInitial}
+                  </Avatar>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </Sider>
+        </Sider>
+      ) : (
+        <Drawer
+          placement="left"
+          closable={false}
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          width={280}
+          styles={{
+            body: { padding: 0, background: token.colorBgContainer },
+            header: { display: 'none' },
+          }}
+        >
+          <div 
+            style={{ 
+              height: 64, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              padding: '0 16px',
+              borderBottom: `1px solid ${token.colorBorderSecondary}` 
+            }}
+          >
+            <Typography.Text style={{ fontWeight: 700, fontSize: 16 }}>
+              {tr('common.application_name')}
+            </Typography.Text>
+            <Button
+              type="text"
+              icon={<LeftOutlined />}
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ 
+                fontSize: '12px', 
+                width: 24, 
+                height: 24,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            />
+          </div>
+          {menuNode}
+        </Drawer>
+      )}
       
       <Layout style={{ background: 'transparent' }}>
         <Header 
           style={{ 
-            padding: '0 32px 0 24px', 
+            padding: isMobile ? '0 16px' : '0 32px 0 24px', 
             background: token.colorBgContainer,
             display: 'flex',
             alignItems: 'center',
@@ -413,14 +471,24 @@ export function MainLayout() {
             height: 64,
           }}
         >
-          <div>
-            <Typography.Text style={{ margin: 0, fontSize: 24, fontWeight: 700, display: 'block', lineHeight: '32px' }}>
-              {getPageTitle(location.pathname)}
-            </Typography.Text>
-            <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: -4 }}>
-              {getPageTitle(location.pathname)}
-            </Typography.Text>
-          </div>
+          <Flex align="center" gap={12}>
+            {isMobile ? (
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileMenuOpen(true)}
+                style={{ width: 40, height: 40 }}
+              />
+            ) : null}
+            <div>
+              <Typography.Text style={{ margin: 0, fontSize: 24, fontWeight: 700, display: 'block', lineHeight: '32px' }}>
+                {getPageTitle(location.pathname)}
+              </Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: -4 }}>
+                {getPageTitle(location.pathname)}
+              </Typography.Text>
+            </div>
+          </Flex>
 
           <Flex align="center" gap={40}>
             <div ref={notificationRef} style={{ position: 'relative' }}>
@@ -530,7 +598,7 @@ export function MainLayout() {
         
         <Content
           style={{
-            padding: '24px',
+            padding: isMobile ? '16px' : '24px',
             minHeight: 280,
             background: 'transparent'
           }}
