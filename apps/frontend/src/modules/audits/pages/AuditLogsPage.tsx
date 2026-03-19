@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, App, Card, Divider, Space, Table, Tag, Typography, Skeleton, theme } from "antd";
+import { Alert, App, Card, Divider, Flex, Space, Table, Tag, Typography, Skeleton, theme } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { SafetyCertificateOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
@@ -122,7 +122,7 @@ export function AuditLogsPage() {
 
   return (
     <Card bordered={false} style={{ borderRadius: 16 }}>
-      <Space align="start" size={16} style={{ marginBottom: 12 }}>
+      <Flex gap={16} align="flex-start" wrap="wrap" style={{ marginBottom: 12 }}>
         <div
           style={{
             width: 48,
@@ -144,7 +144,7 @@ export function AuditLogsPage() {
             {t("audit_logs.description")}
           </Paragraph>
         </div>
-      </Space>
+      </Flex>
 
       <Divider />
 

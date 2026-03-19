@@ -1,4 +1,4 @@
-import { Button, Form, Input } from "antd";
+import { Button, Form, Grid, Input } from "antd";
 import { useTranslation } from "react-i18next";
 import type { CreateWorkflowDefinitionInput } from "../types/workflows";
 
@@ -10,6 +10,8 @@ interface WorkflowDefinitionCreateFormProps {
 
 export function WorkflowDefinitionCreateForm({ canManage, isSubmitting, onSubmit }: WorkflowDefinitionCreateFormProps) {
   const { t } = useTranslation();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [form] = Form.useForm<CreateWorkflowDefinitionInput>();
 
   return (
@@ -31,7 +33,7 @@ export function WorkflowDefinitionCreateForm({ canManage, isSubmitting, onSubmit
       >
         <Input placeholder={t("workflow_definitions.placeholders.name")} />
       </Form.Item>
-      <Button htmlType="submit" type="primary" loading={isSubmitting} disabled={!canManage}>
+      <Button htmlType="submit" type="primary" loading={isSubmitting} disabled={!canManage} block={isMobile}>
         {t("workflow_definitions.actions.create_draft")}
       </Button>
     </Form>
