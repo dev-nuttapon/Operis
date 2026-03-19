@@ -49,7 +49,7 @@ export function ProjectMemberEditPage() {
     projectAssignments: null,
   });
 
-  const projectRoleOptionsState = useProjectRoleOptions({ enabled: canManageProjectMembers, projectId: assignment?.projectId });
+  const projectRoleOptionsState = useProjectRoleOptions({ enabled: canManageProjectMembers });
   const userOptionsState = useProjectUserOptions(canManageProjectMembers, toUserLabel);
 
   const projectRoleOptions = useMemo(() => {

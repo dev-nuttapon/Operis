@@ -55,7 +55,7 @@ export function ProjectMemberCreatePage() {
   });
 
   const projectOptionsState = useProjectOptions({ enabled: canReadProjects });
-  const projectRoleOptionsState = useProjectRoleOptions({ enabled: canManageProjectMembers, projectId });
+  const projectRoleOptionsState = useProjectRoleOptions({ enabled: canManageProjectMembers });
   const userOptionsState = useProjectUserOptions(canManageProjectMembers, toUserLabel);
 
   const projectOptions = projectOptionsState.options;

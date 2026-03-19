@@ -48,7 +48,7 @@ public sealed record UpdateProjectRequest(
     DateTimeOffset? StartAt,
     DateTimeOffset? EndAt);
 public sealed record CreateProjectRoleRequest(
-    Guid ProjectId,
+    Guid? ProjectId,
     string Name,
     string? Code,
     string? Description,
@@ -90,7 +90,7 @@ public sealed record UpdateProjectTypeRoleRequirementRequest(
     string? Description,
     int DisplayOrder);
 public sealed record UpdateProjectRoleRequest(
-    Guid ProjectId,
+    Guid? ProjectId,
     string Name,
     string? Code,
     string? Description,

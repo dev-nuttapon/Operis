@@ -464,7 +464,7 @@ export interface UpdateProjectInput extends CreateProjectInput {
 }
 
 export interface CreateProjectRoleInput {
-  projectId: string;
+  projectId?: string;
   name: string;
   code?: string;
   description?: string;

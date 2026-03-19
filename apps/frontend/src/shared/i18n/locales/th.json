@@ -750,7 +750,7 @@
   },
   "project_roles": {
     "page_title": "ตำแหน่งในโครงการ",
-    "page_description": "เลือกโครงการก่อน แล้วจึงเพิ่มตำแหน่งที่ใช้เฉพาะในโครงการนั้น",
+    "page_description": "กำหนดตำแหน่งโครงการระดับองค์กร เพื่อให้ทุกโครงการเลือกใช้ได้",
     "create_page_title": "เพิ่มตำแหน่งในโครงการ",
     "create_page_description": "กรอกข้อมูลตำแหน่งก่อนกำหนดสมาชิกในโครงการ",
     "create_page_back": "กลับ",
@@ -759,8 +759,6 @@
     "edit_page_description": "ปรับข้อมูลตำแหน่งก่อนดำเนินงานต่อ",
     "edit_page_back": "กลับ",
     "edit_page_submit": "บันทึก",
-    "select_project_placeholder": "เลือกโครงการ",
-    "select_project_message": "กรุณาเลือกโครงการก่อน เพื่อจัดการตำแหน่งในโครงการ",
     "search_placeholder": "ค้นหาตำแหน่งในโครงการ",
     "go_to_members": "ไปหน้าสมาชิกโครงการ",
     "create_action": "เพิ่มตำแหน่งในโครงการ",
@@ -769,9 +767,8 @@
     "edit_modal_title_with_name": "แก้ไขตำแหน่งในโครงการ {{name}}",
     "delete_modal_title": "ลบตำแหน่งในโครงการ",
     "delete_modal_title_with_name": "ลบตำแหน่งในโครงการ {{name}}",
-    "delete_description": "ยืนยันการลบตำแหน่งของโครงการ {{project}} และระบุเหตุผล",
+    "delete_description": "ยืนยันการลบตำแหน่งและระบุเหตุผล",
     "fields": {
-      "project": "โครงการ",
       "name": "ชื่อตำแหน่ง",
       "code": "รหัสตำแหน่ง",
       "description": "คำอธิบายบทบาท",

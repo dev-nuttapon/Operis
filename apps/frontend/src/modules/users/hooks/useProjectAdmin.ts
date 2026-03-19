@@ -39,7 +39,7 @@ export function useProjectAdmin(input: {
   projectsEnabled?: boolean;
   projects: ListProjectsInput;
   projectDetailId?: string;
-  projectRoles: { projectId?: string; search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number };
+  projectRoles: { search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number };
   projectAssignments: ListProjectAssignmentsInput | null;
   projectOrgChartProjectId?: string;
   projectEvidenceTeamRegister?: { projectId?: string; page?: number; pageSize?: number };
@@ -64,7 +64,7 @@ export function useProjectAdmin(input: {
 
   const projectRolesQuery = useQuery({
     queryKey: [...projectRolesQueryKey, input.projectRoles],
-    enabled: Boolean(input.projectRoles.projectId),
+    enabled: Boolean(input.projectRoles),
     queryFn: ({ signal }) =>
       listProjectRoles(
         {
@@ -73,7 +73,6 @@ export function useProjectAdmin(input: {
           search: input.projectRoles.search,
           sortBy: input.projectRoles.sortBy,
           sortOrder: input.projectRoles.sortOrder,
-          divisionId: input.projectRoles.projectId,
         },
         signal,
       ),

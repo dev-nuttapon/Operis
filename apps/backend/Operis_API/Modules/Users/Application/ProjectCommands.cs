@@ -215,30 +215,24 @@ public sealed class ProjectCommands(
             return (false, "Project role name is required.", ApiErrorCodes.ProjectTypeRoleRequirementRequired, null);
         }
 
-        var project = await dbContext.Projects.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.ProjectId && x.DeletedAt == null, cancellationToken);
-        if (project is null)
-        {
-            return (false, "Project does not exist.", ApiErrorCodes.ProjectNotFound, null);
-        }
-
-        var exists = await dbContext.ProjectRoles.AnyAsync(x => x.ProjectId == request.ProjectId && x.Name == name && x.DeletedAt == null, cancellationToken);
+        var exists = await dbContext.ProjectRoles.AnyAsync(x => x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Project role already exists in this project.", ApiErrorCodes.ProjectRoleExists, null);
+            return (false, "Project role already exists.", ApiErrorCodes.ProjectRoleExists, null);
         }
         if (!string.IsNullOrWhiteSpace(code))
         {
-            var codeExists = await dbContext.ProjectRoles.AnyAsync(x => x.ProjectId == request.ProjectId && x.Code == code && x.DeletedAt == null, cancellationToken);
+            var codeExists = await dbContext.ProjectRoles.AnyAsync(x => x.Code == code && x.DeletedAt == null, cancellationToken);
             if (codeExists)
             {
-                return (false, "Project role code already exists in this project.", ApiErrorCodes.ProjectRoleCodeExists, null);
+                return (false, "Project role code already exists.", ApiErrorCodes.ProjectRoleCodeExists, null);
             }
         }
 
         var entity = new ProjectRoleEntity
         {
             Id = Guid.NewGuid(),
-            ProjectId = request.ProjectId,
+            ProjectId = null,
             Name = name,
             Code = code,
             Description = NormalizeOptional(request.Description, 500),
@@ -258,10 +252,10 @@ public sealed class ProjectCommands(
             entity.Id.ToString(),
             "Created project role",
             null,
-            new { entity.ProjectId, entity.Name, entity.Code },
+            new { entity.Name, entity.Code },
             cancellationToken);
         await referenceDataCache.InvalidateProjectRolesAsync(cancellationToken);
-        return (true, null, null, ToProjectRoleResponse(entity, project.Name));
+        return (true, null, null, ToProjectRoleResponse(entity, null));
     }
 
     public async Task<(bool Success, string? Error, string? ErrorCode, ProjectRoleResponse? Response, bool NotFound)> UpdateProjectRoleAsync(Guid projectRoleId, UpdateProjectRoleRequest request, CancellationToken cancellationToken)
@@ -279,28 +273,22 @@ public sealed class ProjectCommands(
             return (false, "Project role name is required.", ApiErrorCodes.ProjectTypeRoleRequirementRequired, null, false);
         }
 
-        var project = await dbContext.Projects.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.ProjectId && x.DeletedAt == null, cancellationToken);
-        if (project is null)
-        {
-            return (false, "Project does not exist.", ApiErrorCodes.ProjectNotFound, null, false);
-        }
-
-        var exists = await dbContext.ProjectRoles.AnyAsync(x => x.Id != projectRoleId && x.ProjectId == request.ProjectId && x.Name == name && x.DeletedAt == null, cancellationToken);
+        var exists = await dbContext.ProjectRoles.AnyAsync(x => x.Id != projectRoleId && x.Name == name && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
-            return (false, "Project role already exists in this project.", ApiErrorCodes.ProjectRoleExists, null, false);
+            return (false, "Project role already exists.", ApiErrorCodes.ProjectRoleExists, null, false);
         }
         if (!string.IsNullOrWhiteSpace(code))
         {
-            var codeExists = await dbContext.ProjectRoles.AnyAsync(x => x.Id != projectRoleId && x.ProjectId == request.ProjectId && x.Code == code && x.DeletedAt == null, cancellationToken);
+            var codeExists = await dbContext.ProjectRoles.AnyAsync(x => x.Id != projectRoleId && x.Code == code && x.DeletedAt == null, cancellationToken);
             if (codeExists)
             {
-                return (false, "Project role code already exists in this project.", ApiErrorCodes.ProjectRoleCodeExists, null, false);
+                return (false, "Project role code already exists.", ApiErrorCodes.ProjectRoleCodeExists, null, false);
             }
         }
 
         var before = ToProjectRoleState(entity);
-        entity.ProjectId = request.ProjectId;
+        entity.ProjectId = null;
         entity.Name = name;
         entity.Code = code;
         entity.Description = NormalizeOptional(request.Description, 500);
@@ -320,7 +308,7 @@ public sealed class ProjectCommands(
             new { before, after = ToProjectRoleState(entity) },
             cancellationToken);
         await referenceDataCache.InvalidateProjectRolesAsync(cancellationToken);
-        return (true, null, null, ToProjectRoleResponse(entity, project.Name), false);
+        return (true, null, null, ToProjectRoleResponse(entity, null), false);
     }
 
     public async Task<(bool Success, bool NotFound)> DeleteProjectRoleAsync(Guid projectRoleId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken)
@@ -487,10 +475,10 @@ public sealed class ProjectCommands(
             return "Project does not exist.";
         }
 
-        var roleExists = await dbContext.ProjectRoles.AnyAsync(x => x.Id == projectRoleId && x.ProjectId == projectId && x.DeletedAt == null, cancellationToken);
+        var roleExists = await dbContext.ProjectRoles.AnyAsync(x => x.Id == projectRoleId && x.DeletedAt == null, cancellationToken);
         if (!roleExists)
         {
-            return "Project role does not exist in this project.";
+            return "Project role does not exist.";
         }
 
         if (!string.IsNullOrWhiteSpace(reportsToUserId))

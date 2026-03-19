@@ -289,13 +289,10 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
             entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
-            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(x => new { x.ProjectId, x.Name }).IsUnique().HasFilter("\"deleted_at\" IS NULL");
-            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique().HasFilter("\"deleted_at\" IS NULL AND \"code\" IS NOT NULL");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
+            entity.HasIndex(x => x.Code).IsUnique().HasFilter("\"deleted_at\" IS NULL AND \"code\" IS NOT NULL");
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
-            entity.HasIndex(x => x.ProjectId);
-            entity.HasIndex(x => new { x.ProjectId, x.DeletedAt });
-            entity.HasIndex(x => new { x.ProjectId, x.DisplayOrder, x.Name }).HasFilter("\"deleted_at\" IS NULL");
         });
 
         modelBuilder.Entity<UserOrgAssignmentEntity>(entity =>

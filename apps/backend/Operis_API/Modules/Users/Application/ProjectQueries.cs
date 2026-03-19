@@ -197,11 +197,6 @@ public sealed class ProjectQueries(
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
         IQueryable<ProjectRoleEntity> source = dbContext.ProjectRoles.AsNoTracking().Where(x => x.DeletedAt == null);
 
-        if (query.DivisionId.HasValue)
-        {
-            source = source.Where(x => x.ProjectId == query.DivisionId.Value);
-        }
-
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var search = $"%{query.Search.Trim()}%";
@@ -238,7 +233,7 @@ public sealed class ProjectQueries(
             Action: "list",
             EntityType: "project_role",
             StatusCode: StatusCodes.Status200OK,
-            Metadata: new { total, page, pageSize, projectId = query.DivisionId, query.Search, query.SortBy, query.SortOrder }));
+            Metadata: new { total, page, pageSize, query.Search, query.SortBy, query.SortOrder }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new PagedResult<ProjectRoleResponse>(items, total, page, pageSize);

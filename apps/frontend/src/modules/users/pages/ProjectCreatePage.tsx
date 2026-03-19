@@ -55,7 +55,7 @@ export function ProjectCreatePage() {
   const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
 
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
-  const projectRoleOptionsState = useProjectRoleOptions({ enabled: canEditMembers, allowWithoutProjectId: true });
+  const projectRoleOptionsState = useProjectRoleOptions({ enabled: canEditMembers });
   const templateListState = useDocumentTemplates(
     { page: 1, pageSize: 25, search: debouncedTemplateSearch || undefined },
     canManageProjects,

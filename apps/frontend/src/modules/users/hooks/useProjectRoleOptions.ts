@@ -5,21 +5,17 @@ import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 export function useProjectRoleOptions({
   enabled,
-  projectId,
   pageSize = 10,
-  allowWithoutProjectId = false,
 }: {
   enabled: boolean;
-  projectId?: string;
   pageSize?: number;
-  allowWithoutProjectId?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
 
   const rolesQuery = useInfiniteQuery({
-    queryKey: ["project-role-options", { projectId, search: debouncedSearch, pageSize }],
-    enabled: enabled && (allowWithoutProjectId || Boolean(projectId)),
+    queryKey: ["project-role-options", { search: debouncedSearch, pageSize }],
+    enabled,
     queryFn: ({ signal, pageParam }) =>
       listProjectRoles(
         {
@@ -28,7 +24,6 @@ export function useProjectRoleOptions({
           search: debouncedSearch,
           sortBy: "displayOrder",
           sortOrder: "asc",
-          divisionId: projectId,
         },
         signal,
       ),

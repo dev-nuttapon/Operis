@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Card, Form, Input, Modal, Select, Space, Table, Typography, Skeleton, Flex, Grid } from "antd";
+import { Alert, App, Button, Card, Form, Input, Modal, Space, Table, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SolutionOutlined } from "@ant-design/icons";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
-import { useProjectOptions } from "../hooks/useProjectOptions";
 import type { ProjectRole } from "../types/users";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import { ActionMenu } from "../../../shared/components/ActionMenu";
@@ -22,11 +21,8 @@ export function ProjectRolesPage() {
   const location = useLocation();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
-  const [searchParams] = useSearchParams();
   const permissionState = usePermissions();
-  const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjectRoles = permissionState.hasPermission(permissions.projects.manageRoles);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>();
   const [paging, setPaging] = useState({
     page: 1,
     pageSize: 10,
@@ -44,27 +40,17 @@ export function ProjectRolesPage() {
     setPaging((current) => ({ ...current, page: 1, search: debouncedSearch }));
   }, [debouncedSearch, setPaging]);
 
-  useEffect(() => {
-    const projectId = searchParams.get("projectId") ?? undefined;
-    if (projectId) {
-      setSelectedProjectId(projectId);
-    }
-  }, [searchParams]);
   const { projectRolesQuery, deleteProjectRoleMutation } = useProjectAdmin({
     projectsEnabled: false,
     projects: { page: 1, pageSize: 1 },
-    projectRoles: { ...paging, search: debouncedSearch, projectId: selectedProjectId },
+    projectRoles: { ...paging, search: debouncedSearch },
     projectAssignments: null,
   });
-  const projectOptionsState = useProjectOptions({ enabled: canReadProjects });
 
   const handleError = (fallbackTitle: string, error: unknown) => {
     const presentation = getApiErrorPresentation(error, fallbackTitle);
     notification.error({ message: presentation.title, description: presentation.description });
   };
-
-  const projectOptions = projectOptionsState.options;
-  const selectedProjectName = selectedProjectId ? projectOptionsState.itemsById.get(selectedProjectId)?.name ?? null : null;
 
   const columns = useMemo<ColumnsType<ProjectRole>>(
     () => [
@@ -95,7 +81,7 @@ export function ProjectRolesPage() {
                   icon: <EditOutlined />,
                   label: t("common.actions.edit"),
                   onClick: () =>
-                    navigate(`/app/admin/project-roles/${record.id}/edit?projectId=${record.projectId ?? selectedProjectId ?? ""}`, {
+                    navigate(`/app/admin/project-roles/${record.id}/edit`, {
                       state: { from: `${location.pathname}${location.search}` },
                     }),
                 },
@@ -114,7 +100,7 @@ export function ProjectRolesPage() {
           ) : null,
       },
     ],
-    [canManageProjectRoles, deleteForm, location.pathname, location.search, navigate, selectedProjectId, t],
+    [canManageProjectRoles, deleteForm, location.pathname, location.search, navigate, t],
   );
 
   return (
@@ -137,49 +123,8 @@ export function ProjectRolesPage() {
 
       <Card variant="borderless">
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
-          <Select
-            allowClear
-            showSearch
-            filterOption={false}
-            placeholder={t("project_roles.select_project_placeholder")}
-            options={projectOptions}
-            value={selectedProjectId}
-            onSearch={projectOptionsState.onSearch}
-            loading={projectOptionsState.loading}
-            onChange={(value) => {
-              setSelectedProjectId(value);
-              setPaging((current) => ({ ...current, page: 1 }));
-            }}
-            dropdownRender={(menu) => (
-              <>
-                {menu}
-                {projectOptionsState.hasMore ? (
-                  <div style={{ padding: 8 }}>
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => projectOptionsState.onLoadMore()}
-                      style={{
-                        width: "100%",
-                        border: "none",
-                        background: "transparent",
-                        color: "#1677ff",
-                        cursor: "pointer",
-                        padding: 4,
-                      }}
-                    >
-                      {t("projects.load_more_projects")}
-                    </button>
-                  </div>
-                ) : null}
-              </>
-            )}
-          />
-
-          {!canReadProjects ? (
+          {!canManageProjectRoles ? (
             <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
-          ) : !selectedProjectId ? (
-            <Alert type="info" showIcon message={t("project_roles.select_project_message")} />
           ) : (
             <>
               <Flex
@@ -205,7 +150,7 @@ export function ProjectRolesPage() {
                       icon={<PlusOutlined />}
                       size="large"
                       onClick={() => {
-                        navigate(`/app/admin/project-roles/new?projectId=${selectedProjectId}`, {
+                        navigate("/app/admin/project-roles/new", {
                           state: { from: `${location.pathname}${location.search}` },
                         });
                       }}
@@ -217,14 +162,14 @@ export function ProjectRolesPage() {
                 </Flex>
               </Flex>
 
-              {canReadProjects && projectRolesQuery.isLoading && (projectRolesQuery.data?.items?.length ?? 0) === 0 ? (
+              {projectRolesQuery.isLoading && (projectRolesQuery.data?.items?.length ?? 0) === 0 ? (
                 <Skeleton active paragraph={{ rows: 6 }} />
               ) : (
                 <Table
                   rowKey="id"
                   columns={columns}
-                  dataSource={canReadProjects ? (projectRolesQuery.data?.items ?? []) : []}
-                  loading={canReadProjects ? projectRolesQuery.isLoading : false}
+                  dataSource={projectRolesQuery.data?.items ?? []}
+                  loading={projectRolesQuery.isLoading}
                   scroll={{ x: "max-content" }}
                   pagination={{
                     current: projectRolesQuery.data?.page ?? paging.page,
@@ -279,7 +224,7 @@ export function ProjectRolesPage() {
         confirmLoading={deleteProjectRoleMutation.isPending}
       >
         <Form form={deleteForm} layout="vertical">
-          <Typography.Paragraph type="secondary">{t("project_roles.delete_description", { project: selectedProjectName ?? "-" })}</Typography.Paragraph>
+          <Typography.Paragraph type="secondary">{t("project_roles.delete_description")}</Typography.Paragraph>
           <Form.Item name="reason" label={t("admin_users.fields.reason")} rules={[{ required: true, message: t("admin_users.validation.reason_required") }]}> 
             <Input.TextArea rows={4} placeholder={t("project_roles.placeholders.delete_reason")} />
           </Form.Item>

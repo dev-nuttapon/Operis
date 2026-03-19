@@ -750,7 +750,7 @@
   },
   "project_roles": {
     "page_title": "Project Roles",
-    "page_description": "Select a project first, then define the roles that apply only to that project.",
+    "page_description": "Define organization-wide project roles that can be reused across projects.",
     "create_page_title": "Add Project Role",
     "create_page_description": "Fill in the role details before assigning project members.",
     "create_page_back": "Back",
@@ -759,8 +759,6 @@
     "edit_page_description": "Update the role details before continuing work.",
     "edit_page_back": "Back",
     "edit_page_submit": "Save",
-    "select_project_placeholder": "Select project",
-    "select_project_message": "Select a project before managing project roles.",
     "search_placeholder": "Search project role",
     "go_to_members": "Go to Project Members",
     "create_action": "Add Project Role",
@@ -769,9 +767,8 @@
     "edit_modal_title_with_name": "Edit project role {{name}}",
     "delete_modal_title": "Delete Project Role",
     "delete_modal_title_with_name": "Delete project role {{name}}",
-    "delete_description": "Confirm deletion of a role from project {{project}} and provide a reason.",
+    "delete_description": "Confirm deletion and provide a reason.",
     "fields": {
-      "project": "Project",
       "name": "Role name",
       "code": "Role code",
       "description": "Role description",

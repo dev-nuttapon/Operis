@@ -1,10 +1,9 @@
-import { Form, Input, InputNumber, Select } from "antd";
+import { Form, Input, InputNumber } from "antd";
 import type { FormInstance } from "antd";
 import type { ProjectRole } from "../../types/users";
 import type { useTranslation } from "react-i18next";
 
 export type ProjectRoleFormValues = {
-  projectId: string;
   name: string;
   code?: string;
   description?: string;
@@ -13,9 +12,8 @@ export type ProjectRoleFormValues = {
   displayOrder: number;
 };
 
-export function toProjectRoleInitialValues(record: ProjectRole, projectId?: string): ProjectRoleFormValues {
+export function toProjectRoleInitialValues(record: ProjectRole): ProjectRoleFormValues {
   return {
-    projectId: record.projectId ?? projectId ?? "",
     name: record.name,
     code: record.code ?? undefined,
     description: record.description ?? undefined,
@@ -28,11 +26,9 @@ export function toProjectRoleInitialValues(record: ProjectRole, projectId?: stri
 export function ProjectRoleForm({
   form,
   t,
-  projectOptions,
 }: {
   form: FormInstance<ProjectRoleFormValues>;
   t: ReturnType<typeof useTranslation>["t"];
-  projectOptions: { label: string; value: string }[];
 }) {
   return (
     <Form
@@ -40,9 +36,6 @@ export function ProjectRoleForm({
       layout="vertical"
       initialValues={{}}
     >
-      <Form.Item name="projectId" label={t("project_roles.fields.project")} rules={[{ required: true }]}>
-        <Select options={projectOptions} />
-      </Form.Item>
       <Form.Item name="name" label={t("project_roles.fields.name")} rules={[{ required: true }]}>
         <Input placeholder={t("project_roles.placeholders.name")} />
       </Form.Item>

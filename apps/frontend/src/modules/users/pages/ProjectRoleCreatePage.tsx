@@ -1,12 +1,11 @@
 import { App, Alert, Button, Card, Form, Space, Typography, Flex, Grid } from "antd";
 import { ArrowLeftOutlined, SaveOutlined, SolutionOutlined } from "@ant-design/icons";
-import { useEffect, useMemo } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
-import { useProjectOptions } from "../hooks/useProjectOptions";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { ProjectRoleForm, type ProjectRoleFormValues } from "../components/projectRoles/ProjectRoleForm";
 import type { CreateProjectRoleInput } from "../types/users";
@@ -19,38 +18,26 @@ export function ProjectRoleCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as LocationState | null;
-  const [searchParams] = useSearchParams();
-  const projectIdFromQuery = searchParams.get("projectId") ?? undefined;
 
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
 
   const permissionState = usePermissions();
-  const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjectRoles = permissionState.hasPermission(permissions.projects.manageRoles);
 
-  const backTarget = locationState?.from ?? (projectIdFromQuery ? `/app/admin/project-roles?projectId=${projectIdFromQuery}` : "/app/admin/project-roles");
+  const backTarget = locationState?.from ?? "/app/admin/project-roles";
 
   const [form] = Form.useForm<ProjectRoleFormValues>();
   const { createProjectRoleMutation } = useProjectAdmin({
     projectsEnabled: false,
     projects: { page: 1, pageSize: 1 },
-    projectRoles: { projectId: projectIdFromQuery, page: 1, pageSize: 10 },
+    projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
   });
-
-  const projectOptionsState = useProjectOptions({ enabled: canReadProjects });
-  const projectOptions = projectOptionsState.options;
-
-  useEffect(() => {
-    if (!projectIdFromQuery) return;
-    form.setFieldValue("projectId", projectIdFromQuery);
-  }, [form, projectIdFromQuery]);
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
     const payload: CreateProjectRoleInput = {
-      projectId: values.projectId,
       name: values.name,
       code: values.code,
       description: values.description,
@@ -62,7 +49,7 @@ export function ProjectRoleCreatePage() {
     createProjectRoleMutation.mutate(payload, {
       onSuccess: () => {
         notification.success({ message: t("project_roles.messages.created", { name: values.name }) });
-        navigate(`/app/admin/project-roles?projectId=${values.projectId}`, { replace: true });
+        navigate("/app/admin/project-roles", { replace: true });
       },
       onError: (error) => {
         const presentation = getApiErrorPresentation(error, t("project_roles.messages.create_failed"));
@@ -103,7 +90,7 @@ export function ProjectRoleCreatePage() {
           <Alert type="info" showIcon message={t("errors.title_forbidden")} />
         ) : (
           <>
-            <ProjectRoleForm form={form} t={t} projectOptions={projectOptions} />
+            <ProjectRoleForm form={form} t={t} />
             <Flex gap={12} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"} justify="flex-start">
               <Button
                 type="primary"
