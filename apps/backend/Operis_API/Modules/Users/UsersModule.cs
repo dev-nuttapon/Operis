@@ -50,6 +50,9 @@ public sealed class UsersModule : IModule
         group.MapGet("/", ListUsersAsync)
             .WithName("Users_List");
 
+        group.MapGet("/{userId}", GetUserAsync)
+            .WithName("Users_Get");
+
         group.MapDelete("/{userId}", DeleteUserAsync)
             .WithName("Users_Delete");
 
@@ -263,6 +266,23 @@ public sealed class UsersModule : IModule
             new UserListQuery(includeIdentity, status, divisionId, departmentId, jobTitleId, from, to, search, sortBy, sortOrder, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetUserAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IUserQueries queries,
+        string userId,
+        bool includeIdentity = true,
+        CancellationToken cancellationToken = default)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Users.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetUserAsync(userId, includeIdentity, cancellationToken);
+        return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
     private static async Task<IResult> ListRolesAsync(

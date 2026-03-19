@@ -98,6 +98,10 @@ export function listUsers(input?: ListUsersInput, signal?: AbortSignal) {
   return apiRequest<PaginatedResult<User>>(`/api/v1/users${query ? `?${query}` : ""}`, { signal });
 }
 
+export function getUser(userId: string, signal?: AbortSignal) {
+  return apiRequest<User>(`/api/v1/users/${encodeURIComponent(userId)}`, { signal });
+}
+
 export function createRegistrationRequest(input: CreateRegistrationRequestInput) {
   return publicApiRequest<RegistrationRequest>("/api/v1/users/register", {
     method: "POST",

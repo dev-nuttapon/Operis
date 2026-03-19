@@ -194,7 +194,7 @@ export function DocumentTemplateCreatePage() {
                 locale={{ emptyText: t("documents.templates.empty_selection") }}
               />
             </Form>
-            <Flex justify="flex-start">
+            <Flex gap={12} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"} justify="flex-start" style={{ marginTop: 16 }}>
               <Button
                 type="primary"
                 icon={<SaveOutlined />}
@@ -204,6 +204,9 @@ export function DocumentTemplateCreatePage() {
                 block={isMobile}
               >
                 {t("documents.templates.create_page_submit")}
+              </Button>
+              <Button onClick={() => navigate("/app/document-templates")} block={isMobile}>
+                {t("common.actions.cancel")}
               </Button>
             </Flex>
           </>

@@ -7,6 +7,7 @@ import { permissions } from "../../../../shared/authz/permissions";
 import { usePermissions } from "../../../../shared/authz/usePermissions";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   formatDate,
   toApiSortOrder,
@@ -28,9 +29,6 @@ interface AdminUsersDirectorySectionProps {
   currentLanguage: string;
   data: User[];
   deleteUserLoading: boolean;
-  editUserForm: {
-    setFieldsValue: (values: Record<string, unknown>) => void;
-  };
   loading: boolean;
   paging: {
     page: number;
@@ -50,13 +48,10 @@ interface AdminUsersDirectorySectionProps {
     pageSize?: number;
     total?: number;
   };
-  roleItems: Array<{ id: string; name: string }>;
-  setCreatingUser: (open: boolean) => void;
   setDeletingUser: (user: User | null) => void;
   setPaging: (
     updater: (current: AdminUsersDirectorySectionProps["paging"]) => AdminUsersDirectorySectionProps["paging"]
   ) => void;
-  setEditingUser: (user: User | null) => void;
   t: (key: string, options?: Record<string, unknown>) => string;
   deleteUserForm: {
     resetFields: () => void;
@@ -68,19 +63,17 @@ export function AdminUsersDirectorySection({
   data,
   deleteUserForm,
   deleteUserLoading,
-  editUserForm,
   loading,
   paging,
   pagination,
-  roleItems,
-  setCreatingUser,
   setDeletingUser,
-  setEditingUser,
   setPaging,
   t,
 }: AdminUsersDirectorySectionProps) {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const navigate = useNavigate();
+  const location = useLocation();
   const permissionState = usePermissions();
   const canCreateUsers = permissionState.hasPermission(permissions.users.create);
   const canUpdateUsers = permissionState.hasPermission(permissions.users.update);
@@ -101,6 +94,17 @@ export function AdminUsersDirectorySection({
   useEffect(() => {
     setSearchDraft(paging.search);
   }, [paging.search]);
+
+  useEffect(() => {
+    if (!advancedOpen) return;
+    advancedForm.setFieldsValue({
+      status: paging.status,
+      divisionId: paging.divisionId,
+      departmentId: paging.departmentId,
+      jobTitleId: paging.jobTitleId,
+      dateRange: [paging.from ? dayjs(paging.from) : null, paging.to ? dayjs(paging.to) : null],
+    });
+  }, [advancedForm, advancedOpen, paging.departmentId, paging.divisionId, paging.from, paging.jobTitleId, paging.status, paging.to]);
   const columns: ColumnsType<User> = [
     {
       title: t("admin_users.columns.name"),
@@ -161,19 +165,8 @@ export function AdminUsersDirectorySection({
             <Button
               icon={<EditOutlined />}
               onClick={() => {
-                const matchedRoleIds = roleItems
-                  .filter((item) => record.roles.includes(item.name))
-                  .map((item) => item.id);
-
-                setEditingUser(record);
-                editUserForm.setFieldsValue({
-                  email: record.keycloak?.email ?? "",
-                  firstName: record.keycloak?.firstName ?? "",
-                  lastName: record.keycloak?.lastName ?? "",
-                  divisionId: record.divisionId ?? undefined,
-                  departmentId: record.departmentId ?? undefined,
-                  jobTitleId: record.jobTitleId ?? undefined,
-                  roleIds: matchedRoleIds,
+                navigate(`/app/admin/users/${record.id}/edit`, {
+                  state: { from: `${location.pathname}${location.search}` },
                 });
               }}
             >
@@ -226,22 +219,16 @@ export function AdminUsersDirectorySection({
               >
                 {t("admin_users.directory.search_action")}
               </Button>
-              <Button onClick={() => {
-                advancedForm.setFieldsValue({
-                  status: paging.status,
-                  divisionId: paging.divisionId,
-                  departmentId: paging.departmentId,
-                  jobTitleId: paging.jobTitleId,
-                  dateRange: [paging.from ? dayjs(paging.from) : null, paging.to ? dayjs(paging.to) : null],
-                });
-                setAdvancedOpen((current) => !current);
-              }} block={isMobile}>
-                {t("admin_users.directory.advanced_search_action")}
-              </Button>
             </Flex>
           </Flex>
           {canCreateUsers ? (
-            <Button type="primary" icon={<UserAddOutlined />} size="large" onClick={() => setCreatingUser(true)} block={isMobile}>
+            <Button
+              type="primary"
+              icon={<UserAddOutlined />}
+              size="large"
+              onClick={() => navigate("/app/admin/users/new", { state: { from: location.pathname } })}
+              block={isMobile}
+            >
               {t("admin_users.directory.create_user")}
             </Button>
           ) : null}
@@ -250,6 +237,7 @@ export function AdminUsersDirectorySection({
         <Collapse
           activeKey={advancedOpen ? ["advanced"] : []}
           onChange={(keys) => setAdvancedOpen(Array.isArray(keys) ? keys.includes("advanced") : keys === "advanced")}
+          style={{ marginTop: 12, marginBottom: 16 }}
           items={[
             {
               key: "advanced",

@@ -38,6 +38,12 @@ const LoginPage = lazy(() =>
 const AdminUsersPage = lazy(() =>
   import("../modules/users/pages/AdminUsersPage").then((module) => ({ default: module.AdminUsersPage }))
 );
+const AdminUserCreatePage = lazy(() =>
+  import("../modules/users/pages/AdminUserCreatePage").then((module) => ({ default: module.AdminUserCreatePage }))
+);
+const AdminUserEditPage = lazy(() =>
+  import("../modules/users/pages/AdminUserEditPage").then((module) => ({ default: module.AdminUserEditPage }))
+);
 const InvitationAcceptPage = lazy(() =>
   import("../modules/users/pages/InvitationAcceptPage").then((module) => ({ default: module.InvitationAcceptPage }))
 );
@@ -119,9 +125,11 @@ export function AppRouter() {
                 <Route path="documents/:documentId/versions/new" element={<DocumentVersionUploadPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="projects/new" element={<ProjectCreatePage />} />
-                <Route path="workflows" element={<WorkflowDefinitionsPage />} />
-                <Route path="admin/users" element={<AdminUsersPage />} />
-                <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
+              <Route path="workflows" element={<WorkflowDefinitionsPage />} />
+              <Route path="admin/users" element={<AdminUsersPage />} />
+              <Route path="admin/users/new" element={<AdminUserCreatePage />} />
+              <Route path="admin/users/:userId/edit" element={<AdminUserEditPage />} />
+              <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
                 <Route path="admin/master/divisions" element={<AdminUsersPage />} />
                 <Route path="admin/master/departments" element={<AdminUsersPage />} />
                 <Route path="admin/master/positions" element={<AdminUsersPage />} />

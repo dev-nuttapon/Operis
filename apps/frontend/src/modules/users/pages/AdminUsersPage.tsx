@@ -18,8 +18,9 @@ import { useDivisionOptions } from "../hooks/useDivisionOptions";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { formatDate } from "../utils/adminUsersPresentation";
 import type { Invitation } from "../types/users";
+import { AdminUserDeleteModal } from "../components/adminUsers/AdminUserDeleteModal";
 
-const { Paragraph, Text } = Typography;
+const { Paragraph } = Typography;
 
 const AdminInvitationModals = lazy(() =>
   import("../components/adminUsers/AdminInvitationModals").then((module) => ({ default: module.AdminInvitationModals }))
@@ -32,9 +33,6 @@ const AdminMasterDataSection = lazy(() =>
 );
 const AdminRegistrationsSection = lazy(() =>
   import("../components/adminUsers/AdminRegistrationsSection").then((module) => ({ default: module.AdminRegistrationsSection }))
-);
-const AdminUserModals = lazy(() =>
-  import("../components/adminUsers/AdminUserModals").then((module) => ({ default: module.AdminUserModals }))
 );
 const AdminUsersDirectorySection = lazy(() =>
   import("../components/adminUsers/AdminUsersDirectorySection").then((module) => ({ default: module.AdminUsersDirectorySection }))
@@ -64,13 +62,10 @@ export function AdminUsersPage() {
     createInvitationMutation,
     createJobTitleForm,
     createJobTitleMutation,
-    createUserForm,
-    createUserMutation,
     creatingDivision,
     creatingDepartment,
     creatingInvitation,
     creatingJobTitle,
-    creatingUser,
     currentSection,
     deleteDivisionForm,
     deleteDivisionMutation,
@@ -92,12 +87,10 @@ export function AdminUsersPage() {
     editDepartmentForm,
     editInvitationForm,
     editJobTitleForm,
-    editUserForm,
     editingDivision,
     editingDepartment,
     editingInvitation,
     editingJobTitle,
-    editingUser,
     handleError,
     handleSuccess,
     invitationPaging,
@@ -110,12 +103,10 @@ export function AdminUsersPage() {
     registrationRequestsQuery,
     rejectRegistrationMutation,
     reviewRegistrationForm,
-    rolesQuery,
     setCreatingDivision,
     setCreatingDepartment,
     setCreatingInvitation,
     setCreatingJobTitle,
-    setCreatingUser,
     setDeletingDivision,
     setDeletingDepartment,
     setDeletingJobTitle,
@@ -126,7 +117,6 @@ export function AdminUsersPage() {
     setEditingDepartment,
     setEditingInvitation,
     setEditingJobTitle,
-    setEditingUser,
     setInvitationPaging,
     setJobTitlePaging,
     setManagingRegistration,
@@ -138,7 +128,6 @@ export function AdminUsersPage() {
     updateDepartmentMutation,
     updateInvitationMutation,
     updateJobTitleMutation,
-    updateUserMutation,
     usersPaging,
     usersQuery,
     viewingInvitation,
@@ -149,15 +138,6 @@ export function AdminUsersPage() {
     user,
   });
 
-  const userRoleOptions = (rolesQuery.data ?? []).map((item) => ({
-    label: (
-      <Space direction="vertical" size={0}>
-        <Text>{item.name}</Text>
-        {item.description ? <Text type="secondary">{item.description}</Text> : null}
-      </Space>
-    ),
-    value: item.id,
-  }));
   const divisionOptions = divisionOptionsState.options;
   const invitationColumns: ColumnsType<Invitation> = [
     {
@@ -417,14 +397,10 @@ export function AdminUsersPage() {
             data={usersQuery.data?.items ?? []}
             deleteUserForm={deleteUserForm}
             deleteUserLoading={deleteUserMutation.isPending}
-            editUserForm={editUserForm}
             loading={usersQuery.isLoading}
             paging={usersPaging}
             pagination={usersQuery.data}
-            roleItems={rolesQuery.data ?? []}
-            setCreatingUser={setCreatingUser}
             setDeletingUser={setDeletingUser}
-            setEditingUser={setEditingUser}
             setPaging={setUsersPaging}
             t={t}
           />
@@ -653,140 +629,37 @@ export function AdminUsersPage() {
         </Suspense>
       ) : null}
 
-      {(creatingUser || editingUser !== null || deletingUser !== null) ? (
-        <Suspense fallback={null}>
-          <AdminUserModals
-            createForm={createUserForm}
-            createLoading={createUserMutation.isPending}
-            creatingUser={creatingUser}
-            deleteForm={deleteUserForm}
-            deleteLoading={deleteUserMutation.isPending}
-            deletingUser={deletingUser}
-            divisionHasMore={divisionOptionsState.hasMore}
-            divisionLoading={divisionOptionsState.loading}
-            divisionOptions={divisionOptions}
-            editForm={editUserForm}
-            editLoading={updateUserMutation.isPending}
-            editingUser={editingUser}
-            onDivisionLoadMore={divisionOptionsState.onLoadMore}
-            onDivisionSearch={divisionOptionsState.onSearch}
-            onCloseCreate={() => {
-              setCreatingUser(false);
-              createUserForm.resetFields();
-            }}
-            onCloseDelete={() => {
-              setDeletingUser(null);
-              deleteUserForm.resetFields();
-            }}
-            onCloseEdit={() => {
-              setEditingUser(null);
-              editUserForm.resetFields();
-            }}
-            onCreate={() => {
-              createUserForm
-                .validateFields()
-                .then((values: {
-                  email: string;
-                  firstName: string;
-                  lastName: string;
-                  password: string;
-                  confirmPassword: string;
-                  divisionId?: string;
-                  departmentId?: string;
-                  jobTitleId?: string;
-                  roles?: string[];
-                }) => {
-                  createUserMutation.mutate(
-                    {
-                      email: values.email,
-                      firstName: values.firstName,
-                      lastName: values.lastName,
-                      password: values.password,
-                      confirmPassword: values.confirmPassword,
-                      createdBy: actor,
-                      divisionId: values.divisionId,
-                      departmentId: values.departmentId,
-                      jobTitleId: values.jobTitleId,
-                      roleIds: values.roles,
-                    },
-                    {
-                      onSuccess: () => {
-                        setCreatingUser(false);
-                        createUserForm.resetFields();
-                        handleSuccess(t("admin_users.messages.user_created", { email: values.email }));
-                      },
-                      onError: (error) => handleError(t("errors.create_user_failed"), error),
-                    }
-                  );
-                })
-                .catch(() => undefined);
-            }}
-            onDelete={() => {
-              if (!deletingUser) {
-                return;
-              }
+      {deletingUser !== null ? (
+        <AdminUserDeleteModal
+          deletingUser={deletingUser}
+          deleteForm={deleteUserForm}
+          deleteLoading={deleteUserMutation.isPending}
+          t={t}
+          onClose={() => {
+            setDeletingUser(null);
+            deleteUserForm.resetFields();
+          }}
+          onDelete={() => {
+            if (!deletingUser) return;
 
-              deleteUserForm
-                .validateFields(["reason"])
-                .then((values: { reason: string }) => {
-                  deleteUserMutation.mutate(
-                    { id: deletingUser.id, reason: values.reason },
-                    {
-                      onSuccess: () => {
-                        handleSuccess(t("admin_users.messages.user_deleted", { email: deletingUser.keycloak?.email || deletingUser.id }));
-                        setDeletingUser(null);
-                        deleteUserForm.resetFields();
-                      },
-                      onError: (error) => handleError(t("errors.delete_user_failed"), error),
-                    }
-                  );
-                })
-                .catch(() => undefined);
-            }}
-            onEdit={() => {
-              editUserForm
-                .validateFields()
-                .then((values: {
-                  email: string;
-                  firstName: string;
-                  lastName: string;
-                  divisionId?: string;
-                  departmentId?: string;
-                  jobTitleId?: string;
-                  roleIds?: string[];
-                }) => {
-                  if (!editingUser) {
-                    return;
+            deleteUserForm
+              .validateFields(["reason"])
+              .then((values: { reason: string }) => {
+                deleteUserMutation.mutate(
+                  { id: deletingUser.id, reason: values.reason },
+                  {
+                    onSuccess: () => {
+                      handleSuccess(t("admin_users.messages.user_deleted", { email: deletingUser.keycloak?.email || deletingUser.id }));
+                      setDeletingUser(null);
+                      deleteUserForm.resetFields();
+                    },
+                    onError: (error) => handleError(t("errors.delete_user_failed"), error),
                   }
-
-                  updateUserMutation.mutate(
-                    {
-                      id: editingUser.id,
-                      email: values.email,
-                      firstName: values.firstName,
-                      lastName: values.lastName,
-                      divisionId: values.divisionId,
-                      departmentId: values.departmentId,
-                      jobTitleId: values.jobTitleId,
-                      roleIds: values.roleIds,
-                    },
-                    {
-                      onSuccess: () => {
-                        handleSuccess(t("admin_users.messages.user_updated", { email: values.email }));
-                        setEditingUser(null);
-                        editUserForm.resetFields();
-                      },
-                      onError: (error) => handleError(t("errors.update_user_failed"), error),
-                    }
-                  );
-                })
-                .catch(() => undefined);
-            }}
-            roleOptions={userRoleOptions}
-            rolesLoading={rolesQuery.isLoading}
-            t={t}
-          />
-        </Suspense>
+                );
+              })
+              .catch(() => undefined);
+          }}
+        />
       ) : null}
 
       {(creatingDivision || editingDivision !== null || deletingDivision !== null || creatingDepartment || editingDepartment !== null || deletingDepartment !== null || creatingJobTitle || editingJobTitle !== null || deletingJobTitle !== null) ? (

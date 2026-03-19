@@ -123,6 +123,71 @@ public sealed class UserQueries(
         return new PagedResult<UserResponse>(responses, total, normalizedPage, normalizedPageSize);
     }
 
+    public async Task<UserResponse?> GetUserAsync(string userId, bool includeIdentity, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return null;
+        }
+
+        var entity = await dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == userId && x.DeletedAt == null, cancellationToken);
+
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var divisions = (await referenceDataCache.GetDivisionsAsync(dbContext, cancellationToken))
+            .ToDictionary(x => x.Id, x => x.Name);
+        var departments = (await referenceDataCache.GetDepartmentsAsync(dbContext, cancellationToken))
+            .ToDictionary(x => x.Id, x => x);
+        var jobTitles = (await referenceDataCache.GetJobTitlesAsync(dbContext, cancellationToken))
+            .ToDictionary(x => x.Id, x => x.Name);
+        var appRoles = await referenceDataCache.GetAppRolesAsync(dbContext, cancellationToken);
+
+        UserResponse response;
+        if (!includeIdentity)
+        {
+            response = ToResponse(entity, null, [], divisions, departments, jobTitles);
+        }
+        else
+        {
+            var appRolesByKeycloakName = appRoles
+                .GroupBy(x => x.KeycloakRoleName, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
+
+            var profileTask = ResolveKeycloakProfileAsync(entity, cancellationToken);
+            var rolesTask = keycloakAdminClient.GetUserRealmRolesAsync(entity.Id, cancellationToken);
+            await Task.WhenAll(profileTask, rolesTask);
+
+            var mappedRoles = rolesTask.Result
+                .SelectMany(role => appRolesByKeycloakName.TryGetValue(role.Name, out var matchedRoles) ? matchedRoles : [])
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .Select(x => x.Name)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+            response = ToResponse(entity, profileTask.Result, mappedRoles, divisions, departments, jobTitles);
+        }
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "get",
+            EntityType: "user",
+            EntityId: userId,
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new
+            {
+                includeIdentity
+            }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return response;
+    }
+
     private async Task<IReadOnlyList<UserResponse>> BuildIdentityResponsesAsync(
         IReadOnlyList<UserEntity> users,
         IReadOnlyList<CachedAppRoleItem> appRoles,
