@@ -673,6 +673,70 @@ function getSelectedMenuKey(path: string) {
     return '/app/workflows';
   }
 
+  if (path.startsWith('/app/admin/users')) {
+    return '/app/admin/users';
+  }
+
+  if (path.startsWith('/app/admin/invitations')) {
+    return '/app/admin/invitations';
+  }
+
+  if (path.startsWith('/app/admin/registrations')) {
+    return '/app/admin/registrations';
+  }
+
+  if (path.startsWith('/app/admin/master/divisions')) {
+    return '/app/admin/master/divisions';
+  }
+
+  if (path.startsWith('/app/admin/master/departments')) {
+    return '/app/admin/master/departments';
+  }
+
+  if (path.startsWith('/app/admin/master/positions')) {
+    return '/app/admin/master/positions';
+  }
+
+  if (path.startsWith('/app/admin/projects')) {
+    return '/app/admin/projects';
+  }
+
+  if (path.startsWith('/app/admin/project-type-templates')) {
+    return '/app/admin/project-type-templates';
+  }
+
+  if (path.startsWith('/app/admin/project-roles')) {
+    return '/app/admin/project-roles';
+  }
+
+  if (path.startsWith('/app/admin/project-members')) {
+    return '/app/admin/project-members';
+  }
+
+  if (path.startsWith('/app/admin/project-org-chart')) {
+    return '/app/admin/project-org-chart';
+  }
+
+  if (path.startsWith('/app/admin/project-evidence')) {
+    return '/app/admin/project-evidence';
+  }
+
+  if (path.startsWith('/app/admin/project-compliance')) {
+    return '/app/admin/project-compliance';
+  }
+
+  if (path.startsWith('/app/admin/activity-logs')) {
+    return '/app/admin/activity-logs';
+  }
+
+  if (path.startsWith('/app/admin/audit-logs')) {
+    return '/app/admin/audit-logs';
+  }
+
+  if (path.startsWith('/app/admin/master')) {
+    return '/app/admin/master';
+  }
+
   if (path.startsWith('/app/admin')) {
     return '/app/admin';
   }
