@@ -14,6 +14,7 @@ import { useProjectTypeOptions } from "../hooks/useProjectTypeOptions";
 import type { ProjectListItem, User } from "../types/users";
 import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 function toUserLabel(user: User) {
   const displayName = [user.keycloak?.firstName, user.keycloak?.lastName].filter(Boolean).join(" ").trim();
@@ -120,101 +121,53 @@ export function ProjectsPage() {
       {
         title: t("admin_users.columns.actions"),
         key: "actions",
-        render: (_, record) => (
-          <Space>
-            {canManageProjects ? (
-              <>
-                <Button
-                  icon={<FolderOpenOutlined />}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    navigate(`/app/projects/${record.id}/workspace`);
-                  }}
-                >
-                  {t("projects.actions.open_workspace")}
-                </Button>
-                {canManageProjectMembers ? (
-                  <Button
-                    icon={<TeamOutlined />}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      navigate(`/app/admin/project-members?projectId=${record.id}`);
-                    }}
-                  >
-                    {t("projects.actions.manage_members")}
-                  </Button>
-                ) : null}
-                {canReadDocuments ? (
-                  <Button
-                    icon={<FileAddOutlined />}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      navigate(`/app/documents?projectId=${record.id}`);
-                    }}
-                  >
-                    {t("projects.actions.manage_documents")}
-                  </Button>
-                ) : null}
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    const base = isMyProjectsPage ? "/app/projects" : "/app/admin/projects";
-                    navigate(`${base}/${record.id}/edit`, { state: { from: `${location.pathname}${location.search}` } });
-                  }}
-                >
-                  {t("common.actions.edit")}
-                </Button>
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setDeleteTarget(record);
-                    deleteForm.resetFields();
-                  }}
-                >
-                  {t("common.actions.delete")}
-                </Button>
-              </>
-            ) : null}
-            {!canManageProjects && canViewProjectList ? (
-              <Space>
-                <Button
-                  icon={<FolderOpenOutlined />}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    navigate(`/app/projects/${record.id}/workspace`);
-                  }}
-                >
-                  {t("projects.actions.open_workspace")}
-                </Button>
-                {canManageProjectMembers ? (
-                  <Button
-                    icon={<TeamOutlined />}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      navigate(`/app/admin/project-members?projectId=${record.id}`);
-                    }}
-                  >
-                    {t("projects.actions.manage_members")}
-                  </Button>
-                ) : null}
-                {canReadDocuments ? (
-                  <Button
-                    icon={<FileAddOutlined />}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      navigate(`/app/documents?projectId=${record.id}`);
-                    }}
-                  >
-                    {t("projects.actions.manage_documents")}
-                  </Button>
-                ) : null}
-              </Space>
-            ) : null}
-          </Space>
-        ),
+        render: (_, record) => {
+          const base = isMyProjectsPage ? "/app/projects" : "/app/admin/projects";
+          const canShowWorkspace = canManageProjects || canViewProjectList;
+          const items = [
+            {
+              key: "workspace",
+              icon: <FolderOpenOutlined />,
+              label: t("projects.actions.open_workspace"),
+              disabled: !canShowWorkspace,
+              onClick: () => navigate(`/app/projects/${record.id}/workspace`),
+            },
+            {
+              key: "members",
+              icon: <TeamOutlined />,
+              label: t("projects.actions.manage_members"),
+              disabled: !canManageProjectMembers,
+              onClick: () => navigate(`/app/admin/project-members?projectId=${record.id}`),
+            },
+            {
+              key: "documents",
+              icon: <FileAddOutlined />,
+              label: t("projects.actions.manage_documents"),
+              disabled: !canReadDocuments,
+              onClick: () => navigate(`/app/documents?projectId=${record.id}`),
+            },
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: t("common.actions.edit"),
+              disabled: !canManageProjects,
+              onClick: () => navigate(`${base}/${record.id}/edit`, { state: { from: `${location.pathname}${location.search}` } }),
+            },
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: t("common.actions.delete"),
+              danger: true,
+              disabled: !canManageProjects,
+              onClick: () => {
+                setDeleteTarget(record);
+                deleteForm.resetFields();
+              },
+            },
+          ];
+
+          return <ActionMenu items={items} />;
+        },
       },
     ],
     [canManageProjects, canViewProjectList, deleteForm, i18n.language, navigate, projectStatusLabel, t],

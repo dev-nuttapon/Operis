@@ -13,6 +13,7 @@ import { useActivityLogs } from "../hooks/useActivityLogs";
 import type { ActivityLogListItem, ListActivityLogsInput } from "../types/activities";
 import { getActivityLog } from "../api/activitiesApi";
 import { useQuery } from "@tanstack/react-query";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 const { RangePicker } = DatePicker;
 const { Text, Paragraph } = Typography;
@@ -201,9 +202,16 @@ export function ActivityLogsPage() {
         title: t("activity_logs.columns.actions"),
         key: "actions",
         render: (_, item) => (
-          <Button icon={<EyeOutlined />} onClick={() => setSelectedActivityId(item.id)}>
-            {t("activity_logs.actions.view")}
-          </Button>
+          <ActionMenu
+            items={[
+              {
+                key: "view",
+                icon: <EyeOutlined />,
+                label: t("activity_logs.actions.view"),
+                onClick: () => setSelectedActivityId(item.id),
+              },
+            ]}
+          />
         ),
       },
     ],

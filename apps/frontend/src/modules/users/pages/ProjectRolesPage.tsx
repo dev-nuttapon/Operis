@@ -13,6 +13,7 @@ import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectOptions } from "../hooks/useProjectOptions";
 import type { ProjectRole } from "../types/users";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 export function ProjectRolesPage() {
   const { t } = useTranslation();
@@ -109,34 +110,32 @@ export function ProjectRolesPage() {
       {
         title: t("admin_users.columns.actions"),
         key: "actions",
-        render: (_, record) => (
-          <Space>
-            {canManageProjectRoles ? (
-              <>
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={() => {
+        render: (_, record) =>
+          canManageProjectRoles ? (
+            <ActionMenu
+              items={[
+                {
+                  key: "edit",
+                  icon: <EditOutlined />,
+                  label: t("common.actions.edit"),
+                  onClick: () =>
                     navigate(`/app/admin/project-roles/${record.id}/edit?projectId=${record.projectId ?? selectedProjectId ?? ""}`, {
                       state: { from: `${location.pathname}${location.search}` },
-                    });
-                  }}
-                >
-                  {t("common.actions.edit")}
-                </Button>
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => {
+                    }),
+                },
+                {
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  label: t("common.actions.delete"),
+                  danger: true,
+                  onClick: () => {
                     setDeleteTarget(record);
                     deleteForm.resetFields();
-                  }}
-                >
-                  {t("common.actions.delete")}
-                </Button>
-              </>
-            ) : null}
-          </Space>
-        ),
+                  },
+                },
+              ]}
+            />
+          ) : null,
       },
     ],
     [canManageProjectRoles, deleteForm, location.pathname, location.search, navigate, selectedProjectId, t],

@@ -42,6 +42,7 @@ import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectOptions } from "../hooks/useProjectOptions";
 import { formatDate } from "../utils/adminUsersPresentation";
 import type { ProjectOrgChartNode } from "../types/users";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 import type {
   ProjectWorkspacePrototypeAuditEvent,
   ProjectWorkspacePrototypeComplianceCheck,
@@ -445,9 +446,15 @@ export function ProjectWorkspacePrototypePage() {
       title: t("project_workspace.roles.columns.actions"),
       key: "actions",
       render: (_, record) => (
-        <Button type="link" onClick={() => setSelectedRole(record)}>
-          {t("project_workspace.roles.inspect_role")}
-        </Button>
+        <ActionMenu
+          items={[
+            {
+              key: "inspect",
+              label: t("project_workspace.roles.inspect_role"),
+              onClick: () => setSelectedRole(record),
+            },
+          ]}
+        />
       ),
     },
   ];

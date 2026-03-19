@@ -6,6 +6,7 @@ import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { permissions } from "../../../../shared/authz/permissions";
 import { usePermissions } from "../../../../shared/authz/usePermissions";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { ActionMenu } from "../../../../shared/components/ActionMenu";
 import { toApiSortOrder } from "../../utils/adminUsersPresentation";
 import type { MasterDataItem } from "../../types/users";
 
@@ -91,34 +92,33 @@ export function AdminMasterDataSection({
     {
       title: t("admin_users.columns.actions"),
       key: "actions",
-      render: (_, record) => (
-        <Space>
-          {canManagePermanentOrg ? (
-            <>
-              <Button
-                icon={<EditOutlined />}
-                onClick={() => {
+      render: (_, record) =>
+        canManagePermanentOrg ? (
+          <ActionMenu
+            items={[
+              {
+                key: "edit",
+                icon: <EditOutlined />,
+                label: t("common.actions.edit"),
+                onClick: () => {
                   setEditing(record);
                   onEdit(record);
-                }}
-              >
-                {t("common.actions.edit")}
-              </Button>
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                loading={deleting}
-                onClick={() => {
+                },
+              },
+              {
+                key: "delete",
+                icon: <DeleteOutlined />,
+                label: t("common.actions.delete"),
+                danger: true,
+                onClick: () => {
                   setDeleting(record);
                   onDeletePrepare();
-                }}
-              >
-                {t("common.actions.delete")}
-              </Button>
-            </>
-          ) : null}
-        </Space>
-      ),
+                },
+              },
+            ]}
+            loading={deleting}
+          />
+        ) : null,
     },
   ];
 

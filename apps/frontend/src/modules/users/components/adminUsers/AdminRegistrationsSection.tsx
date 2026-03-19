@@ -6,6 +6,7 @@ import { CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { permissions } from "../../../../shared/authz/permissions";
 import { usePermissions } from "../../../../shared/authz/usePermissions";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { ActionMenu } from "../../../../shared/components/ActionMenu";
 import {
   formatDate,
   toApiSortOrder,
@@ -113,32 +114,45 @@ export function AdminRegistrationsSection({
     {
       title: t("admin_users.columns.actions"),
       key: "actions",
-      render: (_, record) =>
-        record.status === "Pending" && canReviewRegistrations ? (
-          <Button
-            icon={<CheckCircleOutlined />}
-            onClick={() => {
-              setManagingRegistration(record);
-              reviewRegistrationForm.setFieldsValue({
-                action: "approve",
-                reason: "",
-              });
-            }}
-          >
-            {t("common.actions.manage")}
-          </Button>
-        ) : record.status === "Approved" && record.passwordSetupLink && !record.passwordSetupCompletedAt ? (
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setViewingRegistrationLink(record);
-            }}
-          >
-            {t("admin_users.registration.view_setup_link")}
-          </Button>
-        ) : (
-          <Typography.Text type="secondary">-</Typography.Text>
-        ),
+      render: (_, record) => {
+        if (record.status === "Pending" && canReviewRegistrations) {
+          return (
+            <ActionMenu
+              items={[
+                {
+                  key: "manage",
+                  icon: <CheckCircleOutlined />,
+                  label: t("common.actions.manage"),
+                  onClick: () => {
+                    setManagingRegistration(record);
+                    reviewRegistrationForm.setFieldsValue({
+                      action: "approve",
+                      reason: "",
+                    });
+                  },
+                },
+              ]}
+            />
+          );
+        }
+
+        if (record.status === "Approved" && record.passwordSetupLink && !record.passwordSetupCompletedAt) {
+          return (
+            <ActionMenu
+              items={[
+                {
+                  key: "view",
+                  icon: <EyeOutlined />,
+                  label: t("admin_users.registration.view_setup_link"),
+                  onClick: () => setViewingRegistrationLink(record),
+                },
+              ]}
+            />
+          );
+        }
+
+        return <Typography.Text type="secondary">-</Typography.Text>;
+      },
     },
   ];
 

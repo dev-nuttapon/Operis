@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Typography, Card, Button, Space, Table, Alert, Dropdown, Modal, Form, Input, Tag, Skeleton, Flex, Grid } from "antd";
-import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, MoreOutlined, FileTextOutlined } from "@ant-design/icons";
+import { Typography, Card, Button, Space, Table, Alert, Modal, Form, Input, Tag, Skeleton, Flex, Grid } from "antd";
+import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
@@ -13,6 +13,7 @@ import { permissions } from "../../../shared/authz/permissions";
 import type { DocumentListItemView } from "../types/documents";
 import { saveBlobAsFile } from "../utils/download";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 const { Title, Paragraph } = Typography;
 export function DocumentDashboardPage() {
@@ -163,11 +164,7 @@ export function DocumentDashboardPage() {
             onClick: () => navigate(`/app/documents/${item.id}/history`, { state: { documentName: item.documentName, from: "/app/documents" } }),
           },
         ];
-        return (
-          <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-            <Button size="small" icon={<MoreOutlined />} />
-          </Dropdown>
-        );
+        return <ActionMenu items={menuItems} />;
       },
     },
   ];

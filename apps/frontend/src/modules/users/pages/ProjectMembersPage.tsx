@@ -13,6 +13,7 @@ import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { useProjectOptions } from "../hooks/useProjectOptions";
 import type { ProjectAssignment } from "../types/users";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 export function ProjectMembersPage() {
   const { t, i18n } = useTranslation();
@@ -106,30 +107,32 @@ export function ProjectMembersPage() {
       {
         title: t("admin_users.columns.actions"),
         key: "actions",
-        render: (_, record) => (
-          <Space>
-            {canManageProjectMembers ? (
-              <>
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={() => {
+        render: (_, record) =>
+          canManageProjectMembers ? (
+            <ActionMenu
+              items={[
+                {
+                  key: "edit",
+                  icon: <EditOutlined />,
+                  label: t("common.actions.edit"),
+                  onClick: () =>
                     navigate(`/app/admin/project-members/${record.id}/edit?projectId=${record.projectId}`, {
                       state: { from: `${location.pathname}${location.search}` },
-                    });
-                  }}
-                >
-                  {t("common.actions.edit")}
-                </Button>
-                <Button danger icon={<DeleteOutlined />} onClick={() => {
-                  setDeleteTarget(record);
-                  deleteForm.resetFields();
-                }}>
-                  {t("common.actions.delete")}
-                </Button>
-              </>
-            ) : null}
-          </Space>
-        ),
+                    }),
+                },
+                {
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  label: t("common.actions.delete"),
+                  danger: true,
+                  onClick: () => {
+                    setDeleteTarget(record);
+                    deleteForm.resetFields();
+                  },
+                },
+              ]}
+            />
+          ) : null,
       },
     ],
     [canManageProjectMembers, i18n.language, t, deleteForm, location.pathname, location.search, navigate],

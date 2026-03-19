@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, Input, Space, Table, Typography, Alert, Skeleton, Dropdown, Flex, Grid } from "antd";
+import { Button, Card, Input, Space, Table, Typography, Alert, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { PlusOutlined, FileTextOutlined, MoreOutlined, EditOutlined, HistoryOutlined } from "@ant-design/icons";
+import { PlusOutlined, FileTextOutlined, EditOutlined, HistoryOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import { useDocumentTemplates } from "../hooks/useDocumentTemplates";
 import type { DocumentTemplateListItem } from "../types/documentTemplates";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 export function DocumentTemplatesPage() {
   const { t, i18n } = useTranslation();
@@ -45,30 +46,25 @@ export function DocumentTemplatesPage() {
         key: "actions",
         align: "center",
         render: (_, record) => (
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: "edit",
-                  icon: <EditOutlined />,
-                  label: t("documents.templates.actions.edit"),
-                  onClick: () => navigate(`/app/document-templates/${record.id}/edit`),
-                },
-                {
-                  key: "history",
-                  icon: <HistoryOutlined />,
-                  label: t("documents.templates.actions.history"),
-                  onClick: () =>
-                    navigate(`/app/document-templates/${record.id}/history`, {
-                      state: { templateName: record.name, from: "/app/document-templates" },
-                    }),
-                },
-              ],
-            }}
-            trigger={["click"]}
-          >
-            <Button size="small" icon={<MoreOutlined />} />
-          </Dropdown>
+          <ActionMenu
+            items={[
+              {
+                key: "edit",
+                icon: <EditOutlined />,
+                label: t("documents.templates.actions.edit"),
+                onClick: () => navigate(`/app/document-templates/${record.id}/edit`),
+              },
+              {
+                key: "history",
+                icon: <HistoryOutlined />,
+                label: t("documents.templates.actions.history"),
+                onClick: () =>
+                  navigate(`/app/document-templates/${record.id}/history`, {
+                    state: { templateName: record.name, from: "/app/document-templates" },
+                  }),
+              },
+            ]}
+          />
         ),
       },
     ],

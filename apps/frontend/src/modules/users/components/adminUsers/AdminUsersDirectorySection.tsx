@@ -16,6 +16,7 @@ import type { User, UserStatus } from "../../types/users";
 import { useDepartmentFilterOptions } from "../../hooks/useDepartmentFilterOptions";
 import { useDivisionOptions } from "../../hooks/useDivisionOptions";
 import { useJobTitleOptions } from "../../hooks/useJobTitleOptions";
+import { ActionMenu } from "../../../../shared/components/ActionMenu";
 
 type AdvancedFilterValues = {
   status?: UserStatus;
@@ -160,33 +161,32 @@ export function AdminUsersDirectorySection({
       title: t("admin_users.columns.actions"),
       key: "actions",
       render: (_, record) => (
-        <Space>
-          {canUpdateUsers ? (
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => {
+        <ActionMenu
+          items={[
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: t("common.actions.edit"),
+              disabled: !canUpdateUsers,
+              onClick: () =>
                 navigate(`/app/admin/users/${record.id}/edit`, {
                   state: { from: `${location.pathname}${location.search}` },
-                });
-              }}
-            >
-              {t("common.actions.edit")}
-            </Button>
-          ) : null}
-          {canDeleteUsers ? (
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              loading={deleteUserLoading}
-              onClick={() => {
+                }),
+            },
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: t("common.actions.delete"),
+              danger: true,
+              disabled: !canDeleteUsers,
+              onClick: () => {
                 setDeletingUser(record);
                 deleteUserForm.resetFields();
-              }}
-            >
-              {t("common.actions.delete")}
-            </Button>
-          ) : null}
-        </Space>
+              },
+            },
+          ]}
+          loading={deleteUserLoading}
+        />
       ),
     },
   ];

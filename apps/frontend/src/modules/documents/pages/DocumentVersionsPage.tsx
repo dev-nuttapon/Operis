@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Dropdown, Modal, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
+import { Alert, Button, Card, Modal, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined, BranchesOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined, BranchesOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
@@ -11,6 +11,7 @@ import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import type { DocumentVersionListItem } from "../api/documentsApi";
 import { saveBlobAsFile } from "../utils/download";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -147,13 +148,10 @@ export function DocumentVersionsPage() {
         ];
 
         return (
-          <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-            <Button
-              size="small"
-              icon={<MoreOutlined />}
-              loading={deleteVersionMutation.isPending || publishVersionMutation.isPending || unpublishVersionMutation.isPending}
-            />
-          </Dropdown>
+          <ActionMenu
+            items={menuItems}
+            loading={deleteVersionMutation.isPending || publishVersionMutation.isPending || unpublishVersionMutation.isPending}
+          />
         );
       },
     },

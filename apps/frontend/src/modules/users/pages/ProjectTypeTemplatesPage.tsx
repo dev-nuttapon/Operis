@@ -10,6 +10,7 @@ import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useProjectTemplates } from "../hooks/useProjectTemplates";
 import type { ProjectTypeRoleRequirement, ProjectTypeTemplate, SoftDeleteInput } from "../types/users";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 export function ProjectTypeTemplatesPage() {
   const { t } = useTranslation();
@@ -60,24 +61,36 @@ export function ProjectTypeTemplatesPage() {
         title: t("admin_users.columns.actions"),
         key: "actions",
         render: (_, record) => (
-          <Space>
-            <Button onClick={() => setSelectedTemplate(record)}>{t("common.actions.view")}</Button>
-            {canManageTemplates ? (
-              <>
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={() =>
-                    navigate(`/app/admin/project-type-templates/${record.id}/edit`, {
-                      state: { from: `${location.pathname}${location.search}` },
-                    })
-                  }
-                >
-                  {t("common.actions.edit")}
-                </Button>
-                <Button danger icon={<DeleteOutlined />} onClick={() => { setDeleteTemplateTarget(record); templateDeleteForm.resetFields(); }}>{t("common.actions.delete")}</Button>
-              </>
-            ) : null}
-          </Space>
+          <ActionMenu
+            items={[
+              {
+                key: "view",
+                label: t("common.actions.view"),
+                onClick: () => setSelectedTemplate(record),
+              },
+              {
+                key: "edit",
+                icon: <EditOutlined />,
+                label: t("common.actions.edit"),
+                disabled: !canManageTemplates,
+                onClick: () =>
+                  navigate(`/app/admin/project-type-templates/${record.id}/edit`, {
+                    state: { from: `${location.pathname}${location.search}` },
+                  }),
+              },
+              {
+                key: "delete",
+                icon: <DeleteOutlined />,
+                label: t("common.actions.delete"),
+                danger: true,
+                disabled: !canManageTemplates,
+                onClick: () => {
+                  setDeleteTemplateTarget(record);
+                  templateDeleteForm.resetFields();
+                },
+              },
+            ]}
+          />
         ),
       },
     ],
@@ -93,23 +106,31 @@ export function ProjectTypeTemplatesPage() {
         title: t("admin_users.columns.actions"),
         key: "actions",
         render: (_, record) => (
-          <Space>
-            {canManageTemplates ? (
-              <>
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={() =>
-                    navigate(`/app/admin/project-type-templates/${record.projectTypeTemplateId}/role-requirements/${record.id}/edit`, {
-                      state: { from: `${location.pathname}${location.search}` },
-                    })
-                  }
-                >
-                  {t("common.actions.edit")}
-                </Button>
-                <Button danger icon={<DeleteOutlined />} onClick={() => { setDeleteRequirementTarget(record); requirementDeleteForm.resetFields(); }}>{t("common.actions.delete")}</Button>
-              </>
-            ) : null}
-          </Space>
+          <ActionMenu
+            items={[
+              {
+                key: "edit",
+                icon: <EditOutlined />,
+                label: t("common.actions.edit"),
+                disabled: !canManageTemplates,
+                onClick: () =>
+                  navigate(`/app/admin/project-type-templates/${record.projectTypeTemplateId}/role-requirements/${record.id}/edit`, {
+                    state: { from: `${location.pathname}${location.search}` },
+                  }),
+              },
+              {
+                key: "delete",
+                icon: <DeleteOutlined />,
+                label: t("common.actions.delete"),
+                danger: true,
+                disabled: !canManageTemplates,
+                onClick: () => {
+                  setDeleteRequirementTarget(record);
+                  requirementDeleteForm.resetFields();
+                },
+              },
+            ]}
+          />
         ),
       },
     ],
