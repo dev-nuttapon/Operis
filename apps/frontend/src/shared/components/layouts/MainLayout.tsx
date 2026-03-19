@@ -592,13 +592,9 @@ function getOpenKeys(path: string) {
   }
 
   if (
-    path.startsWith('/app/admin/projects') ||
-    path.startsWith('/app/admin/project-type-templates') ||
     path.startsWith('/app/admin/project-roles') ||
     path.startsWith('/app/admin/project-members') ||
-    path.startsWith('/app/admin/project-org-chart') ||
-    path.startsWith('/app/admin/project-evidence') ||
-    path.startsWith('/app/admin/project-compliance')
+    path.startsWith('/app/admin/project-org-chart')
   ) {
     return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
   }
@@ -671,14 +667,6 @@ function getSelectedMenuKey(path: string) {
     return '/app/admin/master/positions';
   }
 
-  if (path.startsWith('/app/admin/projects')) {
-    return '/app/admin/projects';
-  }
-
-  if (path.startsWith('/app/admin/project-type-templates')) {
-    return '/app/admin/project-type-templates';
-  }
-
   if (path.startsWith('/app/admin/project-roles')) {
     return '/app/admin/project-roles';
   }
@@ -689,14 +677,6 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/admin/project-org-chart')) {
     return '/app/admin/project-org-chart';
-  }
-
-  if (path.startsWith('/app/admin/project-evidence')) {
-    return '/app/admin/project-evidence';
-  }
-
-  if (path.startsWith('/app/admin/project-compliance')) {
-    return '/app/admin/project-compliance';
   }
 
   if (path.startsWith('/app/admin/activity-logs')) {
