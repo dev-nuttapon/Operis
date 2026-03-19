@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Typography, Card, Button, Space, Table, Alert, Dropdown, Modal, Form, Input, Tag, Skeleton } from "antd";
 import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, MoreOutlined, FileTextOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -12,6 +12,7 @@ import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import type { DocumentListItemView } from "../types/documents";
 import { saveBlobAsFile } from "../utils/download";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 const { Title, Paragraph } = Typography;
 export function DocumentDashboardPage() {
@@ -19,8 +20,10 @@ export function DocumentDashboardPage() {
   const navigate = useNavigate();
   const permissionState = usePermissions();
   const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
-  const [paging, setPaging] = useState({ page: 1, pageSize: 10 });
-  const { documentsQuery } = useDocumentDashboard(canReadDocuments, paging.page, paging.pageSize);
+  const [paging, setPaging] = useState({ page: 1, pageSize: 10, search: "" });
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearchInput = useDebouncedValue(searchInput, 300);
+  const { documentsQuery } = useDocumentDashboard(canReadDocuments, paging.page, paging.pageSize, paging.search);
   const tr = (key: string) => i18n.t(key, { lng: language });
   const [editForm] = Form.useForm();
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -34,6 +37,10 @@ export function DocumentDashboardPage() {
   const canPublishDocuments = permissionState.hasPermission(permissions.documents.publish);
   const canDeleteDrafts = permissionState.hasPermission(permissions.documents.deleteDraft);
   const canOperateDocuments = canUploadDocuments || canManageVersions || canPublishDocuments || canDeleteDrafts;
+
+  useEffect(() => {
+    setPaging((current) => ({ ...current, page: 1, search: debouncedSearchInput.trim() }));
+  }, [debouncedSearchInput]);
   const resolveDocumentStatus = (item: DocumentListItemView) => {
     const revisionCount = item.revision ?? 0;
     if (revisionCount === 0) {
@@ -212,19 +219,33 @@ export function DocumentDashboardPage() {
       </Card>
 
       <Card variant="borderless">
-        {!canOperateDocuments ? (
+        {!canReadDocuments ? (
           <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
         ) : (
-          <Space style={{ width: "100%", justifyContent: "flex-end", marginBottom: 16 }}>
-            <Button
-              type="primary"
-              icon={<UploadOutlined />}
-              disabled={!canUploadDocuments}
-              onClick={() => navigate("/app/documents/upload")}
-            >
-              {tr("documents.upload.action")}
-            </Button>
-          </Space>
+          <>
+            {!canOperateDocuments ? (
+              <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 16 }} />
+            ) : null}
+
+            <Space wrap size={12} style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
+              <Input.Search
+                allowClear
+                placeholder={tr("documents.search_placeholder")}
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                onSearch={(value) => setSearchInput(value)}
+                style={{ maxWidth: 360 }}
+              />
+              <Button
+                type="primary"
+                icon={<UploadOutlined />}
+                disabled={!canUploadDocuments}
+                onClick={() => navigate("/app/documents/upload")}
+              >
+                {tr("documents.upload.action")}
+              </Button>
+            </Space>
+          </>
         )}
 
         <Title level={4} style={{ marginTop: 0 }}>
@@ -244,7 +265,7 @@ export function DocumentDashboardPage() {
               total: documentsQuery.data?.total ?? 0,
               showSizeChanger: true,
               pageSizeOptions: [10, 25, 50, 100],
-              onChange: (page, pageSize) => setPaging({ page, pageSize }),
+              onChange: (page, pageSize) => setPaging((current) => ({ ...current, page, pageSize })),
             }}
             scroll={{ x: "max-content" }}
             locale={{ emptyText: !canReadDocuments ? tr("documents.read_only_title") : documentsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}

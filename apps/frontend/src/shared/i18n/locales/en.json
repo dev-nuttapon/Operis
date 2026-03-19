@@ -1287,6 +1287,7 @@
     "page_title": "Document Dashboard",
     "welcome": "Document operations are reserved for assigned document roles only.",
     "list_title": "Document List",
+    "search_placeholder": "Search document name",
     "columns": {
       "document_name": "Document name",
       "file_name": "File name",
