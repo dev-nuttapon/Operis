@@ -115,43 +115,43 @@ export function AdminRegistrationsSection({
       title: t("admin_users.columns.actions"),
       key: "actions",
       render: (_, record) => {
-        if (record.status === "Pending" && canReviewRegistrations) {
-          return (
-            <ActionMenu
-              items={[
-                {
-                  key: "manage",
-                  icon: <CheckCircleOutlined />,
-                  label: t("common.actions.manage"),
-                  onClick: () => {
-                    setManagingRegistration(record);
-                    reviewRegistrationForm.setFieldsValue({
-                      action: "approve",
-                      reason: "",
-                    });
-                  },
-                },
-              ]}
-            />
-          );
-        }
+        const canManage = record.status === "Pending" && canReviewRegistrations;
+        const canViewLink = record.status === "Approved" && record.passwordSetupLink && !record.passwordSetupCompletedAt;
 
-        if (record.status === "Approved" && record.passwordSetupLink && !record.passwordSetupCompletedAt) {
-          return (
-            <ActionMenu
-              items={[
-                {
-                  key: "view",
-                  icon: <EyeOutlined />,
-                  label: t("admin_users.registration.view_setup_link"),
-                  onClick: () => setViewingRegistrationLink(record),
+        return (
+          <ActionMenu
+            items={[
+              {
+                key: "manage",
+                icon: <CheckCircleOutlined />,
+                label: t("common.actions.manage"),
+                disabled: !canManage,
+                onClick: () => {
+                  if (!canManage) {
+                    return;
+                  }
+                  setManagingRegistration(record);
+                  reviewRegistrationForm.setFieldsValue({
+                    action: "approve",
+                    reason: "",
+                  });
                 },
-              ]}
-            />
-          );
-        }
-
-        return <Typography.Text type="secondary">-</Typography.Text>;
+              },
+              {
+                key: "view",
+                icon: <EyeOutlined />,
+                label: t("admin_users.registration.view_setup_link"),
+                disabled: !canViewLink,
+                onClick: () => {
+                  if (!canViewLink) {
+                    return;
+                  }
+                  setViewingRegistrationLink(record);
+                },
+              },
+            ]}
+          />
+        );
       },
     },
   ];
