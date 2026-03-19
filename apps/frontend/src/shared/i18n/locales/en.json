@@ -1363,6 +1363,7 @@
     "history_page": {
       "title": "Document History",
       "description": "Track document events for audit and review.",
+      "list_title": "History Timeline",
       "back_action": "Back",
       "open_action": "History"
     },

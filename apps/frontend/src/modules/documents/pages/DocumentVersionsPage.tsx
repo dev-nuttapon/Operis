@@ -202,7 +202,14 @@ export function DocumentVersionsPage() {
           </Title>
           <Space>
             {canManageVersions ? (
-              <Button icon={<UploadOutlined />} onClick={() => navigate(`/app/documents/${documentId}/versions/new`, { state: { documentName: documentLabel } })}>
+              <Button
+                icon={<UploadOutlined />}
+                onClick={() =>
+                  navigate(`/app/documents/${documentId}/versions/new`, {
+                    state: { documentName: documentLabel, from: `/app/documents/${documentId}/versions` },
+                  })
+                }
+              >
                 {tr("documents.versions_page.actions.add_version")}
               </Button>
             ) : null}

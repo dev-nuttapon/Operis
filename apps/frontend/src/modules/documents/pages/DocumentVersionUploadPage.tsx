@@ -14,6 +14,7 @@ const allowedDocumentExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx"] as 
 
 type LocationState = {
   documentName?: string;
+  from?: string;
 };
 
 export function DocumentVersionUploadPage() {
@@ -23,6 +24,7 @@ export function DocumentVersionUploadPage() {
   const { documentId } = useParams<{ documentId: string }>();
   const location = useLocation();
   const locationState = location.state as LocationState | null;
+  const backTarget = locationState?.from ?? "/app/documents";
   const permissionState = usePermissions();
   const canManageVersions = permissionState.hasPermission(permissions.documents.manageVersions);
   const createVersionMutation = useCreateDocumentVersion();
@@ -82,7 +84,7 @@ export function DocumentVersionUploadPage() {
         message: tr("documents.upload.success_title"),
         description: tr("documents.upload.success_description"),
       });
-      navigate("/app/documents");
+      navigate(backTarget);
     } catch (error) {
       if (error && typeof error === "object" && "errorFields" in error) {
         return;
@@ -103,7 +105,7 @@ export function DocumentVersionUploadPage() {
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Space style={{ width: "100%", justifyContent: "flex-start" }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backTarget)}>
           {tr("documents.version_page.back_action")}
         </Button>
       </Space>
@@ -176,7 +178,7 @@ export function DocumentVersionUploadPage() {
             <Button type="primary" onClick={handleSubmit} loading={createVersionMutation.isPending} disabled={!canManageVersions}>
               {tr("documents.version_page.actions.submit")}
             </Button>
-            <Button onClick={() => navigate("/app/documents")}>{tr("documents.version_page.actions.cancel")}</Button>
+            <Button onClick={() => navigate(backTarget)}>{tr("documents.version_page.actions.cancel")}</Button>
           </Space>
         </Form>
       </Card>

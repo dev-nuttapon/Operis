@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Divider, Space, Table, Typography, Skeleton } from "antd";
+import { Alert, Button, Card, Space, Table, Typography, Skeleton } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, FileTextOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
@@ -85,82 +85,104 @@ export function DocumentHistoryPage() {
   };
 
   return (
-    <Card bordered={false} style={{ borderRadius: 16 }}>
-      <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
-        <div>
-          <Title level={2} style={{ margin: 0 }}>{tr("documents.history_page.title")}</Title>
-          <Text type="secondary">{documentLabel}</Text>
-        </div>
-        <Space>
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() =>
-              navigate(locationState?.from ?? `/app/documents/${documentId}/versions`, {
-                state: { documentName: documentLabel },
-              })
-            }
-          >
-            {tr("documents.history_page.back_action")}
-          </Button>
-        </Space>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() =>
+            navigate(locationState?.from ?? `/app/documents/${documentId}/versions`, {
+              state: { documentName: documentLabel },
+            })
+          }
+        >
+          {tr("documents.history_page.back_action")}
+        </Button>
       </Space>
 
-      <Paragraph type="secondary">{tr("documents.history_page.description")}</Paragraph>
+      <Card variant="borderless">
+        <Space align="start" size={16}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              color: "#fff",
+            }}
+          >
+            <FileTextOutlined />
+          </div>
+          <div>
+            <Title level={3} style={{ margin: 0 }}>
+              {tr("documents.history_page.title")}
+            </Title>
+            <Text type="secondary">{documentLabel}</Text>
+            <Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
+              {tr("documents.history_page.description")}
+            </Paragraph>
+          </div>
+        </Space>
+      </Card>
 
-      <Divider />
-
-      {!canReadHistory ? (
-        <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
-      ) : historyQuery.isLoading && historyItems.length === 0 ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : (
-        <Table<DocumentHistoryItem>
-          rowKey="id"
-          loading={historyQuery.isLoading}
-          columns={historyColumns}
-          dataSource={historyItems}
-          pagination={{
-            current: historyQuery.data?.page ?? paging.page,
-            pageSize: historyQuery.data?.pageSize ?? paging.pageSize,
-            total: historyQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 25, 50, 100],
-            onChange: (page, pageSize) => setPaging({ page, pageSize }),
-          }}
-          scroll={{ x: "max-content" }}
-          locale={{ emptyText: historyQuery.isError ? tr("documents.load_failed") : tr("documents.history.empty") }}
-          expandable={{
-            expandedRowRender: (record) => {
-              const before = parseJson(record.beforeJson);
-              const after = parseJson(record.afterJson);
-              const metadata = parseJson(record.metadataJson);
-              return (
-                <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                  <div>
-                    <Text strong>{tr("documents.history.columns.before")}</Text>
-                    <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
-                      {before ? JSON.stringify(before, null, 2) : "-"}
-                    </pre>
-                  </div>
-                  <div>
-                    <Text strong>{tr("documents.history.columns.after")}</Text>
-                    <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
-                      {after ? JSON.stringify(after, null, 2) : "-"}
-                    </pre>
-                  </div>
-                  <div>
-                    <Text strong>{tr("documents.history.columns.metadata")}</Text>
-                    <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
-                      {metadata ? JSON.stringify(metadata, null, 2) : "-"}
-                    </pre>
-                  </div>
-                </Space>
-              );
-            },
-            rowExpandable: (record) => Boolean(record.beforeJson || record.afterJson || record.metadataJson),
-          }}
-        />
-      )}
-    </Card>
+      <Card variant="borderless">
+        <Title level={4} style={{ margin: "0 0 16px" }}>
+          {tr("documents.history_page.list_title")}
+        </Title>
+        {!canReadHistory ? (
+          <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
+        ) : historyQuery.isLoading && historyItems.length === 0 ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : (
+          <Table<DocumentHistoryItem>
+            rowKey="id"
+            loading={historyQuery.isLoading}
+            columns={historyColumns}
+            dataSource={historyItems}
+            pagination={{
+              current: historyQuery.data?.page ?? paging.page,
+              pageSize: historyQuery.data?.pageSize ?? paging.pageSize,
+              total: historyQuery.data?.total ?? 0,
+              showSizeChanger: true,
+              pageSizeOptions: [10, 25, 50, 100],
+              onChange: (page, pageSize) => setPaging({ page, pageSize }),
+            }}
+            scroll={{ x: "max-content" }}
+            locale={{ emptyText: historyQuery.isError ? tr("documents.load_failed") : tr("documents.history.empty") }}
+            expandable={{
+              expandedRowRender: (record) => {
+                const before = parseJson(record.beforeJson);
+                const after = parseJson(record.afterJson);
+                const metadata = parseJson(record.metadataJson);
+                return (
+                  <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                    <div>
+                      <Text strong>{tr("documents.history.columns.before")}</Text>
+                      <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                        {before ? JSON.stringify(before, null, 2) : "-"}
+                      </pre>
+                    </div>
+                    <div>
+                      <Text strong>{tr("documents.history.columns.after")}</Text>
+                      <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                        {after ? JSON.stringify(after, null, 2) : "-"}
+                      </pre>
+                    </div>
+                    <div>
+                      <Text strong>{tr("documents.history.columns.metadata")}</Text>
+                      <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                        {metadata ? JSON.stringify(metadata, null, 2) : "-"}
+                      </pre>
+                    </div>
+                  </Space>
+                );
+              },
+              rowExpandable: (record) => Boolean(record.beforeJson || record.afterJson || record.metadataJson),
+            }}
+          />
+        )}
+      </Card>
+    </Space>
   );
 }
