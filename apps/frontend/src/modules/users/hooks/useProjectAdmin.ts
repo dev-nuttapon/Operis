@@ -6,8 +6,6 @@ import {
   deleteProject,
   deleteProjectAssignment,
   getProject,
-  getProjectCompliance,
-  exportProjectEvidence,
   deleteProjectRole,
   getProjectOrgChart,
   listProjectEvidenceAssignmentHistory,
@@ -47,7 +45,6 @@ export function useProjectAdmin(input: {
   projectEvidenceTeamRegister?: { projectId?: string; page?: number; pageSize?: number };
   projectEvidenceRoleResponsibilities?: { projectId?: string; page?: number; pageSize?: number };
   projectEvidenceAssignmentHistory?: { projectId?: string; page?: number; pageSize?: number };
-  projectComplianceProjectId?: string;
 }) {
   const queryClient = useQueryClient();
 
@@ -133,12 +130,6 @@ export function useProjectAdmin(input: {
     staleTime: 15_000,
   });
 
-  const projectComplianceQuery = useQuery({
-    queryKey: [...projectAssignmentsQueryKey, "compliance", input.projectComplianceProjectId],
-    enabled: Boolean(input.projectComplianceProjectId),
-    queryFn: ({ signal }) => getProjectCompliance(input.projectComplianceProjectId!, signal),
-    staleTime: 15_000,
-  });
 
   const invalidateProjects = async () => {
     await Promise.all([
@@ -194,8 +185,6 @@ export function useProjectAdmin(input: {
     onSuccess: invalidateProjects,
   });
 
-  const exportProjectEvidenceCsv = (projectId: string, signal?: AbortSignal) => exportProjectEvidence(projectId, signal);
-
   return {
     projectsQuery,
     projectDetailQuery,
@@ -205,7 +194,6 @@ export function useProjectAdmin(input: {
     projectEvidenceTeamRegisterQuery,
     projectEvidenceRoleResponsibilitiesQuery,
     projectEvidenceAssignmentHistoryQuery,
-    projectComplianceQuery,
     createProjectMutation,
     updateProjectMutation,
     deleteProjectMutation,
@@ -215,6 +203,5 @@ export function useProjectAdmin(input: {
     createProjectAssignmentMutation,
     updateProjectAssignmentMutation,
     deleteProjectAssignmentMutation,
-    exportProjectEvidenceCsv,
   };
 }

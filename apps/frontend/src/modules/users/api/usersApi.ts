@@ -1,4 +1,4 @@
-import { apiFileRequest, apiRequest, publicApiRequest } from "../../../shared/lib/apiClient";
+import { apiRequest, publicApiRequest } from "../../../shared/lib/apiClient";
 import type { PaginatedResult, PaginationInput } from "../../../shared/types/pagination";
 import type {
   AcceptInvitationInput,
@@ -28,12 +28,10 @@ import type {
   ProjectListItem,
   ProjectAssignment,
   ProjectAssignmentHistoryRow,
-  ProjectCompliance,
   ProjectOrgChartNode,
   ProjectRole,
   ProjectRoleResponsibilityRow,
   ProjectTeamRegisterRow,
-  ProjectTypeRoleRequirement,
   ProjectTypeTemplate,
   RegistrationRequest,
   RejectRegistrationInput,
@@ -45,13 +43,9 @@ import type {
   UpdateInvitationInput,
   UpdateProjectAssignmentInput,
   UpdateProjectInput,
-  UpdateProjectTypeRoleRequirementInput,
-  UpdateProjectTypeTemplateInput,
   UpdateProjectRoleInput,
   UpsertUserOrgAssignmentInput,
   User,
-  CreateProjectTypeRoleRequirementInput,
-  CreateProjectTypeTemplateInput,
 } from "../types/users";
 
 type ListQueryInput = PaginationInput & {
@@ -326,84 +320,6 @@ export function listProjectTypeTemplates(input?: ListQueryInput, signal?: AbortS
   return apiRequest<PaginatedResult<ProjectTypeTemplate>>(`/api/v1/users/project-type-templates${toListQuery(input)}`, { signal });
 }
 
-export function getProjectTypeTemplate(templateId: string, signal?: AbortSignal) {
-  return apiRequest<ProjectTypeTemplate>(`/api/v1/users/project-type-templates/${encodeURIComponent(templateId)}`, { signal });
-}
-
-export function createProjectTypeTemplate(input: CreateProjectTypeTemplateInput) {
-  return apiRequest<ProjectTypeTemplate>("/api/v1/users/project-type-templates", {
-    method: "POST",
-    body: input,
-  });
-}
-
-export function updateProjectTypeTemplate(input: UpdateProjectTypeTemplateInput) {
-  return apiRequest<ProjectTypeTemplate>(`/api/v1/users/project-type-templates/${input.id}`, {
-    method: "PUT",
-    body: {
-      projectType: input.projectType,
-      requireSponsor: input.requireSponsor,
-      requirePlannedPeriod: input.requirePlannedPeriod,
-      requireActiveTeam: input.requireActiveTeam,
-      requirePrimaryAssignment: input.requirePrimaryAssignment,
-      requireReportingRoot: input.requireReportingRoot,
-      requireDocumentCreator: input.requireDocumentCreator,
-      requireReviewer: input.requireReviewer,
-      requireApprover: input.requireApprover,
-      requireReleaseRole: input.requireReleaseRole,
-    },
-  });
-}
-
-export function deleteProjectTypeTemplate(id: string, input: SoftDeleteInput) {
-  return apiRequest<void>(`/api/v1/users/project-type-templates/${id}`, {
-    method: "DELETE",
-    body: input,
-  });
-}
-
-export function listProjectTypeRoleRequirements(input: { templateId: string } & ListQueryInput, signal?: AbortSignal) {
-  const params = new URLSearchParams();
-  params.set("templateId", input.templateId);
-  if (input.page) params.set("page", String(input.page));
-  if (input.pageSize) params.set("pageSize", String(input.pageSize));
-  if (input.search) params.set("search", input.search);
-  if (input.sortBy) params.set("sortBy", input.sortBy);
-  if (input.sortOrder) params.set("sortOrder", input.sortOrder);
-  return apiRequest<PaginatedResult<ProjectTypeRoleRequirement>>(`/api/v1/users/project-type-role-requirements?${params.toString()}`, { signal });
-}
-
-export function getProjectTypeRoleRequirement(requirementId: string, signal?: AbortSignal) {
-  return apiRequest<ProjectTypeRoleRequirement>(`/api/v1/users/project-type-role-requirements/${encodeURIComponent(requirementId)}`, { signal });
-}
-
-export function createProjectTypeRoleRequirement(input: CreateProjectTypeRoleRequirementInput) {
-  return apiRequest<ProjectTypeRoleRequirement>("/api/v1/users/project-type-role-requirements", {
-    method: "POST",
-    body: input,
-  });
-}
-
-export function updateProjectTypeRoleRequirement(input: UpdateProjectTypeRoleRequirementInput) {
-  return apiRequest<ProjectTypeRoleRequirement>(`/api/v1/users/project-type-role-requirements/${input.id}`, {
-    method: "PUT",
-    body: {
-      projectTypeTemplateId: input.projectTypeTemplateId,
-      roleName: input.roleName,
-      roleCode: input.roleCode,
-      description: input.description,
-      displayOrder: input.displayOrder,
-    },
-  });
-}
-
-export function deleteProjectTypeRoleRequirement(id: string, input: SoftDeleteInput) {
-  return apiRequest<void>(`/api/v1/users/project-type-role-requirements/${id}`, {
-    method: "DELETE",
-    body: input,
-  });
-}
-
 export function createProject(input: CreateProjectInput) {
   return apiRequest<Project>("/api/v1/users/projects", {
     method: "POST",
@@ -535,14 +451,6 @@ export function listProjectEvidenceAssignmentHistory(projectId: string, input: P
     `/api/v1/users/projects/${encodeURIComponent(projectId)}/evidence/assignment-history?${params.toString()}`,
     { signal },
   );
-}
-
-export function exportProjectEvidence(projectId: string, signal?: AbortSignal) {
-  return apiFileRequest(`/api/v1/users/projects/${encodeURIComponent(projectId)}/evidence/export`, { signal });
-}
-
-export function getProjectCompliance(projectId: string, signal?: AbortSignal) {
-  return apiRequest<ProjectCompliance>(`/api/v1/users/projects/${encodeURIComponent(projectId)}/compliance`, { signal });
 }
 
 export function createProjectAssignment(input: CreateProjectAssignmentInput) {

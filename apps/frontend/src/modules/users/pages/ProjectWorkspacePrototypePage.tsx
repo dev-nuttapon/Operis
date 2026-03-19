@@ -1114,8 +1114,8 @@ export function ProjectWorkspacePrototypePage() {
                     onChange={(value) => setAuditorMode(value === "auditor")}
                   />
                 </Space>
-                <Button onClick={() => navigate(canManageProjects ? "/app/admin/projects" : "/app/projects")}>
-                  {t(canManageProjects ? "project_workspace.back_to_projects" : "projects.back_to_my_projects")}
+                <Button onClick={() => navigate("/app/projects")}>
+                  {t("projects.back_to_my_projects")}
                 </Button>
               </Flex>
             </Card>

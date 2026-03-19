@@ -36,8 +36,7 @@ export function ProjectEditPage() {
   const permissionState = usePermissions();
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
 
-  const isAdminProjectsPage = location.pathname.startsWith("/app/admin/projects");
-  const defaultBackTarget = isAdminProjectsPage ? "/app/admin/projects" : "/app/projects";
+  const defaultBackTarget = "/app/projects";
   const backTarget = locationState?.from ?? defaultBackTarget;
 
   const [editForm] = Form.useForm<ProjectFormValues>();

@@ -122,7 +122,6 @@ export function ProjectsPage() {
         title: t("admin_users.columns.actions"),
         key: "actions",
         render: (_, record) => {
-          const base = isMyProjectsPage ? "/app/projects" : "/app/admin/projects";
           const canShowWorkspace = canManageProjects || canViewProjectList;
           const items = [
             {
@@ -151,7 +150,7 @@ export function ProjectsPage() {
               icon: <EditOutlined />,
               label: t("common.actions.edit"),
               disabled: !canManageProjects,
-              onClick: () => navigate(`${base}/${record.id}/edit`, { state: { from: `${location.pathname}${location.search}` } }),
+              onClick: () => navigate(`/app/projects/${record.id}/edit`, { state: { from: `${location.pathname}${location.search}` } }),
             },
             {
               key: "delete",
@@ -217,7 +216,7 @@ export function ProjectsPage() {
                   type="primary"
                   icon={<PlusOutlined />}
                   size="large"
-                  onClick={() => navigate(isMyProjectsPage ? "/app/projects/new" : "/app/admin/projects/new", { state: { from: location.pathname } })}
+                  onClick={() => navigate("/app/projects/new", { state: { from: location.pathname } })}
                   block={isMobile}
                 >
                   {t("projects.create_action")}

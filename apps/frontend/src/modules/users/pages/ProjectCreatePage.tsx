@@ -72,7 +72,7 @@ export function ProjectCreatePage() {
           navigate(`/app/admin/project-members?projectId=${projectId}`, { state: { from: "/app/projects/new" } });
           return;
         }
-        navigate(locationState?.from ?? "/app/admin/projects");
+        navigate(locationState?.from ?? "/app/projects");
       },
       onError: (error) => {
         const { message } = getApiErrorPresentation(error);

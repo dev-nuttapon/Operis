@@ -415,26 +415,6 @@ export interface ProjectAssignmentHistoryRow {
   updatedAt: string | null;
 }
 
-export interface ProjectComplianceCheck {
-  code: string;
-  title: string;
-  description: string;
-  severity: string;
-  status: string;
-  detail: string | null;
-}
-
-export interface ProjectCompliance {
-  projectId: string;
-  projectName: string;
-  projectType: string;
-  status: string;
-  passedChecks: number;
-  warningChecks: number;
-  failedChecks: number;
-  checks: ProjectComplianceCheck[];
-}
-
 export interface ProjectTypeTemplate {
   id: string;
   projectType: string;
@@ -447,21 +427,6 @@ export interface ProjectTypeTemplate {
   requireReviewer: boolean;
   requireApprover: boolean;
   requireReleaseRole: boolean;
-  createdAt: string;
-  updatedAt: string | null;
-  deletedReason: string | null;
-  deletedBy: string | null;
-  deletedAt: string | null;
-}
-
-export interface ProjectTypeRoleRequirement {
-  id: string;
-  projectTypeTemplateId: string;
-  projectType: string;
-  roleName: string;
-  roleCode: string | null;
-  description: string | null;
-  displayOrder: number;
   createdAt: string;
   updatedAt: string | null;
   deletedReason: string | null;
@@ -486,35 +451,6 @@ export interface CreateProjectInput {
 }
 
 export interface UpdateProjectInput extends CreateProjectInput {
-  id: string;
-}
-
-export interface CreateProjectTypeTemplateInput {
-  projectType: string;
-  requireSponsor: boolean;
-  requirePlannedPeriod: boolean;
-  requireActiveTeam: boolean;
-  requirePrimaryAssignment: boolean;
-  requireReportingRoot: boolean;
-  requireDocumentCreator: boolean;
-  requireReviewer: boolean;
-  requireApprover: boolean;
-  requireReleaseRole: boolean;
-}
-
-export interface UpdateProjectTypeTemplateInput extends CreateProjectTypeTemplateInput {
-  id: string;
-}
-
-export interface CreateProjectTypeRoleRequirementInput {
-  projectTypeTemplateId: string;
-  roleName: string;
-  roleCode?: string;
-  description?: string;
-  displayOrder: number;
-}
-
-export interface UpdateProjectTypeRoleRequirementInput extends CreateProjectTypeRoleRequirementInput {
   id: string;
 }
 
