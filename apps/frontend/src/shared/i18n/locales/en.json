@@ -585,6 +585,16 @@
       "description": "Select project members and assign their project roles.",
       "create_hint": "Save the project first to assign project members and roles."
     },
+    "documents_section": {
+      "title": "Project documents",
+      "description": "Select the documents required for this project.",
+      "create_hint": "Save the project first to select documents and workflows.",
+      "empty": "Save the project first to assign required documents.",
+      "columns": {
+        "name": "Document",
+        "source": "Source"
+      }
+    },
     "members": {
       "empty": "No project members selected yet.",
       "columns": {

@@ -153,6 +153,14 @@ export function ProjectCreatePage() {
     [canEditMembers, memberRoleByUserId, projectRoleOptionsState.options, t],
   );
 
+  const projectDocumentColumns = useMemo<ColumnsType<{ id: string; name: string; source: string }>>(
+    () => [
+      { title: t("projects.documents_section.columns.name"), dataIndex: "name" },
+      { title: t("projects.documents_section.columns.source"), dataIndex: "source" },
+    ],
+    [t],
+  );
+
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Space style={{ width: "100%", justifyContent: "flex-start" }}>
@@ -243,6 +251,21 @@ export function ProjectCreatePage() {
               dataSource={selectedMembers}
               columns={memberColumns}
               locale={{ emptyText: t("projects.members.empty") }}
+              scroll={{ x: "max-content" }}
+            />
+            <Divider style={{ margin: "16px 0" }} />
+            <Typography.Title level={5} style={{ marginBottom: 12 }}>
+              {t("projects.documents_section.title")}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+              {t("projects.documents_section.create_hint")}
+            </Typography.Paragraph>
+            <Table
+              rowKey="id"
+              pagination={false}
+              dataSource={[]}
+              columns={projectDocumentColumns}
+              locale={{ emptyText: t("projects.documents_section.empty") }}
               scroll={{ x: "max-content" }}
             />
             <Flex
