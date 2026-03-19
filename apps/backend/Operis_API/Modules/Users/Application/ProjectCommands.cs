@@ -25,7 +25,8 @@ public sealed class ProjectCommands(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter,
     IReferenceDataCache referenceDataCache,
-    IBusinessAuditEventWriter businessAuditEventWriter) : IProjectCommands
+    IBusinessAuditEventWriter businessAuditEventWriter,
+    ProjectHistoryWriter historyWriter) : IProjectCommands
 {
     public async Task<(bool Success, string? Error, string? ErrorCode, ProjectResponse? Response)> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken)
     {
@@ -76,6 +77,15 @@ public sealed class ProjectCommands(
         dbContext.Projects.Add(entity);
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "create", EntityType: "project", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status201Created, After: ToProjectState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await historyWriter.AppendAsync(
+            entity.Id,
+            "created",
+            null,
+            ToProjectState(entity),
+            "Created project",
+            null,
+            new { entity.Code, entity.Name, entity.ProjectType },
+            cancellationToken);
         await TryAppendBusinessEventAsync(
             "projects",
             "project.created",
@@ -139,6 +149,15 @@ public sealed class ProjectCommands(
 
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "update", EntityType: "project", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status200OK, Before: before, After: ToProjectState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await historyWriter.AppendAsync(
+            entity.Id,
+            "updated",
+            before,
+            ToProjectState(entity),
+            "Updated project",
+            null,
+            null,
+            cancellationToken);
         await TryAppendBusinessEventAsync(
             "projects",
             "project.updated",
@@ -165,6 +184,15 @@ public sealed class ProjectCommands(
         entity.DeletedReason = NormalizeRequired(request.Reason, 500) ?? "No reason provided";
         auditLogWriter.Append(new AuditLogEntry(Module: "users", Action: "soft_delete", EntityType: "project", EntityId: entity.Id.ToString(), StatusCode: StatusCodes.Status204NoContent, Reason: entity.DeletedReason, Before: before, After: ToProjectState(entity)));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await historyWriter.AppendAsync(
+            entity.Id,
+            "deleted",
+            before,
+            ToProjectState(entity),
+            "Deleted project",
+            entity.DeletedReason,
+            null,
+            cancellationToken);
         await TryAppendBusinessEventAsync(
             "projects",
             "project.deleted",

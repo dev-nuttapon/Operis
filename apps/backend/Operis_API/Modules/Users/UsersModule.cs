@@ -32,6 +32,8 @@ public sealed class UsersModule : IModule
         services.AddScoped<IProjectQueries, ProjectQueries>();
         services.AddScoped<IProjectTemplateCommands, ProjectTemplateCommands>();
         services.AddScoped<IProjectTemplateQueries, ProjectTemplateQueries>();
+        services.AddScoped<IProjectHistoryQueries, ProjectHistoryQueries>();
+        services.AddScoped<ProjectHistoryWriter>();
         services.AddSingleton<IReferenceDataCache, ReferenceDataCache>();
         services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>(client =>
         {
@@ -116,6 +118,9 @@ public sealed class UsersModule : IModule
 
         group.MapGet("/projects/{projectId:guid}", GetProjectAsync)
             .WithName("Users_GetProject");
+        
+        group.MapGet("/projects/{projectId:guid}/history", ListProjectHistoryAsync)
+            .WithName("Users_ListProjectHistory");
 
         group.MapGet("/project-type-templates", ListProjectTypeTemplatesAsync)
             .WithName("Users_ListProjectTypeTemplates");
@@ -621,6 +626,31 @@ public sealed class UsersModule : IModule
 
         var result = await queries.GetProjectAsync(projectId, cancellationToken);
         return result is null ? NotFoundWithCode() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> ListProjectHistoryAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid projectId,
+        IProjectQueries projectQueries,
+        IProjectHistoryQueries queries,
+        CancellationToken cancellationToken,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.ActivityLogs.Read))
+        {
+            return Results.Forbid();
+        }
+
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, projectQueries, projectId, cancellationToken))
+        {
+            return Results.Forbid();
+        }
+
+        var items = await queries.ListAsync(new ProjectHistoryListQuery(projectId, search, page, pageSize), cancellationToken);
+        return Results.Ok(items);
     }
 
     private static async Task<IResult> ListProjectTypeTemplatesAsync(

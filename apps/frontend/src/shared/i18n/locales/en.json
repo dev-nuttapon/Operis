@@ -215,6 +215,7 @@
       "confirm": "Confirm",
       "confirm_delete": "Confirm Deletion",
       "copy_link": "Copy link",
+      "history": "History",
       "send_invitation": "Send Invitation",
       "approve": "Approve",
       "reject": "Reject"
@@ -651,6 +652,31 @@
       "create_failed": "Unable to create the project",
       "update_failed": "Unable to update the project",
       "delete_failed": "Unable to delete the project"
+    },
+    "history_page": {
+      "title": "Project History",
+      "description": "Track key updates, approvals, and status changes for this project.",
+      "list_title": "History Log",
+      "back_action": "Back"
+    },
+    "history": {
+      "empty": "No project history recorded yet.",
+      "load_failed": "Unable to load project history.",
+      "columns": {
+        "occurred_at": "Occurred At",
+        "action": "Action",
+        "actor": "Actor",
+        "reason": "Reason",
+        "summary": "Summary",
+        "before": "Before",
+        "after": "After",
+        "metadata": "Metadata"
+      },
+      "actions": {
+        "created": "Created",
+        "updated": "Updated",
+        "deleted": "Deleted"
+      }
     }
   },
   "project_roles": {

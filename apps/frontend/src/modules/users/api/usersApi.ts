@@ -25,6 +25,8 @@ import type {
   ListUsersInput,
   MasterDataItem,
   Project,
+  ProjectHistoryItem,
+  ProjectHistoryListInput,
   ProjectListItem,
   ProjectAssignment,
   ProjectAssignmentHistoryRow,
@@ -314,6 +316,18 @@ export function listProjects(input?: ListProjectsInput, signal?: AbortSignal) {
 
 export function getProject(id: string, signal?: AbortSignal) {
   return apiRequest<Project>(`/api/v1/users/projects/${id}`, { signal });
+}
+
+export function listProjectHistory(projectId: string, input?: ProjectHistoryListInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (input?.page) params.set("page", String(input.page));
+  if (input?.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input?.search) params.set("search", input.search);
+  const query = params.toString();
+  return apiRequest<PaginatedResult<ProjectHistoryItem>>(
+    `/api/v1/users/projects/${encodeURIComponent(projectId)}/history${query ? `?${query}` : ""}`,
+    { signal },
+  );
 }
 
 export function listProjectTypeTemplates(input?: ListQueryInput, signal?: AbortSignal) {

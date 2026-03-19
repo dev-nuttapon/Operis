@@ -1,5 +1,5 @@
 import { App, Button, Card, Form, Space, Typography, Alert, Flex, Grid } from "antd";
-import { ArrowLeftOutlined, FolderOpenOutlined, SaveOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CloseOutlined, FolderOpenOutlined, SaveOutlined, TeamOutlined } from "@ant-design/icons";
 import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -58,21 +58,16 @@ export function ProjectCreatePage() {
     ];
   }, [projectTypeOptionsState.options, t]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (redirectToMembers?: boolean) => {
     const values = await createForm.validateFields();
     createProjectMutation.mutate(normalizeProjectPayload(values), {
       onSuccess: (project) => {
         notification.success({ message: t("projects.messages.created", { name: values.name }) });
-        const projectId = project.id;
-        if (canManageProjectRoles) {
-          navigate(`/app/admin/project-roles?projectId=${projectId}`, { state: { from: "/app/projects/new" } });
+        if (redirectToMembers) {
+          navigate(`/app/admin/project-members?projectId=${project.id}`, { state: { from: "/app/projects/new" } });
           return;
         }
-        if (canManageProjectMembers) {
-          navigate(`/app/admin/project-members?projectId=${projectId}`, { state: { from: "/app/projects/new" } });
-          return;
-        }
-        navigate(locationState?.from ?? "/app/projects");
+        navigate("/app/projects");
       },
       onError: (error) => {
         const { message } = getApiErrorPresentation(error);
@@ -133,10 +128,27 @@ export function ProjectCreatePage() {
               style={{ width: "100%" }}
             >
               <Button
+                icon={<CloseOutlined />}
+                onClick={() => navigate(locationState?.from ?? "/app/projects")}
+                block={isMobile}
+              >
+                {t("common.actions.cancel")}
+              </Button>
+              {canManageProjectMembers ? (
+                <Button
+                  icon={<TeamOutlined />}
+                  loading={createProjectMutation.isPending}
+                  onClick={() => void handleSubmit(true)}
+                  block={isMobile}
+                >
+                  {t("projects.actions.manage_members")}
+                </Button>
+              ) : null}
+              <Button
                 type="primary"
                 icon={<SaveOutlined />}
                 loading={createProjectMutation.isPending}
-                onClick={() => void handleSubmit()}
+                onClick={() => void handleSubmit(false)}
                 block={isMobile}
               >
                 {t("projects.create_page_submit")}

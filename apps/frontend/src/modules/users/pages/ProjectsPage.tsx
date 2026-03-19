@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
-import { DeleteOutlined, EditOutlined, FileAddOutlined, FolderOpenOutlined, PlusOutlined, TeamOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, FolderOpenOutlined, HistoryOutlined, PlusOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -33,8 +33,7 @@ export function ProjectsPage() {
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
-  const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
-  const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
+  const canReadActivityLogs = permissionState.hasPermission(permissions.activityLogs.read);
   const isMyProjectsPage = location.pathname === "/app/projects";
   const canViewProjectList = canReadProjects || isMyProjectsPage;
   const projectStatusLabel = useMemo<Record<string, string>>(
@@ -122,35 +121,23 @@ export function ProjectsPage() {
         title: t("admin_users.columns.actions"),
         key: "actions",
         render: (_, record) => {
-          const canShowWorkspace = canManageProjects || canViewProjectList;
           const items = [
-            {
-              key: "workspace",
-              icon: <FolderOpenOutlined />,
-              label: t("projects.actions.open_workspace"),
-              disabled: !canShowWorkspace,
-              onClick: () => navigate(`/app/projects/${record.id}/workspace`),
-            },
-            {
-              key: "members",
-              icon: <TeamOutlined />,
-              label: t("projects.actions.manage_members"),
-              disabled: !canManageProjectMembers,
-              onClick: () => navigate(`/app/admin/project-members?projectId=${record.id}`),
-            },
-            {
-              key: "documents",
-              icon: <FileAddOutlined />,
-              label: t("projects.actions.manage_documents"),
-              disabled: !canReadDocuments,
-              onClick: () => navigate(`/app/documents?projectId=${record.id}`),
-            },
             {
               key: "edit",
               icon: <EditOutlined />,
               label: t("common.actions.edit"),
               disabled: !canManageProjects,
               onClick: () => navigate(`/app/projects/${record.id}/edit`, { state: { from: `${location.pathname}${location.search}` } }),
+            },
+            {
+              key: "history",
+              icon: <HistoryOutlined />,
+              label: t("common.actions.history"),
+              disabled: !canReadActivityLogs,
+              onClick: () =>
+                navigate(`/app/projects/${record.id}/history`, {
+                  state: { projectName: record.name, from: `${location.pathname}${location.search}` },
+                }),
             },
             {
               key: "delete",
@@ -169,7 +156,7 @@ export function ProjectsPage() {
         },
       },
     ],
-    [canManageProjects, canViewProjectList, deleteForm, i18n.language, navigate, projectStatusLabel, t],
+    [canManageProjects, canReadActivityLogs, deleteForm, i18n.language, navigate, projectStatusLabel, t],
   );
 
   return (

@@ -311,6 +311,27 @@ export interface Project {
   deletedAt: string | null;
 }
 
+export interface ProjectHistoryItem {
+  id: string;
+  projectId: string;
+  eventType: string;
+  summary: string | null;
+  reason: string | null;
+  actorUserId: string | null;
+  actorEmail: string | null;
+  actorDisplayName: string | null;
+  beforeJson: string | null;
+  afterJson: string | null;
+  metadataJson: string | null;
+  occurredAt: string;
+}
+
+export interface ProjectHistoryListInput {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
+
 export interface ProjectRole {
   id: string;
   projectId: string | null;

@@ -62,6 +62,9 @@ const ProjectCreatePage = lazy(() =>
 const ProjectEditPage = lazy(() =>
   import("../modules/users/pages/ProjectEditPage").then((module) => ({ default: module.ProjectEditPage }))
 );
+const ProjectHistoryPage = lazy(() =>
+  import("../modules/users/pages/ProjectHistoryPage").then((module) => ({ default: module.ProjectHistoryPage }))
+);
 const ProjectRolesPage = lazy(() =>
   import("../modules/users/pages/ProjectRolesPage").then((module) => ({ default: module.ProjectRolesPage }))
 );
@@ -129,6 +132,7 @@ export function AppRouter() {
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="projects/new" element={<ProjectCreatePage />} />
                 <Route path="projects/:projectId/edit" element={<ProjectEditPage />} />
+                <Route path="projects/:projectId/history" element={<ProjectHistoryPage />} />
               <Route path="workflows" element={<WorkflowDefinitionsPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
               <Route path="admin/users/new" element={<AdminUserCreatePage />} />

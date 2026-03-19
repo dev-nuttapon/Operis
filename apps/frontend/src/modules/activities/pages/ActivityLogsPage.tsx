@@ -13,6 +13,7 @@ import { useActivityLogs } from "../hooks/useActivityLogs";
 import type { ActivityLogListItem, ListActivityLogsInput } from "../types/activities";
 import { getActivityLog } from "../api/activitiesApi";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 const { RangePicker } = DatePicker;
@@ -85,6 +86,7 @@ export function ActivityLogsPage() {
   const permissionState = usePermissions();
   const canReadActivityLogs = permissionState.hasPermission(permissions.activityLogs.read);
   const [form] = Form.useForm();
+  const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<ListActivityLogsInput>({ page: 1, pageSize: 10, sortBy: "occurredAt", sortOrder: "desc" });
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
   const activityLogsQuery = useActivityLogs(filters);
@@ -101,6 +103,21 @@ export function ActivityLogsPage() {
   const watchedActor = Form.useWatch("actor", form);
   const watchedStatus = Form.useWatch("status", form);
   const watchedRange = Form.useWatch("range", form);
+
+  useEffect(() => {
+    const entityType = searchParams.get("entityType") ?? undefined;
+    const entityId = searchParams.get("entityId") ?? undefined;
+    if (!entityType && !entityId) {
+      return;
+    }
+    form.setFieldsValue({ entityType, entityId });
+    setFilters((current) => ({
+      ...current,
+      entityType,
+      entityId,
+      page: 1,
+    }));
+  }, [form, searchParams]);
 
   const debouncedFilters = useDebouncedValue(
     useMemo(
