@@ -579,6 +579,10 @@
       "manage_members": "สมาชิกโครงการ",
       "manage_documents": "เอกสารโครงการ"
     },
+    "members_section": {
+      "title": "สมาชิกโครงการ",
+      "description": "เลือกสมาชิกโครงการและกำหนดตำแหน่งในโครงการ"
+    },
     "edit_modal_title": "แก้ไขโครงการ",
     "edit_modal_title_with_name": "แก้ไขโครงการ {{name}}",
     "delete_modal_title": "ลบโครงการ",

@@ -134,16 +134,6 @@ export function ProjectCreatePage() {
               >
                 {t("common.actions.cancel")}
               </Button>
-              {canManageProjectMembers ? (
-                <Button
-                  icon={<TeamOutlined />}
-                  loading={createProjectMutation.isPending}
-                  onClick={() => void handleSubmit(true)}
-                  block={isMobile}
-                >
-                  {t("projects.actions.manage_members")}
-                </Button>
-              ) : null}
               <Button
                 type="primary"
                 icon={<SaveOutlined />}
@@ -156,6 +146,32 @@ export function ProjectCreatePage() {
             </Flex>
           </>
         )}
+      </Card>
+
+      <Card variant="borderless">
+        <Space align="start" size={16}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(14, 165, 233, 0.15)", color: "#38bdf8" }}>
+            <TeamOutlined />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              {t("projects.members_section.title")}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
+              {t("projects.members_section.description")}
+            </Typography.Paragraph>
+          </div>
+          {canManageProjectMembers ? (
+            <Button
+              icon={<TeamOutlined />}
+              loading={createProjectMutation.isPending}
+              onClick={() => void handleSubmit(true)}
+              block={isMobile}
+            >
+              {t("projects.actions.manage_members")}
+            </Button>
+          ) : null}
+        </Space>
       </Card>
     </Space>
   );

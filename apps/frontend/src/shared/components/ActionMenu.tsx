@@ -31,17 +31,25 @@ export function ActionMenu({
   placement = "bottomRight",
   stopPropagation = true,
 }: ActionMenuProps) {
+  const itemMap = new Map(items.map((item) => [item.key, item]));
   const menuItems: MenuProps["items"] = items.map((item) => ({
     key: item.key,
     label: item.label,
     icon: item.icon,
     disabled: item.disabled,
     danger: item.danger,
-    onClick: item.onClick ? () => item.onClick?.() : undefined,
   }));
 
+  const handleMenuClick: MenuProps["onClick"] = (info) => {
+    if (stopPropagation) {
+      info.domEvent?.stopPropagation();
+    }
+    const target = itemMap.get(String(info.key));
+    target?.onClick?.();
+  };
+
   return (
-    <Dropdown menu={{ items: menuItems }} trigger={["click"]} placement={placement}>
+    <Dropdown menu={{ items: menuItems, onClick: handleMenuClick }} trigger={["click"]} placement={placement}>
       <Button
         size={size}
         icon={<MoreOutlined />}

@@ -579,6 +579,10 @@
       "manage_members": "Project members",
       "manage_documents": "Project documents"
     },
+    "members_section": {
+      "title": "Project members",
+      "description": "Select project members and assign their project roles."
+    },
     "edit_modal_title": "Edit Project",
     "edit_modal_title_with_name": "Edit project {{name}}",
     "delete_modal_title": "Delete Project",

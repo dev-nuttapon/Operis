@@ -1,5 +1,5 @@
 import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid } from "antd";
-import { ArrowLeftOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, EditOutlined, SaveOutlined, TeamOutlined } from "@ant-design/icons";
 import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -35,6 +35,7 @@ export function ProjectEditPage() {
 
   const permissionState = usePermissions();
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
+  const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
 
   const defaultBackTarget = "/app/projects";
   const backTarget = locationState?.from ?? defaultBackTarget;
@@ -152,6 +153,33 @@ export function ProjectEditPage() {
             </Flex>
           </>
         )}
+      </Card>
+
+      <Card variant="borderless">
+        <Space align="start" size={16}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", background: "rgba(14, 165, 233, 0.15)", color: "#38bdf8" }}>
+            <TeamOutlined />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              {t("projects.members_section.title")}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
+              {t("projects.members_section.description")}
+            </Typography.Paragraph>
+          </div>
+          {canManageProjectMembers ? (
+            <Button
+              icon={<TeamOutlined />}
+              onClick={() =>
+                navigate(`/app/admin/project-members?projectId=${projectId}`, { state: { from: `${location.pathname}${location.search}` } })
+              }
+              block={isMobile}
+            >
+              {t("projects.actions.manage_members")}
+            </Button>
+          ) : null}
+        </Space>
       </Card>
     </Space>
   );
