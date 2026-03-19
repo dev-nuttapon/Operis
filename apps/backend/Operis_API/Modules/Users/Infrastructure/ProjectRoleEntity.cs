@@ -13,6 +13,7 @@ public sealed class ProjectRoleEntity
     public bool CanReviewDocuments { get; set; }
     public bool CanApproveDocuments { get; set; }
     public bool CanReleaseDocuments { get; set; }
+    public bool IsPeerReviewRole { get; set; }
     public bool IsReviewRole { get; set; }
     public bool IsApprovalRole { get; set; }
     public int DisplayOrder { get; set; }

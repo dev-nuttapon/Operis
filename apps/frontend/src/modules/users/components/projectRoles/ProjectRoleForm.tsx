@@ -14,6 +14,7 @@ export type ProjectRoleFormValues = {
   canReviewDocuments: boolean;
   canApproveDocuments: boolean;
   canReleaseDocuments: boolean;
+  isPeerReviewRole: boolean;
   isReviewRole: boolean;
   isApprovalRole: boolean;
   displayOrder: number;
@@ -31,6 +32,7 @@ export function toProjectRoleInitialValues(record: ProjectRole, projectId?: stri
     canReviewDocuments: record.canReviewDocuments,
     canApproveDocuments: record.canApproveDocuments,
     canReleaseDocuments: record.canReleaseDocuments,
+    isPeerReviewRole: record.isPeerReviewRole ?? false,
     isReviewRole: record.isReviewRole,
     isApprovalRole: record.isApprovalRole,
     displayOrder: record.displayOrder,
@@ -51,6 +53,7 @@ export function ProjectRoleForm({
       form={form}
       layout="vertical"
       initialValues={{
+        isPeerReviewRole: false,
         isReviewRole: false,
         isApprovalRole: false,
         canCreateDocuments: false,
@@ -96,6 +99,9 @@ export function ProjectRoleForm({
       <Form.Item name="displayOrder" label={t("project_roles.fields.display_order")} rules={[{ required: true }]}>
         <InputNumber min={0} style={{ width: "100%" }} />
       </Form.Item>
+      <Form.Item name="isPeerReviewRole" valuePropName="checked">
+        <Checkbox>{t("project_roles.fields.is_peer_review_role")}</Checkbox>
+      </Form.Item>
       <Form.Item name="isReviewRole" valuePropName="checked">
         <Checkbox>{t("project_roles.fields.is_review_role")}</Checkbox>
       </Form.Item>
@@ -105,4 +111,3 @@ export function ProjectRoleForm({
     </Form>
   );
 }
-

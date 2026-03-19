@@ -58,6 +58,7 @@ public sealed record CreateProjectRoleRequest(
     bool CanReviewDocuments,
     bool CanApproveDocuments,
     bool CanReleaseDocuments,
+    bool IsPeerReviewRole,
     bool IsReviewRole,
     bool IsApprovalRole,
     int DisplayOrder);
@@ -106,6 +107,7 @@ public sealed record UpdateProjectRoleRequest(
     bool CanReviewDocuments,
     bool CanApproveDocuments,
     bool CanReleaseDocuments,
+    bool IsPeerReviewRole,
     bool IsReviewRole,
     bool IsApprovalRole,
     int DisplayOrder);
@@ -266,6 +268,7 @@ public sealed record ProjectRoleResponse(
     bool CanReviewDocuments,
     bool CanApproveDocuments,
     bool CanReleaseDocuments,
+    bool IsPeerReviewRole,
     bool IsReviewRole,
     bool IsApprovalRole,
     int DisplayOrder,
@@ -363,6 +366,7 @@ public sealed record ProjectRoleResponsibilityRowResponse(
     bool CanReviewDocuments,
     bool CanApproveDocuments,
     bool CanReleaseDocuments,
+    bool IsPeerReviewRole,
     bool IsReviewRole,
     bool IsApprovalRole,
     int MemberCount);

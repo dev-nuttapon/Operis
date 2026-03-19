@@ -248,6 +248,7 @@ public sealed class ProjectCommands(
             CanReviewDocuments = request.CanReviewDocuments,
             CanApproveDocuments = request.CanApproveDocuments,
             CanReleaseDocuments = request.CanReleaseDocuments,
+            IsPeerReviewRole = request.IsPeerReviewRole,
             IsReviewRole = request.IsReviewRole,
             IsApprovalRole = request.IsApprovalRole,
             DisplayOrder = request.DisplayOrder,
@@ -316,6 +317,7 @@ public sealed class ProjectCommands(
         entity.CanReviewDocuments = request.CanReviewDocuments;
         entity.CanApproveDocuments = request.CanApproveDocuments;
         entity.CanReleaseDocuments = request.CanReleaseDocuments;
+        entity.IsPeerReviewRole = request.IsPeerReviewRole;
         entity.IsReviewRole = request.IsReviewRole;
         entity.IsApprovalRole = request.IsApprovalRole;
         entity.DisplayOrder = request.DisplayOrder;
@@ -710,6 +712,7 @@ public sealed class ProjectCommands(
         entity.CanReviewDocuments,
         entity.CanApproveDocuments,
         entity.CanReleaseDocuments,
+        entity.IsPeerReviewRole,
         entity.IsReviewRole,
         entity.IsApprovalRole,
         entity.DisplayOrder,
@@ -751,6 +754,7 @@ public sealed class ProjectCommands(
         entity.CanReviewDocuments,
         entity.CanApproveDocuments,
         entity.CanReleaseDocuments,
+        entity.IsPeerReviewRole,
         entity.IsReviewRole,
         entity.IsApprovalRole,
         entity.DisplayOrder,

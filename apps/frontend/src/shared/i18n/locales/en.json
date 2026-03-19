@@ -601,6 +601,9 @@
       "actions": {
         "remove": "Remove"
       },
+      "messages": {
+        "no_roles": "No project roles available."
+      },
       "validation": {
         "role_required": "Please select a project role for every member."
       },
@@ -757,6 +760,7 @@
       "can_review_documents": "Can review project documents",
       "can_approve_documents": "Can approve project documents",
       "can_release_documents": "Can release project documents",
+      "is_peer_review_role": "Use as peer review role",
       "is_review_role": "Use as review role",
       "is_approval_role": "Use as approval role",
       "display_order": "Display order"

@@ -345,6 +345,7 @@ export interface ProjectRole {
   canReviewDocuments: boolean;
   canApproveDocuments: boolean;
   canReleaseDocuments: boolean;
+  isPeerReviewRole: boolean;
   isReviewRole: boolean;
   isApprovalRole: boolean;
   displayOrder: number;
@@ -415,6 +416,7 @@ export interface ProjectRoleResponsibilityRow {
   canReviewDocuments: boolean;
   canApproveDocuments: boolean;
   canReleaseDocuments: boolean;
+  isPeerReviewRole: boolean;
   isReviewRole: boolean;
   isApprovalRole: boolean;
   memberCount: number;
@@ -486,6 +488,7 @@ export interface CreateProjectRoleInput {
   canReviewDocuments: boolean;
   canApproveDocuments: boolean;
   canReleaseDocuments: boolean;
+  isPeerReviewRole: boolean;
   isReviewRole: boolean;
   isApprovalRole: boolean;
   displayOrder: number;

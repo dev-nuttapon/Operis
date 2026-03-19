@@ -223,11 +223,6 @@ export function ProjectRolesPage() {
                   style={{ width: isMobile ? "100%" : undefined, maxWidth: isMobile ? undefined : 360 }}
                 />
                 <Flex gap={8} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"}>
-                  {selectedProjectId ? (
-                    <Button onClick={() => navigate(`/app/admin/project-members?projectId=${selectedProjectId}`)}>
-                      {t("project_roles.go_to_members")}
-                    </Button>
-                  ) : null}
                   {canManageProjectRoles ? (
                     <Button
                       type="primary"

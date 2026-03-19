@@ -65,6 +65,7 @@ export function ProjectRoleEditPage() {
       canReviewDocuments: values.canReviewDocuments,
       canApproveDocuments: values.canApproveDocuments,
       canReleaseDocuments: values.canReleaseDocuments,
+      isPeerReviewRole: values.isPeerReviewRole,
       isReviewRole: values.isReviewRole,
       isApprovalRole: values.isApprovalRole,
       displayOrder: values.displayOrder,

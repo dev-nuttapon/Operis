@@ -123,6 +123,8 @@ export function ProjectCreatePage() {
     });
   }, [memberRoleByUserId, memberTargetKeys, memberTransferData]);
 
+  const hasProjectRoleOptions = projectRoleOptionsState.options.length > 0;
+
   const memberColumns = useMemo<ColumnsType<{ id: string; name: string; email: string; roleId: string | null }>>(
     () => [
       { title: t("projects.members.columns.name"), dataIndex: "name" },
@@ -136,6 +138,7 @@ export function ProjectCreatePage() {
             allowClear
             placeholder={t("projects.members.placeholders.role")}
             options={projectRoleOptionsState.options}
+            notFoundContent={<Typography.Text type="secondary">{t("projects.members.messages.no_roles")}</Typography.Text>}
             value={memberRoleByUserId[record.id]}
             onChange={(value) =>
               setMemberRoleByUserId((current) => ({

@@ -883,6 +883,10 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("display_order");
 
+                    b.Property<bool>("IsPeerReviewRole")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_peer_review_role");
+
                     b.Property<bool>("IsApprovalRole")
                         .HasColumnType("boolean")
                         .HasColumnName("is_approval_role");

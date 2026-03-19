@@ -601,6 +601,9 @@
       "actions": {
         "remove": "ลบ"
       },
+      "messages": {
+        "no_roles": "ยังไม่มีตำแหน่งในโครงการ"
+      },
       "validation": {
         "role_required": "กรุณาเลือกตำแหน่งให้สมาชิกทุกคน"
       },
@@ -757,6 +760,7 @@
       "can_review_documents": "ทบทวนเอกสารในโครงการได้",
       "can_approve_documents": "อนุมัติเอกสารในโครงการได้",
       "can_release_documents": "ปล่อยใช้เอกสารในโครงการได้",
+      "is_peer_review_role": "ใช้เป็นบทบาทตรวจร่วม",
       "is_review_role": "ใช้เป็นบทบาททบทวน",
       "is_approval_role": "ใช้เป็นบทบาทอนุมัติ",
       "display_order": "ลำดับ"
