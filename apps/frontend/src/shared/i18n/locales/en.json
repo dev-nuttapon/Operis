@@ -1434,7 +1434,7 @@
       "create_page_title": "Create Document Template",
       "create_page_description": "Name the template and select documents to include.",
       "create_page_back": "Back",
-      "create_page_submit": "Save template",
+      "create_page_submit": "Save",
       "edit_page_title": "Edit Document Template",
       "edit_page_description": "Update the template name or document list.",
       "edit_page_back": "Back",
@@ -1529,7 +1529,7 @@
         "file_placeholder": "No file selected"
       },
       "actions": {
-        "submit": "Save document",
+        "submit": "Save",
         "cancel": "Cancel"
       }
     },
@@ -1547,7 +1547,7 @@
       },
       "actions": {
         "pick_file": "Choose file",
-        "submit": "Save version",
+        "submit": "Save",
         "cancel": "Cancel"
       }
     },

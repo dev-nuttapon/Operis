@@ -152,8 +152,14 @@ export function DocumentTemplateEditPage() {
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/document-templates")}>
+          {t("documents.templates.edit_page_back")}
+        </Button>
+      </Space>
+
       <Card variant="borderless">
-        <Space align="start" size={16} style={{ justifyContent: "space-between", width: "100%" }}>
+        <Space align="start" size={16}>
           <div
             style={{
               width: 48,
@@ -175,9 +181,6 @@ export function DocumentTemplateEditPage() {
               {t("documents.templates.edit_page_description")}
             </Typography.Paragraph>
           </div>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/document-templates")}>
-            {t("documents.templates.edit_page_back")}
-          </Button>
         </Space>
       </Card>
 

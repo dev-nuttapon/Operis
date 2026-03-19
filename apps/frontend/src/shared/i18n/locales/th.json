@@ -1434,7 +1434,7 @@
       "create_page_title": "สร้างเทมเพลตเอกสาร",
       "create_page_description": "ตั้งชื่อเทมเพลตและเลือกเอกสารที่ต้องการใช้",
       "create_page_back": "กลับ",
-      "create_page_submit": "บันทึกเทมเพลต",
+      "create_page_submit": "บันทึก",
       "edit_page_title": "แก้ไขเทมเพลตเอกสาร",
       "edit_page_description": "ปรับชื่อเทมเพลตหรือรายการเอกสาร",
       "edit_page_back": "กลับ",
@@ -1529,7 +1529,7 @@
         "file_placeholder": "ยังไม่ได้เลือกไฟล์เอกสาร"
       },
       "actions": {
-        "submit": "บันทึกเอกสาร",
+        "submit": "บันทึก",
         "cancel": "ยกเลิก"
       }
     },
@@ -1547,7 +1547,7 @@
       },
       "actions": {
         "pick_file": "เลือกไฟล์เอกสาร",
-        "submit": "บันทึกเวอร์ชัน",
+        "submit": "บันทึก",
         "cancel": "ยกเลิก"
       }
     },

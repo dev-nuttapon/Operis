@@ -65,6 +65,12 @@ export function DocumentTemplateCreatePage() {
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/document-templates")}>
+          {t("documents.templates.create_page_back")}
+        </Button>
+      </Space>
+
       <Card variant="borderless">
         <Space align="start" size={16}>
           <div
@@ -186,10 +192,7 @@ export function DocumentTemplateCreatePage() {
                 locale={{ emptyText: t("documents.templates.empty_selection") }}
               />
             </Form>
-            <Space style={{ width: "100%", justifyContent: "space-between" }}>
-              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/document-templates")}>
-                {t("documents.templates.create_page_back")}
-              </Button>
+            <Space style={{ width: "100%", justifyContent: "flex-end" }}>
               <Button
                 type="primary"
                 icon={<SaveOutlined />}

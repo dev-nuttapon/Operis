@@ -88,82 +88,85 @@ export function DocumentTemplateHistoryPage() {
   };
 
   return (
-    <Card bordered={false} style={{ borderRadius: 16 }}>
-      <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
-        <div>
-          <Title level={2} style={{ margin: 0 }}>{tr("documents.templates.history_page.title")}</Title>
-          <Text type="secondary">{templateLabel}</Text>
-        </div>
-        <Space>
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() =>
-              navigate(locationState?.from ?? "/app/document-templates", {
-                state: { templateName: templateLabel },
-              })
-            }
-          >
-            {tr("documents.templates.history_page.back_action")}
-          </Button>
-        </Space>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() =>
+            navigate(locationState?.from ?? "/app/document-templates", {
+              state: { templateName: templateLabel },
+            })
+          }
+        >
+          {tr("documents.templates.history_page.back_action")}
+        </Button>
       </Space>
 
-      <Paragraph type="secondary">{tr("documents.templates.history_page.description")}</Paragraph>
+      <Card bordered={false} style={{ borderRadius: 16 }}>
+        <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <Title level={2} style={{ margin: 0 }}>{tr("documents.templates.history_page.title")}</Title>
+            <Text type="secondary">{templateLabel}</Text>
+          </div>
+        </Space>
 
-      <Divider />
+        <Paragraph type="secondary">{tr("documents.templates.history_page.description")}</Paragraph>
 
-      {!canReadHistory ? (
-        <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
-      ) : historyQuery.isLoading && historyItems.length === 0 ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : (
-        <Table<DocumentTemplateHistoryItem>
-          rowKey="id"
-          loading={historyQuery.isLoading}
-          columns={historyColumns}
-          dataSource={historyItems}
-          pagination={{
-            current: historyQuery.data?.page ?? paging.page,
-            pageSize: historyQuery.data?.pageSize ?? paging.pageSize,
-            total: historyQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 25, 50, 100],
-            onChange: (page, pageSize) => setPaging({ page, pageSize }),
-          }}
-          scroll={{ x: "max-content" }}
-          locale={{ emptyText: historyQuery.isError ? tr("documents.templates.history.empty") : tr("documents.templates.history.empty") }}
-          expandable={{
-            expandedRowRender: (record) => {
-              const before = parseJson(record.beforeJson);
-              const after = parseJson(record.afterJson);
-              const metadata = parseJson(record.metadataJson);
-              return (
-                <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                  <div>
-                    <Text strong>{tr("documents.templates.history.columns.before")}</Text>
-                    <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
-                      {before ? JSON.stringify(before, null, 2) : "-"}
-                    </pre>
-                  </div>
-                  <div>
-                    <Text strong>{tr("documents.templates.history.columns.after")}</Text>
-                    <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
-                      {after ? JSON.stringify(after, null, 2) : "-"}
-                    </pre>
-                  </div>
-                  <div>
-                    <Text strong>{tr("documents.templates.history.columns.metadata")}</Text>
-                    <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
-                      {metadata ? JSON.stringify(metadata, null, 2) : "-"}
-                    </pre>
-                  </div>
-                </Space>
-              );
-            },
-            rowExpandable: (record) => Boolean(record.beforeJson || record.afterJson || record.metadataJson),
-          }}
-        />
-      )}
-    </Card>
+        <Divider />
+
+        {!canReadHistory ? (
+          <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
+        ) : historyQuery.isLoading && historyItems.length === 0 ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : (
+          <Table<DocumentTemplateHistoryItem>
+            rowKey="id"
+            loading={historyQuery.isLoading}
+            columns={historyColumns}
+            dataSource={historyItems}
+            pagination={{
+              current: historyQuery.data?.page ?? paging.page,
+              pageSize: historyQuery.data?.pageSize ?? paging.pageSize,
+              total: historyQuery.data?.total ?? 0,
+              showSizeChanger: true,
+              pageSizeOptions: [10, 25, 50, 100],
+              onChange: (page, pageSize) => setPaging({ page, pageSize }),
+            }}
+            scroll={{ x: "max-content" }}
+            locale={{ emptyText: historyQuery.isError ? tr("documents.templates.history.empty") : tr("documents.templates.history.empty") }}
+            expandable={{
+              expandedRowRender: (record) => {
+                const before = parseJson(record.beforeJson);
+                const after = parseJson(record.afterJson);
+                const metadata = parseJson(record.metadataJson);
+                return (
+                  <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                    <div>
+                      <Text strong>{tr("documents.templates.history.columns.before")}</Text>
+                      <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                        {before ? JSON.stringify(before, null, 2) : "-"}
+                      </pre>
+                    </div>
+                    <div>
+                      <Text strong>{tr("documents.templates.history.columns.after")}</Text>
+                      <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                        {after ? JSON.stringify(after, null, 2) : "-"}
+                      </pre>
+                    </div>
+                    <div>
+                      <Text strong>{tr("documents.templates.history.columns.metadata")}</Text>
+                      <pre style={{ margin: "6px 0 0", whiteSpace: "pre-wrap" }}>
+                        {metadata ? JSON.stringify(metadata, null, 2) : "-"}
+                      </pre>
+                    </div>
+                  </Space>
+                );
+              },
+              rowExpandable: (record) => Boolean(record.beforeJson || record.afterJson || record.metadataJson),
+            }}
+          />
+        )}
+      </Card>
+    </Space>
   );
 }
