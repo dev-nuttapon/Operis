@@ -8,7 +8,8 @@ namespace Operis_API.Modules.Documents.Application;
 
 public sealed class DocumentTemplateCommands(
     OperisDbContext dbContext,
-    IBusinessAuditEventWriter auditEventWriter) : IDocumentTemplateCommands
+    IBusinessAuditEventWriter auditEventWriter,
+    DocumentTemplateHistoryWriter historyWriter) : IDocumentTemplateCommands
 {
     public async Task<DocumentTemplateResponse> CreateTemplateAsync(
         DocumentTemplateCreateCommand command,
@@ -62,6 +63,16 @@ public sealed class DocumentTemplateCommands(
             new { template.Name, DocumentCount = existingDocuments.Count },
             cancellationToken);
 
+        await TryAppendHistoryAsync(
+            template.Id,
+            "create",
+            null,
+            new { template.Name, DocumentIds = existingDocuments },
+            template.Name,
+            null,
+            new { DocumentCount = existingDocuments.Count },
+            cancellationToken);
+
         return new DocumentTemplateResponse(
             template.Id,
             template.Name,
@@ -74,6 +85,7 @@ public sealed class DocumentTemplateCommands(
         CancellationToken cancellationToken)
     {
         var template = await dbContext.DocumentTemplates
+            .AsNoTracking()
             .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == command.TemplateId, cancellationToken);
 
         if (template is null)
@@ -123,6 +135,17 @@ public sealed class DocumentTemplateCommands(
             new { updated.Name, DocumentCount = existingDocuments.Count },
             cancellationToken);
 
+        var previousDocumentIds = oldItems.Select(x => x.DocumentId).ToList();
+        await TryAppendHistoryAsync(
+            updated.Id,
+            "update",
+            new { template.Name, DocumentIds = previousDocumentIds },
+            new { updated.Name, DocumentIds = existingDocuments },
+            updated.Name,
+            null,
+            new { DocumentCount = existingDocuments.Count },
+            cancellationToken);
+
         return new DocumentTemplateResponse(
             updated.Id,
             updated.Name,
@@ -152,6 +175,34 @@ public sealed class DocumentTemplateCommands(
         catch
         {
             // Best-effort audit event
+        }
+    }
+
+    private async Task TryAppendHistoryAsync(
+        Guid templateId,
+        string eventType,
+        object? before,
+        object? after,
+        string? summary,
+        string? reason,
+        object? metadata,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await historyWriter.AppendAsync(
+                templateId,
+                eventType,
+                before,
+                after,
+                summary,
+                reason,
+                metadata,
+                cancellationToken);
+        }
+        catch
+        {
+            // Best-effort history write
         }
     }
 }

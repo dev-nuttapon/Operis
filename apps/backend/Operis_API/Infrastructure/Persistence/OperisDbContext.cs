@@ -15,6 +15,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<DocumentHistoryEntity> DocumentHistories => Set<DocumentHistoryEntity>();
     public DbSet<DocumentTemplateEntity> DocumentTemplates => Set<DocumentTemplateEntity>();
     public DbSet<DocumentTemplateItemEntity> DocumentTemplateItems => Set<DocumentTemplateItemEntity>();
+    public DbSet<DocumentTemplateHistoryEntity> DocumentTemplateHistories => Set<DocumentTemplateHistoryEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<DivisionEntity> Divisions => Set<DivisionEntity>();
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
@@ -146,6 +147,29 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.TemplateId);
             entity.HasIndex(x => x.DocumentId);
             entity.HasIndex(x => new { x.TemplateId, x.DocumentId }).IsUnique();
+        });
+
+        modelBuilder.Entity<DocumentTemplateHistoryEntity>(entity =>
+        {
+            entity.ToTable("document_template_histories");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.TemplateId).HasColumnName("template_id");
+            entity.Property(x => x.EventType).HasColumnName("event_type").HasMaxLength(64);
+            entity.Property(x => x.Summary).HasColumnName("summary").HasMaxLength(512);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(512);
+            entity.Property(x => x.ActorUserId).HasColumnName("actor_user_id").HasMaxLength(64);
+            entity.Property(x => x.ActorEmail).HasColumnName("actor_email").HasMaxLength(128);
+            entity.Property(x => x.ActorDisplayName).HasColumnName("actor_display_name").HasMaxLength(128);
+            entity.Property(x => x.BeforeJson).HasColumnName("before_json");
+            entity.Property(x => x.AfterJson).HasColumnName("after_json");
+            entity.Property(x => x.MetadataJson).HasColumnName("metadata_json");
+            entity.Property(x => x.OccurredAt).HasColumnName("occurred_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(x => x.TemplateId);
+            entity.HasIndex(x => x.EventType);
+            entity.HasIndex(x => x.OccurredAt);
+            entity.HasIndex(x => new { x.TemplateId, x.OccurredAt });
         });
 
         modelBuilder.Entity<UserEntity>(entity =>

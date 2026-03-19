@@ -28,6 +28,9 @@ const DocumentTemplateCreatePage = lazy(() =>
 const DocumentTemplateEditPage = lazy(() =>
   import("../modules/documents/pages/DocumentTemplateEditPage").then((module) => ({ default: module.DocumentTemplateEditPage }))
 );
+const DocumentTemplateHistoryPage = lazy(() =>
+  import("../modules/documents/pages/DocumentTemplateHistoryPage").then((module) => ({ default: module.DocumentTemplateHistoryPage }))
+);
 const LoginPage = lazy(() =>
   import("../modules/auth/pages/LoginPage").then((module) => ({ default: module.LoginPage }))
 );
@@ -107,6 +110,7 @@ export function AppRouter() {
               <Route path="document-templates" element={<DocumentTemplatesPage />} />
               <Route path="document-templates/new" element={<DocumentTemplateCreatePage />} />
               <Route path="document-templates/:templateId/edit" element={<DocumentTemplateEditPage />} />
+              <Route path="document-templates/:templateId/history" element={<DocumentTemplateHistoryPage />} />
               <Route path="documents/upload" element={<DocumentUploadPage />} />
               <Route path="documents/:documentId/versions" element={<DocumentVersionsPage />} />
               <Route path="documents/:documentId/history" element={<DocumentHistoryPage />} />

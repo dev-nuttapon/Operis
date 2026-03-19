@@ -5,8 +5,10 @@ import {
   createDocumentTemplate,
   getDocumentTemplate,
   listDocumentTemplates,
+  listDocumentTemplateHistory,
   updateDocumentTemplate,
   type DocumentTemplateListInput,
+  type DocumentTemplateHistoryListInput,
 } from "../api/documentTemplatesApi";
 import type { DocumentTemplateCreateInput } from "../types/documentTemplates";
 import type { DocumentListItemView } from "../types/documents";
@@ -50,6 +52,17 @@ export function useUpdateDocumentTemplate() {
       await queryClient.invalidateQueries({ queryKey: ["documents", "templates"] });
       await queryClient.invalidateQueries({ queryKey: ["documents", "templates", variables.templateId] });
     },
+  });
+}
+
+export function useDocumentTemplateHistory(templateId: string | null, input?: DocumentTemplateHistoryListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["documents", "templates", "history", templateId, input],
+    queryFn: ({ signal }) =>
+      templateId
+        ? listDocumentTemplateHistory(templateId, input, signal)
+        : Promise.resolve({ items: [], total: 0, page: 1, pageSize: input?.pageSize ?? 10 }),
+    enabled: enabled && Boolean(templateId),
   });
 }
 

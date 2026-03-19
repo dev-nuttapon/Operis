@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, Input, Space, Table, Typography, Alert, Skeleton } from "antd";
+import { Button, Card, Input, Space, Table, Typography, Alert, Skeleton, Dropdown } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { PlusOutlined, FileTextOutlined } from "@ant-design/icons";
+import { PlusOutlined, FileTextOutlined, MoreOutlined, EditOutlined, HistoryOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { usePermissions } from "../../../shared/authz/usePermissions";
@@ -41,15 +41,32 @@ export function DocumentTemplatesPage() {
       {
         title: t("documents.templates.columns.actions"),
         key: "actions",
+        align: "center",
         render: (_, record) => (
-          <Space>
-            <Button onClick={() => navigate(`/app/document-templates/${record.id}/edit`)}>
-              {t("documents.templates.actions.edit")}
-            </Button>
-            <Button onClick={() => navigate(`/app/admin/audit-logs?entityType=document_template&entityId=${record.id}`)}>
-              {t("documents.templates.actions.audit_logs")}
-            </Button>
-          </Space>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "edit",
+                  icon: <EditOutlined />,
+                  label: t("documents.templates.actions.edit"),
+                  onClick: () => navigate(`/app/document-templates/${record.id}/edit`),
+                },
+                {
+                  key: "history",
+                  icon: <HistoryOutlined />,
+                  label: t("documents.templates.actions.history"),
+                  onClick: () =>
+                    navigate(`/app/document-templates/${record.id}/history`, {
+                      state: { templateName: record.name, from: "/app/document-templates" },
+                    }),
+                },
+              ],
+            }}
+            trigger={["click"]}
+          >
+            <Button size="small" icon={<MoreOutlined />} />
+          </Dropdown>
         ),
       },
     ],

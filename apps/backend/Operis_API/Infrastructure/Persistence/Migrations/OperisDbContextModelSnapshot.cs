@@ -251,6 +251,81 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.ToTable("document_histories", (string)null);
                 });
 
+            modelBuilder.Entity("Operis_API.Modules.Documents.Infrastructure.DocumentTemplateHistoryEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActorDisplayName")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("actor_display_name");
+
+                    b.Property<string>("ActorEmail")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("actor_email");
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<string>("AfterJson")
+                        .HasColumnType("text")
+                        .HasColumnName("after_json");
+
+                    b.Property<string>("BeforeJson")
+                        .HasColumnType("text")
+                        .HasColumnName("before_json");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("text")
+                        .HasColumnName("metadata_json");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("summary");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("OccurredAt");
+
+                    b.HasIndex("TemplateId");
+
+                    b.HasIndex("TemplateId", "OccurredAt");
+
+                    b.ToTable("document_template_histories", (string)null);
+                });
+
             modelBuilder.Entity("Operis_API.Modules.Documents.Infrastructure.DocumentTemplateEntity", b =>
                 {
                     b.Property<Guid>("Id")

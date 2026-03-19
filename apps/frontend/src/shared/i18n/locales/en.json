@@ -1437,7 +1437,7 @@
       "edit_page_title": "Edit Document Template",
       "edit_page_description": "Update the template name or document list.",
       "edit_page_back": "Back",
-      "edit_page_submit": "Save changes",
+    "edit_page_submit": "Save",
       "search_placeholder": "Search template name",
       "empty": "No templates yet.",
       "empty_selection": "No documents selected yet.",
@@ -1459,19 +1459,51 @@
         "created_at": "Created date",
         "actions": "Actions"
       },
-      "actions": {
-        "create": "Create template",
-        "create_new": "Add template",
-        "edit": "Edit",
-        "audit_logs": "Audit logs",
-        "load_more": "Load 10 more documents"
+    "actions": {
+      "create": "Create template",
+      "create_new": "Add template",
+      "edit": "Edit",
+      "history": "History",
+      "load_more": "Load 10 more documents",
+      "add_document": "Add to list",
+      "remove_document": "Remove",
+      "available_documents": "Available documents",
+      "selected_documents": "Selected documents"
+    },
+    "history": {
+      "title": "Template History",
+      "description": "Track template changes for audit and review.",
+      "loading": "Loading history...",
+      "empty": "No history yet.",
+      "columns": {
+        "occurred_at": "Time",
+        "action": "Action",
+        "actor": "Actor",
+        "reason": "Reason",
+        "summary": "Summary",
+        "before": "Before",
+        "after": "After",
+        "metadata": "Metadata"
       },
-      "messages": {
-        "created": "Template created",
-        "create_failed": "Unable to create template",
-        "updated": "Template updated",
-        "update_failed": "Unable to update template"
+      "actions": {
+        "create": "Created",
+        "update": "Updated",
+        "delete": "Deleted"
       }
+    },
+    "history_page": {
+      "title": "Template History",
+      "description": "Track template events for audit and review.",
+      "back_action": "Back"
+    },
+    "messages": {
+      "created": "Template created",
+      "create_failed": "Unable to create template",
+      "updated": "Template updated",
+    "update_failed": "Unable to update template",
+    "load_failed": "Unable to load template details",
+    "loading": "Loading template details..."
+  }
     },
     "upload": {
       "action": "Create Document",

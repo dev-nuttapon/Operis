@@ -23,6 +23,8 @@ public sealed class DocumentsModule : IModule
         services.AddScoped<DocumentHistoryWriter>();
         services.AddScoped<IDocumentTemplateQueries, DocumentTemplateQueries>();
         services.AddScoped<IDocumentTemplateCommands, DocumentTemplateCommands>();
+        services.AddScoped<IDocumentTemplateHistoryQueries, DocumentTemplateHistoryQueries>();
+        services.AddScoped<DocumentTemplateHistoryWriter>();
         return services;
     }
 
@@ -63,6 +65,8 @@ public sealed class DocumentsModule : IModule
             .WithName("Documents_GetTemplate");
         group.MapPut("/templates/{templateId:guid}", UpdateDocumentTemplateAsync)
             .WithName("Documents_UpdateTemplate");
+        group.MapGet("/templates/{templateId:guid}/history", ListDocumentTemplateHistoryAsync)
+            .WithName("Documents_TemplateHistory");
 
         return endpoints;
     }
@@ -447,6 +451,25 @@ public sealed class DocumentsModule : IModule
             cancellationToken);
 
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> ListDocumentTemplateHistoryAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentTemplateHistoryQueries queries,
+        Guid templateId,
+        CancellationToken cancellationToken,
+        string? search = null,
+        int page = 1,
+        int pageSize = 10)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.ActivityLogs.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var items = await queries.ListAsync(new DocumentTemplateHistoryListQuery(templateId, search, page, pageSize), cancellationToken);
+        return Results.Ok(items);
     }
 
     private static IResult BadRequestWithCode(string? detail, string? code = null) =>
