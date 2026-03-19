@@ -1553,6 +1553,7 @@
     "versions_page": {
       "title": "All Document Files",
       "description": "Review every uploaded file version for this document.",
+      "list_title": "Document Files",
       "back_action": "Back",
       "actions": {
         "add_version": "Upload file"
