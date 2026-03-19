@@ -235,6 +235,7 @@ export function ProjectEvidencePage() {
                     columns={teamColumns}
                     dataSource={teamRegister?.items ?? []}
                     loading={projectEvidenceTeamRegisterQuery.isLoading}
+                    scroll={{ x: "max-content" }}
                     pagination={{
                       current: teamPage,
                       pageSize: teamPageSize,
@@ -259,6 +260,7 @@ export function ProjectEvidencePage() {
                     columns={roleColumns}
                     dataSource={roleResponsibilities?.items ?? []}
                     loading={projectEvidenceRoleResponsibilitiesQuery.isLoading}
+                    scroll={{ x: "max-content" }}
                     pagination={{
                       current: rolePage,
                       pageSize: rolePageSize,
@@ -283,6 +285,7 @@ export function ProjectEvidencePage() {
                     columns={historyColumns}
                     dataSource={assignmentHistory?.items ?? []}
                     loading={projectEvidenceAssignmentHistoryQuery.isLoading}
+                    scroll={{ x: "max-content" }}
                     pagination={{
                       current: historyPage,
                       pageSize: historyPageSize,

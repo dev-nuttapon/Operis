@@ -197,6 +197,7 @@ export function ProjectTypeTemplatesPage() {
             columns={templateColumns}
             dataSource={templatesQuery.data?.items ?? []}
             loading={templatesQuery.isLoading}
+            scroll={{ x: "max-content" }}
             onRow={(record) => ({ onClick: () => setSelectedTemplate(record) })}
             pagination={{ current: templatesQuery.data?.page ?? templatePaging.page, pageSize: templatesQuery.data?.pageSize ?? templatePaging.pageSize, total: templatesQuery.data?.total ?? 0, showSizeChanger: true, pageSizeOptions: [10,25,50,100], onChange: (page, pageSize) => setTemplatePaging((current) => ({ ...current, page, pageSize })) }}
           />
@@ -227,6 +228,7 @@ export function ProjectTypeTemplatesPage() {
               columns={requirementColumns}
               dataSource={roleRequirementsQuery.data?.items ?? []}
               loading={roleRequirementsQuery.isLoading}
+              scroll={{ x: "max-content" }}
               pagination={{ current: roleRequirementsQuery.data?.page ?? requirementPaging.page, pageSize: roleRequirementsQuery.data?.pageSize ?? requirementPaging.pageSize, total: roleRequirementsQuery.data?.total ?? 0, showSizeChanger: true, pageSizeOptions: [10,25,50,100], onChange: (page, pageSize) => setRequirementPaging((current) => ({ ...current, page, pageSize })) }}
             />
           )}

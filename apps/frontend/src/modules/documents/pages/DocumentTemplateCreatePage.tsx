@@ -174,6 +174,7 @@ export function DocumentTemplateCreatePage() {
                 rowKey="id"
                 pagination={false}
                 dataSource={selectedRows}
+                scroll={{ x: "max-content" }}
                 columns={[
                   { title: t("documents.columns.document_name"), dataIndex: "documentName" },
                   { title: t("documents.columns.file_name"), dataIndex: "fileName", render: (value) => value ?? "-" },

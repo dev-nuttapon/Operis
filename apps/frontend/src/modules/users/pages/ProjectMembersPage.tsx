@@ -501,6 +501,7 @@ export function ProjectMembersPage() {
                   columns={columns}
                   dataSource={canReadProjects ? (projectAssignmentsQuery.data?.items ?? []) : []}
                   loading={canReadProjects ? projectAssignmentsQuery.isLoading : false}
+                  scroll={{ x: "max-content" }}
                   pagination={{
                     current: projectAssignmentsQuery.data?.page ?? paging.page,
                     pageSize: projectAssignmentsQuery.data?.pageSize ?? paging.pageSize,

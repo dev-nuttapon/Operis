@@ -427,6 +427,7 @@ export function ProjectRolesPage() {
                   columns={columns}
                   dataSource={canReadProjects ? (projectRolesQuery.data?.items ?? []) : []}
                   loading={canReadProjects ? projectRolesQuery.isLoading : false}
+                  scroll={{ x: "max-content" }}
                   pagination={{
                     current: projectRolesQuery.data?.page ?? paging.page,
                     pageSize: projectRolesQuery.data?.pageSize ?? paging.pageSize,

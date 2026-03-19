@@ -167,6 +167,7 @@ export function AdminInvitationsSection({
             )}
             dataSource={data}
             loading={loading}
+            scroll={{ x: "max-content" }}
             pagination={{
               current: pagination?.page ?? paging.page,
               pageSize: pagination?.pageSize ?? paging.pageSize,

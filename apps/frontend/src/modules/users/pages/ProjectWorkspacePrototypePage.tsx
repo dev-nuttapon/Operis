@@ -470,6 +470,7 @@ export function ProjectWorkspacePrototypePage() {
               columns={teamColumns}
               dataSource={teamTableRows}
               loading={projectEvidenceTeamRegisterQuery.isLoading}
+              scroll={{ x: "max-content" }}
               pagination={{
                 current: teamPage,
                 pageSize: teamPageSize,
@@ -545,6 +546,7 @@ export function ProjectWorkspacePrototypePage() {
                 columns={roleColumns}
                 dataSource={roleTableRows}
                 loading={projectEvidenceRoleResponsibilitiesQuery.isLoading}
+                scroll={{ x: "max-content" }}
                 pagination={{
                   current: rolePage,
                   pageSize: rolePageSize,
@@ -908,6 +910,7 @@ export function ProjectWorkspacePrototypePage() {
                 columns={auditColumns}
                 dataSource={auditTableRows}
                 loading={projectEvidenceAssignmentHistoryQuery.isLoading}
+                scroll={{ x: "max-content" }}
                 pagination={{
                   current: auditPage,
                   pageSize: auditPageSize,

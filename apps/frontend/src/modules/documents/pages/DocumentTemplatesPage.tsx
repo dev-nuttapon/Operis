@@ -137,6 +137,7 @@ export function DocumentTemplatesPage() {
                 columns={columns}
                 dataSource={templatesQuery.data?.items ?? []}
                 loading={templatesQuery.isLoading}
+                scroll={{ x: "max-content" }}
                 pagination={{
                   current: templatesQuery.data?.page ?? paging.page,
                   pageSize: templatesQuery.data?.pageSize ?? paging.pageSize,

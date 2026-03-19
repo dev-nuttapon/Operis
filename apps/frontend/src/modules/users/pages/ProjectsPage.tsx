@@ -309,6 +309,7 @@ export function ProjectsPage() {
                 columns={columns}
                 dataSource={projectsQuery.data?.items ?? []}
                 loading={projectsQuery.isLoading}
+                scroll={{ x: "max-content" }}
                 rowClassName={() => "clickable-project-row"}
                 onRow={(record) => ({
                   onClick: () => navigate(`/app/projects/${record.id}/workspace`),

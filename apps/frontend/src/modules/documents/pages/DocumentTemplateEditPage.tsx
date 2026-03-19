@@ -248,6 +248,7 @@ export function DocumentTemplateEditPage() {
                 rowKey="id"
                 pagination={false}
                 dataSource={selectedRows}
+                scroll={{ x: "max-content" }}
                 columns={columns}
                 locale={{ emptyText: t("documents.templates.empty_selection") }}
               />
