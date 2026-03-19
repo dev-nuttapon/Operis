@@ -216,9 +216,6 @@ export function DocumentDashboardPage() {
           <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
         ) : (
           <Space style={{ width: "100%", justifyContent: "flex-end", marginBottom: 16 }}>
-            <Button icon={<FileTextOutlined />} onClick={() => navigate("/app/documents/templates")}>
-              {tr("documents.templates.action")}
-            </Button>
             <Button
               type="primary"
               icon={<UploadOutlined />}

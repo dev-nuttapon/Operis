@@ -591,8 +591,28 @@ function getOpenKeys(path: string) {
 }
 
 function getSelectedMenuKey(path: string) {
+  if (path.startsWith('/app/document-templates')) {
+    return '/app/document-templates';
+  }
+
+  if (path.startsWith('/app/documents/templates')) {
+    return '/app/document-templates';
+  }
+
+  if (path.startsWith('/app/documents')) {
+    return '/app/documents';
+  }
+
   if (path.startsWith('/app/projects/')) {
     return '/app/projects';
+  }
+
+  if (path.startsWith('/app/workflows')) {
+    return '/app/workflows';
+  }
+
+  if (path.startsWith('/app/admin')) {
+    return '/app/admin';
   }
 
   return path;
