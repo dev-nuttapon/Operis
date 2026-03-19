@@ -5,6 +5,13 @@ export interface DocumentTemplateListItem {
   createdAt: string;
 }
 
+export interface DocumentTemplateDetail {
+  id: string;
+  name: string;
+  documentIds: string[];
+  createdAt: string;
+}
+
 export interface DocumentTemplateCreateInput {
   name: string;
   documentIds: string[];

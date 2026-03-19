@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Space, Table, Typography, Skeleton } from "antd";
+import { Alert, Button, Card, Space, Table, Typography, Skeleton, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, FileTextOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -20,6 +20,8 @@ type LocationState = {
 export function DocumentHistoryPage() {
   const language = useI18nLanguage();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const { documentId } = useParams<{ documentId: string }>();
   const location = useLocation();
   const locationState = location.state as LocationState | null;
@@ -94,6 +96,7 @@ export function DocumentHistoryPage() {
               state: { documentName: documentLabel },
             })
           }
+          block={isMobile}
         >
           {tr("documents.history_page.back_action")}
         </Button>

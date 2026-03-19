@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Skeleton } from "antd";
+import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, FileAddOutlined, FolderOpenOutlined, PlusOutlined, TeamOutlined } from "@ant-design/icons";
@@ -28,6 +28,8 @@ export function ProjectsPage() {
   const { notification } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
@@ -270,26 +272,34 @@ export function ProjectsPage() {
           <Typography.Text type="secondary">{t("errors.title_forbidden")}</Typography.Text>
         ) : (
           <>
-            <Space wrap style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }} size={[12, 12]}>
-                <Input.Search
-                  allowClear
-                  placeholder={t("projects.search_placeholder")}
-                  style={{ width: 360, maxWidth: "100%" }}
-                  value={searchInput}
-                  onChange={(event) => setSearchInput(event.target.value)}
-                  onSearch={(value) => setSearchInput(value)}
-                />
+            <Flex
+              gap={12}
+              wrap={!isMobile}
+              vertical={isMobile}
+              align={isMobile ? "stretch" : "center"}
+              justify="space-between"
+              style={{ width: "100%", marginBottom: 16 }}
+            >
+              <Input.Search
+                allowClear
+                placeholder={t("projects.search_placeholder")}
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                onSearch={(value) => setSearchInput(value)}
+                style={{ width: isMobile ? "100%" : undefined, maxWidth: isMobile ? undefined : 360 }}
+              />
               {canManageProjects ? (
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   size="large"
                   onClick={() => navigate(isMyProjectsPage ? "/app/projects/new" : "/app/admin/projects/new", { state: { from: location.pathname } })}
+                  block={isMobile}
                 >
                   {t("projects.create_action")}
                 </Button>
               ) : null}
-            </Space>
+            </Flex>
 
             {projectsQuery.isLoading && (projectsQuery.data?.items?.length ?? 0) === 0 ? (
               <Skeleton active paragraph={{ rows: 6 }} />

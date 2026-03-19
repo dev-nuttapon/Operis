@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Card, DatePicker, Input, Select, Space, Table, Typography, Skeleton } from "antd";
+import { Button, Card, DatePicker, Input, Select, Space, Table, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { EditOutlined, EyeOutlined, MailOutlined } from "@ant-design/icons";
@@ -57,6 +57,8 @@ export function AdminInvitationsSection({
   onCancelInvitation,
   onPrefillInvitationEdit,
 }: AdminInvitationsSectionProps) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const permissionState = usePermissions();
   const canInviteUsers = permissionState.hasPermission(permissions.users.invite);
   const [searchInput, setSearchInput] = useState(paging.search);
@@ -73,14 +75,17 @@ export function AdminInvitationsSection({
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card variant="borderless">
         <Typography.Title level={5}>{t("admin_users.invitations.latest_title")}</Typography.Title>
-        <Space
-          wrap
-          size={[12, 12]}
-          style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }}
+        <Flex
+          gap={12}
+          wrap={!isMobile}
+          vertical={isMobile}
+          align={isMobile ? "stretch" : "center"}
+          justify="space-between"
+          style={{ width: "100%", marginBottom: 16 }}
         >
           <Input.Search
             allowClear
-            style={{ width: 320 }}
+            style={{ width: isMobile ? "100%" : 320 }}
             placeholder={t("admin_users.placeholders.search_invitations")}
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
@@ -88,13 +93,14 @@ export function AdminInvitationsSection({
           />
           <Select
             allowClear
-            style={{ width: 180 }}
+            style={{ width: isMobile ? "100%" : 180 }}
             placeholder={t("admin_users.placeholders.select_status")}
             options={invitationStatusOptions}
             value={paging.status}
             onChange={(value) => setPaging((current) => ({ ...current, page: 1, status: value }))}
           />
           <DatePicker.RangePicker
+            style={{ width: isMobile ? "100%" : undefined }}
             value={[
               paging.from ? dayjs(paging.from) : null,
               paging.to ? dayjs(paging.to) : null,
@@ -105,11 +111,11 @@ export function AdminInvitationsSection({
             }}
           />
           {canInviteUsers ? (
-            <Button type="primary" icon={<MailOutlined />} size="large" onClick={() => setCreatingInvitation(true)}>
+            <Button type="primary" icon={<MailOutlined />} size="large" onClick={() => setCreatingInvitation(true)} block={isMobile}>
               {t("admin_users.invitations.open_create")}
             </Button>
           ) : null}
-        </Space>
+        </Flex>
         {loading && data.length === 0 ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (

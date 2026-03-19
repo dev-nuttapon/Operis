@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme, Skeleton } from "antd";
+import { Alert, App, Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, theme, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SortOrder, SorterResult } from "antd/es/table/interface";
 import { EyeOutlined, SearchOutlined, HistoryOutlined } from "@ant-design/icons";
@@ -79,6 +79,8 @@ export function ActivityLogsPage() {
   const { t, i18n } = useTranslation();
   const { token } = theme.useToken();
   const { notification } = App.useApp();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const permissionState = usePermissions();
   const canReadActivityLogs = permissionState.hasPermission(permissions.activityLogs.read);
   const [form] = Form.useForm();
@@ -282,26 +284,32 @@ export function ActivityLogsPage() {
         ) : null}
 
         <Form form={form} layout="vertical" onFinish={handleSearch}>
-          <Space wrap size={16} align="end" style={{ marginBottom: 16 }}>
-            <Form.Item name="module" label={t("activity_logs.filters.module")}>
+          <Flex
+            gap={16}
+            wrap={!isMobile}
+            vertical={isMobile}
+            align={isMobile ? "stretch" : "end"}
+            style={{ marginBottom: 16 }}
+          >
+            <Form.Item name="module" label={t("activity_logs.filters.module")} style={{ flex: isMobile ? "1 1 100%" : "1 1 220px", minWidth: 220 }}>
               <Input placeholder={t("activity_logs.placeholders.module")} />
             </Form.Item>
-            <Form.Item name="action" label={t("activity_logs.filters.action")}>
+            <Form.Item name="action" label={t("activity_logs.filters.action")} style={{ flex: isMobile ? "1 1 100%" : "1 1 220px", minWidth: 220 }}>
               <Input placeholder={t("activity_logs.placeholders.action")} />
             </Form.Item>
-            <Form.Item name="entityType" label={t("activity_logs.filters.entity_type")}>
+            <Form.Item name="entityType" label={t("activity_logs.filters.entity_type")} style={{ flex: isMobile ? "1 1 100%" : "1 1 220px", minWidth: 220 }}>
               <Input placeholder={t("activity_logs.placeholders.entity_type")} />
             </Form.Item>
-            <Form.Item name="entityId" label={t("activity_logs.filters.entity_id")}>
+            <Form.Item name="entityId" label={t("activity_logs.filters.entity_id")} style={{ flex: isMobile ? "1 1 100%" : "1 1 220px", minWidth: 220 }}>
               <Input placeholder={t("activity_logs.placeholders.entity_id")} />
             </Form.Item>
-            <Form.Item name="actor" label={t("activity_logs.filters.actor")}>
+            <Form.Item name="actor" label={t("activity_logs.filters.actor")} style={{ flex: isMobile ? "1 1 100%" : "1 1 220px", minWidth: 220 }}>
               <Input placeholder={t("activity_logs.placeholders.actor")} />
             </Form.Item>
-            <Form.Item name="status" label={t("activity_logs.filters.status")}>
+            <Form.Item name="status" label={t("activity_logs.filters.status")} style={{ flex: isMobile ? "1 1 100%" : "0 0 180px" }}>
               <Select
                 allowClear
-                style={{ width: 160 }}
+                style={{ width: "100%" }}
                 options={[
                   { value: "success", label: t("activity_logs.status.success") },
                   { value: "failed", label: t("activity_logs.status.failed") },
@@ -309,16 +317,18 @@ export function ActivityLogsPage() {
                 ]}
               />
             </Form.Item>
-            <Form.Item name="range" label={t("activity_logs.filters.date_range")}>
-              <RangePicker />
+            <Form.Item name="range" label={t("activity_logs.filters.date_range")} style={{ flex: isMobile ? "1 1 100%" : "0 0 260px" }}>
+              <RangePicker style={{ width: "100%" }} />
             </Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
+            <Flex gap={12} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"}>
+              <Button type="primary" htmlType="submit" icon={<SearchOutlined />} block={isMobile}>
                 {t("activity_logs.actions.search")}
               </Button>
-              <Button onClick={handleReset}>{t("activity_logs.actions.reset")}</Button>
-            </Space>
-          </Space>
+              <Button onClick={handleReset} block={isMobile}>
+                {t("activity_logs.actions.reset")}
+              </Button>
+            </Flex>
+          </Flex>
         </Form>
 
         {activityLogsQuery.isLoading && (activityLogsQuery.data?.items?.length ?? 0) === 0 ? (

@@ -1,6 +1,6 @@
 import { apiRequest } from "../../../shared/lib/apiClient";
 import type { PaginatedResult } from "../../../shared/types/pagination";
-import type { DocumentTemplateCreateInput, DocumentTemplateHistoryItem, DocumentTemplateListItem } from "../types/documentTemplates";
+import type { DocumentTemplateCreateInput, DocumentTemplateDetail, DocumentTemplateHistoryItem, DocumentTemplateListItem } from "../types/documentTemplates";
 
 export type DocumentTemplateListInput = {
   search?: string;
@@ -18,18 +18,18 @@ export function listDocumentTemplates(input: DocumentTemplateListInput, signal?:
 }
 
 export function createDocumentTemplate(input: DocumentTemplateCreateInput) {
-  return apiRequest(`/api/v1/documents/templates`, {
+  return apiRequest<DocumentTemplateDetail>(`/api/v1/documents/templates`, {
     method: "POST",
     body: input,
   });
 }
 
 export function getDocumentTemplate(templateId: string, signal?: AbortSignal) {
-  return apiRequest(`/api/v1/documents/templates/${templateId}`, { signal });
+  return apiRequest<DocumentTemplateDetail>(`/api/v1/documents/templates/${templateId}`, { signal });
 }
 
 export function updateDocumentTemplate(templateId: string, input: DocumentTemplateCreateInput) {
-  return apiRequest(`/api/v1/documents/templates/${templateId}`, {
+  return apiRequest<DocumentTemplateDetail>(`/api/v1/documents/templates/${templateId}`, {
     method: "PUT",
     body: input,
   });

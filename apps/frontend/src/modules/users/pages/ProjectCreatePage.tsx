@@ -1,4 +1,4 @@
-import { App, Button, Card, Form, Space, Typography, Alert } from "antd";
+import { App, Button, Card, Form, Space, Typography, Alert, Flex, Grid } from "antd";
 import { ArrowLeftOutlined, FolderOpenOutlined, SaveOutlined } from "@ant-design/icons";
 import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -28,6 +28,8 @@ export function ProjectCreatePage() {
   const { notification } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const locationState = location.state as LocationState | null;
   const permissionState = usePermissions();
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
@@ -114,14 +116,27 @@ export function ProjectCreatePage() {
               onProjectTypeLoadMore={projectTypeOptionsState.onLoadMore}
               projectTypeHasMore={projectTypeOptionsState.hasMore}
             />
-            <Space style={{ width: "100%", justifyContent: "space-between" }}>
-              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(locationState?.from ?? "/app/projects")}>
+            <Flex
+              gap={12}
+              wrap={!isMobile}
+              vertical={isMobile}
+              align={isMobile ? "stretch" : "center"}
+              justify="space-between"
+              style={{ width: "100%" }}
+            >
+              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(locationState?.from ?? "/app/projects")} block={isMobile}>
                 {t("projects.create_page_back")}
               </Button>
-              <Button type="primary" icon={<SaveOutlined />} loading={createProjectMutation.isPending} onClick={() => void handleSubmit()}>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={createProjectMutation.isPending}
+                onClick={() => void handleSubmit()}
+                block={isMobile}
+              >
                 {t("projects.create_page_submit")}
               </Button>
-            </Space>
+            </Flex>
           </>
         )}
       </Card>

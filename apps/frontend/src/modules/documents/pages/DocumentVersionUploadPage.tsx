@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Alert, App, Button, Card, Form, Input, Space, Typography } from "antd";
+import { Alert, App, Button, Card, Form, Input, Space, Typography, Flex, Grid } from "antd";
 import { ArrowLeftOutlined, UploadOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
@@ -21,6 +21,8 @@ export function DocumentVersionUploadPage() {
   const { notification } = App.useApp();
   const language = useI18nLanguage();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const { documentId } = useParams<{ documentId: string }>();
   const location = useLocation();
   const locationState = location.state as LocationState | null;
@@ -103,9 +105,9 @@ export function DocumentVersionUploadPage() {
   };
 
   return (
-    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Space style={{ width: "100%", justifyContent: "flex-start" }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backTarget)}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backTarget)} block={isMobile}>
           {tr("documents.version_page.back_action")}
         </Button>
       </Space>
@@ -164,7 +166,7 @@ export function DocumentVersionUploadPage() {
                 style={{ display: "none" }}
                 onChange={handleFileSelected}
               />
-              <Button icon={<UploadOutlined />} onClick={handlePickFile} disabled={!canManageVersions}>
+              <Button icon={<UploadOutlined />} onClick={handlePickFile} disabled={!canManageVersions} block={isMobile}>
                 {tr("documents.version_page.actions.pick_file")}
               </Button>
               <Text type="secondary">
@@ -174,12 +176,20 @@ export function DocumentVersionUploadPage() {
             </Space>
           </Form.Item>
 
-          <Space>
-            <Button type="primary" onClick={handleSubmit} loading={createVersionMutation.isPending} disabled={!canManageVersions}>
+          <Flex gap={12} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"}>
+            <Button
+              type="primary"
+              onClick={handleSubmit}
+              loading={createVersionMutation.isPending}
+              disabled={!canManageVersions}
+              block={isMobile}
+            >
               {tr("documents.version_page.actions.submit")}
             </Button>
-            <Button onClick={() => navigate(backTarget)}>{tr("documents.version_page.actions.cancel")}</Button>
-          </Space>
+            <Button onClick={() => navigate(backTarget)} block={isMobile}>
+              {tr("documents.version_page.actions.cancel")}
+            </Button>
+          </Flex>
         </Form>
       </Card>
     </Space>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Card, DatePicker, Input, Select, Space, Table, Tag, Typography, Skeleton } from "antd";
+import { Button, Card, DatePicker, Input, Select, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, UserAddOutlined } from "@ant-design/icons";
@@ -68,6 +68,8 @@ export function AdminUsersDirectorySection({
   setPaging,
   t,
 }: AdminUsersDirectorySectionProps) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const permissionState = usePermissions();
   const canCreateUsers = permissionState.hasPermission(permissions.users.create);
   const canUpdateUsers = permissionState.hasPermission(permissions.users.update);
@@ -183,14 +185,17 @@ export function AdminUsersDirectorySection({
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card variant="borderless">
         <Typography.Title level={5}>{t("admin_users.directory.list_title")}</Typography.Title>
-        <Space
-          wrap
-          size={[12, 12]}
-          style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }}
+        <Flex
+          gap={12}
+          wrap={!isMobile}
+          vertical={isMobile}
+          align={isMobile ? "stretch" : "center"}
+          justify="space-between"
+          style={{ width: "100%", marginBottom: 16 }}
         >
           <Input.Search
             allowClear
-            style={{ width: 320 }}
+            style={{ width: isMobile ? "100%" : 320 }}
             placeholder={t("admin_users.placeholders.search_users")}
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
@@ -198,13 +203,14 @@ export function AdminUsersDirectorySection({
           />
           <Select
             allowClear
-            style={{ width: 180 }}
+            style={{ width: isMobile ? "100%" : 180 }}
             placeholder={t("admin_users.placeholders.select_status")}
             options={userStatusOptions}
             value={paging.status}
             onChange={(value) => setPaging((current) => ({ ...current, page: 1, status: value }))}
           />
           <DatePicker.RangePicker
+            style={{ width: isMobile ? "100%" : undefined }}
             value={[
               paging.from ? dayjs(paging.from) : null,
               paging.to ? dayjs(paging.to) : null,
@@ -215,11 +221,11 @@ export function AdminUsersDirectorySection({
             }}
           />
           {canCreateUsers ? (
-            <Button type="primary" icon={<UserAddOutlined />} size="large" onClick={() => setCreatingUser(true)}>
+            <Button type="primary" icon={<UserAddOutlined />} size="large" onClick={() => setCreatingUser(true)} block={isMobile}>
               {t("admin_users.directory.create_user")}
             </Button>
           ) : null}
-        </Space>
+        </Flex>
         {loading && data.length === 0 ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (

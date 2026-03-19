@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Card, DatePicker, Divider, Input, Select, Space, Table, Tag, Typography, Skeleton } from "antd";
+import { Button, Card, DatePicker, Divider, Input, Select, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
@@ -58,6 +58,8 @@ export function AdminRegistrationsSection({
   setViewingRegistrationLink,
   t,
 }: AdminRegistrationsSectionProps) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const permissionState = usePermissions();
   const canReviewRegistrations = permissionState.hasPermission(permissions.users.reviewRegistrations);
   const [searchInput, setSearchInput] = useState(paging.search);
@@ -148,10 +150,16 @@ export function AdminRegistrationsSection({
     <Card variant="borderless">
       <Typography.Title level={5}>{t("admin_users.registration.pending_title")}</Typography.Title>
       <Divider />
-      <Space wrap size={12} style={{ marginBottom: 16 }}>
+      <Flex
+        gap={12}
+        wrap={!isMobile}
+        vertical={isMobile}
+        align={isMobile ? "stretch" : "center"}
+        style={{ marginBottom: 16 }}
+      >
         <Input.Search
           allowClear
-          style={{ width: 320 }}
+          style={{ width: isMobile ? "100%" : 320 }}
           placeholder={t("admin_users.placeholders.search_registrations")}
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
@@ -159,13 +167,14 @@ export function AdminRegistrationsSection({
         />
         <Select
           allowClear
-          style={{ width: 180 }}
+          style={{ width: isMobile ? "100%" : 180 }}
           placeholder={t("admin_users.placeholders.select_status")}
           options={registrationStatusOptions}
           value={paging.status}
           onChange={(value) => setPaging((current) => ({ ...current, page: 1, status: value }))}
         />
         <DatePicker.RangePicker
+          style={{ width: isMobile ? "100%" : undefined }}
           value={[
             paging.from ? dayjs(paging.from) : null,
             paging.to ? dayjs(paging.to) : null,
@@ -175,7 +184,7 @@ export function AdminRegistrationsSection({
             setPaging((current) => ({ ...current, page: 1, ...normalized }));
           }}
         />
-      </Space>
+      </Flex>
       {loading && data.length === 0 ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (

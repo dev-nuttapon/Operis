@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, Skeleton } from "antd";
+import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DeleteOutlined, EditOutlined, PlusOutlined, ProfileOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
@@ -26,6 +26,8 @@ const PROJECT_TYPE_OPTIONS = ["Internal", "Customer", "Compliance", "Improvement
 export function ProjectTypeTemplatesPage() {
   const { t } = useTranslation();
   const { notification } = App.useApp();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const permissionState = usePermissions();
   const canManageTemplates = permissionState.hasPermission(permissions.projects.manageTemplates);
   const [templatePaging, setTemplatePaging] = useState({ page: 1, pageSize: 10, search: "", sortBy: "projectType", sortOrder: "asc" as "asc" | "desc" });
@@ -165,17 +167,28 @@ export function ProjectTypeTemplatesPage() {
       </Card>
 
       <Card variant="borderless">
-        <Space wrap style={{ width: "100%", marginBottom: 16, justifyContent: "space-between" }}>
+        <Flex
+          gap={12}
+          wrap={!isMobile}
+          vertical={isMobile}
+          align={isMobile ? "stretch" : "center"}
+          justify="space-between"
+          style={{ width: "100%", marginBottom: 16 }}
+        >
           <Input.Search
             allowClear
             placeholder={t("project_type_templates.search_placeholder")}
-            style={{ width: 360, maxWidth: "100%" }}
+            style={{ width: isMobile ? "100%" : undefined, maxWidth: isMobile ? undefined : 360 }}
             value={templateSearchInput}
             onChange={(event) => setTemplateSearchInput(event.target.value)}
             onSearch={(value) => setTemplateSearchInput(value)}
           />
-          {canManageTemplates ? <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateTemplateOpen(true)}>{t("project_type_templates.create_action")}</Button> : null}
-        </Space>
+          {canManageTemplates ? (
+            <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateTemplateOpen(true)} block={isMobile}>
+              {t("project_type_templates.create_action")}
+            </Button>
+          ) : null}
+        </Flex>
         {templatesQuery.isLoading && (templatesQuery.data?.items?.length ?? 0) === 0 ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (

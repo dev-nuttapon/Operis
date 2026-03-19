@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { App, Button, Card, Form, Input, Select, Space, Typography, Alert, Table } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import { App, Button, Card, Form, Input, Select, Space, Typography, Alert, Table, Flex, Grid } from "antd";
 import { ArrowLeftOutlined, FileTextOutlined, SaveOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +37,8 @@ export function DocumentTemplateCreatePage() {
   const { t } = useTranslation();
   const { notification } = App.useApp();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const permissionState = usePermissions();
   const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
   const canCreateTemplates = permissionState.hasPermission(permissions.documents.upload);
@@ -64,9 +65,9 @@ export function DocumentTemplateCreatePage() {
   };
 
   return (
-    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Space style={{ width: "100%", justifyContent: "flex-start" }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/document-templates")}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/document-templates")} block={isMobile}>
           {t("documents.templates.create_page_back")}
         </Button>
       </Space>
@@ -124,12 +125,12 @@ export function DocumentTemplateCreatePage() {
                   placeholder={t("documents.templates.placeholders.documents")}
                   onSearch={documentOptions.onSearch}
                   loading={documentOptions.loading}
-                  onChange={(values) => {
+                  onChange={(values: string[]) => {
                     const optionsById = new Map(
                       documentOptions.options.map((option) => [option.value, option.meta] as const),
                     );
                     const selected = values
-                      .map((id) => optionsById.get(id))
+                      .map((id: string) => optionsById.get(id))
                       .filter((item): item is DocumentListItemView => Boolean(item));
                     setSelectedRows(
                       selected.map((item) => ({
@@ -192,17 +193,18 @@ export function DocumentTemplateCreatePage() {
                 locale={{ emptyText: t("documents.templates.empty_selection") }}
               />
             </Form>
-            <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+            <Flex justify="flex-end">
               <Button
                 type="primary"
                 icon={<SaveOutlined />}
                 disabled={!canCreateTemplates}
                 loading={submitting}
                 onClick={() => void handleCreate()}
+                block={isMobile}
               >
                 {t("documents.templates.create_page_submit")}
               </Button>
-            </Space>
+            </Flex>
           </>
         )}
       </Card>

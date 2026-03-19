@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { App, Button, Card, Form, Input, Space, Typography, Alert, Table, Transfer } from "antd";
+import { App, Button, Card, Form, Input, Space, Typography, Alert, Table, Transfer, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
@@ -38,6 +38,8 @@ export function DocumentTemplateEditPage() {
   const { t } = useTranslation();
   const { notification } = App.useApp();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const { templateId } = useParams<{ templateId: string }>();
   const permissionState = usePermissions();
   const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
@@ -151,9 +153,9 @@ export function DocumentTemplateEditPage() {
   );
 
   return (
-    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Space style={{ width: "100%", justifyContent: "flex-start" }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/document-templates")}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/document-templates")} block={isMobile}>
           {t("documents.templates.edit_page_back")}
         </Button>
       </Space>
@@ -221,8 +223,9 @@ export function DocumentTemplateEditPage() {
                   titles={[t("documents.templates.actions.available_documents"), t("documents.templates.actions.selected_documents")]}
                   targetKeys={targetKeys}
                   onChange={(nextTargetKeys) => {
-                    setTargetKeys(nextTargetKeys);
-                    form.setFieldsValue({ documentIds: nextTargetKeys });
+                    const nextKeys = nextTargetKeys.map((key) => String(key));
+                    setTargetKeys(nextKeys);
+                    form.setFieldsValue({ documentIds: nextKeys });
                   }}
                   render={(item) => item.title}
                   listStyle={{ width: 260, height: 320 }}
@@ -249,17 +252,18 @@ export function DocumentTemplateEditPage() {
                 locale={{ emptyText: t("documents.templates.empty_selection") }}
               />
             </Form>
-            <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+            <Flex justify="flex-end">
               <Button
                 type="primary"
                 icon={<SaveOutlined />}
                 disabled={!canUpdateTemplates}
                 loading={submitting || updateTemplateMutation.isPending}
                 onClick={() => void handleUpdate()}
+                block={isMobile}
               >
                 {t("documents.templates.edit_page_submit")}
               </Button>
-            </Space>
+            </Flex>
           </>
         )}
       </Card>

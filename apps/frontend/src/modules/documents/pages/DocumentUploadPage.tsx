@@ -1,5 +1,5 @@
-import { App, Button, Card, Form, Input, Space, Typography, Alert } from "antd";
-import { ArrowLeftOutlined, UploadOutlined } from "@ant-design/icons";
+import { App, Button, Card, Form, Input, Space, Typography, Alert, Flex, Grid } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import i18n from "../../../shared/i18n/config";
 import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
@@ -14,6 +14,8 @@ export function DocumentUploadPage() {
   const { notification } = App.useApp();
   const language = useI18nLanguage();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const permissionState = usePermissions();
   const canUploadDocuments = permissionState.hasPermission(permissions.documents.upload);
   const createDocumentMutation = useCreateDocument();
@@ -52,12 +54,6 @@ export function DocumentUploadPage() {
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
-      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")}>
-          {tr("documents.upload_page.back_action")}
-        </Button>
-      </Space>
-
       <Card variant="borderless">
         <Space align="start" size={16}>
           <div
@@ -98,12 +94,20 @@ export function DocumentUploadPage() {
             <Input placeholder={tr("documents.upload_page.fields.document_name_placeholder")} />
           </Form.Item>
 
-          <Space>
-            <Button type="primary" onClick={handleSubmit} loading={createDocumentMutation.isPending} disabled={!canUploadDocuments}>
+          <Flex gap={12} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"}>
+            <Button
+              type="primary"
+              onClick={handleSubmit}
+              loading={createDocumentMutation.isPending}
+              disabled={!canUploadDocuments}
+              block={isMobile}
+            >
               {tr("documents.upload_page.actions.submit")}
             </Button>
-            <Button onClick={() => navigate("/app/documents")}>{tr("documents.upload_page.actions.cancel")}</Button>
-          </Space>
+            <Button onClick={() => navigate("/app/documents")} block={isMobile}>
+              {tr("documents.upload_page.actions.cancel")}
+            </Button>
+          </Flex>
         </Form>
       </Card>
     </Space>

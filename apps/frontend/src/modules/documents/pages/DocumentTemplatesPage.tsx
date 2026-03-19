@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, Input, Space, Table, Typography, Alert, Skeleton, Dropdown } from "antd";
+import { Button, Card, Input, Space, Table, Typography, Alert, Skeleton, Dropdown, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { PlusOutlined, FileTextOutlined, MoreOutlined, EditOutlined, HistoryOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,8 @@ import type { DocumentTemplateListItem } from "../types/documentTemplates";
 export function DocumentTemplatesPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const permissionState = usePermissions();
   const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
   const [paging, setPaging] = useState({ page: 1, pageSize: 10, search: "" });
@@ -106,19 +108,26 @@ export function DocumentTemplatesPage() {
           <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
         ) : (
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            <Space wrap size={12} style={{ width: "100%", justifyContent: "space-between" }}>
+            <Flex
+              gap={12}
+              wrap={!isMobile}
+              vertical={isMobile}
+              align={isMobile ? "stretch" : "center"}
+              justify="space-between"
+              style={{ width: "100%" }}
+            >
               <Input.Search
                 allowClear
                 placeholder={t("documents.templates.search_placeholder")}
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 onSearch={(value) => setSearchInput(value)}
-                style={{ maxWidth: 360 }}
+                style={{ width: isMobile ? "100%" : undefined, maxWidth: isMobile ? undefined : 360 }}
               />
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/app/document-templates/new")}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/app/document-templates/new")} block={isMobile}>
                 {t("documents.templates.actions.create_new")}
               </Button>
-            </Space>
+            </Flex>
 
             {templatesQuery.isLoading && (templatesQuery.data?.items?.length ?? 0) === 0 ? (
               <Skeleton active paragraph={{ rows: 5 }} />

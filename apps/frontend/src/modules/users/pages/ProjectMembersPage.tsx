@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, Card, Checkbox, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, Skeleton } from "antd";
+import { Alert, App, Button, Card, Checkbox, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { FormInstance } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
@@ -187,6 +187,8 @@ export function ProjectMembersPage() {
   const { t, i18n } = useTranslation();
   const { notification } = App.useApp();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [searchParams] = useSearchParams();
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
@@ -461,28 +463,35 @@ export function ProjectMembersPage() {
             <Alert type="info" showIcon message={t("project_members.select_project_message")} />
           ) : (
             <>
-              <Space wrap style={{ width: "100%", marginBottom: 4, justifyContent: "space-between" }} size={[12, 12]}>
+              <Flex
+                gap={12}
+                wrap={!isMobile}
+                vertical={isMobile}
+                align={isMobile ? "stretch" : "center"}
+                justify="space-between"
+                style={{ width: "100%", marginBottom: 4 }}
+              >
                 <Input.Search
                   allowClear
                   placeholder={t("project_members.search_placeholder")}
-                  style={{ width: 360, maxWidth: "100%" }}
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
                   onSearch={(value) => setSearchInput(value)}
+                  style={{ width: isMobile ? "100%" : undefined, maxWidth: isMobile ? undefined : 360 }}
                 />
-                <Space>
+                <Flex gap={8} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"}>
                   {selectedProjectId ? (
                     <Button onClick={() => navigate(`/app/admin/project-roles?projectId=${selectedProjectId}`)}>
                       {t("project_members.go_to_roles")}
                     </Button>
                   ) : null}
                   {canManageProjectMembers ? (
-                    <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)}>
+                    <Button type="primary" icon={<PlusOutlined />} size="large" onClick={() => setCreateOpen(true)} block={isMobile}>
                       {t("project_members.create_action")}
                     </Button>
                   ) : null}
-                </Space>
-              </Space>
+                </Flex>
+              </Flex>
 
               {canReadProjects && projectAssignmentsQuery.isLoading && (projectAssignmentsQuery.data?.items?.length ?? 0) === 0 ? (
                 <Skeleton active paragraph={{ rows: 6 }} />

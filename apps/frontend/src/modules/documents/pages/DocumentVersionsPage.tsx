@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Dropdown, Modal, Space, Table, Tag, Typography, Skeleton } from "antd";
+import { Alert, Button, Card, Dropdown, Modal, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined, BranchesOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -21,6 +21,8 @@ type LocationState = {
 export function DocumentVersionsPage() {
   const language = useI18nLanguage();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const { documentId } = useParams<{ documentId: string }>();
   const location = useLocation();
   const locationState = location.state as LocationState | null;
@@ -159,9 +161,9 @@ export function DocumentVersionsPage() {
 
 
   return (
-    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Space style={{ width: "100%", justifyContent: "flex-start" }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/documents")} block={isMobile}>
           {tr("documents.versions_page.back_action")}
         </Button>
       </Space>
@@ -196,11 +198,18 @@ export function DocumentVersionsPage() {
       </Card>
 
       <Card variant="borderless">
-        <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
+        <Flex
+          gap={12}
+          wrap={!isMobile}
+          vertical={isMobile}
+          align={isMobile ? "stretch" : "center"}
+          justify="space-between"
+          style={{ width: "100%", marginBottom: 16 }}
+        >
           <Title level={4} style={{ margin: 0 }}>
             {tr("documents.versions_page.list_title")}
           </Title>
-          <Space>
+          <Flex gap={8} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"}>
             {canManageVersions ? (
               <Button
                 icon={<UploadOutlined />}
@@ -209,6 +218,7 @@ export function DocumentVersionsPage() {
                     state: { documentName: documentLabel, from: `/app/documents/${documentId}/versions` },
                   })
                 }
+                block={isMobile}
               >
                 {tr("documents.versions_page.actions.add_version")}
               </Button>
@@ -220,11 +230,12 @@ export function DocumentVersionsPage() {
                   state: { documentName: documentLabel, from: `/app/documents/${documentId}/versions` },
                 })
               }
+              block={isMobile}
             >
               {tr("documents.history_page.open_action")}
             </Button>
-          </Space>
-        </Space>
+          </Flex>
+        </Flex>
         {!canReadDocuments ? (
           <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
         ) : null}
