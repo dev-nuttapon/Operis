@@ -601,6 +601,20 @@
       "planned_period": "Planned period",
       "actual_period": "Actual period"
     },
+    "form_sections": {
+      "basic": {
+        "title": "Project details"
+      },
+      "ownership": {
+        "title": "Owner & sponsor"
+      },
+      "status": {
+        "title": "Status"
+      },
+      "timeline": {
+        "title": "Timeline"
+      }
+    },
     "placeholders": {
       "code": "e.g. PRJ-2026-001",
       "name": "e.g. ERP Rollout",

@@ -1,4 +1,4 @@
-import { DatePicker, Form, Input, Select } from "antd";
+import { DatePicker, Form, Input, Select, Space, Typography, Divider } from "antd";
 import type { FormInstance } from "antd";
 import dayjs from "dayjs";
 import type { CreateProjectInput, Project } from "../../types/users";
@@ -106,135 +106,166 @@ export function ProjectForm({
 
   return (
     <Form form={form} layout="vertical">
-      <Form.Item name="code" label={t("projects.fields.code")} rules={[{ required: true }]}>
-        <Input placeholder={t("projects.placeholders.code")} />
-      </Form.Item>
-      <Form.Item name="name" label={t("projects.fields.name")} rules={[{ required: true }]}>
-        <Input placeholder={t("projects.placeholders.name")} />
-      </Form.Item>
-      <Form.Item name="projectType" label={t("projects.fields.project_type")} initialValue="Internal" rules={[{ required: true }]}>
-        <Select
-          showSearch
-          filterOption={false}
-          options={projectTypeOptions}
-          loading={projectTypeOptionsLoading}
-          onSearch={onProjectTypeSearch}
-          dropdownRender={(menu) => (
-            <>
-              {menu}
-              {projectTypeHasMore ? (
-                <div style={{ padding: 8 }}>
-                  <button
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => onProjectTypeLoadMore?.()}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      background: "transparent",
-                      color: "#1677ff",
-                      cursor: "pointer",
-                      padding: 4,
-                    }}
-                  >
-                    {t("projects.load_more_project_types")}
-                  </button>
-                </div>
-              ) : null}
-            </>
-          )}
-        />
-      </Form.Item>
-      <Form.Item name="ownerUserId" label={t("projects.fields.owner")}>
-        <Select
-          allowClear
-          showSearch
-          filterOption={false}
-          optionFilterProp="label"
-          options={userOptions}
-          placeholder={t("projects.placeholders.owner")}
-          loading={userOptionsLoading}
-          onSearch={onUserSearch}
-          dropdownRender={(menu) => (
-            <>
-              {menu}
-              {userHasMore ? (
-                <div style={{ padding: 8 }}>
-                  <button
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => onUserLoadMore?.()}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      background: "transparent",
-                      color: "#1677ff",
-                      cursor: "pointer",
-                      padding: 4,
-                    }}
-                  >
-                    {t("projects.load_more_users")}
-                  </button>
-                </div>
-              ) : null}
-            </>
-          )}
-        />
-      </Form.Item>
-      <Form.Item name="sponsorUserId" label={t("projects.fields.sponsor")}>
-        <Select
-          allowClear
-          showSearch
-          filterOption={false}
-          optionFilterProp="label"
-          options={userOptions}
-          placeholder={t("projects.placeholders.sponsor")}
-          loading={userOptionsLoading}
-          onSearch={onUserSearch}
-          dropdownRender={(menu) => (
-            <>
-              {menu}
-              {userHasMore ? (
-                <div style={{ padding: 8 }}>
-                  <button
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => onUserLoadMore?.()}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      background: "transparent",
-                      color: "#1677ff",
-                      cursor: "pointer",
-                      padding: 4,
-                    }}
-                  >
-                    {t("projects.load_more_users")}
-                  </button>
-                </div>
-              ) : null}
-            </>
-          )}
-        />
-      </Form.Item>
-      <Form.Item name="methodology" label={t("projects.fields.methodology")}>
-        <Select allowClear options={methodologyOptions} placeholder={t("projects.placeholders.methodology")} />
-      </Form.Item>
-      <Form.Item name="phase" label={t("projects.fields.phase")}>
-        <Select allowClear options={phaseOptions} placeholder={t("projects.placeholders.phase")} />
-      </Form.Item>
-      <Form.Item name="status" label={t("projects.fields.status")} initialValue="planned" rules={[{ required: true }]}>
-        <Select options={projectStatusOptions} />
-      </Form.Item>
-      <Form.Item name="statusReason" label={t("projects.fields.status_reason")}>
-        <Input.TextArea rows={3} placeholder={t("projects.placeholders.status_reason")} />
-      </Form.Item>
-      <Form.Item name="plannedPeriod" label={t("projects.fields.planned_period")}>
-        <DatePicker.RangePicker style={{ width: "100%" }} />
-      </Form.Item>
-      <Form.Item name="actualPeriod" label={t("projects.fields.actual_period")}>
-        <DatePicker.RangePicker style={{ width: "100%" }} />
-      </Form.Item>
+      <Space direction="vertical" size={20} style={{ width: "100%" }}>
+        <div>
+          <Typography.Title level={5} style={{ marginBottom: 12 }}>
+            {t("projects.form_sections.basic.title")}
+          </Typography.Title>
+          <Form.Item name="code" label={t("projects.fields.code")} rules={[{ required: true }]}>
+            <Input placeholder={t("projects.placeholders.code")} />
+          </Form.Item>
+          <Form.Item name="name" label={t("projects.fields.name")} rules={[{ required: true }]}>
+            <Input placeholder={t("projects.placeholders.name")} />
+          </Form.Item>
+          <Form.Item name="projectType" label={t("projects.fields.project_type")} initialValue="Internal" rules={[{ required: true }]}>
+            <Select
+              showSearch
+              filterOption={false}
+              options={projectTypeOptions}
+              loading={projectTypeOptionsLoading}
+              onSearch={onProjectTypeSearch}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  {projectTypeHasMore ? (
+                    <div style={{ padding: 8 }}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => onProjectTypeLoadMore?.()}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          color: "#1677ff",
+                          cursor: "pointer",
+                          padding: 4,
+                        }}
+                      >
+                        {t("projects.load_more_project_types")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            />
+          </Form.Item>
+          <Form.Item name="methodology" label={t("projects.fields.methodology")}>
+            <Select allowClear options={methodologyOptions} placeholder={t("projects.placeholders.methodology")} />
+          </Form.Item>
+          <Form.Item name="phase" label={t("projects.fields.phase")}>
+            <Select allowClear options={phaseOptions} placeholder={t("projects.placeholders.phase")} />
+          </Form.Item>
+        </div>
+
+        <Divider style={{ margin: "4px 0" }} />
+
+        <div>
+          <Typography.Title level={5} style={{ marginBottom: 12 }}>
+            {t("projects.form_sections.ownership.title")}
+          </Typography.Title>
+          <Form.Item name="ownerUserId" label={t("projects.fields.owner")}>
+            <Select
+              allowClear
+              showSearch
+              filterOption={false}
+              optionFilterProp="label"
+              options={userOptions}
+              placeholder={t("projects.placeholders.owner")}
+              loading={userOptionsLoading}
+              onSearch={onUserSearch}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  {userHasMore ? (
+                    <div style={{ padding: 8 }}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => onUserLoadMore?.()}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          color: "#1677ff",
+                          cursor: "pointer",
+                          padding: 4,
+                        }}
+                      >
+                        {t("projects.load_more_users")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            />
+          </Form.Item>
+          <Form.Item name="sponsorUserId" label={t("projects.fields.sponsor")}>
+            <Select
+              allowClear
+              showSearch
+              filterOption={false}
+              optionFilterProp="label"
+              options={userOptions}
+              placeholder={t("projects.placeholders.sponsor")}
+              loading={userOptionsLoading}
+              onSearch={onUserSearch}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  {userHasMore ? (
+                    <div style={{ padding: 8 }}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => onUserLoadMore?.()}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          color: "#1677ff",
+                          cursor: "pointer",
+                          padding: 4,
+                        }}
+                      >
+                        {t("projects.load_more_users")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            />
+          </Form.Item>
+        </div>
+
+        <Divider style={{ margin: "4px 0" }} />
+
+        <div>
+          <Typography.Title level={5} style={{ marginBottom: 12 }}>
+            {t("projects.form_sections.status.title")}
+          </Typography.Title>
+          <Form.Item name="status" label={t("projects.fields.status")} initialValue="planned" rules={[{ required: true }]}>
+            <Select options={projectStatusOptions} />
+          </Form.Item>
+          <Form.Item name="statusReason" label={t("projects.fields.status_reason")}>
+            <Input.TextArea rows={3} placeholder={t("projects.placeholders.status_reason")} />
+          </Form.Item>
+        </div>
+
+        <Divider style={{ margin: "4px 0" }} />
+
+        <div>
+          <Typography.Title level={5} style={{ marginBottom: 12 }}>
+            {t("projects.form_sections.timeline.title")}
+          </Typography.Title>
+          <Form.Item name="plannedPeriod" label={t("projects.fields.planned_period")}>
+            <DatePicker.RangePicker style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item name="actualPeriod" label={t("projects.fields.actual_period")}>
+            <DatePicker.RangePicker style={{ width: "100%" }} />
+          </Form.Item>
+        </div>
+      </Space>
     </Form>
   );
 }

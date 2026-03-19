@@ -601,6 +601,20 @@
       "planned_period": "ช่วงเวลาแผน",
       "actual_period": "ช่วงเวลาดำเนินจริง"
     },
+    "form_sections": {
+      "basic": {
+        "title": "ข้อมูลโครงการ"
+      },
+      "ownership": {
+        "title": "เจ้าของ/ผู้สนับสนุนโครงการ"
+      },
+      "status": {
+        "title": "สถานะ"
+      },
+      "timeline": {
+        "title": "ช่วงเวลา"
+      }
+    },
     "placeholders": {
       "code": "เช่น PRJ-2026-001",
       "name": "เช่น ERP Rollout",
