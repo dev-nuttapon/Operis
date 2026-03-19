@@ -10,7 +10,6 @@ import {
   BellOutlined,
   LeftOutlined,
   RightOutlined,
-  DashboardOutlined,
   GlobalOutlined,
   ProjectOutlined,
   TeamOutlined,
@@ -116,11 +115,6 @@ export function MainLayout() {
   }, [notificationOpen]);
 
   const menuItems = [
-    {
-      key: '/app/dashboard',
-      icon: <DashboardOutlined />,
-      label: tr('common.dashboard'),
-    },
     ...(hasDocumentAccess
       ? [{
           key: '/app/documents',
