@@ -1562,7 +1562,7 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.ToTable("user_registration_requests", (string)null);
                 });
 
-            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowDefinitionEntity", b =>
+                modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowDefinitionEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1603,6 +1603,81 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("Status", "CreatedAt");
 
                     b.ToTable("workflow_definitions", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowStepEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_required");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("StepType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("step_type");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("WorkflowDefinitionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_definition_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkflowDefinitionId", "DisplayOrder");
+
+                    b.ToTable("workflow_steps", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowStepRoleEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ProjectRoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_role_id");
+
+                    b.Property<Guid>("WorkflowStepId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_step_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectRoleId");
+
+                    b.HasIndex("WorkflowStepId", "ProjectRoleId")
+                        .IsUnique();
+
+                    b.ToTable("workflow_step_roles", (string)null);
                 });
 
             modelBuilder.Entity("Operis_API.Shared.ActivityLogging.ActivityLogEntity", b =>

@@ -35,6 +35,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<BusinessAuditEventEntity> BusinessAuditEvents => Set<BusinessAuditEventEntity>();
     public DbSet<WorkflowDefinitionEntity> WorkflowDefinitions => Set<WorkflowDefinitionEntity>();
+    public DbSet<WorkflowStepEntity> WorkflowSteps => Set<WorkflowStepEntity>();
+    public DbSet<WorkflowStepRoleEntity> WorkflowStepRoles => Set<WorkflowStepRoleEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -653,6 +655,32 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasIndex(x => x.Code).IsUnique();
             entity.HasIndex(x => new { x.Status, x.CreatedAt });
+        });
+
+        modelBuilder.Entity<WorkflowStepEntity>(entity =>
+        {
+            entity.ToTable("workflow_steps");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.WorkflowDefinitionId).HasColumnName("workflow_definition_id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(200);
+            entity.Property(x => x.StepType).HasColumnName("step_type").HasMaxLength(32);
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
+            entity.Property(x => x.IsRequired).HasColumnName("is_required");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.WorkflowDefinitionId, x.DisplayOrder });
+        });
+
+        modelBuilder.Entity<WorkflowStepRoleEntity>(entity =>
+        {
+            entity.ToTable("workflow_step_roles");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.WorkflowStepId).HasColumnName("workflow_step_id");
+            entity.Property(x => x.ProjectRoleId).HasColumnName("project_role_id");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(x => new { x.WorkflowStepId, x.ProjectRoleId }).IsUnique();
         });
     }
 }

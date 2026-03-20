@@ -13,12 +13,26 @@ public sealed class WorkflowCommands(
     IAuditLogWriter auditLogWriter,
     IBusinessAuditEventWriter businessAuditEventWriter) : IWorkflowCommands
 {
+    private static readonly HashSet<string> AllowedStepTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "submit",
+        "peer_review",
+        "review",
+        "approve"
+    };
+
     public async Task<WorkflowCommandResult> CreateDefinitionAsync(CreateWorkflowDefinitionRequest request, CancellationToken cancellationToken)
     {
         var name = NormalizeName(request.Name);
         if (name is null)
         {
             return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.", ApiErrorCodes.WorkflowDefinitionNameRequired);
+        }
+
+        var stepValidation = await ValidateStepsAsync(request.Steps, cancellationToken);
+        if (stepValidation is not null)
+        {
+            return stepValidation;
         }
 
         var uniqueness = await ValidateUniqueCodeAsync(name, null, cancellationToken);
@@ -39,6 +53,36 @@ public sealed class WorkflowCommands(
         };
 
         dbContext.WorkflowDefinitions.Add(entity);
+
+        var steps = request.Steps
+            .OrderBy(step => step.DisplayOrder)
+            .Select(step => new WorkflowStepEntity
+            {
+                Id = Guid.NewGuid(),
+                WorkflowDefinitionId = entity.Id,
+                Name = step.Name.Trim(),
+                StepType = step.StepType.Trim().ToLowerInvariant(),
+                DisplayOrder = step.DisplayOrder,
+                IsRequired = step.IsRequired,
+                CreatedAt = DateTimeOffset.UtcNow
+            })
+            .ToList();
+
+        dbContext.WorkflowSteps.AddRange(steps);
+
+        var stepRoles = steps
+            .Join(request.Steps, entityStep => entityStep.DisplayOrder, requestStep => requestStep.DisplayOrder,
+                (entityStep, requestStep) => new { entityStep, requestStep })
+            .SelectMany(pair => pair.requestStep.RoleIds.Distinct().Select(roleId => new WorkflowStepRoleEntity
+            {
+                Id = Guid.NewGuid(),
+                WorkflowStepId = pair.entityStep.Id,
+                ProjectRoleId = roleId,
+                CreatedAt = DateTimeOffset.UtcNow
+            }))
+            .ToList();
+
+        dbContext.WorkflowStepRoles.AddRange(stepRoles);
         auditLogWriter.Append(new AuditLogEntry(
             Module: "workflows",
             Action: "create",
@@ -51,7 +95,15 @@ public sealed class WorkflowCommands(
                 entity.Code,
                 entity.Name,
                 entity.Status,
-                entity.CreatedAt
+                entity.CreatedAt,
+                Steps = steps.Select(step => new
+                {
+                    step.Id,
+                    step.Name,
+                    step.StepType,
+                    step.DisplayOrder,
+                    step.IsRequired
+                })
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
         await TryAppendBusinessEventAsync(
@@ -66,7 +118,7 @@ public sealed class WorkflowCommands(
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
-            Response: ToContract(entity));
+            Response: BuildDetailContract(entity, steps, stepRoles));
     }
 
     public async Task<WorkflowCommandResult> UpdateDefinitionAsync(Guid workflowDefinitionId, UpdateWorkflowDefinitionRequest request, CancellationToken cancellationToken)
@@ -83,16 +135,67 @@ public sealed class WorkflowCommands(
             return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow definition name is required.", ApiErrorCodes.WorkflowDefinitionNameRequired);
         }
 
+        var stepValidation = await ValidateStepsAsync(request.Steps, cancellationToken);
+        if (stepValidation is not null)
+        {
+            return stepValidation;
+        }
+
         var uniqueness = await ValidateUniqueCodeAsync(name, workflowDefinitionId, cancellationToken);
         if (uniqueness is not null)
         {
             return uniqueness;
         }
 
-        var before = ToContract(entity);
+        var before = await LoadDetailContractAsync(entity.Id, cancellationToken);
         entity.Name = name;
         entity.Code = ToCode(name)!;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var existingSteps = await dbContext.WorkflowSteps
+            .Where(x => x.WorkflowDefinitionId == entity.Id)
+            .ToListAsync(cancellationToken);
+
+        if (existingSteps.Count > 0)
+        {
+            var stepIds = existingSteps.Select(x => x.Id).ToList();
+            var existingRoles = await dbContext.WorkflowStepRoles
+                .Where(x => stepIds.Contains(x.WorkflowStepId))
+                .ToListAsync(cancellationToken);
+            dbContext.WorkflowStepRoles.RemoveRange(existingRoles);
+            dbContext.WorkflowSteps.RemoveRange(existingSteps);
+        }
+
+        var steps = request.Steps
+            .OrderBy(step => step.DisplayOrder)
+            .Select(step => new WorkflowStepEntity
+            {
+                Id = Guid.NewGuid(),
+                WorkflowDefinitionId = entity.Id,
+                Name = step.Name.Trim(),
+                StepType = step.StepType.Trim().ToLowerInvariant(),
+                DisplayOrder = step.DisplayOrder,
+                IsRequired = step.IsRequired,
+                CreatedAt = DateTimeOffset.UtcNow
+            })
+            .ToList();
+
+        dbContext.WorkflowSteps.AddRange(steps);
+
+        var stepRoles = steps
+            .Join(request.Steps, entityStep => entityStep.DisplayOrder, requestStep => requestStep.DisplayOrder,
+                (entityStep, requestStep) => new { entityStep, requestStep })
+            .SelectMany(pair => pair.requestStep.RoleIds.Distinct().Select(roleId => new WorkflowStepRoleEntity
+            {
+                Id = Guid.NewGuid(),
+                WorkflowStepId = pair.entityStep.Id,
+                ProjectRoleId = roleId,
+                CreatedAt = DateTimeOffset.UtcNow
+            }))
+            .ToList();
+
+        dbContext.WorkflowStepRoles.AddRange(stepRoles);
+
         auditLogWriter.Append(new AuditLogEntry(
             Module: "workflows",
             Action: "update",
@@ -100,12 +203,20 @@ public sealed class WorkflowCommands(
             EntityId: entity.Id.ToString(),
             StatusCode: StatusCodes.Status200OK,
             Before: before,
-            After: ToContract(entity),
+            After: BuildDetailContract(entity, steps, stepRoles),
             Changes: new
             {
                 entity.Name,
                 entity.Code,
-                entity.UpdatedAt
+                entity.UpdatedAt,
+                Steps = steps.Select(step => new
+                {
+                    step.Id,
+                    step.Name,
+                    step.StepType,
+                    step.DisplayOrder,
+                    step.IsRequired
+                })
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
         await TryAppendBusinessEventAsync(
@@ -115,12 +226,12 @@ public sealed class WorkflowCommands(
             entity.Id.ToString(),
             "Updated workflow definition",
             null,
-            new { before, after = ToContract(entity) },
+            new { before, after = BuildDetailContract(entity, steps, stepRoles) },
             cancellationToken);
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
-            Response: ToContract(entity));
+            Response: BuildDetailContract(entity, steps, stepRoles));
     }
 
     public async Task<WorkflowCommandResult> ActivateDefinitionAsync(Guid workflowDefinitionId, CancellationToken cancellationToken)
@@ -195,6 +306,64 @@ public sealed class WorkflowCommands(
             entity.Status);
     }
 
+    private static WorkflowDefinitionDetailContract BuildDetailContract(
+        WorkflowDefinitionEntity entity,
+        IReadOnlyList<WorkflowStepEntity> steps,
+        IReadOnlyList<WorkflowStepRoleEntity> stepRoles)
+    {
+        var roleLookup = stepRoles
+            .GroupBy(role => role.WorkflowStepId)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<Guid>)group.Select(x => x.ProjectRoleId).ToList());
+
+        var stepContracts = steps
+            .OrderBy(step => step.DisplayOrder)
+            .Select(step => new WorkflowStepContract(
+                step.Id,
+                step.Name,
+                step.StepType,
+                step.DisplayOrder,
+                step.IsRequired,
+                roleLookup.TryGetValue(step.Id, out var roles) ? roles : []))
+            .ToList();
+
+        return new WorkflowDefinitionDetailContract(
+            entity.Id,
+            entity.Code,
+            entity.Name,
+            entity.Status,
+            stepContracts);
+    }
+
+    private async Task<WorkflowDefinitionDetailContract?> LoadDetailContractAsync(Guid workflowDefinitionId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.WorkflowDefinitions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == workflowDefinitionId, cancellationToken);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var steps = await dbContext.WorkflowSteps
+            .AsNoTracking()
+            .Where(x => x.WorkflowDefinitionId == workflowDefinitionId)
+            .OrderBy(x => x.DisplayOrder)
+            .ToListAsync(cancellationToken);
+
+        if (steps.Count == 0)
+        {
+            return new WorkflowDefinitionDetailContract(entity.Id, entity.Code, entity.Name, entity.Status, []);
+        }
+
+        var stepIds = steps.Select(x => x.Id).ToList();
+        var stepRoles = await dbContext.WorkflowStepRoles
+            .AsNoTracking()
+            .Where(x => stepIds.Contains(x.WorkflowStepId))
+            .ToListAsync(cancellationToken);
+
+        return BuildDetailContract(entity, steps, stepRoles);
+    }
+
     private async Task<WorkflowCommandResult?> ValidateUniqueCodeAsync(
         string name,
         Guid? currentWorkflowDefinitionId,
@@ -223,9 +392,21 @@ public sealed class WorkflowCommands(
         int statusCode,
         CancellationToken cancellationToken)
     {
-        var before = ToContract(entity);
+        var before = await LoadDetailContractAsync(entity.Id, cancellationToken);
+        var steps = await dbContext.WorkflowSteps
+            .AsNoTracking()
+            .Where(x => x.WorkflowDefinitionId == entity.Id)
+            .ToListAsync(cancellationToken);
+        var stepIds = steps.Select(x => x.Id).ToList();
+        var stepRoles = stepIds.Count == 0
+            ? []
+            : await dbContext.WorkflowStepRoles
+                .AsNoTracking()
+                .Where(x => stepIds.Contains(x.WorkflowStepId))
+                .ToListAsync(cancellationToken);
         entity.Status = status;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        var after = BuildDetailContract(entity, steps, stepRoles);
         auditLogWriter.Append(new AuditLogEntry(
             Module: "workflows",
             Action: action,
@@ -233,7 +414,7 @@ public sealed class WorkflowCommands(
             EntityId: entity.Id.ToString(),
             StatusCode: statusCode,
             Before: before,
-            After: ToContract(entity),
+            After: after,
             Changes: new
             {
                 entity.Status,
@@ -247,12 +428,69 @@ public sealed class WorkflowCommands(
             entity.Id.ToString(),
             action == "activate" ? "Activated workflow definition" : "Archived workflow definition",
             null,
-            new { before, after = ToContract(entity) },
+            new { before, after },
             cancellationToken);
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
-            Response: ToContract(entity));
+            Response: after);
+    }
+
+    private async Task<WorkflowCommandResult?> ValidateStepsAsync(
+        IReadOnlyList<WorkflowStepRequest> steps,
+        CancellationToken cancellationToken)
+    {
+        if (steps is null || steps.Count == 0)
+        {
+            return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow steps are required.", ApiErrorCodes.RequestValidationFailed);
+        }
+
+        var displayOrders = new HashSet<int>();
+        var roleIds = new HashSet<Guid>();
+
+        foreach (var step in steps)
+        {
+            if (string.IsNullOrWhiteSpace(step.Name))
+            {
+                return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow step name is required.", ApiErrorCodes.RequestValidationFailed);
+            }
+
+            if (string.IsNullOrWhiteSpace(step.StepType) || !AllowedStepTypes.Contains(step.StepType.Trim()))
+            {
+                return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, $"Invalid workflow step type: {step.StepType}", ApiErrorCodes.RequestValidationFailed);
+            }
+
+            if (step.DisplayOrder <= 0 || !displayOrders.Add(step.DisplayOrder))
+            {
+                return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow step display order must be unique and positive.", ApiErrorCodes.RequestValidationFailed);
+            }
+
+            if (step.RoleIds is null || step.RoleIds.Count == 0)
+            {
+                return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Workflow step roles are required.", ApiErrorCodes.RequestValidationFailed);
+            }
+
+            foreach (var roleId in step.RoleIds)
+            {
+                roleIds.Add(roleId);
+            }
+        }
+
+        if (roleIds.Count > 0)
+        {
+            var existingRoles = await dbContext.ProjectRoles
+                .AsNoTracking()
+                .Where(x => roleIds.Contains(x.Id) && x.DeletedAt == null)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            if (existingRoles.Count != roleIds.Count)
+            {
+                return new WorkflowCommandResult(WorkflowCommandStatus.ValidationError, "Some workflow step roles do not exist.", ApiErrorCodes.RequestValidationFailed);
+            }
+        }
+
+        return null;
     }
 
     private async Task TryAppendBusinessEventAsync(

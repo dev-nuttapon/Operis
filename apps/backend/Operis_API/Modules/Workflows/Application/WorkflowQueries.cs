@@ -46,6 +46,73 @@ public sealed class WorkflowQueries(
         return new WorkflowDefinitionListResponse(definitions, total, page, pageSize, statusSummary);
     }
 
+    public async Task<WorkflowDefinitionDetailContract?> GetDefinitionAsync(Guid workflowDefinitionId, CancellationToken cancellationToken)
+    {
+        var definition = await dbContext.WorkflowDefinitions
+            .AsNoTracking()
+            .Where(x => x.Id == workflowDefinitionId)
+            .Select(x => new WorkflowDefinitionContract(x.Id, x.Code, x.Name, x.Status))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (definition is null)
+        {
+            return null;
+        }
+
+        var steps = await dbContext.WorkflowSteps
+            .AsNoTracking()
+            .Where(x => x.WorkflowDefinitionId == workflowDefinitionId)
+            .OrderBy(x => x.DisplayOrder)
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                x.StepType,
+                x.DisplayOrder,
+                x.IsRequired
+            })
+            .ToListAsync(cancellationToken);
+
+        var stepIds = steps.Select(x => x.Id).ToList();
+        var stepRoles = stepIds.Count == 0
+            ? new Dictionary<Guid, IReadOnlyList<Guid>>()
+            : await dbContext.WorkflowStepRoles
+                .AsNoTracking()
+                .Where(x => stepIds.Contains(x.WorkflowStepId))
+                .GroupBy(x => x.WorkflowStepId)
+                .Select(group => new
+                {
+                    StepId = group.Key,
+                    RoleIds = (IReadOnlyList<Guid>)group.Select(x => x.ProjectRoleId).ToList()
+                })
+                .ToDictionaryAsync(x => x.StepId, x => x.RoleIds, cancellationToken);
+
+        var stepContracts = steps
+            .Select(step => new WorkflowStepContract(
+                step.Id,
+                step.Name,
+                step.StepType,
+                step.DisplayOrder,
+                step.IsRequired,
+                stepRoles.TryGetValue(step.Id, out var roleIds) ? roleIds : []))
+            .ToList();
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "workflows",
+            Action: "get",
+            EntityType: "workflow_definition",
+            EntityId: workflowDefinitionId.ToString(),
+            StatusCode: StatusCodes.Status200OK));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new WorkflowDefinitionDetailContract(
+            definition.Id,
+            definition.Code,
+            definition.Name,
+            definition.Status,
+            stepContracts);
+    }
+
     private static (int Page, int PageSize, int Skip) NormalizePaging(int page, int pageSize)
     {
         var normalizedPage = page < 1 ? 1 : page;

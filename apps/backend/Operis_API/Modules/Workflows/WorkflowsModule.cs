@@ -23,6 +23,8 @@ public sealed class WorkflowsModule : IModule
 
         group.MapGet("/definitions", ListWorkflowDefinitionsAsync)
             .WithName("Workflows_ListDefinitions");
+        group.MapGet("/definitions/{workflowDefinitionId:guid}", GetWorkflowDefinitionAsync)
+            .WithName("Workflows_GetDefinition");
         group.MapPost("/definitions", CreateWorkflowDefinitionAsync)
             .WithName("Workflows_CreateDefinition");
         group.MapPut("/definitions/{workflowDefinitionId:guid}", UpdateWorkflowDefinitionAsync)
@@ -33,6 +35,22 @@ public sealed class WorkflowsModule : IModule
             .WithName("Workflows_ArchiveDefinition");
 
         return endpoints;
+    }
+
+    private static async Task<IResult> GetWorkflowDefinitionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid workflowDefinitionId,
+        IWorkflowQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var definition = await queries.GetDefinitionAsync(workflowDefinitionId, cancellationToken);
+        return definition is null ? Results.NotFound() : Results.Ok(definition);
     }
 
     private static async Task<IResult> ListWorkflowDefinitionsAsync(

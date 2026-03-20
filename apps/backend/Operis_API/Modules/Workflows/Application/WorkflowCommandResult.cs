@@ -11,4 +11,4 @@ public sealed record WorkflowCommandResult(
     WorkflowCommandStatus Status,
     string? ErrorMessage = null,
     string? ErrorCode = null,
-    WorkflowDefinitionContract? Response = null);
+    WorkflowDefinitionDetailContract? Response = null);
