@@ -57,3 +57,57 @@ export interface UpdateWorkflowDefinitionInput {
 export interface WorkflowDefinitionActionInput {
   workflowDefinitionId: string;
 }
+
+export interface WorkflowInstance {
+  id: string;
+  projectId: string;
+  documentId: string;
+  workflowDefinitionId: string;
+  status: string;
+  currentStepOrder: number;
+  startedAt: string;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface WorkflowInstanceStep {
+  id: string;
+  workflowStepId: string;
+  stepType: WorkflowStepType;
+  displayOrder: number;
+  isRequired: boolean;
+  status: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  roleIds: string[];
+}
+
+export interface WorkflowInstanceAction {
+  id: string;
+  workflowInstanceStepId: string;
+  action: string;
+  actorUserId: string | null;
+  actorEmail: string | null;
+  actorDisplayName: string | null;
+  comment: string | null;
+  createdAt: string;
+}
+
+export interface WorkflowInstanceDetail {
+  instance: WorkflowInstance;
+  steps: WorkflowInstanceStep[];
+  actions: WorkflowInstanceAction[];
+}
+
+export interface CreateWorkflowInstanceInput {
+  projectId: string;
+  documentId: string;
+  workflowDefinitionId?: string;
+}
+
+export interface WorkflowStepActionInput {
+  workflowInstanceId: string;
+  workflowInstanceStepId: string;
+  action: WorkflowStepType;
+  comment?: string;
+}

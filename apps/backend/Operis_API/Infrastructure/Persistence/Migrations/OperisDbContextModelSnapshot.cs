@@ -1688,6 +1688,174 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.ToTable("workflow_step_roles", (string)null);
                 });
 
+            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowInstanceEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("CurrentStepOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_step_order");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("WorkflowDefinitionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_definition_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("WorkflowDefinitionId");
+
+                    b.HasIndex("ProjectId", "Status", "CreatedAt");
+
+                    b.ToTable("workflow_instances", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowInstanceStepEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_required");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("StepType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("step_type");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("WorkflowInstanceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_instance_id");
+
+                    b.Property<Guid>("WorkflowStepId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_step_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkflowInstanceId", "DisplayOrder");
+
+                    b.HasIndex("WorkflowStepId");
+
+                    b.ToTable("workflow_instance_steps", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowInstanceActionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("ActorDisplayName")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("actor_display_name");
+
+                    b.Property<string>("ActorEmail")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("actor_email");
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("WorkflowInstanceStepId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_instance_step_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkflowInstanceStepId");
+
+                    b.HasIndex("ActorUserId", "CreatedAt");
+
+                    b.ToTable("workflow_instance_actions", (string)null);
+                });
+
             modelBuilder.Entity("Operis_API.Shared.ActivityLogging.ActivityLogEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2108,6 +2276,45 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("WorkflowDefinitionId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowInstanceEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Documents.Infrastructure.DocumentEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Operis_API.Modules.Workflows.Infrastructure.WorkflowDefinitionEntity", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowInstanceStepEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Workflows.Infrastructure.WorkflowInstanceEntity", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Operis_API.Modules.Workflows.Infrastructure.WorkflowStepEntity", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowStepId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowInstanceActionEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Workflows.Infrastructure.WorkflowInstanceStepEntity", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowInstanceStepId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Users.Infrastructure.ProjectTypeRoleRequirementEntity", b =>

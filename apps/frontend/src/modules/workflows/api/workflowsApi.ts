@@ -6,6 +6,9 @@ import type {
   WorkflowDefinitionListResponse,
   WorkflowDefinitionDetail,
   WorkflowDefinitionSummary,
+  WorkflowInstanceDetail,
+  CreateWorkflowInstanceInput,
+  WorkflowStepActionInput,
 } from "../types/workflows";
 
 function toListQuery(input?: WorkflowDefinitionListInput) {
@@ -66,4 +69,29 @@ export async function archiveWorkflowDefinition(workflowDefinitionId: string): P
   return apiRequest<WorkflowDefinitionSummary>(`/api/v1/workflows/definitions/${workflowDefinitionId}/archive`, {
     method: "POST",
   });
+}
+
+export async function createWorkflowInstance(input: CreateWorkflowInstanceInput): Promise<WorkflowInstanceDetail> {
+  return apiRequest<WorkflowInstanceDetail>("/api/v1/workflows/instances", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export async function getWorkflowInstance(workflowInstanceId: string, signal?: AbortSignal): Promise<WorkflowInstanceDetail> {
+  return apiRequest<WorkflowInstanceDetail>(`/api/v1/workflows/instances/${workflowInstanceId}`, { signal });
+}
+
+export async function getWorkflowInstanceByDocument(documentId: string, signal?: AbortSignal): Promise<WorkflowInstanceDetail> {
+  return apiRequest<WorkflowInstanceDetail>(`/api/v1/workflows/instances/by-document/${documentId}`, { signal });
+}
+
+export async function applyWorkflowStepAction(input: WorkflowStepActionInput): Promise<WorkflowInstanceDetail> {
+  return apiRequest<WorkflowInstanceDetail>(
+    `/api/v1/workflows/instances/${input.workflowInstanceId}/steps/${input.workflowInstanceStepId}/actions`,
+    {
+      method: "POST",
+      body: { action: input.action, comment: input.comment },
+    },
+  );
 }

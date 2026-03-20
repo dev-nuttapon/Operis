@@ -37,6 +37,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<WorkflowDefinitionEntity> WorkflowDefinitions => Set<WorkflowDefinitionEntity>();
     public DbSet<WorkflowStepEntity> WorkflowSteps => Set<WorkflowStepEntity>();
     public DbSet<WorkflowStepRoleEntity> WorkflowStepRoles => Set<WorkflowStepRoleEntity>();
+    public DbSet<WorkflowInstanceEntity> WorkflowInstances => Set<WorkflowInstanceEntity>();
+    public DbSet<WorkflowInstanceStepEntity> WorkflowInstanceSteps => Set<WorkflowInstanceStepEntity>();
+    public DbSet<WorkflowInstanceActionEntity> WorkflowInstanceActions => Set<WorkflowInstanceActionEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -687,6 +690,67 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.ProjectRoleId).HasColumnName("project_role_id");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.HasIndex(x => new { x.WorkflowStepId, x.ProjectRoleId }).IsUnique();
+        });
+
+        modelBuilder.Entity<WorkflowInstanceEntity>(entity =>
+        {
+            entity.ToTable("workflow_instances");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.DocumentId).HasColumnName("document_id");
+            entity.Property(x => x.WorkflowDefinitionId).HasColumnName("workflow_definition_id");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CurrentStepOrder).HasColumnName("current_step_order");
+            entity.Property(x => x.StartedAt).HasColumnName("started_at");
+            entity.Property(x => x.CompletedAt).HasColumnName("completed_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<DocumentEntity>().WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<WorkflowDefinitionEntity>().WithMany().HasForeignKey(x => x.WorkflowDefinitionId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.ProjectId);
+            entity.HasIndex(x => x.DocumentId);
+            entity.HasIndex(x => x.WorkflowDefinitionId);
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.CreatedAt });
+        });
+
+        modelBuilder.Entity<WorkflowInstanceStepEntity>(entity =>
+        {
+            entity.ToTable("workflow_instance_steps");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.WorkflowInstanceId).HasColumnName("workflow_instance_id");
+            entity.Property(x => x.WorkflowStepId).HasColumnName("workflow_step_id");
+            entity.Property(x => x.StepType).HasColumnName("step_type").HasMaxLength(32);
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
+            entity.Property(x => x.IsRequired).HasColumnName("is_required");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.StartedAt).HasColumnName("started_at");
+            entity.Property(x => x.CompletedAt).HasColumnName("completed_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<WorkflowInstanceEntity>().WithMany().HasForeignKey(x => x.WorkflowInstanceId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<WorkflowStepEntity>().WithMany().HasForeignKey(x => x.WorkflowStepId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.WorkflowInstanceId, x.DisplayOrder });
+            entity.HasIndex(x => x.WorkflowStepId);
+        });
+
+        modelBuilder.Entity<WorkflowInstanceActionEntity>(entity =>
+        {
+            entity.ToTable("workflow_instance_actions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.WorkflowInstanceStepId).HasColumnName("workflow_instance_step_id");
+            entity.Property(x => x.Action).HasColumnName("action").HasMaxLength(32);
+            entity.Property(x => x.ActorUserId).HasColumnName("actor_user_id").HasMaxLength(64);
+            entity.Property(x => x.ActorEmail).HasColumnName("actor_email").HasMaxLength(128);
+            entity.Property(x => x.ActorDisplayName).HasColumnName("actor_display_name").HasMaxLength(128);
+            entity.Property(x => x.Comment).HasColumnName("comment").HasMaxLength(512);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<WorkflowInstanceStepEntity>().WithMany().HasForeignKey(x => x.WorkflowInstanceStepId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => x.WorkflowInstanceStepId);
+            entity.HasIndex(x => new { x.ActorUserId, x.CreatedAt });
         });
     }
 }

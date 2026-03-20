@@ -12,6 +12,8 @@ public sealed class WorkflowsModule : IModule
     {
         services.AddScoped<IWorkflowQueries, WorkflowQueries>();
         services.AddScoped<IWorkflowCommands, WorkflowCommands>();
+        services.AddScoped<IWorkflowInstanceQueries, WorkflowInstanceQueries>();
+        services.AddScoped<IWorkflowInstanceCommands, WorkflowInstanceCommands>();
         return services;
     }
 
@@ -33,6 +35,15 @@ public sealed class WorkflowsModule : IModule
             .WithName("Workflows_ActivateDefinition");
         group.MapPost("/definitions/{workflowDefinitionId:guid}/archive", ArchiveWorkflowDefinitionAsync)
             .WithName("Workflows_ArchiveDefinition");
+
+        group.MapPost("/instances", CreateWorkflowInstanceAsync)
+            .WithName("Workflows_CreateInstance");
+        group.MapGet("/instances/{workflowInstanceId:guid}", GetWorkflowInstanceAsync)
+            .WithName("Workflows_GetInstance");
+        group.MapGet("/instances/by-document/{documentId:guid}", GetWorkflowInstanceByDocumentAsync)
+            .WithName("Workflows_GetInstanceByDocument");
+        group.MapPost("/instances/{workflowInstanceId:guid}/steps/{workflowInstanceStepId:guid}/actions", ApplyWorkflowStepActionAsync)
+            .WithName("Workflows_ApplyStepAction");
 
         return endpoints;
     }
@@ -150,6 +161,93 @@ public sealed class WorkflowsModule : IModule
         return ToCommandResult(result);
     }
 
+    private static async Task<IResult> CreateWorkflowInstanceAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        CreateWorkflowInstanceRequest request,
+        IWorkflowInstanceCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Projects.Manage))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.CreateInstanceAsync(
+            request,
+            ResolveCurrentUserId(principal),
+            ResolveActorDisplayName(principal),
+            ResolveActorEmail(principal),
+            cancellationToken);
+
+        return result.Success
+            ? Results.Created($"/api/v1/workflows/instances/{result.Response!.Instance.Id}", result.Response)
+            : BadRequestWithCode(result.Error, result.ErrorCode);
+    }
+
+    private static async Task<IResult> GetWorkflowInstanceAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid workflowInstanceId,
+        IWorkflowInstanceQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var instance = await queries.GetInstanceAsync(workflowInstanceId, cancellationToken);
+        return instance is null ? Results.NotFound() : Results.Ok(instance);
+    }
+
+    private static async Task<IResult> GetWorkflowInstanceByDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid documentId,
+        IWorkflowInstanceQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var instance = await queries.GetInstanceByDocumentAsync(documentId, cancellationToken);
+        return instance is null ? Results.NotFound() : Results.Ok(instance);
+    }
+
+    private static async Task<IResult> ApplyWorkflowStepActionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid workflowInstanceId,
+        Guid workflowInstanceStepId,
+        WorkflowStepActionRequest request,
+        IWorkflowInstanceCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Projects.Manage))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.ApplyStepActionAsync(
+            workflowInstanceId,
+            workflowInstanceStepId,
+            request,
+            ResolveCurrentUserId(principal),
+            ResolveActorDisplayName(principal),
+            ResolveActorEmail(principal),
+            cancellationToken);
+
+        if (result.NotFound)
+        {
+            return Results.NotFound();
+        }
+
+        return result.Success ? Results.Ok(result.Response) : BadRequestWithCode(result.Error, result.ErrorCode);
+    }
+
     private static IResult ToCommandResult(WorkflowCommandResult result)
     {
         return result.Status switch
@@ -185,4 +283,20 @@ public sealed class WorkflowsModule : IModule
         var normalized = status.Trim().ToLowerInvariant();
         return normalized is "draft" or "active" or "archived";
     }
+
+    private static string ResolveActorDisplayName(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("name")
+        ?? principal.FindFirstValue("preferred_username")
+        ?? principal.FindFirstValue(ClaimTypes.Name)
+        ?? ResolveActorEmail(principal)
+        ?? ResolveCurrentUserId(principal)
+        ?? "system";
+
+    private static string? ResolveActorEmail(ClaimsPrincipal principal) =>
+        principal.FindFirstValue(ClaimTypes.Email)
+        ?? principal.FindFirstValue("email");
+
+    private static string? ResolveCurrentUserId(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("sub")
+        ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
 }

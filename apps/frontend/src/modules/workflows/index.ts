@@ -8,6 +8,8 @@ export * from "./hooks/useWorkflowDefinition";
 export * from "./hooks/useWorkflowDefinitionOptions";
 export * from "./hooks/useWorkflowDefinitionsScreen";
 export * from "./hooks/useWorkflowDefinitions";
+export * from "./hooks/useWorkflowInstance";
+export * from "./hooks/useWorkflowInstanceActions";
 export * from "./pages/WorkflowDefinitionsPage";
 export * from "./pages/WorkflowDefinitionCreatePage";
 export * from "./pages/WorkflowDefinitionEditPage";
