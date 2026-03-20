@@ -6,16 +6,19 @@ import { useNavigate, useParams } from "react-router-dom";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import { useProjectRoleOptions } from "../../users";
 import { useWorkflowDefinition } from "../hooks/useWorkflowDefinition";
 import { useUpdateWorkflowDefinition } from "../hooks/useUpdateWorkflowDefinition";
 import type { WorkflowStep, WorkflowStepType } from "../types/workflows";
+import { useDocumentTemplate, useDocumentTemplates, useDocumentsByIds } from "../../documents";
 
 type StepDraft = {
   name: string;
   stepType: WorkflowStepType;
   roleIds: string[];
   isRequired: boolean;
+  documentId?: string | null;
 };
 
 export function WorkflowDefinitionEditPage() {
@@ -33,6 +36,9 @@ export function WorkflowDefinitionEditPage() {
   const [form] = Form.useForm<{ name: string }>();
   const [stepForm] = Form.useForm<StepDraft>();
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [templateSearch, setTemplateSearch] = useState("");
+  const debouncedTemplateSearch = useDebouncedValue(templateSearch, 300);
 
   const roleOptionsState = useProjectRoleOptions({ enabled: canReadRoles });
   const roleLabelById = useMemo(
@@ -50,9 +56,32 @@ export function WorkflowDefinitionEditPage() {
     [t],
   );
 
+  const templateListState = useDocumentTemplates(
+    { page: 1, pageSize: 25, search: debouncedTemplateSearch || undefined },
+    canManage,
+  );
+  const templateDetailState = useDocumentTemplate(selectedTemplateId, Boolean(selectedTemplateId));
+  const templateDocumentIds =
+    (templateDetailState.data?.documentIds
+      ?? (templateDetailState.data as { DocumentIds?: string[] } | null)?.DocumentIds
+      ?? []) as string[];
+  const templateDocumentsState = useDocumentsByIds(
+    templateDocumentIds,
+    Boolean(templateDocumentIds.length),
+  );
+  const documentOptions = useMemo(
+    () => (templateDocumentsState.data ?? []).map((doc) => ({ label: doc.documentName, value: doc.id })),
+    [templateDocumentsState.data],
+  );
+  const documentLabelById = useMemo(
+    () => new Map((templateDocumentsState.data ?? []).map((doc) => [doc.id, doc.documentName] as const)),
+    [templateDocumentsState.data],
+  );
+
   useEffect(() => {
     if (!definitionQuery.data) return;
     form.setFieldsValue({ name: definitionQuery.data.name });
+    setSelectedTemplateId(definitionQuery.data.documentTemplateId ?? null);
     setSteps(
       definitionQuery.data.steps
         .slice()
@@ -75,17 +104,27 @@ export function WorkflowDefinitionEditPage() {
         roleIds: values.roleIds,
         isRequired: values.isRequired,
         displayOrder: nextOrder,
+        documentId: values.documentId ?? null,
+        routes: [],
       },
     ]);
     stepForm.resetFields();
   };
 
   const handleRemoveStep = (index: number) => {
-    setSteps((current) =>
-      current
-        .filter((_, idx) => idx !== index)
-        .map((step, idx) => ({ ...step, displayOrder: idx + 1 })),
-    );
+    setSteps((current) => {
+      const remaining = current.filter((_, idx) => idx !== index);
+      const orderMap = new Map<number, number>();
+      remaining.forEach((step, idx) => orderMap.set(step.displayOrder, idx + 1));
+      return remaining.map((step, idx) => ({
+        ...step,
+        displayOrder: idx + 1,
+        routes: step.routes?.map((route) => ({
+          ...route,
+          nextDisplayOrder: route.nextDisplayOrder ? orderMap.get(route.nextDisplayOrder) ?? null : null,
+        })),
+      }));
+    });
   };
 
   const handleSubmit = async () => {
@@ -97,7 +136,7 @@ export function WorkflowDefinitionEditPage() {
     }
 
     updateMutation.mutate(
-      { workflowDefinitionId, name: values.name.trim(), steps },
+      { workflowDefinitionId, name: values.name.trim(), documentTemplateId: selectedTemplateId, steps },
       {
         onSuccess: () => {
           notification.success({ message: t("workflow_definitions.notifications.updated") });
@@ -163,6 +202,20 @@ export function WorkflowDefinitionEditPage() {
               >
                 <Input placeholder={t("workflow_definitions.placeholders.name")} />
               </Form.Item>
+              <Form.Item label={t("workflow_definitions.form.template_label")}>
+                <Select
+                  allowClear
+                  showSearch
+                  filterOption={false}
+                  placeholder={t("workflow_definitions.form.template_placeholder")}
+                  options={(templateListState.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }))}
+                  value={selectedTemplateId}
+                  loading={templateListState.isLoading}
+                  onSearch={setTemplateSearch}
+                  onChange={(value) => setSelectedTemplateId(value ?? null)}
+                  notFoundContent={<Typography.Text type="secondary">{t("workflow_definitions.form.no_templates")}</Typography.Text>}
+                />
+              </Form.Item>
             </Form>
 
             <Typography.Title level={5} style={{ marginBottom: 12 }}>
@@ -189,6 +242,29 @@ export function WorkflowDefinitionEditPage() {
                   style={{ flex: 1, minWidth: isMobile ? "100%" : 180 }}
                 >
                   <Select options={stepTypeOptions} />
+                </Form.Item>
+                <Form.Item
+                  label={t("workflow_definitions.steps.fields.document")}
+                  name="documentId"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        if (selectedTemplateId && !value) {
+                          throw new Error(t("workflow_definitions.steps.validation.document_required"));
+                        }
+                      },
+                    },
+                  ]}
+                  style={{ flex: 2, minWidth: isMobile ? "100%" : 240 }}
+                >
+                  <Select
+                    allowClear
+                    showSearch
+                    options={documentOptions}
+                    placeholder={t("workflow_definitions.steps.placeholders.document")}
+                    disabled={!selectedTemplateId}
+                    loading={templateDocumentsState.isLoading}
+                  />
                 </Form.Item>
                 <Form.Item
                   label={t("workflow_definitions.steps.fields.roles")}
@@ -267,9 +343,50 @@ export function WorkflowDefinitionEditPage() {
                     value.map((roleId) => roleLabelById.get(roleId) ?? roleId).join(", "),
                 },
                 {
+                  title: t("workflow_definitions.steps.columns.document"),
+                  dataIndex: "documentId",
+                  render: (value?: string | null) => (value ? documentLabelById.get(value) ?? value : "-"),
+                },
+                {
                   title: t("workflow_definitions.steps.columns.required"),
                   dataIndex: "isRequired",
                   render: (value: boolean) => (value ? t("common.actions.yes") : t("common.actions.no")),
+                },
+                {
+                  title: t("workflow_definitions.steps.columns.next_step"),
+                  key: "nextStep",
+                  render: (_value, record) => {
+                    const options = steps
+                      .filter((step) => step.displayOrder !== record.displayOrder)
+                      .map((step) => ({
+                        value: step.displayOrder,
+                        label: `${step.displayOrder}. ${step.name}`,
+                      }));
+                    const currentNext = record.routes?.[0]?.nextDisplayOrder ?? null;
+                    return (
+                      <Select
+                        allowClear
+                        placeholder={t("workflow_definitions.steps.placeholders.next_step")}
+                        value={currentNext ?? undefined}
+                        options={options}
+                        onChange={(value) => {
+                          setSteps((current) =>
+                            current.map((step) =>
+                              step.displayOrder === record.displayOrder
+                                ? {
+                                    ...step,
+                                    routes: value
+                                      ? [{ action: step.stepType, nextDisplayOrder: value }]
+                                      : [],
+                                  }
+                                : step,
+                            ),
+                          );
+                        }}
+                        style={{ minWidth: 180 }}
+                      />
+                    );
+                  },
                 },
                 {
                   title: t("admin_users.columns.actions"),

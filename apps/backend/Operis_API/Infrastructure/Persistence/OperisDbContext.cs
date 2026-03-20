@@ -37,6 +37,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<WorkflowDefinitionEntity> WorkflowDefinitions => Set<WorkflowDefinitionEntity>();
     public DbSet<WorkflowStepEntity> WorkflowSteps => Set<WorkflowStepEntity>();
     public DbSet<WorkflowStepRoleEntity> WorkflowStepRoles => Set<WorkflowStepRoleEntity>();
+    public DbSet<WorkflowStepRouteEntity> WorkflowStepRoutes => Set<WorkflowStepRouteEntity>();
     public DbSet<WorkflowInstanceEntity> WorkflowInstances => Set<WorkflowInstanceEntity>();
     public DbSet<WorkflowInstanceStepEntity> WorkflowInstanceSteps => Set<WorkflowInstanceStepEntity>();
     public DbSet<WorkflowInstanceActionEntity> WorkflowInstanceActions => Set<WorkflowInstanceActionEntity>();
@@ -660,6 +661,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(120);
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(200);
             entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.DocumentTemplateId).HasColumnName("document_template_id");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasIndex(x => x.Code).IsUnique();
@@ -672,6 +674,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.WorkflowDefinitionId).HasColumnName("workflow_definition_id");
+            entity.Property(x => x.DocumentId).HasColumnName("document_id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(200);
             entity.Property(x => x.StepType).HasColumnName("step_type").HasMaxLength(32);
             entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
@@ -679,6 +682,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasIndex(x => new { x.WorkflowDefinitionId, x.DisplayOrder });
+            entity.HasIndex(x => x.DocumentId);
         });
 
         modelBuilder.Entity<WorkflowStepRoleEntity>(entity =>
@@ -690,6 +694,19 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.ProjectRoleId).HasColumnName("project_role_id");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.HasIndex(x => new { x.WorkflowStepId, x.ProjectRoleId }).IsUnique();
+        });
+
+        modelBuilder.Entity<WorkflowStepRouteEntity>(entity =>
+        {
+            entity.ToTable("workflow_step_routes");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.WorkflowStepId).HasColumnName("workflow_step_id");
+            entity.Property(x => x.Action).HasColumnName("action").HasMaxLength(32);
+            entity.Property(x => x.NextStepId).HasColumnName("next_step_id");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(x => new { x.WorkflowStepId, x.Action }).IsUnique();
+            entity.HasIndex(x => x.NextStepId);
         });
 
         modelBuilder.Entity<WorkflowInstanceEntity>(entity =>

@@ -72,6 +72,17 @@ public sealed class WorkflowInstanceCommands(
             return (false, "Workflow definition has no steps.", ApiErrorCodes.RequestValidationFailed, null);
         }
 
+        var stepDocumentIds = workflowSteps
+            .Where(step => step.DocumentId.HasValue)
+            .Select(step => step.DocumentId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (stepDocumentIds.Count > 0 && stepDocumentIds.Any(id => id != request.DocumentId))
+        {
+            return (false, "Workflow definition does not match selected document.", ApiErrorCodes.RequestValidationFailed, null);
+        }
+
         var instance = new WorkflowInstanceEntity
         {
             Id = Guid.NewGuid(),
@@ -146,9 +157,25 @@ public sealed class WorkflowInstanceCommands(
             return (false, $"Unsupported action: {request.Action}.", ApiErrorCodes.RequestValidationFailed, null, false);
         }
 
-        if (!string.Equals(step.StepType, request.Action, StringComparison.OrdinalIgnoreCase))
+        var stepRoutes = await dbContext.WorkflowStepRoutes
+            .AsNoTracking()
+            .Where(x => x.WorkflowStepId == step.WorkflowStepId)
+            .ToListAsync(cancellationToken);
+
+        if (stepRoutes.Count == 0)
         {
-            return (false, "Action does not match step type.", ApiErrorCodes.RequestValidationFailed, null, false);
+            if (!string.Equals(step.StepType, request.Action, StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, "Action does not match step type.", ApiErrorCodes.RequestValidationFailed, null, false);
+            }
+        }
+        else
+        {
+            var routeExists = stepRoutes.Any(route => string.Equals(route.Action, request.Action, StringComparison.OrdinalIgnoreCase));
+            if (!routeExists)
+            {
+                return (false, "Action is not allowed for this step.", ApiErrorCodes.RequestValidationFailed, null, false);
+            }
         }
 
         if (!await HasRolePermissionAsync(instance.ProjectId, step.WorkflowStepId, actorUserId, cancellationToken))
@@ -174,10 +201,29 @@ public sealed class WorkflowInstanceCommands(
 
         dbContext.WorkflowInstanceActions.Add(actionEntry);
 
-        var nextStep = await dbContext.WorkflowInstanceSteps
-            .Where(x => x.WorkflowInstanceId == workflowInstanceId && x.DisplayOrder > step.DisplayOrder)
-            .OrderBy(x => x.DisplayOrder)
-            .FirstOrDefaultAsync(cancellationToken);
+        WorkflowInstanceStepEntity? nextStep = null;
+        if (stepRoutes.Count == 0)
+        {
+            nextStep = await dbContext.WorkflowInstanceSteps
+                .Where(x => x.WorkflowInstanceId == workflowInstanceId && x.DisplayOrder > step.DisplayOrder)
+                .OrderBy(x => x.DisplayOrder)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+        else
+        {
+            var matchedRoute = stepRoutes.First(route => string.Equals(route.Action, request.Action, StringComparison.OrdinalIgnoreCase));
+            if (matchedRoute.NextStepId.HasValue)
+            {
+                nextStep = await dbContext.WorkflowInstanceSteps
+                    .FirstOrDefaultAsync(
+                        x => x.WorkflowInstanceId == workflowInstanceId && x.WorkflowStepId == matchedRoute.NextStepId.Value,
+                        cancellationToken);
+                if (nextStep is null)
+                {
+                    return (false, "Workflow route target was not found in instance.", ApiErrorCodes.RequestValidationFailed, null, false);
+                }
+            }
+        }
 
         if (nextStep is null)
         {

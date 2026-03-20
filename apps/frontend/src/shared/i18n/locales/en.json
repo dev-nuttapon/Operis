@@ -133,7 +133,10 @@
     "page_title": "Workflow Definitions",
     "page_description": "Workflow management will live in this module as the feature surface grows.",
     "form": {
-      "name": "Definition name"
+      "name": "Definition name",
+      "template_label": "Document template",
+      "template_placeholder": "Select a document template",
+      "no_templates": "No document templates found."
     },
     "placeholders": {
       "name": "Enter workflow definition name"
@@ -165,10 +168,13 @@
         "name": "Step name",
         "type": "Step type",
         "roles": "Project roles",
+        "document": "Document",
         "required": "Required"
       },
       "placeholders": {
-        "name": "Enter step name"
+        "name": "Enter step name",
+        "document": "Select document",
+        "next_step": "Select next step"
       },
       "types": {
         "submit": "Submit",
@@ -181,7 +187,9 @@
         "name": "Step",
         "type": "Type",
         "roles": "Roles",
-        "required": "Required"
+        "document": "Document",
+        "required": "Required",
+        "next_step": "Next step"
       },
       "actions": {
         "add": "Add step",
@@ -191,7 +199,8 @@
         "required": "Please add at least one workflow step.",
         "name_required": "Step name is required.",
         "type_required": "Step type is required.",
-        "roles_required": "Please select at least one role."
+        "roles_required": "Please select at least one role.",
+        "document_required": "Please select a document."
       },
       "empty": "No workflow steps yet."
     },
@@ -660,7 +669,12 @@
         "actions": "Actions"
       },
       "actions": {
-        "download": "Download"
+        "download": "Download",
+        "start_workflow": "Start workflow"
+      },
+      "messages": {
+        "workflow_started": "Workflow started.",
+        "workflow_failed_title": "Unable to start workflow"
       }
     },
     "members": {

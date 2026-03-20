@@ -1589,6 +1589,10 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("DocumentTemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_template_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1626,6 +1630,10 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer")
                         .HasColumnName("display_order");
@@ -1658,6 +1666,8 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("WorkflowDefinitionId", "DisplayOrder");
 
+                    b.HasIndex("DocumentId");
+
                     b.ToTable("workflow_steps", (string)null);
                 });
 
@@ -1686,6 +1696,41 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("workflow_step_roles", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowStepRouteEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("action");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("NextStepId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("next_step_id");
+
+                    b.Property<Guid>("WorkflowStepId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_step_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextStepId");
+
+                    b.HasIndex("WorkflowStepId", "Action")
+                        .IsUnique();
+
+                    b.ToTable("workflow_step_routes", (string)null);
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Workflows.Infrastructure.WorkflowInstanceEntity", b =>

@@ -4,7 +4,8 @@ public sealed record WorkflowDefinitionContract(
     Guid Id,
     string Code,
     string Name,
-    string Status);
+    string Status,
+    Guid? DocumentTemplateId);
 
 public sealed record WorkflowStepContract(
     Guid Id,
@@ -12,13 +13,21 @@ public sealed record WorkflowStepContract(
     string StepType,
     int DisplayOrder,
     bool IsRequired,
-    IReadOnlyList<Guid> RoleIds);
+    Guid? DocumentId,
+    IReadOnlyList<Guid> RoleIds,
+    IReadOnlyList<WorkflowStepRouteContract> Routes);
+
+public sealed record WorkflowStepRouteContract(
+    string Action,
+    Guid? NextStepId,
+    int? NextDisplayOrder);
 
 public sealed record WorkflowDefinitionDetailContract(
     Guid Id,
     string Code,
     string Name,
     string Status,
+    Guid? DocumentTemplateId,
     IReadOnlyList<WorkflowStepContract> Steps);
 
 public sealed record WorkflowInstanceContract(
@@ -76,14 +85,22 @@ public sealed record WorkflowStepRequest(
     string StepType,
     int DisplayOrder,
     bool IsRequired,
-    IReadOnlyList<Guid> RoleIds);
+    Guid? DocumentId,
+    IReadOnlyList<Guid> RoleIds,
+    IReadOnlyList<WorkflowStepRouteRequest> Routes);
+
+public sealed record WorkflowStepRouteRequest(
+    string Action,
+    int? NextDisplayOrder);
 
 public sealed record CreateWorkflowDefinitionRequest(
     string Name,
+    Guid? DocumentTemplateId,
     IReadOnlyList<WorkflowStepRequest> Steps);
 
 public sealed record UpdateWorkflowDefinitionRequest(
     string Name,
+    Guid? DocumentTemplateId,
     IReadOnlyList<WorkflowStepRequest> Steps);
 
 public sealed record CreateWorkflowInstanceRequest(

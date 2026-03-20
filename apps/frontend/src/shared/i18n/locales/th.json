@@ -133,7 +133,10 @@
     "page_title": "จัดการ Workflow",
     "page_description": "การจัดการ workflow จะอยู่ในโมดูลนี้เมื่อฟังก์ชันเติบโตครบขึ้น",
     "form": {
-      "name": "ชื่อ workflow"
+      "name": "ชื่อ workflow",
+      "template_label": "เทมเพลตเอกสาร",
+      "template_placeholder": "เลือกเทมเพลตเอกสาร",
+      "no_templates": "ไม่พบเทมเพลตเอกสาร"
     },
     "placeholders": {
       "name": "กรอกชื่อ workflow"
@@ -165,10 +168,13 @@
         "name": "ชื่อขั้นตอน",
         "type": "ประเภทขั้นตอน",
         "roles": "ตำแหน่งโครงการ",
+        "document": "เอกสาร",
         "required": "จำเป็น"
       },
       "placeholders": {
-        "name": "กรอกชื่อขั้นตอน"
+        "name": "กรอกชื่อขั้นตอน",
+        "document": "เลือกเอกสาร",
+        "next_step": "เลือกขั้นตอนถัดไป"
       },
       "types": {
         "submit": "ส่งเอกสาร",
@@ -181,7 +187,9 @@
         "name": "ขั้นตอน",
         "type": "ประเภท",
         "roles": "บทบาท",
-        "required": "จำเป็น"
+        "document": "เอกสาร",
+        "required": "จำเป็น",
+        "next_step": "ขั้นตอนถัดไป"
       },
       "actions": {
         "add": "เพิ่มขั้นตอน",
@@ -191,7 +199,8 @@
         "required": "กรุณาเพิ่มอย่างน้อย 1 ขั้นตอน",
         "name_required": "กรุณากรอกชื่อขั้นตอน",
         "type_required": "กรุณาเลือกประเภทขั้นตอน",
-        "roles_required": "กรุณาเลือกตำแหน่งอย่างน้อย 1 ตำแหน่ง"
+        "roles_required": "กรุณาเลือกตำแหน่งอย่างน้อย 1 ตำแหน่ง",
+        "document_required": "กรุณาเลือกเอกสาร"
       },
       "empty": "ยังไม่มีขั้นตอนเวิร์กโฟลว์"
     },
@@ -660,7 +669,12 @@
         "actions": "การทำงาน"
       },
       "actions": {
-        "download": "ดาวน์โหลด"
+        "download": "ดาวน์โหลด",
+        "start_workflow": "เริ่มเวิร์กโฟลว์"
+      },
+      "messages": {
+        "workflow_started": "เริ่มเวิร์กโฟลว์แล้ว",
+        "workflow_failed_title": "ไม่สามารถเริ่มเวิร์กโฟลว์ได้"
       }
     },
     "members": {

@@ -3,11 +3,17 @@ export interface WorkflowDefinitionSummary {
   code: string;
   name: string;
   status: "draft" | "active" | "archived";
+  documentTemplateId?: string | null;
 }
 
 export type WorkflowStatusFilter = "all" | WorkflowDefinitionSummary["status"];
 
 export type WorkflowStepType = "submit" | "peer_review" | "review" | "approve";
+
+export interface WorkflowStepRoute {
+  action: WorkflowStepType;
+  nextDisplayOrder?: number | null;
+}
 
 export interface WorkflowStep {
   id?: string;
@@ -15,7 +21,9 @@ export interface WorkflowStep {
   stepType: WorkflowStepType;
   displayOrder: number;
   isRequired: boolean;
+  documentId?: string | null;
   roleIds: string[];
+  routes?: WorkflowStepRoute[];
 }
 
 export interface WorkflowDefinitionDetail extends WorkflowDefinitionSummary {
@@ -45,12 +53,14 @@ export interface WorkflowDefinitionListResponse {
 
 export interface CreateWorkflowDefinitionInput {
   name: string;
+  documentTemplateId?: string | null;
   steps: WorkflowStep[];
 }
 
 export interface UpdateWorkflowDefinitionInput {
   workflowDefinitionId: string;
   name: string;
+  documentTemplateId?: string | null;
   steps: WorkflowStep[];
 }
 

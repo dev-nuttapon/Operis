@@ -1,6 +1,6 @@
 import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid, Divider, Table, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined, DownloadOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined, DownloadOutlined, DeploymentUnitOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -14,8 +14,9 @@ import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { downloadDocument, useDocumentTemplate, useDocumentTemplates, useDocumentsByIds } from "../../documents";
-import { useWorkflowDefinitionOptions } from "../../workflows";
+import { useWorkflowDefinitionOptions, useWorkflowInstanceActions } from "../../workflows";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 type LocationState = {
   from?: string;
@@ -71,6 +72,7 @@ export function ProjectEditPage() {
     canManageProjects,
   );
   const workflowDefinitionOptionsState = useWorkflowDefinitionOptions({ enabled: canManageProjects, status: "active" });
+  const workflowInstanceActions = useWorkflowInstanceActions();
   const templateDetailState = useDocumentTemplate(selectedTemplateId, Boolean(selectedTemplateId));
   const templateDocumentIds =
     (templateDetailState.data?.documentIds
@@ -97,6 +99,9 @@ export function ProjectEditPage() {
       setSelectedWorkflowDefinitionId(projectDetailQuery.data.workflowDefinitionId ?? null);
     }
   }, [editForm, projectDetailQuery.data]);
+
+  const activeWorkflowDefinitionId =
+    selectedWorkflowDefinitionId ?? projectDetailQuery.data?.workflowDefinitionId ?? null;
 
   useEffect(() => {
     if (!projectAssignmentsQuery.data) {
@@ -294,19 +299,48 @@ export function ProjectEditPage() {
         title: t("projects.documents_section.columns.actions"),
         dataIndex: "actions",
         align: "center",
-        render: (_value, record) => (
-          <Button
-            size="small"
-            icon={<DownloadOutlined />}
-            disabled={!record.canDownload}
-            onClick={() => void downloadDocument(record.id)}
-          >
-            {t("projects.documents_section.actions.download")}
-          </Button>
-        ),
+        render: (_value, record) => {
+          const menuItems = [
+            {
+              key: "download",
+              label: t("projects.documents_section.actions.download"),
+              icon: <DownloadOutlined />,
+              disabled: !record.canDownload,
+              onClick: () => void downloadDocument(record.id),
+            },
+            {
+              key: "start-workflow",
+              label: t("projects.documents_section.actions.start_workflow"),
+              icon: <DeploymentUnitOutlined />,
+              disabled: !projectId || !activeWorkflowDefinitionId,
+              onClick: async () => {
+                if (!projectId) return;
+                try {
+                  await workflowInstanceActions.createInstanceMutation.mutateAsync({
+                    projectId,
+                    documentId: record.id,
+                    workflowDefinitionId: activeWorkflowDefinitionId ?? undefined,
+                  });
+                  notification.success({ message: t("projects.documents_section.messages.workflow_started") });
+                } catch (error) {
+                  const presentation = getApiErrorPresentation(error, t("projects.documents_section.messages.workflow_failed_title"));
+                  notification.error({ message: presentation.title, description: presentation.description });
+                }
+              },
+            },
+          ];
+
+          return <ActionMenu items={menuItems} loading={workflowInstanceActions.createInstanceMutation.isPending} />;
+        },
       },
     ],
-    [t],
+    [
+      activeWorkflowDefinitionId,
+      projectId,
+      t,
+      workflowInstanceActions.createInstanceMutation,
+      notification,
+    ],
   );
 
   const templateOptions = useMemo(

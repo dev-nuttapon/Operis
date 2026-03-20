@@ -30,7 +30,8 @@ public sealed class WorkflowQueries(
                 x.Id,
                 x.Code,
                 x.Name,
-                x.Status))
+                x.Status,
+                x.DocumentTemplateId))
             .Skip(skip)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -51,7 +52,7 @@ public sealed class WorkflowQueries(
         var definition = await dbContext.WorkflowDefinitions
             .AsNoTracking()
             .Where(x => x.Id == workflowDefinitionId)
-            .Select(x => new WorkflowDefinitionContract(x.Id, x.Code, x.Name, x.Status))
+            .Select(x => new WorkflowDefinitionContract(x.Id, x.Code, x.Name, x.Status, x.DocumentTemplateId))
             .SingleOrDefaultAsync(cancellationToken);
 
         if (definition is null)
@@ -66,6 +67,7 @@ public sealed class WorkflowQueries(
             .Select(x => new
             {
                 x.Id,
+                x.DocumentId,
                 x.Name,
                 x.StepType,
                 x.DisplayOrder,
@@ -87,6 +89,27 @@ public sealed class WorkflowQueries(
                 })
                 .ToDictionaryAsync(x => x.StepId, x => x.RoleIds, cancellationToken);
 
+        var stepRoutes = new Dictionary<Guid, IReadOnlyList<WorkflowStepRouteContract>>();
+        if (stepIds.Count > 0)
+        {
+            var routeEntities = await dbContext.WorkflowStepRoutes
+                .AsNoTracking()
+                .Where(x => stepIds.Contains(x.WorkflowStepId))
+                .ToListAsync(cancellationToken);
+
+            var orderById = steps.ToDictionary(step => step.Id, step => step.DisplayOrder);
+            stepRoutes = routeEntities
+                .GroupBy(route => route.WorkflowStepId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => (IReadOnlyList<WorkflowStepRouteContract>)group
+                        .Select(route => new WorkflowStepRouteContract(
+                            route.Action,
+                            route.NextStepId,
+                            route.NextStepId.HasValue && orderById.TryGetValue(route.NextStepId.Value, out var order) ? order : null))
+                        .ToList());
+        }
+
         var stepContracts = steps
             .Select(step => new WorkflowStepContract(
                 step.Id,
@@ -94,7 +117,9 @@ public sealed class WorkflowQueries(
                 step.StepType,
                 step.DisplayOrder,
                 step.IsRequired,
-                stepRoles.TryGetValue(step.Id, out var roleIds) ? roleIds : []))
+                step.DocumentId,
+                stepRoles.TryGetValue(step.Id, out var roleIds) ? roleIds : [],
+                stepRoutes.TryGetValue(step.Id, out var routes) ? routes : []))
             .ToList();
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -110,6 +135,7 @@ public sealed class WorkflowQueries(
             definition.Code,
             definition.Name,
             definition.Status,
+            definition.DocumentTemplateId,
             stepContracts);
     }
 

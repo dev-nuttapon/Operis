@@ -6,6 +6,7 @@ public sealed class WorkflowDefinitionEntity
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Status { get; set; } = "draft";
+    public Guid? DocumentTemplateId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 }
