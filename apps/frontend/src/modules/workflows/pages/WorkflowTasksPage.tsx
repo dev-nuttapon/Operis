@@ -1,22 +1,34 @@
-import { Card, Table, Typography, Space, Tag, Grid, Flex, Button, Descriptions, Divider, App } from "antd";
+import { Card, Table, Typography, Space, Tag, Grid, Flex, Button, Descriptions, Divider, App, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWorkflowTasks } from "../hooks/useWorkflowTasks";
 import type { WorkflowTaskItem } from "../types/workflows";
-import { downloadDocument } from "../../documents";
+import { downloadDocument, useDocumentOptions } from "../../documents";
 import { useWorkflowInstanceActions } from "../hooks/useWorkflowInstanceActions";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
+import { usePermissions } from "../../../shared/authz/usePermissions";
+import { permissions } from "../../../shared/authz/permissions";
+import { useProjectOptions } from "../../users";
 
 export function WorkflowTasksPage() {
   const { t } = useTranslation();
   const { notification } = App.useApp();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const permissionState = usePermissions();
+  const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
+  const canReadProjects = permissionState.hasPermission(permissions.projects.read);
+  const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
   const [paging, setPaging] = useState({ page: 1, pageSize: 10 });
   const tasksQuery = useWorkflowTasks(paging);
   const workflowActions = useWorkflowInstanceActions();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
+  const projectOptionsState = useProjectOptions({ enabled: canReadProjects, assignedOnly: !canManageProjects });
+  const documentOptions = useDocumentOptions(canReadDocuments);
 
   const columns = useMemo<ColumnsType<WorkflowTaskItem>>(
     () => [
@@ -43,6 +55,27 @@ export function WorkflowTasksPage() {
 
   const tasks = tasksQuery.data?.items ?? [];
   const selectedTask = tasks.find((item) => item.workflowInstanceStepId === selectedTaskId) ?? null;
+
+  const handleStartWorkflow = async () => {
+    if (!selectedProjectId || !selectedDocumentId) {
+      setStartError(t("workflow_tasks.start.validation_required"));
+      return;
+    }
+    setStartError(null);
+    try {
+      await workflowActions.createInstanceMutation.mutateAsync({
+        projectId: selectedProjectId,
+        documentId: selectedDocumentId,
+      });
+      notification.success({ message: t("workflow_tasks.start.started") });
+      setSelectedProjectId(null);
+      setSelectedDocumentId(null);
+      await tasksQuery.refetch();
+    } catch (error) {
+      const presentation = getApiErrorPresentation(error, t("workflow_tasks.start.failed"));
+      notification.error({ message: presentation.title, description: presentation.description });
+    }
+  };
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -91,6 +124,100 @@ export function WorkflowTasksPage() {
           <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
             {t("workflow_tasks.workspace.description")}
           </Typography.Paragraph>
+
+          {canManageProjects ? (
+            <>
+              <Typography.Text strong>{t("workflow_tasks.start.title")}</Typography.Text>
+              <Space direction="vertical" size={8} style={{ width: "100%", marginTop: 8 }}>
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder={t("workflow_tasks.start.project_placeholder")}
+                  value={selectedProjectId}
+                  options={projectOptionsState.options}
+                  onSearch={projectOptionsState.onSearch}
+                  onChange={(value) => setSelectedProjectId(value ?? null)}
+                  loading={projectOptionsState.loading}
+                  filterOption={false}
+                  optionRender={(option) => (
+                    <span style={{ display: "block", whiteSpace: "normal" }}>{option.label}</span>
+                  )}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {projectOptionsState.hasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => projectOptionsState.onLoadMore?.()}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("workflow_tasks.start.load_more_projects")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                />
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder={t("workflow_tasks.start.document_placeholder")}
+                  value={selectedDocumentId}
+                  options={documentOptions.options}
+                  onSearch={documentOptions.onSearch}
+                  onChange={(value) => setSelectedDocumentId(value ?? null)}
+                  loading={documentOptions.loading}
+                  filterOption={false}
+                  optionRender={(option) => (
+                    <span style={{ display: "block", whiteSpace: "normal" }}>{option.label}</span>
+                  )}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {documentOptions.hasMore ? (
+                        <div style={{ padding: 8 }}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => documentOptions.onLoadMore?.()}
+                            style={{
+                              width: "100%",
+                              border: "none",
+                              background: "transparent",
+                              color: "#1677ff",
+                              cursor: "pointer",
+                              padding: 4,
+                            }}
+                          >
+                            {t("workflow_tasks.start.load_more_documents")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                />
+                {startError ? <Typography.Text type="danger">{startError}</Typography.Text> : null}
+                <Button
+                  type="primary"
+                  onClick={handleStartWorkflow}
+                  disabled={!selectedProjectId || !selectedDocumentId}
+                  loading={workflowActions.createInstanceMutation.isPending}
+                >
+                  {t("workflow_tasks.start.action")}
+                </Button>
+              </Space>
+              <Divider style={{ margin: "16px 0" }} />
+            </>
+          ) : null}
 
           {selectedTask ? (
             <>

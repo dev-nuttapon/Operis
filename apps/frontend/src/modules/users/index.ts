@@ -8,3 +8,4 @@ export * from "./hooks/usePublicRegistration";
 export * from "./hooks/useRegistrationPasswordSetup";
 export * from "./hooks/useUserPreferencesSync";
 export * from "./hooks/useProjectRoleOptions";
+export * from "./hooks/useProjectOptions";

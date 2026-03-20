@@ -239,6 +239,17 @@
     "page_title": "Workflow tasks",
     "page_description": "View the documents assigned to you and complete each step.",
     "empty": "No workflow tasks yet.",
+    "start": {
+      "title": "Start workflow",
+      "project_placeholder": "Select project",
+      "document_placeholder": "Select document",
+      "action": "Start workflow",
+      "started": "Workflow started.",
+      "failed": "Unable to start workflow.",
+      "validation_required": "Please select both project and document.",
+      "load_more_projects": "Load more projects",
+      "load_more_documents": "Load more documents"
+    },
     "workspace": {
       "title": "Workspace",
       "description": "Download the document, work on it, then submit to the next step.",

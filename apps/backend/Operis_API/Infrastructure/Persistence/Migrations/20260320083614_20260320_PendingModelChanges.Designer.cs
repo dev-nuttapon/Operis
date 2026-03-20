@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Operis_API.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Operis_API.Infrastructure.Persistence;
 namespace Operis_API.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(OperisDbContext))]
-    partial class OperisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260320083614_20260320_PendingModelChanges")]
+    partial class _20260320_PendingModelChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
