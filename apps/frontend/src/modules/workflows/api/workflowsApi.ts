@@ -9,6 +9,8 @@ import type {
   WorkflowInstanceDetail,
   CreateWorkflowInstanceInput,
   WorkflowStepActionInput,
+  WorkflowTaskListInput,
+  WorkflowTaskListResponse,
 } from "../types/workflows";
 
 function toListQuery(input?: WorkflowDefinitionListInput) {
@@ -94,4 +96,14 @@ export async function applyWorkflowStepAction(input: WorkflowStepActionInput): P
       body: { action: input.action, comment: input.comment },
     },
   );
+}
+
+export async function listWorkflowTasks(input: WorkflowTaskListInput): Promise<WorkflowTaskListResponse> {
+  const page = input.page ?? 1;
+  const pageSize = input.pageSize ?? 10;
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("pageSize", String(pageSize));
+  const query = params.toString();
+  return apiRequest<WorkflowTaskListResponse>(`/api/v1/workflows/tasks?${query}`);
 }

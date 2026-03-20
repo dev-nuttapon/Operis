@@ -31,6 +31,20 @@ public sealed record WorkflowDefinitionDetailContract(
     Guid? DocumentTemplateId,
     IReadOnlyList<WorkflowStepContract> Steps);
 
+public sealed record WorkflowTaskListItem(
+    Guid WorkflowInstanceId,
+    Guid WorkflowInstanceStepId,
+    Guid ProjectId,
+    string ProjectName,
+    Guid DocumentId,
+    string DocumentName,
+    string StepName,
+    string StepType,
+    string RoleName,
+    string Status,
+    DateTimeOffset? DueAt,
+    bool CanAct);
+
 public sealed record WorkflowInstanceContract(
     Guid Id,
     Guid ProjectId,

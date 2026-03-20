@@ -122,3 +122,30 @@ export interface WorkflowStepActionInput {
   action: WorkflowStepType;
   comment?: string;
 }
+
+export interface WorkflowTaskListInput {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface WorkflowTaskItem {
+  workflowInstanceId: string;
+  workflowInstanceStepId: string;
+  projectId: string;
+  projectName: string;
+  documentId: string;
+  documentName: string;
+  stepName: string;
+  stepType: WorkflowStepType;
+  roleName: string;
+  status: string;
+  dueAt?: string | null;
+  canAct: boolean;
+}
+
+export interface WorkflowTaskListResponse {
+  items: WorkflowTaskItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

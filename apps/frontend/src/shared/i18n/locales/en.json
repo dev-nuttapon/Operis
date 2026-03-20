@@ -235,6 +235,29 @@
       "archive_failed_title": "Unable to archive workflow definition"
     }
   },
+  "workflow_tasks": {
+    "page_title": "Workflow tasks",
+    "page_description": "View the documents assigned to you and complete each step.",
+    "empty": "No workflow tasks yet.",
+    "workspace": {
+      "title": "Workspace",
+      "description": "Download the document, work on it, then submit to the next step.",
+      "empty": "Select a task to see workspace actions.",
+      "download": "Download document",
+      "submit": "Send to next step",
+      "submitted": "Step completed.",
+      "submit_failed": "Unable to submit workflow step."
+    },
+    "columns": {
+      "project": "Project",
+      "document": "Document",
+      "step": "Step",
+      "type": "Step type",
+      "role": "Role",
+      "status": "Status",
+      "due": "Due date"
+    }
+  },
   "common": {
     "application_name": "Operis",
     "dashboard": "Dashboard",
@@ -242,6 +265,7 @@
     "document_list": "Document list",
     "document_templates": "Document Templates",
     "workflows": "Workflows",
+    "workflow_tasks": "Workspace",
     "admin": "Admin",
     "user_admin_group": "User Management",
     "audit_group": "Logs",

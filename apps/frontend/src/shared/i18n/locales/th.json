@@ -235,6 +235,29 @@
       "archive_failed_title": "ไม่สามารถจัดเก็บ workflow ได้"
     }
   },
+  "workflow_tasks": {
+    "page_title": "งานเวิร์กโฟลว์",
+    "page_description": "ดูเอกสารที่ได้รับมอบหมายและดำเนินงานตามขั้นตอน",
+    "empty": "ยังไม่มีงานเวิร์กโฟลว์",
+    "workspace": {
+      "title": "พื้นที่ทำงาน",
+      "description": "ดาวน์โหลดเอกสาร ทำงาน และส่งต่อไปขั้นตอนถัดไป",
+      "empty": "เลือกงานเพื่อดูการทำงาน",
+      "download": "ดาวน์โหลดเอกสาร",
+      "submit": "ส่งต่อขั้นตอนถัดไป",
+      "submitted": "ทำรายการสำเร็จ",
+      "submit_failed": "ไม่สามารถส่งต่อขั้นตอนได้"
+    },
+    "columns": {
+      "project": "โครงการ",
+      "document": "เอกสาร",
+      "step": "ขั้นตอน",
+      "type": "ประเภทขั้นตอน",
+      "role": "บทบาท",
+      "status": "สถานะ",
+      "due": "กำหนดส่ง"
+    }
+  },
   "common": {
     "application_name": "Operis",
     "dashboard": "แดชบอร์ด",
@@ -242,6 +265,7 @@
     "document_list": "รายการเอกสาร",
     "document_templates": "เทมเพลตเอกสาร",
     "workflows": "เวิร์กโฟลว์",
+    "workflow_tasks": "พื้นที่ทำงาน",
     "admin": "ผู้ดูแลระบบ",
     "user_admin_group": "จัดการผู้ใช้งาน",
     "audit_group": "บันทึก",

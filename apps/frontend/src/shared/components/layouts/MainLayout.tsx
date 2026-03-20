@@ -148,6 +148,10 @@ export function MainLayout() {
           key: '/app/workflows',
           label: tr('common.workflows'),
         },
+        {
+          key: '/app/workspace',
+          label: tr('common.workflow_tasks'),
+        },
       ],
     },
     ...(hasAdminAccess
@@ -629,6 +633,10 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/projects/')) {
     return '/app/projects';
+  }
+
+  if (path.startsWith('/app/workspace')) {
+    return '/app/workspace';
   }
 
   if (path.startsWith('/app/workflows')) {

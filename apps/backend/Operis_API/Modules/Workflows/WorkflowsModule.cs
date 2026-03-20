@@ -14,6 +14,7 @@ public sealed class WorkflowsModule : IModule
         services.AddScoped<IWorkflowCommands, WorkflowCommands>();
         services.AddScoped<IWorkflowInstanceQueries, WorkflowInstanceQueries>();
         services.AddScoped<IWorkflowInstanceCommands, WorkflowInstanceCommands>();
+        services.AddScoped<IWorkflowTaskQueries, WorkflowTaskQueries>();
         return services;
     }
 
@@ -44,6 +45,8 @@ public sealed class WorkflowsModule : IModule
             .WithName("Workflows_GetInstanceByDocument");
         group.MapPost("/instances/{workflowInstanceId:guid}/steps/{workflowInstanceStepId:guid}/actions", ApplyWorkflowStepActionAsync)
             .WithName("Workflows_ApplyStepAction");
+        group.MapGet("/tasks", ListWorkflowTasksAsync)
+            .WithName("Workflows_ListTasks");
 
         return endpoints;
     }
@@ -86,6 +89,24 @@ public sealed class WorkflowsModule : IModule
         var result = await queries.ListDefinitionsAsync(
             new WorkflowDefinitionListQuery(status, page, pageSize),
             cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> ListWorkflowTasksAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IWorkflowTaskQueries queries,
+        CancellationToken cancellationToken,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var currentUserId = principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await queries.ListTasksAsync(new WorkflowTaskListQuery(page, pageSize), currentUserId, cancellationToken);
         return Results.Ok(result);
     }
 

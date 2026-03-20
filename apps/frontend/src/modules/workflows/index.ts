@@ -10,9 +10,11 @@ export * from "./hooks/useWorkflowDefinitionsScreen";
 export * from "./hooks/useWorkflowDefinitions";
 export * from "./hooks/useWorkflowInstance";
 export * from "./hooks/useWorkflowInstanceActions";
+export * from "./hooks/useWorkflowTasks";
 export * from "./pages/WorkflowDefinitionsPage";
 export * from "./pages/WorkflowDefinitionCreatePage";
 export * from "./pages/WorkflowDefinitionEditPage";
+export * from "./pages/WorkflowTasksPage";
 export type {
   CreateWorkflowDefinitionInput,
   UpdateWorkflowDefinitionInput,
