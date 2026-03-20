@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { App, Alert, Button, Card, Flex, Form, Input, Select, Space, Switch, Table, Typography, Grid, Skeleton } from "antd";
-import { ArrowLeftOutlined, DeleteOutlined, SaveOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DeleteOutlined, SaveOutlined, EditOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { permissions } from "../../../shared/authz/permissions";
@@ -36,6 +36,7 @@ export function WorkflowDefinitionEditPage() {
   const [form] = Form.useForm<{ name: string }>();
   const [stepForm] = Form.useForm<StepDraft>();
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [templateSearch, setTemplateSearch] = useState("");
   const debouncedTemplateSearch = useDebouncedValue(templateSearch, 300);
@@ -95,6 +96,26 @@ export function WorkflowDefinitionEditPage() {
 
   const handleAddStep = async () => {
     const values = await stepForm.validateFields();
+    if (editingIndex !== null) {
+      setSteps((current) =>
+        current.map((step, index) =>
+          index === editingIndex
+            ? {
+                ...step,
+                name: values.name.trim(),
+                stepType: values.stepType,
+                roleIds: values.roleIds,
+                isRequired: values.isRequired,
+                documentId: values.documentId ?? null,
+              }
+            : step,
+        ),
+      );
+      setEditingIndex(null);
+      stepForm.resetFields();
+      return;
+    }
+
     const nextOrder = steps.length + 1;
     setSteps((current) => [
       ...current,
@@ -125,6 +146,10 @@ export function WorkflowDefinitionEditPage() {
         })),
       }));
     });
+    if (editingIndex === index) {
+      setEditingIndex(null);
+      stepForm.resetFields();
+    }
   };
 
   const handleSubmit = async () => {
@@ -316,7 +341,7 @@ export function WorkflowDefinitionEditPage() {
                 </Form.Item>
               </Flex>
               <Button type="primary" onClick={() => void handleAddStep()} disabled={!canManage} block={isMobile}>
-                {t("workflow_definitions.steps.actions.add")}
+                {editingIndex !== null ? t("workflow_definitions.steps.actions.update") : t("workflow_definitions.steps.actions.add")}
               </Button>
             </Form>
 
@@ -392,14 +417,33 @@ export function WorkflowDefinitionEditPage() {
                   title: t("admin_users.columns.actions"),
                   key: "actions",
                   render: (_value, _record, index) => (
-                    <Button
-                      type="text"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleRemoveStep(index)}
-                    >
-                      {t("common.actions.delete")}
-                    </Button>
+                    <Space size={4}>
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => {
+                          const step = steps[index];
+                          stepForm.setFieldsValue({
+                            name: step.name,
+                            stepType: step.stepType,
+                            roleIds: step.roleIds,
+                            isRequired: step.isRequired,
+                            documentId: step.documentId ?? null,
+                          });
+                          setEditingIndex(index);
+                        }}
+                      >
+                        {t("common.actions.edit")}
+                      </Button>
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveStep(index)}
+                      >
+                        {t("common.actions.delete")}
+                      </Button>
+                    </Space>
                   ),
                 },
               ]}

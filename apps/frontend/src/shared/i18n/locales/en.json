@@ -193,6 +193,7 @@
       },
       "actions": {
         "add": "Add step",
+        "update": "Update step",
         "load_more_roles": "Load more roles"
       },
       "validation": {

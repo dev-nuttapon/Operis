@@ -55,7 +55,7 @@ export async function createWorkflowDefinition(input: CreateWorkflowDefinitionIn
 export async function updateWorkflowDefinition(input: UpdateWorkflowDefinitionInput): Promise<WorkflowDefinitionDetail> {
   return apiRequest<WorkflowDefinitionDetail>(`/api/v1/workflows/definitions/${input.workflowDefinitionId}`, {
     method: "PUT",
-    body: { name: input.name, steps: input.steps },
+    body: { name: input.name, documentTemplateId: input.documentTemplateId ?? null, steps: input.steps },
   });
 }
 
