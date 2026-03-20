@@ -1,6 +1,6 @@
 import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid, Divider, Table, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined, DownloadOutlined, DeploymentUnitOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -13,10 +13,7 @@ import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
-import { downloadDocument, useDocumentTemplate, useDocumentTemplates, useDocumentsByIds } from "../../documents";
-import { useWorkflowDefinitionOptions, useWorkflowInstanceActions } from "../../workflows";
-import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
-import { ActionMenu } from "../../../shared/components/ActionMenu";
+import { useWorkflowDefinitionOptions } from "../../workflows";
 
 type LocationState = {
   from?: string;
@@ -51,10 +48,7 @@ export function ProjectEditPage() {
   const [editForm] = Form.useForm<ProjectFormValues>();
   const [memberTargetKeys, setMemberTargetKeys] = useState<string[]>([]);
   const [memberRoleByUserId, setMemberRoleByUserId] = useState<Record<string, string>>({});
-  const [templateSearch, setTemplateSearch] = useState("");
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedWorkflowDefinitionId, setSelectedWorkflowDefinitionId] = useState<string | null>(null);
-  const debouncedTemplateSearch = useDebouncedValue(templateSearch, 300);
 
   const { projectDetailQuery, updateProjectMutation, projectAssignmentsQuery, createProjectAssignmentMutation, updateProjectAssignmentMutation, deleteProjectAssignmentMutation } = useProjectAdmin({
     projectsEnabled: false,
@@ -67,21 +61,7 @@ export function ProjectEditPage() {
   const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
   const projectRoleOptionsState = useProjectRoleOptions({ enabled: canLoadProjectRoles });
-  const templateListState = useDocumentTemplates(
-    { page: 1, pageSize: 25, search: debouncedTemplateSearch || undefined },
-    canManageProjects,
-  );
   const workflowDefinitionOptionsState = useWorkflowDefinitionOptions({ enabled: canManageProjects, status: "active" });
-  const workflowInstanceActions = useWorkflowInstanceActions();
-  const templateDetailState = useDocumentTemplate(selectedTemplateId, Boolean(selectedTemplateId));
-  const templateDocumentIds =
-    (templateDetailState.data?.documentIds
-      ?? (templateDetailState.data as { DocumentIds?: string[] } | null)?.DocumentIds
-      ?? []) as string[];
-  const templateDocumentsState = useDocumentsByIds(
-    templateDocumentIds,
-    Boolean(templateDocumentIds.length),
-  );
   const projectTypeOptions = useMemo(() => {
     const templateOptions = projectTypeOptionsState.options;
     return templateOptions.length > 0 ? templateOptions : [
@@ -95,13 +75,9 @@ export function ProjectEditPage() {
   useEffect(() => {
     if (projectDetailQuery.data) {
       editForm.setFieldsValue(toInitialValues(projectDetailQuery.data));
-      setSelectedTemplateId(projectDetailQuery.data.documentTemplateId ?? null);
       setSelectedWorkflowDefinitionId(projectDetailQuery.data.workflowDefinitionId ?? null);
     }
   }, [editForm, projectDetailQuery.data]);
-
-  const activeWorkflowDefinitionId =
-    selectedWorkflowDefinitionId ?? projectDetailQuery.data?.workflowDefinitionId ?? null;
 
   useEffect(() => {
     if (!projectAssignmentsQuery.data) {
@@ -130,7 +106,6 @@ export function ProjectEditPage() {
       await updateProjectMutation.mutateAsync({
         id: projectId,
         ...normalizeProjectPayload(values),
-        documentTemplateId: selectedTemplateId ?? undefined,
         workflowDefinitionId: selectedWorkflowDefinitionId ?? undefined,
       });
 
@@ -288,86 +263,6 @@ export function ProjectEditPage() {
     [canEditMembers, memberRoleByUserId, memberTargetKeys, projectRoleOptionsState, t],
   );
 
-  const projectDocumentColumns = useMemo<ColumnsType<{ id: string; name: string; version: string; revision: number | null; publishedVersion: string; publishedRevision: number | null; canDownload: boolean }>>(
-    () => [
-      { title: t("projects.documents_section.columns.name"), dataIndex: "name" },
-      { title: t("projects.documents_section.columns.version"), dataIndex: "version" },
-      { title: t("projects.documents_section.columns.revision"), dataIndex: "revision" },
-      { title: t("projects.documents_section.columns.published_version"), dataIndex: "publishedVersion" },
-      { title: t("projects.documents_section.columns.published_revision"), dataIndex: "publishedRevision" },
-      {
-        title: t("projects.documents_section.columns.actions"),
-        dataIndex: "actions",
-        align: "center",
-        render: (_value, record) => {
-          const menuItems = [
-            {
-              key: "download",
-              label: t("projects.documents_section.actions.download"),
-              icon: <DownloadOutlined />,
-              disabled: !record.canDownload,
-              onClick: () => void downloadDocument(record.id),
-            },
-            {
-              key: "start-workflow",
-              label: t("projects.documents_section.actions.start_workflow"),
-              icon: <DeploymentUnitOutlined />,
-              disabled: !projectId || !activeWorkflowDefinitionId,
-              onClick: async () => {
-                if (!projectId) return;
-                try {
-                  await workflowInstanceActions.createInstanceMutation.mutateAsync({
-                    projectId,
-                    documentId: record.id,
-                    workflowDefinitionId: activeWorkflowDefinitionId ?? undefined,
-                  });
-                  notification.success({ message: t("projects.documents_section.messages.workflow_started") });
-                } catch (error) {
-                  const presentation = getApiErrorPresentation(error, t("projects.documents_section.messages.workflow_failed_title"));
-                  notification.error({ message: presentation.title, description: presentation.description });
-                }
-              },
-            },
-          ];
-
-          return <ActionMenu items={menuItems} loading={workflowInstanceActions.createInstanceMutation.isPending} />;
-        },
-      },
-    ],
-    [
-      activeWorkflowDefinitionId,
-      projectId,
-      t,
-      workflowInstanceActions.createInstanceMutation,
-      notification,
-    ],
-  );
-
-  const templateOptions = useMemo(
-    () => (templateListState.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })),
-    [templateListState.data],
-  );
-
-  const projectDocuments = useMemo(() => {
-    const documents = templateDocumentsState.data ?? [];
-    if (!templateDocumentIds.length) {
-      return [];
-    }
-    const byId = new Map(documents.map((doc) => [doc.id, doc] as const));
-    return templateDocumentIds
-      .map((id) => byId.get(id))
-      .filter((doc): doc is NonNullable<typeof doc> => Boolean(doc))
-      .map((doc) => ({
-        id: doc.id,
-        name: doc.documentName,
-        version: doc.versionCode ?? "-",
-        revision: doc.revision ?? null,
-        publishedVersion: doc.publishedVersionCode ?? "-",
-        publishedRevision: doc.publishedRevision ?? null,
-        canDownload: Boolean(doc.publishedVersionCode),
-      }));
-  }, [templateDocumentIds, templateDocumentsState.data]);
-
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Space style={{ width: "100%", justifyContent: "flex-start" }}>
@@ -505,34 +400,7 @@ export function ProjectEditPage() {
                   notFoundContent={<Typography.Text type="secondary">{t("projects.documents_section.no_workflows")}</Typography.Text>}
                 />
               </Form.Item>
-              <Form.Item label={t("projects.documents_section.template_label")}>
-                <Select
-                  allowClear
-                  showSearch
-                  filterOption={false}
-                  placeholder={t("projects.documents_section.template_placeholder")}
-                  options={templateOptions}
-                  value={selectedTemplateId}
-                  loading={templateListState.isLoading}
-                  onSearch={setTemplateSearch}
-                  onChange={(value) => setSelectedTemplateId(value ?? null)}
-                  notFoundContent={<Typography.Text type="secondary">{t("projects.documents_section.no_templates")}</Typography.Text>}
-                />
-              </Form.Item>
             </Form>
-            <Table
-              rowKey="id"
-              pagination={false}
-              dataSource={projectDocuments}
-              columns={projectDocumentColumns}
-              loading={templateDocumentsState.isLoading}
-              locale={{
-                emptyText: selectedTemplateId
-                  ? t("projects.documents_section.empty")
-                  : t("projects.documents_section.empty_select_template"),
-              }}
-              scroll={{ x: "max-content" }}
-            />
             <Flex
               gap={12}
               wrap={!isMobile}
