@@ -1,17 +1,15 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { App, Button, Card, Form, Input, Select, Space, Typography, Alert, Table, Flex, Grid } from "antd";
-import { ArrowLeftOutlined, FileTextOutlined, SaveOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DeleteOutlined, FileTextOutlined, SaveOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useCreateDocumentTemplate, useDocumentOptions } from "../hooks/useDocumentTemplates";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
-import type { DocumentListItemView } from "../types/documents";
 
 type TemplateFormValues = {
   name: string;
-  documentIds: string[];
 };
 
 type SelectedDocumentRow = {
@@ -45,13 +43,66 @@ export function DocumentTemplateCreatePage() {
   const [form] = Form.useForm<TemplateFormValues>();
   const [submitting, setSubmitting] = useState(false);
   const documentOptions = useDocumentOptions(canReadDocuments);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [selectedRows, setSelectedRows] = useState<SelectedDocumentRow[]>([]);
+  const [documentSelectionError, setDocumentSelectionError] = useState<string | null>(null);
   const createTemplateMutation = useCreateDocumentTemplate();
+
+  const optionMetaById = useMemo(() => {
+    return new Map(documentOptions.options.map((option) => [option.value, option.meta] as const));
+  }, [documentOptions.options]);
+
+  const availableOptions = useMemo(() => {
+    const selectedIds = new Set(selectedRows.map((row) => row.id));
+    return documentOptions.options.filter((option) => !selectedIds.has(option.value));
+  }, [documentOptions.options, selectedRows]);
+
+  const handleAddDocument = () => {
+    if (!selectedDocumentId) {
+      return;
+    }
+    const item = optionMetaById.get(selectedDocumentId);
+    if (!item) {
+      return;
+    }
+    setSelectedRows((current) => {
+      if (current.some((row) => row.id === item.id)) {
+        return current;
+      }
+      return [
+        ...current,
+        {
+          id: item.id,
+          documentName: item.documentName,
+          fileName: item.fileName,
+          contentType: item.contentType,
+          sizeBytes: item.sizeBytes,
+          publishedVersionCode: item.publishedVersionCode,
+          publishedRevision: item.publishedRevision,
+        },
+      ];
+    });
+    setSelectedDocumentId(null);
+    setDocumentSelectionError(null);
+  };
+
+  const handleRemoveDocument = (id: string) => {
+    setSelectedRows((current) => current.filter((row) => row.id !== id));
+  };
 
   const handleCreate = async () => {
     const values = await form.validateFields();
+    if (selectedRows.length === 0) {
+      setDocumentSelectionError(t("documents.templates.validation.documents_required"));
+      return;
+    }
     setSubmitting(true);
-    createTemplateMutation.mutate(values, {
+    createTemplateMutation.mutate(
+      {
+        name: values.name,
+        documentIds: selectedRows.map((row) => row.id),
+      },
+      {
       onSuccess: () => {
         notification.success({ message: t("documents.templates.messages.created") });
         navigate("/app/document-templates");
@@ -60,8 +111,9 @@ export function DocumentTemplateCreatePage() {
         const presentation = getApiErrorPresentation(error, t("documents.templates.messages.create_failed"));
         notification.error({ message: presentation.title, description: presentation.description });
       },
-      onSettled: () => setSubmitting(false),
-    });
+        onSettled: () => setSubmitting(false),
+      },
+    );
   };
 
   return (
@@ -112,69 +164,64 @@ export function DocumentTemplateCreatePage() {
                 <Input placeholder={t("documents.templates.placeholders.name")} />
               </Form.Item>
               <Form.Item
-                name="documentIds"
                 label={t("documents.templates.fields.documents")}
-                rules={[{ required: true, message: t("documents.templates.validation.documents_required") }]}
+                required
+                validateStatus={documentSelectionError ? "error" : undefined}
+                help={documentSelectionError ?? undefined}
               >
-                <Select
-                  mode="multiple"
-                  allowClear
-                  showSearch
-                  filterOption={false}
-                  options={documentOptions.options}
-                  placeholder={t("documents.templates.placeholders.documents")}
-                  onSearch={documentOptions.onSearch}
-                  loading={documentOptions.loading}
-                  onChange={(values: string[]) => {
-                    const optionsById = new Map(
-                      documentOptions.options.map((option) => [option.value, option.meta] as const),
-                    );
-                    const selected = values
-                      .map((id: string) => optionsById.get(id))
-                      .filter((item): item is DocumentListItemView => Boolean(item));
-                    setSelectedRows(
-                      selected.map((item) => ({
-                        id: item.id,
-                        documentName: item.documentName,
-                        fileName: item.fileName,
-                        contentType: item.contentType,
-                        sizeBytes: item.sizeBytes,
-                        publishedVersionCode: item.publishedVersionCode,
-                        publishedRevision: item.publishedRevision,
-                      })),
-                    );
-                  }}
-                  dropdownRender={(menu) => (
-                    <>
-                      {menu}
-                      {documentOptions.hasMore ? (
-                        <div style={{ padding: 8 }}>
-                          <button
-                            type="button"
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => documentOptions.onLoadMore?.()}
-                            style={{
-                              width: "100%",
-                              border: "none",
-                              background: "transparent",
-                              color: "#1677ff",
-                              cursor: "pointer",
-                              padding: 4,
-                            }}
-                          >
-                            {t("documents.templates.actions.load_more")}
-                          </button>
-                        </div>
-                      ) : null}
-                    </>
-                  )}
-                />
+                <Flex vertical gap={8} align="flex-start" style={{ width: "100%" }}>
+                  <Select
+                    allowClear
+                    showSearch
+                    filterOption={false}
+                    value={selectedDocumentId}
+                    options={availableOptions}
+                    optionRender={(option) => (
+                      <span style={{ display: "block", whiteSpace: "normal" }}>{option.label}</span>
+                    )}
+                    placeholder={t("documents.templates.placeholders.documents")}
+                    onSearch={documentOptions.onSearch}
+                    onChange={(value) => setSelectedDocumentId(value ?? null)}
+                    loading={documentOptions.loading}
+                    style={{ width: "100%" }}
+                    dropdownRender={(menu) => (
+                      <>
+                        {menu}
+                        {documentOptions.hasMore ? (
+                          <div style={{ padding: 8 }}>
+                            <button
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => documentOptions.onLoadMore?.()}
+                              style={{
+                                width: "100%",
+                                border: "none",
+                                background: "transparent",
+                                color: "#1677ff",
+                                cursor: "pointer",
+                                padding: 4,
+                              }}
+                            >
+                              {t("documents.templates.actions.load_more")}
+                            </button>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+                  />
+                  <div>
+                    <Button onClick={handleAddDocument} disabled={!selectedDocumentId} type="primary">
+                      {t("common.actions.add")}
+                    </Button>
+                  </div>
+                </Flex>
               </Form.Item>
               <Table<SelectedDocumentRow>
                 rowKey="id"
                 pagination={false}
                 dataSource={selectedRows}
                 scroll={{ x: "max-content" }}
+                size={isMobile ? "small" : "middle"}
                 columns={[
                   { title: t("documents.columns.document_name"), dataIndex: "documentName" },
                   { title: t("documents.columns.file_name"), dataIndex: "fileName", render: (value) => value ?? "-" },
@@ -189,6 +236,20 @@ export function DocumentTemplateCreatePage() {
                     title: t("documents.columns.published_revision"),
                     dataIndex: "publishedRevision",
                     render: (value) => (value ? `r${value}` : "-"),
+                  },
+                  {
+                    title: t("admin_users.columns.actions"),
+                    key: "actions",
+                    render: (_, record) => (
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveDocument(record.id)}
+                      >
+                        {t("common.actions.delete")}
+                      </Button>
+                    ),
                   },
                 ]}
                 locale={{ emptyText: t("documents.templates.empty_selection") }}

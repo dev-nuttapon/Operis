@@ -1,6 +1,6 @@
-import { App, Button, Card, Form, Space, Typography, Alert, Flex, Grid, Divider, Table, Transfer, Select } from "antd";
+import { App, Button, Card, Form, Space, Typography, Alert, Flex, Grid, Divider, Table, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, CloseOutlined, FolderOpenOutlined, SaveOutlined, DownloadOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CloseOutlined, DeleteOutlined, FolderOpenOutlined, SaveOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -127,6 +127,19 @@ export function ProjectCreatePage() {
     [userOptionsState.items],
   );
 
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+
+  const memberOptions = useMemo(() => {
+    const selectedIds = new Set(memberTargetKeys);
+    return memberTransferData
+      .filter((item) => !selectedIds.has(String(item.key)))
+      .map((item) => ({
+        value: String(item.key),
+        label: item.title,
+        meta: item.meta,
+      }));
+  }, [memberTransferData, memberTargetKeys]);
+
   const selectedMembers = useMemo(() => {
     if (memberTargetKeys.length === 0) return [];
     const userById = new Map(memberTransferData.map((item) => [item.key, item.meta] as const));
@@ -165,6 +178,27 @@ export function ProjectCreatePage() {
               }))
             }
           />
+        ),
+      },
+      {
+        title: t("admin_users.columns.actions"),
+        key: "actions",
+        render: (_, record) => (
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => {
+              setMemberTargetKeys((current) => current.filter((key) => key !== record.id));
+              setMemberRoleByUserId((current) => {
+                const next = { ...current };
+                delete next[record.id];
+                return next;
+              });
+            }}
+          >
+            {t("projects.members.actions.remove")}
+          </Button>
         ),
       },
     ],
@@ -272,40 +306,59 @@ export function ProjectCreatePage() {
             <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
               {t("projects.members_section.create_hint")}
             </Typography.Paragraph>
-            <Transfer
-              dataSource={memberTransferData}
-              titles={[t("projects.members.transfer.available"), t("projects.members.transfer.selected")]}
-              targetKeys={memberTargetKeys}
-              onChange={(nextTargetKeys) => {
-                const nextKeys = nextTargetKeys.map((key) => String(key));
-                setMemberTargetKeys(nextKeys);
-                setMemberRoleByUserId((current) => {
-                  const next = { ...current };
-                  Object.keys(next).forEach((key) => {
-                    if (!nextKeys.includes(key)) {
-                      delete next[key];
-                    }
-                  });
-                  return next;
-                });
-              }}
-              render={(item) => item.title}
-              listStyle={{ width: 260, height: 320 }}
-              showSearch
-              disabled={!canEditMembers}
-              onSearch={(direction, value) => {
-                if (direction === "left") {
-                  userOptionsState.onSearch(value);
-                }
-              }}
-              footer={(props) =>
-                props.direction === "left" && userOptionsState.hasMore ? (
-                  <Button type="link" onClick={() => userOptionsState.onLoadMore?.()}>
-                    {t("projects.load_more_users")}
-                  </Button>
-                ) : null
-              }
-            />
+            <Flex gap={12} vertical align="stretch">
+              <Select
+                allowClear
+                showSearch
+                filterOption={false}
+                disabled={!canEditMembers}
+                placeholder={t("projects.members.placeholders.member")}
+                value={selectedMemberId}
+                options={memberOptions}
+                onSearch={userOptionsState.onSearch}
+                onChange={(value) => setSelectedMemberId(value ?? null)}
+                loading={userOptionsState.loading}
+                style={{ width: "100%" }}
+                dropdownRender={(menu) => (
+                  <>
+                    {menu}
+                    {userOptionsState.hasMore ? (
+                      <div style={{ padding: 8 }}>
+                        <button
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => userOptionsState.onLoadMore?.()}
+                          style={{
+                            width: "100%",
+                            border: "none",
+                            background: "transparent",
+                            color: "#1677ff",
+                            cursor: "pointer",
+                            padding: 4,
+                          }}
+                        >
+                          {t("projects.load_more_users")}
+                        </button>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              />
+              <Button
+                type="primary"
+                disabled={!canEditMembers || !selectedMemberId}
+                onClick={() => {
+                  if (!selectedMemberId) return;
+                  setMemberTargetKeys((current) =>
+                    current.includes(selectedMemberId) ? current : [...current, selectedMemberId],
+                  );
+                  setSelectedMemberId(null);
+                }}
+                block={isMobile}
+              >
+                {t("common.actions.add")}
+              </Button>
+            </Flex>
             <Table
               rowKey="id"
               pagination={false}

@@ -206,6 +206,7 @@
       "detail": "Details",
       "manage": "Manage",
       "edit": "Edit",
+      "add": "Add",
       "delete": "Delete",
       "yes": "Yes",
       "no": "No",
@@ -617,7 +618,8 @@
         "role": "Project role"
       },
       "placeholders": {
-        "role": "Select project role"
+        "role": "Select project role",
+        "member": "Select project member"
       },
       "transfer": {
         "available": "Available members",
