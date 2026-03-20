@@ -49,6 +49,16 @@ public sealed class ProjectCommands(
             return (false, userError, ApiErrorCodeResolver.Resolve(userError, ApiErrorCodes.RequestValidationFailed), null);
         }
 
+        if (await ValidateWorkflowDefinitionAsync(request.WorkflowDefinitionId, cancellationToken) is { } workflowError)
+        {
+            return (false, workflowError, ApiErrorCodes.RequestValidationFailed, null);
+        }
+
+        if (await ValidateDocumentTemplateAsync(request.DocumentTemplateId, cancellationToken) is { } templateError)
+        {
+            return (false, templateError, ApiErrorCodes.RequestValidationFailed, null);
+        }
+
         var exists = await dbContext.Projects.AnyAsync(x => x.Code == code && x.DeletedAt == null, cancellationToken);
         if (exists)
         {
@@ -67,6 +77,8 @@ public sealed class ProjectCommands(
             Phase = NormalizeOptional(request.Phase, 80),
             Status = NormalizeStatus(request.Status),
             StatusReason = NormalizeOptional(request.StatusReason, 500),
+            WorkflowDefinitionId = request.WorkflowDefinitionId,
+            DocumentTemplateId = request.DocumentTemplateId,
             PlannedStartAt = request.PlannedStartAt,
             PlannedEndAt = request.PlannedEndAt,
             StartAt = request.StartAt,
@@ -131,6 +143,16 @@ public sealed class ProjectCommands(
             return (false, userError, ApiErrorCodeResolver.Resolve(userError, ApiErrorCodes.RequestValidationFailed), null, false);
         }
 
+        if (await ValidateWorkflowDefinitionAsync(request.WorkflowDefinitionId, cancellationToken) is { } workflowError)
+        {
+            return (false, workflowError, ApiErrorCodes.RequestValidationFailed, null, false);
+        }
+
+        if (await ValidateDocumentTemplateAsync(request.DocumentTemplateId, cancellationToken) is { } templateError)
+        {
+            return (false, templateError, ApiErrorCodes.RequestValidationFailed, null, false);
+        }
+
         var before = ToProjectState(entity);
         entity.Code = code;
         entity.Name = name;
@@ -141,6 +163,8 @@ public sealed class ProjectCommands(
         entity.Phase = NormalizeOptional(request.Phase, 80);
         entity.Status = NormalizeStatus(request.Status);
         entity.StatusReason = NormalizeOptional(request.StatusReason, 500);
+        entity.WorkflowDefinitionId = request.WorkflowDefinitionId;
+        entity.DocumentTemplateId = request.DocumentTemplateId;
         entity.PlannedStartAt = request.PlannedStartAt;
         entity.PlannedEndAt = request.PlannedEndAt;
         entity.StartAt = request.StartAt;
@@ -572,6 +596,46 @@ public sealed class ProjectCommands(
         return null;
     }
 
+    private async Task<string?> ValidateWorkflowDefinitionAsync(Guid? workflowDefinitionId, CancellationToken cancellationToken)
+    {
+        if (!workflowDefinitionId.HasValue)
+        {
+            return null;
+        }
+
+        var workflow = await dbContext.WorkflowDefinitions
+            .AsNoTracking()
+            .Where(x => x.Id == workflowDefinitionId.Value)
+            .Select(x => x.Status)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (workflow is null)
+        {
+            return "Workflow definition does not exist.";
+        }
+
+        if (string.Equals(workflow, "archived", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Workflow definition is archived.";
+        }
+
+        return null;
+    }
+
+    private async Task<string?> ValidateDocumentTemplateAsync(Guid? documentTemplateId, CancellationToken cancellationToken)
+    {
+        if (!documentTemplateId.HasValue)
+        {
+            return null;
+        }
+
+        var exists = await dbContext.DocumentTemplates
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == documentTemplateId.Value && !x.IsDeleted, cancellationToken);
+
+        return exists ? null : "Document template does not exist.";
+    }
+
     private async Task<ProjectResponse> ToProjectResponseAsync(ProjectEntity entity, CancellationToken cancellationToken)
     {
         var ownerDisplayName = await ResolveUserDisplayNameAsync(entity.OwnerUserId, cancellationToken);
@@ -590,6 +654,8 @@ public sealed class ProjectCommands(
             entity.Phase,
             entity.Status,
             entity.StatusReason,
+            entity.WorkflowDefinitionId,
+            entity.DocumentTemplateId,
             entity.PlannedStartAt,
             entity.PlannedEndAt,
             entity.StartAt,
@@ -660,6 +726,8 @@ public sealed class ProjectCommands(
         entity.Phase,
         entity.Status,
         entity.StatusReason,
+        entity.WorkflowDefinitionId,
+        entity.DocumentTemplateId,
         entity.PlannedStartAt,
         entity.PlannedEndAt,
         entity.StartAt,

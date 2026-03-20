@@ -172,6 +172,8 @@ public sealed class ProjectQueries(
             project.Entity.Phase,
             project.Entity.Status,
             project.Entity.StatusReason,
+            project.Entity.WorkflowDefinitionId,
+            project.Entity.DocumentTemplateId,
             project.Entity.PlannedStartAt,
             project.Entity.PlannedEndAt,
             project.Entity.StartAt,

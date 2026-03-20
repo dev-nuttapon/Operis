@@ -300,6 +300,8 @@ export interface Project {
   phase: string | null;
   status: string;
   statusReason: string | null;
+  workflowDefinitionId: string | null;
+  documentTemplateId: string | null;
   plannedStartAt: string | null;
   plannedEndAt: string | null;
   startAt: string | null;
@@ -453,6 +455,8 @@ export interface CreateProjectInput {
   phase?: string;
   status: string;
   statusReason?: string;
+  workflowDefinitionId?: string;
+  documentTemplateId?: string;
   plannedStartAt?: string;
   plannedEndAt?: string;
   startAt?: string;

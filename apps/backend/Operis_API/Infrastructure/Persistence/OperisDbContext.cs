@@ -358,6 +358,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Phase).HasColumnName("phase").HasMaxLength(80);
             entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
             entity.Property(x => x.StatusReason).HasColumnName("status_reason").HasMaxLength(500);
+            entity.Property(x => x.WorkflowDefinitionId).HasColumnName("workflow_definition_id");
+            entity.Property(x => x.DocumentTemplateId).HasColumnName("document_template_id");
             entity.Property(x => x.PlannedStartAt).HasColumnName("planned_start_at");
             entity.Property(x => x.PlannedEndAt).HasColumnName("planned_end_at");
             entity.Property(x => x.StartAt).HasColumnName("start_at");
@@ -369,12 +371,16 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
             entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.OwnerUserId).OnDelete(DeleteBehavior.SetNull);
             entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.SponsorUserId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<WorkflowDefinitionEntity>().WithMany().HasForeignKey(x => x.WorkflowDefinitionId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<DocumentTemplateEntity>().WithMany().HasForeignKey(x => x.DocumentTemplateId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => x.Code).IsUnique().HasFilter("\"deleted_at\" IS NULL");
             entity.HasIndex(x => new { x.DeletedAt, x.Status, x.CreatedAt });
             entity.HasIndex(x => x.ProjectType);
             entity.HasIndex(x => x.Phase);
             entity.HasIndex(x => x.OwnerUserId);
             entity.HasIndex(x => x.SponsorUserId);
+            entity.HasIndex(x => x.WorkflowDefinitionId);
+            entity.HasIndex(x => x.DocumentTemplateId);
         });
 
         modelBuilder.Entity<ProjectTypeTemplateEntity>(entity =>

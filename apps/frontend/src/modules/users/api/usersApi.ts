@@ -354,6 +354,8 @@ export function updateProject(input: UpdateProjectInput) {
       phase: input.phase,
       status: input.status,
       statusReason: input.statusReason,
+      workflowDefinitionId: input.workflowDefinitionId,
+      documentTemplateId: input.documentTemplateId,
       plannedStartAt: input.plannedStartAt,
       plannedEndAt: input.plannedEndAt,
       startAt: input.startAt,

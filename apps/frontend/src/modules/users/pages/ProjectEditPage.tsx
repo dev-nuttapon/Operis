@@ -14,6 +14,7 @@ import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { downloadDocument, useDocumentTemplate, useDocumentTemplates, useDocumentsByIds } from "../../documents";
+import { useWorkflowDefinitionOptions } from "../../workflows";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
 type LocationState = {
@@ -51,6 +52,7 @@ export function ProjectEditPage() {
   const [memberRoleByUserId, setMemberRoleByUserId] = useState<Record<string, string>>({});
   const [templateSearch, setTemplateSearch] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedWorkflowDefinitionId, setSelectedWorkflowDefinitionId] = useState<string | null>(null);
   const debouncedTemplateSearch = useDebouncedValue(templateSearch, 300);
 
   const { projectDetailQuery, updateProjectMutation, projectAssignmentsQuery, createProjectAssignmentMutation, updateProjectAssignmentMutation, deleteProjectAssignmentMutation } = useProjectAdmin({
@@ -68,6 +70,7 @@ export function ProjectEditPage() {
     { page: 1, pageSize: 25, search: debouncedTemplateSearch || undefined },
     canManageProjects,
   );
+  const workflowDefinitionOptionsState = useWorkflowDefinitionOptions({ enabled: canManageProjects, status: "active" });
   const templateDetailState = useDocumentTemplate(selectedTemplateId, Boolean(selectedTemplateId));
   const templateDocumentIds =
     (templateDetailState.data?.documentIds
@@ -90,6 +93,8 @@ export function ProjectEditPage() {
   useEffect(() => {
     if (projectDetailQuery.data) {
       editForm.setFieldsValue(toInitialValues(projectDetailQuery.data));
+      setSelectedTemplateId(projectDetailQuery.data.documentTemplateId ?? null);
+      setSelectedWorkflowDefinitionId(projectDetailQuery.data.workflowDefinitionId ?? null);
     }
   }, [editForm, projectDetailQuery.data]);
 
@@ -117,7 +122,12 @@ export function ProjectEditPage() {
       return;
     }
     try {
-      await updateProjectMutation.mutateAsync({ id: projectId, ...normalizeProjectPayload(values) });
+      await updateProjectMutation.mutateAsync({
+        id: projectId,
+        ...normalizeProjectPayload(values),
+        documentTemplateId: selectedTemplateId ?? undefined,
+        workflowDefinitionId: selectedWorkflowDefinitionId ?? undefined,
+      });
 
       if (canEditMembers) {
         const currentAssignments = projectAssignmentsQuery.data?.items ?? [];
@@ -449,6 +459,18 @@ export function ProjectEditPage() {
               {t("projects.documents_section.description")}
             </Typography.Paragraph>
             <Form layout="vertical">
+              <Form.Item label={t("projects.documents_section.workflow_label")}>
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder={t("projects.documents_section.workflow_placeholder")}
+                  options={workflowDefinitionOptionsState.options}
+                  value={selectedWorkflowDefinitionId}
+                  loading={workflowDefinitionOptionsState.loading}
+                  onChange={(value) => setSelectedWorkflowDefinitionId(value ?? null)}
+                  notFoundContent={<Typography.Text type="secondary">{t("projects.documents_section.no_workflows")}</Typography.Text>}
+                />
+              </Form.Item>
               <Form.Item label={t("projects.documents_section.template_label")}>
                 <Select
                   allowClear

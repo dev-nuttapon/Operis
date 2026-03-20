@@ -12,6 +12,8 @@ public sealed class ProjectEntity
     public string? Phase { get; set; }
     public string Status { get; set; } = "active";
     public string? StatusReason { get; set; }
+    public Guid? WorkflowDefinitionId { get; set; }
+    public Guid? DocumentTemplateId { get; set; }
     public DateTimeOffset? PlannedStartAt { get; set; }
     public DateTimeOffset? PlannedEndAt { get; set; }
     public DateTimeOffset? StartAt { get; set; }
