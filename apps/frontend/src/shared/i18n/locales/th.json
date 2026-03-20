@@ -203,6 +203,7 @@
     "theme_label": "ธีม",
     "actions": {
       "view": "ดู",
+      "detail": "รายละเอียด",
       "manage": "จัดการ",
       "edit": "แก้ไข",
       "delete": "ลบ",

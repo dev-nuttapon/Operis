@@ -203,6 +203,7 @@
     "theme_label": "Theme",
     "actions": {
       "view": "View",
+      "detail": "Details",
       "manage": "Manage",
       "edit": "Edit",
       "delete": "Delete",
