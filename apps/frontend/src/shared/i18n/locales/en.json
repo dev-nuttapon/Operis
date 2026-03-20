@@ -144,8 +144,56 @@
     },
     "actions": {
       "create_draft": "Create draft",
+      "create": "Create workflow",
+      "save": "Save",
+      "back": "Back to workflows",
       "activate": "Activate",
       "archive": "Archive"
+    },
+    "create_page": {
+      "title": "Create workflow",
+      "description": "Define workflow steps and assign project roles for each step."
+    },
+    "edit_page": {
+      "title": "Edit workflow",
+      "description": "Update workflow steps and role responsibilities."
+    },
+    "steps": {
+      "title": "Workflow steps",
+      "description": "Add steps in the order the document should flow through the organization.",
+      "fields": {
+        "name": "Step name",
+        "type": "Step type",
+        "roles": "Project roles",
+        "required": "Required"
+      },
+      "placeholders": {
+        "name": "Enter step name"
+      },
+      "types": {
+        "submit": "Submit",
+        "peer_review": "Peer review",
+        "review": "Review",
+        "approve": "Approve"
+      },
+      "columns": {
+        "order": "Order",
+        "name": "Step",
+        "type": "Type",
+        "roles": "Roles",
+        "required": "Required"
+      },
+      "actions": {
+        "add": "Add step",
+        "load_more_roles": "Load more roles"
+      },
+      "validation": {
+        "required": "Please add at least one workflow step.",
+        "name_required": "Step name is required.",
+        "type_required": "Step type is required.",
+        "roles_required": "Please select at least one role."
+      },
+      "empty": "No workflow steps yet."
     },
     "filters": {
       "all": "All",
@@ -157,7 +205,9 @@
     "empty": "No workflow definitions yet.",
     "notifications": {
       "create_failed_title": "Unable to create workflow definition",
+      "created": "Workflow created.",
       "update_failed_title": "Unable to update workflow definition",
+      "updated": "Workflow updated.",
       "activate_failed_title": "Unable to activate workflow definition",
       "archive_failed_title": "Unable to archive workflow definition"
     }

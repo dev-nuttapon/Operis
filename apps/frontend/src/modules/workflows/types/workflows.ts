@@ -7,6 +7,21 @@ export interface WorkflowDefinitionSummary {
 
 export type WorkflowStatusFilter = "all" | WorkflowDefinitionSummary["status"];
 
+export type WorkflowStepType = "submit" | "peer_review" | "review" | "approve";
+
+export interface WorkflowStep {
+  id?: string;
+  name: string;
+  stepType: WorkflowStepType;
+  displayOrder: number;
+  isRequired: boolean;
+  roleIds: string[];
+}
+
+export interface WorkflowDefinitionDetail extends WorkflowDefinitionSummary {
+  steps: WorkflowStep[];
+}
+
 export interface WorkflowDefinitionStatusSummary {
   all: number;
   draft: number;
@@ -30,11 +45,13 @@ export interface WorkflowDefinitionListResponse {
 
 export interface CreateWorkflowDefinitionInput {
   name: string;
+  steps: WorkflowStep[];
 }
 
 export interface UpdateWorkflowDefinitionInput {
   workflowDefinitionId: string;
   name: string;
+  steps: WorkflowStep[];
 }
 
 export interface WorkflowDefinitionActionInput {

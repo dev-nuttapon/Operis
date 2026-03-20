@@ -209,8 +209,8 @@ export function DocumentTemplateCreatePage() {
                       </>
                     )}
                   />
-                  <div>
-                    <Button onClick={handleAddDocument} disabled={!selectedDocumentId} type="primary">
+                  <div style={{ width: isMobile ? "100%" : "auto" }}>
+                    <Button onClick={handleAddDocument} disabled={!selectedDocumentId} type="primary" block={isMobile}>
                       {t("common.actions.add")}
                     </Button>
                   </div>

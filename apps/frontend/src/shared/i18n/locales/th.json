@@ -144,8 +144,56 @@
     },
     "actions": {
       "create_draft": "สร้างฉบับร่าง",
+      "create": "สร้างเวิร์กโฟลว์",
+      "save": "บันทึก",
+      "back": "กลับไปหน้าเวิร์กโฟลว์",
       "activate": "เปิดใช้งาน",
       "archive": "จัดเก็บ"
+    },
+    "create_page": {
+      "title": "สร้างเวิร์กโฟลว์",
+      "description": "กำหนดขั้นตอนงานและบทบาทที่ต้องรับผิดชอบในแต่ละขั้นตอน"
+    },
+    "edit_page": {
+      "title": "แก้ไขเวิร์กโฟลว์",
+      "description": "ปรับขั้นตอนงานและบทบาทที่เกี่ยวข้อง"
+    },
+    "steps": {
+      "title": "ขั้นตอนเวิร์กโฟลว์",
+      "description": "เพิ่มขั้นตอนตามลำดับการทำงานของเอกสารในองค์กร",
+      "fields": {
+        "name": "ชื่อขั้นตอน",
+        "type": "ประเภทขั้นตอน",
+        "roles": "ตำแหน่งโครงการ",
+        "required": "จำเป็น"
+      },
+      "placeholders": {
+        "name": "กรอกชื่อขั้นตอน"
+      },
+      "types": {
+        "submit": "ส่งเอกสาร",
+        "peer_review": "Peer Review",
+        "review": "Review",
+        "approve": "Approve"
+      },
+      "columns": {
+        "order": "ลำดับ",
+        "name": "ขั้นตอน",
+        "type": "ประเภท",
+        "roles": "บทบาท",
+        "required": "จำเป็น"
+      },
+      "actions": {
+        "add": "เพิ่มขั้นตอน",
+        "load_more_roles": "โหลดตำแหน่งเพิ่มเติม"
+      },
+      "validation": {
+        "required": "กรุณาเพิ่มอย่างน้อย 1 ขั้นตอน",
+        "name_required": "กรุณากรอกชื่อขั้นตอน",
+        "type_required": "กรุณาเลือกประเภทขั้นตอน",
+        "roles_required": "กรุณาเลือกตำแหน่งอย่างน้อย 1 ตำแหน่ง"
+      },
+      "empty": "ยังไม่มีขั้นตอนเวิร์กโฟลว์"
     },
     "filters": {
       "all": "ทั้งหมด",
@@ -157,7 +205,9 @@
     "empty": "ยังไม่มี workflow",
     "notifications": {
       "create_failed_title": "ไม่สามารถสร้าง workflow ได้",
+      "created": "สร้างเวิร์กโฟลว์สำเร็จ",
       "update_failed_title": "ไม่สามารถแก้ไข workflow ได้",
+      "updated": "แก้ไขเวิร์กโฟลว์สำเร็จ",
       "activate_failed_title": "ไม่สามารถเปิดใช้งาน workflow ได้",
       "archive_failed_title": "ไม่สามารถจัดเก็บ workflow ได้"
     }

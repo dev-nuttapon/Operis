@@ -4,6 +4,7 @@ import type {
   UpdateWorkflowDefinitionInput,
   WorkflowDefinitionListInput,
   WorkflowDefinitionListResponse,
+  WorkflowDefinitionDetail,
   WorkflowDefinitionSummary,
 } from "../types/workflows";
 
@@ -34,17 +35,24 @@ export async function listWorkflowDefinitions(
   return apiRequest<WorkflowDefinitionListResponse>(`/api/v1/workflows/definitions${toListQuery(input)}`, { signal });
 }
 
-export async function createWorkflowDefinition(input: CreateWorkflowDefinitionInput): Promise<WorkflowDefinitionSummary> {
-  return apiRequest<WorkflowDefinitionSummary>("/api/v1/workflows/definitions", {
+export async function getWorkflowDefinition(
+  workflowDefinitionId: string,
+  signal?: AbortSignal,
+): Promise<WorkflowDefinitionDetail> {
+  return apiRequest<WorkflowDefinitionDetail>(`/api/v1/workflows/definitions/${workflowDefinitionId}`, { signal });
+}
+
+export async function createWorkflowDefinition(input: CreateWorkflowDefinitionInput): Promise<WorkflowDefinitionDetail> {
+  return apiRequest<WorkflowDefinitionDetail>("/api/v1/workflows/definitions", {
     method: "POST",
     body: input,
   });
 }
 
-export async function updateWorkflowDefinition(input: UpdateWorkflowDefinitionInput): Promise<WorkflowDefinitionSummary> {
-  return apiRequest<WorkflowDefinitionSummary>(`/api/v1/workflows/definitions/${input.workflowDefinitionId}`, {
+export async function updateWorkflowDefinition(input: UpdateWorkflowDefinitionInput): Promise<WorkflowDefinitionDetail> {
+  return apiRequest<WorkflowDefinitionDetail>(`/api/v1/workflows/definitions/${input.workflowDefinitionId}`, {
     method: "PUT",
-    body: { name: input.name },
+    body: { name: input.name, steps: input.steps },
   });
 }
 

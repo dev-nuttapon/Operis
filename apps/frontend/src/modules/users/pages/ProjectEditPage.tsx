@@ -416,20 +416,22 @@ export function ProjectEditPage() {
                   </>
                 )}
               />
-              <Button
-                type="primary"
-                disabled={!canEditMembers || !selectedMemberId}
-                onClick={() => {
-                  if (!selectedMemberId) return;
-                  setMemberTargetKeys((current) =>
-                    current.includes(selectedMemberId) ? current : [...current, selectedMemberId],
-                  );
-                  setSelectedMemberId(null);
-                }}
-                block={isMobile}
-              >
-                {t("common.actions.add")}
-              </Button>
+              <div style={{ width: isMobile ? "100%" : "auto" }}>
+                <Button
+                  type="primary"
+                  disabled={!canEditMembers || !selectedMemberId}
+                  onClick={() => {
+                    if (!selectedMemberId) return;
+                    setMemberTargetKeys((current) =>
+                      current.includes(selectedMemberId) ? current : [...current, selectedMemberId],
+                    );
+                    setSelectedMemberId(null);
+                  }}
+                  block={isMobile}
+                >
+                  {t("common.actions.add")}
+                </Button>
+              </div>
             </Flex>
             <Table
               rowKey="id"

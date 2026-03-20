@@ -95,6 +95,12 @@ const ActivityLogsPage = lazy(() =>
 const WorkflowDefinitionsPage = lazy(() =>
   import("../modules/workflows/pages/WorkflowDefinitionsPage").then((module) => ({ default: module.WorkflowDefinitionsPage }))
 );
+const WorkflowDefinitionCreatePage = lazy(() =>
+  import("../modules/workflows/pages/WorkflowDefinitionCreatePage").then((module) => ({ default: module.WorkflowDefinitionCreatePage }))
+);
+const WorkflowDefinitionEditPage = lazy(() =>
+  import("../modules/workflows/pages/WorkflowDefinitionEditPage").then((module) => ({ default: module.WorkflowDefinitionEditPage }))
+);
 
 function RouteFallback() {
   return (
@@ -134,6 +140,8 @@ export function AppRouter() {
                 <Route path="projects/:projectId/edit" element={<ProjectEditPage />} />
                 <Route path="projects/:projectId/history" element={<ProjectHistoryPage />} />
               <Route path="workflows" element={<WorkflowDefinitionsPage />} />
+              <Route path="workflows/new" element={<WorkflowDefinitionCreatePage />} />
+              <Route path="workflows/:workflowDefinitionId/edit" element={<WorkflowDefinitionEditPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
               <Route path="admin/users/new" element={<AdminUserCreatePage />} />
               <Route path="admin/users/:userId/edit" element={<AdminUserEditPage />} />

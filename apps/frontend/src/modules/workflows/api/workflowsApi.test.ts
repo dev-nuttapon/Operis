@@ -31,11 +31,33 @@ describe("createWorkflowDefinition", () => {
       status: "draft",
     });
 
-    await createWorkflowDefinition({ name: "Document Review" });
+    await createWorkflowDefinition({
+      name: "Document Review",
+      steps: [
+        {
+          name: "Submit",
+          stepType: "submit",
+          displayOrder: 1,
+          isRequired: true,
+          roleIds: ["role-1"],
+        },
+      ],
+    });
 
     expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions", {
       method: "POST",
-      body: { name: "Document Review" },
+      body: {
+        name: "Document Review",
+        steps: [
+          {
+            name: "Submit",
+            stepType: "submit",
+            displayOrder: 1,
+            isRequired: true,
+            roleIds: ["role-1"],
+          },
+        ],
+      },
     });
   });
 });
@@ -66,11 +88,34 @@ describe("updateWorkflowDefinition", () => {
       status: "draft",
     });
 
-    await updateWorkflowDefinition({ workflowDefinitionId: "1", name: "Policy Approval" });
+    await updateWorkflowDefinition({
+      workflowDefinitionId: "1",
+      name: "Policy Approval",
+      steps: [
+        {
+          name: "Review",
+          stepType: "review",
+          displayOrder: 1,
+          isRequired: true,
+          roleIds: ["role-1"],
+        },
+      ],
+    });
 
     expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions/1", {
       method: "PUT",
-      body: { name: "Policy Approval" },
+      body: {
+        name: "Policy Approval",
+        steps: [
+          {
+            name: "Review",
+            stepType: "review",
+            displayOrder: 1,
+            isRequired: true,
+            roleIds: ["role-1"],
+          },
+        ],
+      },
     });
   });
 });
