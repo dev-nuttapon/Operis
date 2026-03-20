@@ -13,7 +13,6 @@ describe("adminUsersPresentation", () => {
     expect(getCurrentAdminUsersSection("/app/admin/master/divisions")).toBe("master-divisions");
     expect(getCurrentAdminUsersSection("/app/admin/master/departments")).toBe("master-departments");
     expect(getCurrentAdminUsersSection("/app/admin/master/positions")).toBe("master-positions");
-    expect(getCurrentAdminUsersSection("/app/admin/master/project-roles")).toBe("master-project-roles");
     expect(getCurrentAdminUsersSection("/app/admin/registrations")).toBe("approvals");
     expect(getCurrentAdminUsersSection("/app/admin/users")).toBe("directory");
   });

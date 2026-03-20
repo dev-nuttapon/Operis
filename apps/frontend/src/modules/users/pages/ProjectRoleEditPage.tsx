@@ -27,7 +27,7 @@ export function ProjectRoleEditPage() {
   const permissionState = usePermissions();
   const canManageProjectRoles = permissionState.hasPermission(permissions.projects.manageRoles);
 
-  const backTarget = locationState?.from ?? "/app/admin/project-roles";
+  const backTarget = locationState?.from ?? "/app/projects/roles";
 
   const [form] = Form.useForm<ProjectRoleFormValues>();
   const detailQuery = useProjectRoleDetail(projectRoleId);
@@ -59,7 +59,7 @@ export function ProjectRoleEditPage() {
     updateProjectRoleMutation.mutate(payload, {
       onSuccess: () => {
         notification.success({ message: t("project_roles.messages.updated", { name: values.name }) });
-        navigate("/app/admin/project-roles", { replace: true });
+        navigate("/app/projects/roles", { replace: true });
       },
       onError: (error) => {
         const presentation = getApiErrorPresentation(error, t("project_roles.messages.update_failed"));

@@ -66,10 +66,6 @@ export function getCurrentAdminUsersSection(pathname: string) {
     return "master-positions" as const;
   }
 
-  if (pathname.includes("/admin/master/project-roles")) {
-    return "master-project-roles" as const;
-  }
-
   if (pathname.includes("/admin/registrations")) {
     return "approvals" as const;
   }

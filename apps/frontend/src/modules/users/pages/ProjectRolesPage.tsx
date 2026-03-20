@@ -81,7 +81,7 @@ export function ProjectRolesPage() {
                   icon: <EditOutlined />,
                   label: t("common.actions.edit"),
                   onClick: () =>
-                    navigate(`/app/admin/project-roles/${record.id}/edit`, {
+                    navigate(`/app/projects/roles/${record.id}/edit`, {
                       state: { from: `${location.pathname}${location.search}` },
                     }),
                 },
@@ -150,7 +150,7 @@ export function ProjectRolesPage() {
                       icon={<PlusOutlined />}
                       size="large"
                       onClick={() => {
-                        navigate("/app/admin/project-roles/new", {
+                        navigate("/app/projects/roles/new", {
                           state: { from: `${location.pathname}${location.search}` },
                         });
                       }}

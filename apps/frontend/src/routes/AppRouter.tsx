@@ -141,9 +141,9 @@ export function AppRouter() {
                 <Route path="admin/master/divisions" element={<AdminUsersPage />} />
                 <Route path="admin/master/departments" element={<AdminUsersPage />} />
                 <Route path="admin/master/positions" element={<AdminUsersPage />} />
-                <Route path="admin/project-roles" element={<ProjectRolesPage />} />
-                <Route path="admin/project-roles/new" element={<ProjectRoleCreatePage />} />
-                <Route path="admin/project-roles/:projectRoleId/edit" element={<ProjectRoleEditPage />} />
+                <Route path="projects/roles" element={<ProjectRolesPage />} />
+                <Route path="projects/roles/new" element={<ProjectRoleCreatePage />} />
+                <Route path="projects/roles/:projectRoleId/edit" element={<ProjectRoleEditPage />} />
                 <Route path="admin/project-members" element={<ProjectMembersPage />} />
                 <Route path="admin/project-members/new" element={<ProjectMemberCreatePage />} />
                 <Route path="admin/project-members/:assignmentId/edit" element={<ProjectMemberEditPage />} />

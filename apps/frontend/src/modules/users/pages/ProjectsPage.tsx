@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
-import { DeleteOutlined, EditOutlined, FolderOpenOutlined, HistoryOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, EyeOutlined, FolderOpenOutlined, HistoryOutlined, PlusOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -123,6 +123,12 @@ export function ProjectsPage() {
         render: (_, record) => {
           const items = [
             {
+              key: "detail",
+              icon: <EyeOutlined />,
+              label: t("common.actions.detail"),
+              onClick: () => navigate(`/app/projects/${record.id}/workspace`),
+            },
+            {
               key: "edit",
               icon: <EditOutlined />,
               label: t("common.actions.edit"),
@@ -220,11 +226,6 @@ export function ProjectsPage() {
                 dataSource={projectsQuery.data?.items ?? []}
                 loading={projectsQuery.isLoading}
                 scroll={{ x: "max-content" }}
-                rowClassName={() => "clickable-project-row"}
-                onRow={(record) => ({
-                  onClick: () => navigate(`/app/projects/${record.id}/workspace`),
-                  style: { cursor: "pointer" },
-                })}
                 pagination={{
                   current: projectsQuery.data?.page ?? paging.page,
                   pageSize: projectsQuery.data?.pageSize ?? paging.pageSize,

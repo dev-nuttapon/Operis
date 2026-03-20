@@ -116,27 +116,39 @@ export function MainLayout() {
   const menuItems = [
     ...(hasDocumentAccess
       ? [{
-          key: '/app/documents',
+          key: '/app/documents-group',
           icon: <FileTextOutlined />,
           label: tr('common.documents'),
-        }]
-      : []),
-    ...(hasDocumentAccess
-      ? [{
-          key: '/app/document-templates',
-          icon: <FolderOpenOutlined />,
-          label: tr('common.document_templates'),
+          children: [
+            {
+              key: '/app/documents',
+              label: tr('common.document_list'),
+            },
+            {
+              key: '/app/document-templates',
+              label: tr('common.document_templates'),
+            },
+          ],
         }]
       : []),
     {
-      key: '/app/projects',
+      key: '/app/projects-group',
       icon: <ProjectOutlined />,
       label: tr('common.my_projects'),
-    },
-    {
-      key: '/app/workflows',
-      icon: <ApartmentOutlined />,
-      label: tr('common.workflows'),
+      children: [
+        {
+          key: '/app/projects',
+          label: tr('common.project_list'),
+        },
+        {
+          key: '/app/projects/roles',
+          label: tr('common.master_project_roles'),
+        },
+        {
+          key: '/app/workflows',
+          label: tr('common.workflows'),
+        },
+      ],
     },
     ...(hasAdminAccess
       ? [{
@@ -181,20 +193,6 @@ export function MainLayout() {
                     {
                       key: '/app/admin/master/positions',
                       label: tr('common.master_positions'),
-                    },
-                  ],
-                },
-                {
-                  key: '/app/admin/master/project',
-                  label: tr('common.master_project_structure'),
-                  children: [
-                    {
-                      key: '/app/admin/project-roles',
-                      label: tr('common.master_project_roles'),
-                    },
-                    {
-                      key: '/app/admin/project-org-chart',
-                      label: tr('common.project_org_chart'),
                     },
                   ],
                 },
@@ -280,8 +278,7 @@ export function MainLayout() {
     if (path.includes('admin/master/divisions')) return tr('common.master_divisions');
     if (path.includes('admin/master/departments')) return tr('common.master_departments');
     if (path.includes('admin/master/positions')) return tr('common.master_positions');
-    if (path.includes('admin/project-roles')) return tr('common.master_project_roles');
-    if (path.includes('admin/project-org-chart')) return tr('common.project_org_chart');
+    if (path.includes('/projects/roles')) return tr('common.master_project_roles');
     if (path.includes('/projects/') && path.includes('/workspace')) return tr('common.project_workspace');
     if (path.includes('admin/master')) return tr('common.master_data_management');
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
@@ -583,14 +580,15 @@ function getOpenKeys(path: string) {
   }
 
   if (
-    path.startsWith('/app/admin/project-roles') ||
-    path.startsWith('/app/admin/project-org-chart')
+    path.startsWith('/app/projects') ||
+    path.startsWith('/app/projects/roles') ||
+    path.startsWith('/app/workflows')
   ) {
-    return ['/app/admin', '/app/admin/master', '/app/admin/master/project'];
+    return ['/app/projects-group'];
   }
 
-  if (path === '/app/projects' || (path.startsWith('/app/projects/') && path.endsWith('/workspace'))) {
-    return [];
+  if (path.startsWith('/app/documents') || path.startsWith('/app/document-templates')) {
+    return ['/app/documents-group'];
   }
 
   if (path.startsWith('/app/admin/master/')) {
@@ -625,6 +623,10 @@ function getSelectedMenuKey(path: string) {
     return '/app/documents';
   }
 
+  if (path.startsWith('/app/projects/roles')) {
+    return '/app/projects/roles';
+  }
+
   if (path.startsWith('/app/projects/')) {
     return '/app/projects';
   }
@@ -657,13 +659,6 @@ function getSelectedMenuKey(path: string) {
     return '/app/admin/master/positions';
   }
 
-  if (path.startsWith('/app/admin/project-roles')) {
-    return '/app/admin/project-roles';
-  }
-
-  if (path.startsWith('/app/admin/project-org-chart')) {
-    return '/app/admin/project-org-chart';
-  }
 
   if (path.startsWith('/app/admin/activity-logs')) {
     return '/app/admin/activity-logs';

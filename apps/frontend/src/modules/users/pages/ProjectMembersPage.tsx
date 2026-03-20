@@ -221,7 +221,7 @@ export function ProjectMembersPage() {
                 />
                 <Flex gap={8} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"}>
                   {selectedProjectId ? (
-                    <Button onClick={() => navigate(`/app/admin/project-roles?projectId=${selectedProjectId}`)}>
+                    <Button onClick={() => navigate("/app/projects/roles")}>
                       {t("project_members.go_to_roles")}
                     </Button>
                   ) : null}
