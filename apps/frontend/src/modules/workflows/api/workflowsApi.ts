@@ -104,6 +104,9 @@ export async function listWorkflowTasks(input: WorkflowTaskListInput): Promise<W
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("pageSize", String(pageSize));
+  if (input.projectId) {
+    params.set("projectId", input.projectId);
+  }
   const query = params.toString();
   return apiRequest<WorkflowTaskListResponse>(`/api/v1/workflows/tasks?${query}`);
 }

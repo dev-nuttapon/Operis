@@ -126,6 +126,7 @@ export interface WorkflowStepActionInput {
 export interface WorkflowTaskListInput {
   page?: number;
   pageSize?: number;
+  projectId?: string;
 }
 
 export interface WorkflowTaskItem {

@@ -21,7 +21,6 @@ export function WorkflowTasksPage() {
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
   const [paging, setPaging] = useState({ page: 1, pageSize: 10 });
-  const tasksQuery = useWorkflowTasks(paging);
   const workflowActions = useWorkflowInstanceActions();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -29,6 +28,10 @@ export function WorkflowTasksPage() {
   const [startError, setStartError] = useState<string | null>(null);
   const projectOptionsState = useProjectOptions({ enabled: canReadProjects, assignedOnly: !canManageProjects });
   const documentOptions = useDocumentOptions(canReadDocuments);
+  const tasksQuery = useWorkflowTasks(
+    { ...paging, projectId: selectedProjectId ?? undefined },
+    Boolean(selectedProjectId),
+  );
 
   const columns = useMemo<ColumnsType<WorkflowTaskItem>>(
     () => [
@@ -55,6 +58,12 @@ export function WorkflowTasksPage() {
 
   const tasks = tasksQuery.data?.items ?? [];
   const selectedTask = tasks.find((item) => item.workflowInstanceStepId === selectedTaskId) ?? null;
+  const selectedProjectLabel =
+    selectedProjectId && projectOptionsState.itemsById?.get(selectedProjectId)
+      ? `${projectOptionsState.itemsById.get(selectedProjectId)!.code} - ${
+          projectOptionsState.itemsById.get(selectedProjectId)!.name
+        }`
+      : null;
 
   const handleStartWorkflow = async () => {
     if (!selectedProjectId || !selectedDocumentId) {
@@ -88,7 +97,67 @@ export function WorkflowTasksPage() {
         </Typography.Paragraph>
       </Card>
 
-      <Flex gap={16} vertical={isMobile} align="stretch">
+      <Card variant="borderless">
+        <Typography.Title level={4} style={{ marginTop: 0 }}>
+          {t("workflow_tasks.select_project.title")}
+        </Typography.Title>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+          {t("workflow_tasks.select_project.description")}
+        </Typography.Paragraph>
+        <Select
+          showSearch
+          allowClear
+          placeholder={t("workflow_tasks.select_project.placeholder")}
+          value={selectedProjectId}
+          options={projectOptionsState.options}
+          onSearch={projectOptionsState.onSearch}
+          onChange={(value) => {
+            setSelectedProjectId(value ?? null);
+            setSelectedDocumentId(null);
+            setSelectedTaskId(null);
+            setStartError(null);
+            setPaging((current) => ({ ...current, page: 1 }));
+          }}
+          loading={projectOptionsState.loading}
+          filterOption={false}
+          optionRender={(option) => (
+            <span style={{ display: "block", whiteSpace: "normal" }}>{option.label}</span>
+          )}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              {projectOptionsState.hasMore ? (
+                <div style={{ padding: 8 }}>
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => projectOptionsState.onLoadMore?.()}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      color: "#1677ff",
+                      cursor: "pointer",
+                      padding: 4,
+                    }}
+                  >
+                    {t("workflow_tasks.start.load_more_projects")}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+        />
+      </Card>
+
+      {!selectedProjectId ? (
+        <Card variant="borderless">
+          <Typography.Text type="secondary">{t("workflow_tasks.select_project.empty")}</Typography.Text>
+        </Card>
+      ) : null}
+
+      {selectedProjectId ? (
+        <Flex gap={16} vertical={isMobile} align="stretch">
         <Card variant="borderless" style={{ flex: 2, minWidth: 0 }}>
           <Table
           rowKey="workflowInstanceStepId"
@@ -128,54 +197,30 @@ export function WorkflowTasksPage() {
           {canManageProjects ? (
             <>
               <Typography.Text strong>{t("workflow_tasks.start.title")}</Typography.Text>
+              {selectedProjectLabel ? (
+                <Typography.Paragraph style={{ marginTop: 4 }}>
+                  {t("workflow_tasks.start.project_label")}: {selectedProjectLabel}
+                </Typography.Paragraph>
+              ) : null}
               <Space direction="vertical" size={8} style={{ width: "100%", marginTop: 8 }}>
                 <Select
                   showSearch
                   allowClear
-                  placeholder={t("workflow_tasks.start.project_placeholder")}
-                  value={selectedProjectId}
-                  options={projectOptionsState.options}
-                  onSearch={projectOptionsState.onSearch}
-                  onChange={(value) => setSelectedProjectId(value ?? null)}
-                  loading={projectOptionsState.loading}
-                  filterOption={false}
-                  optionRender={(option) => (
-                    <span style={{ display: "block", whiteSpace: "normal" }}>{option.label}</span>
-                  )}
-                  dropdownRender={(menu) => (
-                    <>
-                      {menu}
-                      {projectOptionsState.hasMore ? (
-                        <div style={{ padding: 8 }}>
-                          <button
-                            type="button"
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => projectOptionsState.onLoadMore?.()}
-                            style={{
-                              width: "100%",
-                              border: "none",
-                              background: "transparent",
-                              color: "#1677ff",
-                              cursor: "pointer",
-                              padding: 4,
-                            }}
-                          >
-                            {t("workflow_tasks.start.load_more_projects")}
-                          </button>
-                        </div>
-                      ) : null}
-                    </>
-                  )}
-                />
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder={t("workflow_tasks.start.document_placeholder")}
+                  placeholder={
+                    selectedProjectId
+                      ? t("workflow_tasks.start.document_placeholder")
+                      : t("workflow_tasks.start.document_disabled_placeholder")
+                  }
                   value={selectedDocumentId}
-                  options={documentOptions.options}
-                  onSearch={documentOptions.onSearch}
+                  options={selectedProjectId ? documentOptions.options : []}
+                  onSearch={(value) => {
+                    if (selectedProjectId) {
+                      documentOptions.onSearch(value);
+                    }
+                  }}
                   onChange={(value) => setSelectedDocumentId(value ?? null)}
-                  loading={documentOptions.loading}
+                  loading={selectedProjectId ? documentOptions.loading : false}
+                  disabled={!selectedProjectId}
                   filterOption={false}
                   optionRender={(option) => (
                     <span style={{ display: "block", whiteSpace: "normal" }}>{option.label}</span>
@@ -183,7 +228,7 @@ export function WorkflowTasksPage() {
                   dropdownRender={(menu) => (
                     <>
                       {menu}
-                      {documentOptions.hasMore ? (
+                      {selectedProjectId && documentOptions.hasMore ? (
                         <div style={{ padding: 8 }}>
                           <button
                             type="button"
@@ -268,6 +313,7 @@ export function WorkflowTasksPage() {
           )}
         </Card>
       </Flex>
+      ) : null}
     </Space>
   );
 }

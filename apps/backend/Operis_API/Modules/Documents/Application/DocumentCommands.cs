@@ -5,6 +5,7 @@ using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Audits.Application;
 using Operis_API.Modules.Documents.Contracts;
 using Operis_API.Modules.Documents.Infrastructure;
+using Operis_API.Modules.Workflows;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
 
@@ -16,6 +17,7 @@ public sealed class DocumentCommands(
     IAuditLogWriter auditLogWriter,
     IBusinessAuditEventWriter businessAuditEventWriter,
     DocumentHistoryWriter historyWriter,
+    IWorkflowInstanceCommands workflowInstanceCommands,
     IOptions<DocumentStorageOptions> optionsAccessor) : IDocumentCommands
 {
     private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -360,6 +362,10 @@ public sealed class DocumentCommands(
             null,
             new { version.VersionCode, version.Revision },
             cancellationToken);
+        await TryStartWorkflowInstancesForPublishedDocumentAsync(
+            version.DocumentId,
+            request.PublishedByUserId,
+            cancellationToken);
 
         return DocumentVersionPublishResult.Success();
     }
@@ -414,6 +420,48 @@ public sealed class DocumentCommands(
             cancellationToken);
 
         return DocumentVersionUnpublishResult.Success();
+    }
+
+    private async Task TryStartWorkflowInstancesForPublishedDocumentAsync(
+        Guid documentId,
+        string? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var workflowDefinitionIds = await dbContext.WorkflowSteps
+            .AsNoTracking()
+            .Where(step => step.DocumentId == documentId)
+            .Select(step => step.WorkflowDefinitionId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (workflowDefinitionIds.Count == 0)
+        {
+            return;
+        }
+
+        var projects = await dbContext.Projects
+            .AsNoTracking()
+            .Where(project =>
+                project.WorkflowDefinitionId.HasValue &&
+                project.DeletedAt == null &&
+                workflowDefinitionIds.Contains(project.WorkflowDefinitionId.Value))
+            .Select(project => new { project.Id, project.WorkflowDefinitionId })
+            .ToListAsync(cancellationToken);
+
+        foreach (var project in projects)
+        {
+            if (!project.WorkflowDefinitionId.HasValue)
+            {
+                continue;
+            }
+
+            await workflowInstanceCommands.CreateInstanceAsync(
+                new CreateWorkflowInstanceRequest(project.Id, documentId, project.WorkflowDefinitionId),
+                actorUserId,
+                null,
+                null,
+                cancellationToken);
+        }
     }
 
     public async Task<DocumentUpdateResult> UpdateDocumentAsync(DocumentUpdateCommand request, CancellationToken cancellationToken)

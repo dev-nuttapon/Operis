@@ -239,10 +239,18 @@
     "page_title": "Workflow tasks",
     "page_description": "View the documents assigned to you and complete each step.",
     "empty": "No workflow tasks yet.",
+    "select_project": {
+      "title": "Choose workspace project",
+      "description": "Select a project before viewing workflow tasks and workspace actions.",
+      "placeholder": "Select project",
+      "empty": "Select a project to view workflow tasks."
+    },
     "start": {
       "title": "Start workflow",
       "project_placeholder": "Select project",
       "document_placeholder": "Select document",
+      "document_disabled_placeholder": "Select project first",
+      "project_label": "Project",
       "action": "Start workflow",
       "started": "Workflow started.",
       "failed": "Unable to start workflow.",

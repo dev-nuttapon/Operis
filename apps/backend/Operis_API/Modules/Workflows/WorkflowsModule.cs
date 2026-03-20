@@ -97,6 +97,7 @@ public sealed class WorkflowsModule : IModule
         IPermissionMatrix permissionMatrix,
         IWorkflowTaskQueries queries,
         CancellationToken cancellationToken,
+        [FromQuery] Guid? projectId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
@@ -106,7 +107,7 @@ public sealed class WorkflowsModule : IModule
         }
 
         var currentUserId = principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        var result = await queries.ListTasksAsync(new WorkflowTaskListQuery(page, pageSize), currentUserId, cancellationToken);
+        var result = await queries.ListTasksAsync(new WorkflowTaskListQuery(page, pageSize, projectId), currentUserId, cancellationToken);
         return Results.Ok(result);
     }
 

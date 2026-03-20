@@ -55,7 +55,11 @@ public sealed class WorkflowInstanceCommands(
         }
 
         var activeInstanceExists = await dbContext.WorkflowInstances
-            .AnyAsync(x => x.DocumentId == request.DocumentId && x.Status == "in_progress", cancellationToken);
+            .AnyAsync(x =>
+                x.DocumentId == request.DocumentId &&
+                x.ProjectId == request.ProjectId &&
+                x.Status == "in_progress",
+                cancellationToken);
         if (activeInstanceExists)
         {
             return (false, "Workflow instance already exists for this document.", ApiErrorCodes.RequestValidationFailed, null);

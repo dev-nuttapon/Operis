@@ -44,6 +44,11 @@ public sealed class WorkflowTaskQueries(OperisDbContext dbContext) : IWorkflowTa
                 workflowStep.Name
             };
 
+        if (query.ProjectId.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.ProjectId == query.ProjectId.Value);
+        }
+
         var total = await baseQuery.CountAsync(cancellationToken);
 
         var pageItems = await baseQuery
