@@ -1,11 +1,15 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Operis_API.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace Operis_API.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(OperisDbContext))]
+    [Migration("20260320110000_AddWorkflowStepRoutes")]
     public partial class AddWorkflowStepRoutes : Migration
     {
         /// <inheritdoc />

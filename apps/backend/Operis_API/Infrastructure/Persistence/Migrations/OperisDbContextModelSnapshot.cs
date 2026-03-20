@@ -1642,6 +1642,10 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_required");
 
+                    b.Property<int>("MinApprovals")
+                        .HasColumnType("integer")
+                        .HasColumnName("min_approvals");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)

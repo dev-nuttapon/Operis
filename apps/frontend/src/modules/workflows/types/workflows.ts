@@ -22,6 +22,7 @@ export interface WorkflowStep {
   displayOrder: number;
   isRequired: boolean;
   documentId?: string | null;
+  minApprovals?: number;
   roleIds: string[];
   routes?: WorkflowStepRoute[];
 }

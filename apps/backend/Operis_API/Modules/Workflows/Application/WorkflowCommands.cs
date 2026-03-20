@@ -77,6 +77,7 @@ public sealed class WorkflowCommands(
                 StepType = step.StepType.Trim().ToLowerInvariant(),
                 DisplayOrder = step.DisplayOrder,
                 IsRequired = step.IsRequired,
+                MinApprovals = NormalizeMinApprovals(step.StepType, step.MinApprovals),
                 CreatedAt = DateTimeOffset.UtcNow
             })
             .ToList();
@@ -94,6 +95,9 @@ public sealed class WorkflowCommands(
                 CreatedAt = DateTimeOffset.UtcNow
             }))
             .ToList();
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         dbContext.WorkflowStepRoles.AddRange(stepRoles);
         var stepRoutes = BuildStepRoutes(request.Steps, steps);
@@ -121,6 +125,7 @@ public sealed class WorkflowCommands(
                 })
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         await TryAppendBusinessEventAsync(
             "workflows",
             "workflow.definition.created",
@@ -208,6 +213,7 @@ public sealed class WorkflowCommands(
                 StepType = step.StepType.Trim().ToLowerInvariant(),
                 DisplayOrder = step.DisplayOrder,
                 IsRequired = step.IsRequired,
+                MinApprovals = NormalizeMinApprovals(step.StepType, step.MinApprovals),
                 CreatedAt = DateTimeOffset.UtcNow
             })
             .ToList();
@@ -225,6 +231,9 @@ public sealed class WorkflowCommands(
                 CreatedAt = DateTimeOffset.UtcNow
             }))
             .ToList();
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         dbContext.WorkflowStepRoles.AddRange(stepRoles);
         var stepRoutes = BuildStepRoutes(request.Steps, steps);
@@ -253,6 +262,7 @@ public sealed class WorkflowCommands(
                 })
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         await TryAppendBusinessEventAsync(
             "workflows",
             "workflow.definition.updated",
@@ -364,6 +374,7 @@ public sealed class WorkflowCommands(
                 step.DisplayOrder,
                 step.IsRequired,
                 step.DocumentId,
+                step.MinApprovals,
                 roleLookup.TryGetValue(step.Id, out var roles) ? roles : [],
                 routeLookup.TryGetValue(step.Id, out var routes)
                     ? routes.Select(route => new WorkflowStepRouteContract(
@@ -605,6 +616,18 @@ public sealed class WorkflowCommands(
                 ApiErrorCodes.RequestValidationFailed);
         }
 
+        foreach (var step in steps)
+        {
+            var normalizedMinApprovals = NormalizeMinApprovals(step.StepType, step.MinApprovals);
+            if (normalizedMinApprovals < 1)
+            {
+                return new WorkflowCommandResult(
+                    WorkflowCommandStatus.ValidationError,
+                    "Minimum approvals must be at least 1.",
+                    ApiErrorCodes.RequestValidationFailed);
+            }
+        }
+
         if (documentIds.Count == 1)
         {
             var documentId = documentIds.First();
@@ -703,6 +726,12 @@ public sealed class WorkflowCommands(
         }
 
         return null;
+    }
+
+    private static int NormalizeMinApprovals(string stepType, int minApprovals)
+    {
+        var normalized = minApprovals < 1 ? 1 : minApprovals;
+        return normalized;
     }
 
     private async Task TryAppendBusinessEventAsync(

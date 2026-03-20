@@ -679,6 +679,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.StepType).HasColumnName("step_type").HasMaxLength(32);
             entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
             entity.Property(x => x.IsRequired).HasColumnName("is_required");
+            entity.Property(x => x.MinApprovals).HasColumnName("min_approvals");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasIndex(x => new { x.WorkflowDefinitionId, x.DisplayOrder });
@@ -693,6 +694,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.WorkflowStepId).HasColumnName("workflow_step_id");
             entity.Property(x => x.ProjectRoleId).HasColumnName("project_role_id");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<WorkflowStepEntity>().WithMany().HasForeignKey(x => x.WorkflowStepId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<ProjectRoleEntity>().WithMany().HasForeignKey(x => x.ProjectRoleId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.WorkflowStepId, x.ProjectRoleId }).IsUnique();
         });
 
@@ -705,6 +708,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Action).HasColumnName("action").HasMaxLength(32);
             entity.Property(x => x.NextStepId).HasColumnName("next_step_id");
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<WorkflowStepEntity>().WithMany().HasForeignKey(x => x.WorkflowStepId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<WorkflowStepEntity>().WithMany().HasForeignKey(x => x.NextStepId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => new { x.WorkflowStepId, x.Action }).IsUnique();
             entity.HasIndex(x => x.NextStepId);
         });

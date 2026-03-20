@@ -71,7 +71,8 @@ public sealed class WorkflowQueries(
                 x.Name,
                 x.StepType,
                 x.DisplayOrder,
-                x.IsRequired
+                x.IsRequired,
+                x.MinApprovals
             })
             .ToListAsync(cancellationToken);
 
@@ -118,6 +119,7 @@ public sealed class WorkflowQueries(
                 step.DisplayOrder,
                 step.IsRequired,
                 step.DocumentId,
+                step.MinApprovals,
                 stepRoles.TryGetValue(step.Id, out var roleIds) ? roleIds : [],
                 stepRoutes.TryGetValue(step.Id, out var routes) ? routes : []))
             .ToList();

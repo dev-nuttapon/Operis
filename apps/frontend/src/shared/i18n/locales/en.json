@@ -169,12 +169,14 @@
         "type": "Step type",
         "roles": "Project roles",
         "document": "Document",
-        "required": "Required"
+        "required": "Required",
+        "min_approvals": "Minimum reviewers"
       },
       "placeholders": {
         "name": "Enter step name",
         "document": "Select document",
-        "next_step": "Select next step"
+        "next_step": "Select next step",
+        "min_approvals": "Minimum reviewers"
       },
       "types": {
         "submit": "Submit",
@@ -189,6 +191,7 @@
         "roles": "Roles",
         "document": "Document",
         "required": "Required",
+        "min_approvals": "Min reviewers",
         "next_step": "Next step"
       },
       "actions": {
@@ -201,7 +204,8 @@
         "name_required": "Step name is required.",
         "type_required": "Step type is required.",
         "roles_required": "Please select at least one role.",
-        "document_required": "Please select a document."
+        "document_required": "Please select a document.",
+        "min_approvals_required": "Please set minimum reviewers."
       },
       "empty": "No workflow steps yet."
     },

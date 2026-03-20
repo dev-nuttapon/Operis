@@ -169,12 +169,14 @@
         "type": "ประเภทขั้นตอน",
         "roles": "ตำแหน่งโครงการ",
         "document": "เอกสาร",
-        "required": "จำเป็น"
+        "required": "จำเป็น",
+        "min_approvals": "จำนวนผู้ตรวจขั้นต่ำ"
       },
       "placeholders": {
         "name": "กรอกชื่อขั้นตอน",
         "document": "เลือกเอกสาร",
-        "next_step": "เลือกขั้นตอนถัดไป"
+        "next_step": "เลือกขั้นตอนถัดไป",
+        "min_approvals": "จำนวนผู้ตรวจขั้นต่ำ"
       },
       "types": {
         "submit": "ส่งเอกสาร",
@@ -189,6 +191,7 @@
         "roles": "บทบาท",
         "document": "เอกสาร",
         "required": "จำเป็น",
+        "min_approvals": "ขั้นต่ำ",
         "next_step": "ขั้นตอนถัดไป"
       },
       "actions": {
@@ -201,7 +204,8 @@
         "name_required": "กรุณากรอกชื่อขั้นตอน",
         "type_required": "กรุณาเลือกประเภทขั้นตอน",
         "roles_required": "กรุณาเลือกตำแหน่งอย่างน้อย 1 ตำแหน่ง",
-        "document_required": "กรุณาเลือกเอกสาร"
+        "document_required": "กรุณาเลือกเอกสาร",
+        "min_approvals_required": "กรุณาระบุจำนวนผู้ตรวจขั้นต่ำ"
       },
       "empty": "ยังไม่มีขั้นตอนเวิร์กโฟลว์"
     },

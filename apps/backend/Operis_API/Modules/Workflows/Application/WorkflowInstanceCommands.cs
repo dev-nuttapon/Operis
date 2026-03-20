@@ -142,6 +142,14 @@ public sealed class WorkflowInstanceCommands(
             return (false, "Workflow step does not exist.", ApiErrorCodes.RequestValidationFailed, null, false);
         }
 
+        var workflowStep = await dbContext.WorkflowSteps
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == step.WorkflowStepId, cancellationToken);
+        if (workflowStep is null)
+        {
+            return (false, "Workflow step does not exist.", ApiErrorCodes.RequestValidationFailed, null, false);
+        }
+
         if (!string.Equals(instance.Status, "in_progress", StringComparison.OrdinalIgnoreCase))
         {
             return (false, "Workflow instance is not active.", ApiErrorCodes.RequestValidationFailed, null, false);
@@ -164,7 +172,7 @@ public sealed class WorkflowInstanceCommands(
 
         if (stepRoutes.Count == 0)
         {
-            if (!string.Equals(step.StepType, request.Action, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(workflowStep.StepType, request.Action, StringComparison.OrdinalIgnoreCase))
             {
                 return (false, "Action does not match step type.", ApiErrorCodes.RequestValidationFailed, null, false);
             }
@@ -183,15 +191,27 @@ public sealed class WorkflowInstanceCommands(
             return (false, "User does not have permission for this workflow step.", ApiErrorCodes.RequestValidationFailed, null, false);
         }
 
-        step.Status = "completed";
-        step.CompletedAt = DateTimeOffset.UtcNow;
-        step.UpdatedAt = DateTimeOffset.UtcNow;
+        var normalizedAction = request.Action.Trim().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(actorUserId))
+        {
+            var alreadyActed = await dbContext.WorkflowInstanceActions
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.WorkflowInstanceStepId == step.Id &&
+                    x.ActorUserId == actorUserId &&
+                    x.Action == normalizedAction,
+                    cancellationToken);
+            if (alreadyActed)
+            {
+                return (false, "User already completed this step.", ApiErrorCodes.RequestValidationFailed, null, false);
+            }
+        }
 
         var actionEntry = new WorkflowInstanceActionEntity
         {
             Id = Guid.NewGuid(),
             WorkflowInstanceStepId = step.Id,
-            Action = request.Action.Trim().ToLowerInvariant(),
+            Action = normalizedAction,
             ActorUserId = actorUserId,
             ActorEmail = actorEmail,
             ActorDisplayName = actorDisplayName,
@@ -201,18 +221,40 @@ public sealed class WorkflowInstanceCommands(
 
         dbContext.WorkflowInstanceActions.Add(actionEntry);
 
+        var shouldCompleteStep = true;
+        if (string.Equals(workflowStep.StepType, "peer_review", StringComparison.OrdinalIgnoreCase) && workflowStep.MinApprovals > 1)
+        {
+            var approvals = await dbContext.WorkflowInstanceActions
+                .AsNoTracking()
+                .Where(x => x.WorkflowInstanceStepId == step.Id && x.Action == normalizedAction)
+                .Select(x => x.ActorUserId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+            shouldCompleteStep = approvals + 1 >= workflowStep.MinApprovals;
+        }
+
+        if (shouldCompleteStep)
+        {
+            step.Status = "completed";
+            step.CompletedAt = DateTimeOffset.UtcNow;
+            step.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
         WorkflowInstanceStepEntity? nextStep = null;
         if (stepRoutes.Count == 0)
         {
-            nextStep = await dbContext.WorkflowInstanceSteps
-                .Where(x => x.WorkflowInstanceId == workflowInstanceId && x.DisplayOrder > step.DisplayOrder)
-                .OrderBy(x => x.DisplayOrder)
-                .FirstOrDefaultAsync(cancellationToken);
+            if (shouldCompleteStep)
+            {
+                nextStep = await dbContext.WorkflowInstanceSteps
+                    .Where(x => x.WorkflowInstanceId == workflowInstanceId && x.DisplayOrder > step.DisplayOrder)
+                    .OrderBy(x => x.DisplayOrder)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
         }
         else
         {
             var matchedRoute = stepRoutes.First(route => string.Equals(route.Action, request.Action, StringComparison.OrdinalIgnoreCase));
-            if (matchedRoute.NextStepId.HasValue)
+            if (shouldCompleteStep && matchedRoute.NextStepId.HasValue)
             {
                 nextStep = await dbContext.WorkflowInstanceSteps
                     .FirstOrDefaultAsync(
@@ -227,8 +269,11 @@ public sealed class WorkflowInstanceCommands(
 
         if (nextStep is null)
         {
-            instance.Status = "completed";
-            instance.CompletedAt = DateTimeOffset.UtcNow;
+            if (shouldCompleteStep)
+            {
+                instance.Status = "completed";
+                instance.CompletedAt = DateTimeOffset.UtcNow;
+            }
         }
         else
         {

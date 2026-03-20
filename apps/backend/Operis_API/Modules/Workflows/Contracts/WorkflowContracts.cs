@@ -14,6 +14,7 @@ public sealed record WorkflowStepContract(
     int DisplayOrder,
     bool IsRequired,
     Guid? DocumentId,
+    int MinApprovals,
     IReadOnlyList<Guid> RoleIds,
     IReadOnlyList<WorkflowStepRouteContract> Routes);
 
@@ -86,6 +87,7 @@ public sealed record WorkflowStepRequest(
     int DisplayOrder,
     bool IsRequired,
     Guid? DocumentId,
+    int MinApprovals,
     IReadOnlyList<Guid> RoleIds,
     IReadOnlyList<WorkflowStepRouteRequest> Routes);
 

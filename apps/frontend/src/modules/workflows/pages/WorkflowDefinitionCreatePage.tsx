@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { App, Alert, Button, Card, Flex, Form, Input, Select, Space, Switch, Table, Typography, Grid } from "antd";
+import { App, Alert, Button, Card, Flex, Form, Input, Select, Space, Switch, Table, Typography, Grid, InputNumber } from "antd";
 import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined, SaveOutlined, EditOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,7 @@ type StepDraft = {
   roleIds: string[];
   isRequired: boolean;
   documentId?: string | null;
+  minApprovals?: number;
 };
 
 export function WorkflowDefinitionCreatePage() {
@@ -78,6 +79,7 @@ export function WorkflowDefinitionCreatePage() {
 
   const handleAddStep = async () => {
     const values = await stepForm.validateFields();
+    const minApprovals = Math.max(1, Number(values.minApprovals ?? 1));
     if (editingIndex !== null) {
       setSteps((current) =>
         current.map((step, index) =>
@@ -89,6 +91,11 @@ export function WorkflowDefinitionCreatePage() {
                 roleIds: values.roleIds,
                 isRequired: values.isRequired,
                 documentId: values.documentId ?? null,
+                minApprovals,
+                routes: step.routes?.map((route) => ({
+                  ...route,
+                  action: values.stepType,
+                })),
               }
             : step,
         ),
@@ -108,6 +115,7 @@ export function WorkflowDefinitionCreatePage() {
         isRequired: values.isRequired,
         displayOrder: nextOrder,
         documentId: values.documentId ?? null,
+        minApprovals,
         routes: [],
       },
     ]);
@@ -227,7 +235,7 @@ export function WorkflowDefinitionCreatePage() {
               {t("workflow_definitions.steps.description")}
             </Typography.Paragraph>
 
-            <Form form={stepForm} layout="vertical" initialValues={{ stepType: "submit", isRequired: true }}>
+            <Form form={stepForm} layout="vertical" initialValues={{ stepType: "submit", isRequired: true, minApprovals: 1 }}>
               <Flex gap={12} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"}>
                 <Form.Item
                   label={t("workflow_definitions.steps.fields.name")}
@@ -266,6 +274,18 @@ export function WorkflowDefinitionCreatePage() {
                     placeholder={t("workflow_definitions.steps.placeholders.document")}
                     disabled={!selectedTemplateId}
                     loading={templateDocumentsState.isLoading}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label={t("workflow_definitions.steps.fields.min_approvals")}
+                  name="minApprovals"
+                  rules={[{ required: true, message: t("workflow_definitions.steps.validation.min_approvals_required") }]}
+                  style={{ flex: 1, minWidth: isMobile ? "100%" : 140 }}
+                >
+                  <InputNumber
+                    min={1}
+                    placeholder={t("workflow_definitions.steps.placeholders.min_approvals")}
+                    style={{ width: "100%" }}
                   />
                 </Form.Item>
                 <Form.Item
@@ -350,6 +370,12 @@ export function WorkflowDefinitionCreatePage() {
                   render: (value?: string | null) => (value ? documentLabelById.get(value) ?? value : "-"),
                 },
                 {
+                  title: t("workflow_definitions.steps.columns.min_approvals"),
+                  dataIndex: "minApprovals",
+                  align: "center",
+                  render: (value?: number) => value ?? 1,
+                },
+                {
                   title: t("workflow_definitions.steps.columns.required"),
                   dataIndex: "isRequired",
                   render: (value: boolean) => (value ? t("common.actions.yes") : t("common.actions.no")),
@@ -406,6 +432,7 @@ export function WorkflowDefinitionCreatePage() {
                             roleIds: step.roleIds,
                             isRequired: step.isRequired,
                             documentId: step.documentId ?? null,
+                            minApprovals: step.minApprovals ?? 1,
                           });
                           setEditingIndex(index);
                         }}
