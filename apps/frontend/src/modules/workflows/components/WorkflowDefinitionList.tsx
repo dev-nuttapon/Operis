@@ -1,6 +1,9 @@
-import { Button, List, Space, Tag, Skeleton } from "antd";
+import { Space, Tag, Skeleton, Table } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { CheckCircleOutlined, EditOutlined, StopOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import type { WorkflowDefinitionSummary } from "../types/workflows";
+import { ActionMenu } from "../../../shared/components/ActionMenu";
 
 interface WorkflowDefinitionListProps {
   canManage: boolean;
@@ -40,8 +43,69 @@ export function WorkflowDefinitionList({
     return <Skeleton active paragraph={{ rows: 6 }} />;
   }
 
+  const columns: ColumnsType<WorkflowDefinitionSummary> = [
+    {
+      title: t("workflow_definitions.columns.name"),
+      dataIndex: "name",
+      ellipsis: true,
+    },
+    {
+      title: t("workflow_definitions.columns.code"),
+      dataIndex: "code",
+      width: 180,
+      ellipsis: true,
+    },
+    {
+      title: t("workflow_definitions.columns.status"),
+      dataIndex: "status",
+      width: 140,
+      render: (value: string) => <Tag>{statusLabels[value] ?? value}</Tag>,
+    },
+    {
+      title: t("workflow_definitions.columns.template"),
+      dataIndex: "documentTemplateId",
+      width: 180,
+      render: (value?: string | null) =>
+        value ? t("workflow_definitions.columns.template_enabled") : t("workflow_definitions.columns.template_none"),
+    },
+    {
+      title: t("workflow_definitions.columns.actions"),
+      key: "actions",
+      width: 240,
+      render: (_value, item) => {
+        if (!canManage) return null;
+        const items = [
+          {
+            key: "edit",
+            label: t("common.actions.edit"),
+            icon: <EditOutlined />,
+            disabled: isMutating,
+            onClick: () => onEdit(item.id),
+          },
+          {
+            key: "activate",
+            label: t("workflow_definitions.actions.activate"),
+            icon: <CheckCircleOutlined />,
+            disabled: isMutating || item.status === "active",
+            onClick: () => onActivate(item.id),
+          },
+          {
+            key: "archive",
+            label: t("workflow_definitions.actions.archive"),
+            icon: <StopOutlined />,
+            danger: true,
+            disabled: isMutating || item.status === "archived",
+            onClick: () => onArchive(item.id),
+          },
+        ];
+        return <ActionMenu items={items} />;
+      },
+    },
+  ];
+
   return (
-    <List
+    <Table
+      rowKey="id"
       dataSource={definitions}
       loading={isLoading}
       locale={{ emptyText: t("workflow_definitions.empty") }}
@@ -53,51 +117,8 @@ export function WorkflowDefinitionList({
         pageSizeOptions: [10, 25, 50, 100],
         onChange: onPageChange,
       }}
-      renderItem={(item) => {
-        const actions = canManage
-          ? [
-              <Button
-                key="edit"
-                type="link"
-                disabled={isMutating}
-                onClick={() => onEdit(item.id)}
-              >
-                {t("common.actions.edit")}
-              </Button>,
-              item.status !== "active" ? (
-                <Button
-                  key="activate"
-                  type="link"
-                  disabled={isMutating}
-                  onClick={() => onActivate(item.id)}
-                >
-                  {t("workflow_definitions.actions.activate")}
-                </Button>
-              ) : null,
-              item.status !== "archived" ? (
-                <Button
-                  key="archive"
-                  type="link"
-                  danger
-                  disabled={isMutating}
-                  onClick={() => onArchive(item.id)}
-                >
-                  {t("workflow_definitions.actions.archive")}
-                </Button>
-              ) : null,
-            ].filter(Boolean)
-          : [];
-
-        return (
-          <List.Item actions={actions}>
-            <Space>
-              <span>{item.name}</span>
-              <Tag>{statusLabels[item.status] ?? item.status}</Tag>
-              <Tag>{item.code}</Tag>
-            </Space>
-          </List.Item>
-        );
-      }}
+      columns={columns}
+      scroll={{ x: "max-content" }}
     />
   );
 }

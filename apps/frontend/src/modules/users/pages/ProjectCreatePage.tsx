@@ -147,11 +147,22 @@ export function ProjectCreatePage() {
 
   const memberColumns = useMemo<ColumnsType<{ id: string; name: string; email: string; roleId: string | null }>>(
     () => [
-      { title: t("projects.members.columns.name"), dataIndex: "name" },
-      { title: t("projects.members.columns.email"), dataIndex: "email" },
+      {
+        title: t("projects.members.columns.name"),
+        dataIndex: "name",
+        width: 220,
+        ellipsis: true,
+      },
+      {
+        title: t("projects.members.columns.email"),
+        dataIndex: "email",
+        width: 240,
+        ellipsis: true,
+      },
       {
         title: t("projects.members.columns.role"),
         dataIndex: "roleId",
+        width: 260,
         render: (_value, record) => (
           <Select
             disabled={!canEditMembers}
@@ -166,12 +177,15 @@ export function ProjectCreatePage() {
                 [record.id]: value ?? "",
               }))
             }
+            style={{ minWidth: 200 }}
           />
         ),
       },
       {
         title: t("admin_users.columns.actions"),
         key: "actions",
+        width: 140,
+        align: "center",
         render: (_, record) => (
           <Button
             type="text"
@@ -282,7 +296,7 @@ export function ProjectCreatePage() {
                   </>
                 )}
               />
-              <div style={{ width: isMobile ? "100%" : "auto" }}>
+              <div style={{ width: isMobile ? "100%" : "auto",marginBottom:16 }}>
                 <Button
                   type="primary"
                   disabled={!canEditMembers || !selectedMemberId}
@@ -306,6 +320,7 @@ export function ProjectCreatePage() {
               columns={memberColumns}
               locale={{ emptyText: t("projects.members.empty") }}
               scroll={{ x: "max-content" }}
+              size={isMobile ? "small" : "middle"}
             />
             <Divider style={{ margin: "16px 0" }} />
             <Typography.Title level={5} style={{ marginBottom: 12 }}>

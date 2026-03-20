@@ -153,6 +153,15 @@
       "activate": "Activate",
       "archive": "Archive"
     },
+    "columns": {
+      "name": "Workflow",
+      "code": "Code",
+      "status": "Status",
+      "template": "Document template",
+      "template_enabled": "Template",
+      "template_none": "No template",
+      "actions": "Management"
+    },
     "create_page": {
       "title": "Create workflow",
       "description": "Define workflow steps and assign project roles for each step."
