@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Modules.Audits.Infrastructure;
 using Operis_API.Modules.Documents.Infrastructure;
+using Operis_API.Modules.Notifications.Infrastructure;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Modules.Workflows.Infrastructure;
 using Operis_API.Shared.ActivityLogging;
@@ -34,6 +35,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<ActivityLogEntity> ActivityLogs => Set<ActivityLogEntity>();
     public DbSet<AuditLogEntity> AuditLogs => Set<AuditLogEntity>();
     public DbSet<BusinessAuditEventEntity> BusinessAuditEvents => Set<BusinessAuditEventEntity>();
+    public DbSet<NotificationEntity> Notifications => Set<NotificationEntity>();
     public DbSet<WorkflowDefinitionEntity> WorkflowDefinitions => Set<WorkflowDefinitionEntity>();
     public DbSet<WorkflowStepEntity> WorkflowSteps => Set<WorkflowStepEntity>();
     public DbSet<WorkflowStepRoleEntity> WorkflowStepRoles => Set<WorkflowStepRoleEntity>();
@@ -603,6 +605,23 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.EntityType);
             entity.HasIndex(x => x.EntityId);
             entity.HasIndex(x => new { x.EntityType, x.EntityId, x.OccurredAt });
+        });
+
+        modelBuilder.Entity<NotificationEntity>(entity =>
+        {
+            entity.ToTable("notifications");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.RecipientUserId).HasColumnName("recipient_user_id").HasMaxLength(64);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(256);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(1024);
+            entity.Property(x => x.Source).HasColumnName("source").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.ReadAt).HasColumnName("read_at");
+            entity.HasIndex(x => x.RecipientUserId);
+            entity.HasIndex(x => new { x.RecipientUserId, x.Status });
+            entity.HasIndex(x => new { x.RecipientUserId, x.CreatedAt });
         });
 
         modelBuilder.Entity<ActivityLogEntity>(entity =>

@@ -28,6 +28,7 @@ const allPermissions = [
   "documents.deactivate",
   "workflows.read",
   "workflows.definitions.manage",
+  "notifications.read",
 ] as const;
 
 export const permissions = {
@@ -74,6 +75,9 @@ export const permissions = {
     read: "workflows.read",
     manageDefinitions: "workflows.definitions.manage",
   },
+  notifications: {
+    read: "notifications.read",
+  },
 } as const;
 
 export type Permission = (typeof allPermissions)[number];
@@ -111,6 +115,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.documents.deactivate,
     permissions.workflows.read,
     permissions.workflows.manageDefinitions,
+    permissions.notifications.read,
   ],
   operis_system_admin: [
     permissions.users.read,
@@ -137,6 +142,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.documents.read,
     permissions.workflows.read,
     permissions.workflows.manageDefinitions,
+    permissions.notifications.read,
   ],
   "operis:audit_auditor": [
     permissions.activityLogs.read,
@@ -147,6 +153,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.projects.readCompliance,
     permissions.documents.read,
     permissions.workflows.read,
+    permissions.notifications.read,
   ],
   "operis:documents_owner": [
     permissions.documents.read,
@@ -155,12 +162,13 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.documents.publish,
     permissions.documents.deleteDraft,
     permissions.documents.deactivate,
+    permissions.notifications.read,
   ],
-  "operis:documents_reviewer": [permissions.documents.read],
-  "operis:workflows_approver": [permissions.workflows.read],
-  "operis:workflows_department_manager": [permissions.workflows.read],
-  "operis:employee_viewer": [permissions.workflows.read],
-  "operis:ops_support": [permissions.activityLogs.read],
+  "operis:documents_reviewer": [permissions.documents.read, permissions.notifications.read],
+  "operis:workflows_approver": [permissions.workflows.read, permissions.notifications.read],
+  "operis:workflows_department_manager": [permissions.workflows.read, permissions.notifications.read],
+  "operis:employee_viewer": [permissions.workflows.read, permissions.notifications.read],
+  "operis:ops_support": [permissions.activityLogs.read, permissions.notifications.read],
 };
 
 export function getPermissionsForRoles(roles: string[]): Permission[] {

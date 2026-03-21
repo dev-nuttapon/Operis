@@ -59,6 +59,11 @@ public static class Permissions
         public const string ManageDefinitions = "workflows.definitions.manage";
     }
 
+    public static class Notifications
+    {
+        public const string Read = "notifications.read";
+    }
+
     public static readonly IReadOnlyList<string> All =
     [
         Users.Read,
@@ -89,6 +94,7 @@ public static class Permissions
         Documents.DeleteDraft,
         Documents.Deactivate,
         Workflows.Read,
-        Workflows.ManageDefinitions
+        Workflows.ManageDefinitions,
+        Notifications.Read
     ];
 }

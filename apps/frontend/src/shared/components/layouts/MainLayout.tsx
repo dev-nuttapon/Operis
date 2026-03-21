@@ -52,6 +52,7 @@ export function MainLayout() {
     permissions.projects.read,
     permissions.activityLogs.read,
   );
+  const hasNotificationsAccess = permissionState.hasPermission(permissions.notifications.read);
   const hasDocumentAccess = permissionState.hasAnyPermission(
     permissions.documents.read,
     permissions.documents.upload,
@@ -154,6 +155,13 @@ export function MainLayout() {
         },
       ],
     },
+    ...(hasNotificationsAccess
+      ? [{
+          key: '/app/notifications',
+          icon: <BellOutlined />,
+          label: tr('common.notifications'),
+        }]
+      : []),
     ...(hasAdminAccess
       ? [{
           key: '/app/admin',
@@ -454,7 +462,7 @@ export function MainLayout() {
             </div>
           </Flex>
 
-          <Flex align="center" gap={40}>
+          <Flex align="center" gap={16}>
             <div ref={notificationRef} style={{ position: 'relative' }}>
               <div style={{ position: 'relative', cursor: 'pointer' }}>
                 <Button
@@ -506,7 +514,15 @@ export function MainLayout() {
                 >
                   <Flex justify="space-between" align="center" style={{ padding: '12px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
                     <Typography.Text strong>{tr('common.notifications')}</Typography.Text>
-                    <Typography.Link style={{ fontSize: 12 }}>{tr('common.mark_all_read')}</Typography.Link>
+                    <Typography.Link
+                      style={{ fontSize: 12 }}
+                      onClick={() => {
+                        setNotificationOpen(false);
+                        navigate('/app/notifications');
+                      }}
+                    >
+                      {tr('common.mark_all_read')}
+                    </Typography.Link>
                   </Flex>
                   <div style={{ maxHeight: 400, overflowY: 'auto' }}>
                     {notifications.map((item) => (
@@ -534,7 +550,15 @@ export function MainLayout() {
                     ))}
                   </div>
                   <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}>
-                    <Button type="text" block style={{ height: 48, borderRadius: 0 }}>
+                    <Button
+                      type="text"
+                      block
+                      style={{ height: 48, borderRadius: 0 }}
+                      onClick={() => {
+                        setNotificationOpen(false);
+                        navigate('/app/notifications');
+                      }}
+                    >
                       {tr('common.view_all_notifications')}
                     </Button>
                   </div>
@@ -641,6 +665,10 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/workflows')) {
     return '/app/workflows';
+  }
+
+  if (path.startsWith('/app/notifications')) {
+    return '/app/notifications';
   }
 
   if (path.startsWith('/app/admin/users')) {

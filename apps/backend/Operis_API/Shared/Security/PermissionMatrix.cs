@@ -41,7 +41,8 @@ public sealed class PermissionMatrix : IPermissionMatrix
                 Permissions.Documents.DeleteDraft,
                 Permissions.Documents.Deactivate,
                 Permissions.Workflows.Read,
-                Permissions.Workflows.ManageDefinitions
+                Permissions.Workflows.ManageDefinitions,
+                Permissions.Notifications.Read
             ],
             ["operis_system_admin"] =
             [
@@ -68,7 +69,8 @@ public sealed class PermissionMatrix : IPermissionMatrix
                 Permissions.AuditLogs.Export,
                 Permissions.Documents.Read,
                 Permissions.Workflows.Read,
-                Permissions.Workflows.ManageDefinitions
+                Permissions.Workflows.ManageDefinitions,
+                Permissions.Notifications.Read
             ],
             ["operis:audit_auditor"] =
             [
@@ -79,7 +81,8 @@ public sealed class PermissionMatrix : IPermissionMatrix
                 Permissions.Projects.ReadEvidence,
                 Permissions.Projects.ReadCompliance,
                 Permissions.Documents.Read,
-                Permissions.Workflows.Read
+                Permissions.Workflows.Read,
+                Permissions.Notifications.Read
             ],
             ["operis:documents_owner"] =
             [
@@ -88,13 +91,14 @@ public sealed class PermissionMatrix : IPermissionMatrix
                 Permissions.Documents.ManageVersions,
                 Permissions.Documents.Publish,
                 Permissions.Documents.DeleteDraft,
-                Permissions.Documents.Deactivate
+                Permissions.Documents.Deactivate,
+                Permissions.Notifications.Read
             ],
-            ["operis:documents_reviewer"] = [Permissions.Documents.Read],
-            ["operis:workflows_approver"] = [Permissions.Workflows.Read],
-            ["operis:workflows_department_manager"] = [Permissions.Workflows.Read],
-            ["operis:employee_viewer"] = [Permissions.Workflows.Read],
-            ["operis:ops_support"] = [Permissions.ActivityLogs.Read]
+            ["operis:documents_reviewer"] = [Permissions.Documents.Read, Permissions.Notifications.Read],
+            ["operis:workflows_approver"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
+            ["operis:workflows_department_manager"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
+            ["operis:employee_viewer"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
+            ["operis:ops_support"] = [Permissions.ActivityLogs.Read, Permissions.Notifications.Read]
         };
 
     public IReadOnlyList<string> GetPermissions(IEnumerable<string> roles)
