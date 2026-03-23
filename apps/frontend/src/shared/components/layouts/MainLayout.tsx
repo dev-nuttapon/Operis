@@ -622,7 +622,8 @@ function getOpenKeys(path: string) {
   if (
     path.startsWith('/app/projects') ||
     path.startsWith('/app/projects/roles') ||
-    path.startsWith('/app/workflows')
+    path.startsWith('/app/workflows') ||
+    path.startsWith('/app/workspace')
   ) {
     return ['/app/projects-group'];
   }
