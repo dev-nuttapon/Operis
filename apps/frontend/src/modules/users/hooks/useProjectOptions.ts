@@ -44,7 +44,17 @@ export function useProjectOptions({
     staleTime: 60_000,
   });
 
-  const items = useMemo(() => projectsQuery.data?.pages.flatMap((page) => page.items) ?? [], [projectsQuery.data]);
+  const items = useMemo(() => {
+    const map = new Map<string, ProjectListItem>();
+    for (const page of projectsQuery.data?.pages ?? []) {
+      for (const item of page.items) {
+        if (!map.has(item.id)) {
+          map.set(item.id, item);
+        }
+      }
+    }
+    return Array.from(map.values());
+  }, [projectsQuery.data]);
   const itemsById = useMemo(() => {
     const map = new Map<string, ProjectListItem>();
     for (const item of items) {

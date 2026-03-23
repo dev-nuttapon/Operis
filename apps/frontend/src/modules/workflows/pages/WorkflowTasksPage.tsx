@@ -1,4 +1,4 @@
-import { Card, Table, Typography, Space, Tag, Grid, Flex, Button, Descriptions, Divider, App, Select } from "antd";
+import { Card, Table, Typography, Space, Tag, Grid, Button, Descriptions, Divider, App, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -157,8 +157,8 @@ export function WorkflowTasksPage() {
       ) : null}
 
       {selectedProjectId ? (
-        <Flex gap={16} vertical={isMobile} align="stretch">
-        <Card variant="borderless" style={{ flex: 2, minWidth: 0 }}>
+        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Card variant="borderless">
           <Table
           rowKey="workflowInstanceStepId"
             dataSource={tasks}
@@ -186,7 +186,7 @@ export function WorkflowTasksPage() {
           />
         </Card>
 
-        <Card variant="borderless" style={{ flex: 1, minWidth: 280 }}>
+        <Card variant="borderless">
           <Typography.Title level={4} style={{ marginTop: 0 }}>
             {t("workflow_tasks.workspace.title")}
           </Typography.Title>
@@ -312,7 +312,7 @@ export function WorkflowTasksPage() {
             </Typography.Text>
           )}
         </Card>
-      </Flex>
+      </Space>
       ) : null}
     </Space>
   );

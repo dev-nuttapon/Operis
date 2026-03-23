@@ -18,6 +18,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../modules/auth';
+import { useCurrentUserProfile } from '../../../modules/users';
 import { usePermissions } from '../../authz/usePermissions';
 import { permissions } from '../../authz/permissions';
 import { useThemeStore, ThemeMode } from '../../store/useThemeStore';
@@ -44,6 +45,7 @@ export function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
+  const currentUserQuery = useCurrentUserProfile();
   const permissionState = usePermissions();
   const { theme: currentTheme, setTheme } = useThemeStore();
   const hasAdminAccess = permissionState.hasAnyPermission(
@@ -63,6 +65,13 @@ export function MainLayout() {
   );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
+  const jobTitleLabel =
+    currentUserQuery.data?.jobTitleName ??
+    (typeof user?.jobTitleName === "string" ? user.jobTitleName : undefined);
+  const departmentLabel =
+    currentUserQuery.data?.departmentName ??
+    (typeof user?.departmentName === "string" ? user.departmentName : undefined);
+  const positionLabel = formatPositionLabel(jobTitleLabel, departmentLabel, tr);
   const isDarkMode = token.colorBgBase.toLowerCase() === '#020617';
   const avatarBg = isDarkMode ? '#1e293b' : '#dbeafe';
   const avatarText = isDarkMode ? '#e2e8f0' : '#1e3a8a';
@@ -578,6 +587,9 @@ export function MainLayout() {
                   <Typography.Text strong style={{ display: 'block', fontSize: 14 }}>
                     {displayName}
                   </Typography.Text>
+                  <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>
+                    {tr('common.position_label')}: {positionLabel}
+                  </Typography.Text>
                 </div>
               </Flex>
             </Dropdown>
@@ -709,4 +721,12 @@ function getSelectedMenuKey(path: string) {
   }
 
   return path;
+}
+
+function formatPositionLabel(jobTitle: string | undefined, department: string | undefined, tr: (key: string) => string) {
+  const parts = [jobTitle, department].map((value) => value?.trim()).filter(Boolean) as string[];
+  if (!parts.length) {
+    return tr('common.position_empty');
+  }
+  return parts.join(' · ');
 }

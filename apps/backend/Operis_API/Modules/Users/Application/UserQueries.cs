@@ -146,11 +146,16 @@ public sealed class UserQueries(
         var jobTitles = (await referenceDataCache.GetJobTitlesAsync(dbContext, cancellationToken))
             .ToDictionary(x => x.Id, x => x.Name);
         var appRoles = await referenceDataCache.GetAppRolesAsync(dbContext, cancellationToken);
+        var primaryAssignment = await dbContext.UserOrgAssignments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.UserId == entity.Id && x.IsPrimary, cancellationToken);
+        var effectiveDepartmentId = entity.DepartmentId ?? primaryAssignment?.DepartmentId;
+        var effectiveJobTitleId = entity.JobTitleId ?? primaryAssignment?.PositionId;
 
         UserResponse response;
         if (!includeIdentity)
         {
-            response = ToResponse(entity, null, [], divisions, departments, jobTitles);
+            response = ToResponse(entity, null, [], divisions, departments, jobTitles, effectiveDepartmentId, effectiveJobTitleId);
         }
         else
         {
@@ -170,7 +175,7 @@ public sealed class UserQueries(
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
 
-            response = ToResponse(entity, profileTask.Result, mappedRoles, divisions, departments, jobTitles);
+            response = ToResponse(entity, profileTask.Result, mappedRoles, divisions, departments, jobTitles, effectiveDepartmentId, effectiveJobTitleId);
         }
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -260,13 +265,17 @@ public sealed class UserQueries(
         IReadOnlyList<string> roles,
         IReadOnlyDictionary<Guid, string>? divisions,
         IReadOnlyDictionary<Guid, CachedDepartmentItem>? departments,
-        IReadOnlyDictionary<Guid, string>? jobTitles)
+        IReadOnlyDictionary<Guid, string>? jobTitles,
+        Guid? departmentIdOverride = null,
+        Guid? jobTitleIdOverride = null)
     {
         Guid? divisionId = null;
         string? divisionName = null;
         string? departmentName = null;
+        var departmentId = departmentIdOverride ?? entity.DepartmentId;
+        var jobTitleId = jobTitleIdOverride ?? entity.JobTitleId;
 
-        if (entity.DepartmentId.HasValue && departments is not null && departments.TryGetValue(entity.DepartmentId.Value, out var department))
+        if (departmentId.HasValue && departments is not null && departments.TryGetValue(departmentId.Value, out var department))
         {
             departmentName = department.Name;
             divisionId = department.DivisionId;
@@ -284,10 +293,10 @@ public sealed class UserQueries(
             entity.CreatedBy,
             divisionId,
             divisionName,
-            entity.DepartmentId,
+            departmentId,
             departmentName,
-            entity.JobTitleId,
-            entity.JobTitleId.HasValue && jobTitles is not null && jobTitles.TryGetValue(entity.JobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
+            jobTitleId,
+            jobTitleId.HasValue && jobTitles is not null && jobTitles.TryGetValue(jobTitleId.Value, out var jobTitleName) ? jobTitleName : null,
             roles,
             entity.PreferredLanguage,
             entity.PreferredTheme,

@@ -98,6 +98,10 @@ export function getUser(userId: string, signal?: AbortSignal) {
   return apiRequest<User>(`/api/v1/users/${encodeURIComponent(userId)}`, { signal });
 }
 
+export function getCurrentUser(signal?: AbortSignal) {
+  return apiRequest<User>("/api/v1/users/me", { signal });
+}
+
 export function createRegistrationRequest(input: CreateRegistrationRequestInput) {
   return publicApiRequest<RegistrationRequest>("/api/v1/users/register", {
     method: "POST",

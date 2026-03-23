@@ -52,6 +52,9 @@ public sealed class UsersModule : IModule
         group.MapGet("/", ListUsersAsync)
             .WithName("Users_List");
 
+        group.MapGet("/me", GetCurrentUserAsync)
+            .WithName("Users_GetCurrent");
+
         group.MapGet("/{userId}", GetUserAsync)
             .WithName("Users_Get");
 
@@ -299,6 +302,21 @@ public sealed class UsersModule : IModule
         }
 
         var result = await queries.GetUserAsync(userId, includeIdentity, cancellationToken);
+        return result is null ? Results.NotFound() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetCurrentUserAsync(
+        ClaimsPrincipal principal,
+        IUserQueries queries,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = ResolveCurrentUserId(principal);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var result = await queries.GetUserAsync(userId, includeIdentity: true, cancellationToken);
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 

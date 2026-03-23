@@ -15,6 +15,8 @@ interface AuthUser {
   name?: string | null;
   firstName?: string | null;
   lastName?: string | null;
+  departmentName?: string | null;
+  jobTitleName?: string | null;
   roles: string[];
   [key: string]: unknown;
 }
@@ -81,25 +83,77 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return Array.from(roles);
     };
 
+    const resolveAttributeValue = (source: Record<string, unknown> | undefined, key: string) => {
+      if (!source) return undefined;
+      const value = source[key];
+      if (Array.isArray(value)) {
+        const first = value.find((item) => typeof item === "string" && item.trim());
+        return typeof first === "string" ? first.trim() : undefined;
+      }
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+      return undefined;
+    };
+
+    const resolveProfileAttribute = (profile: Record<string, unknown> | null, key: string) => {
+      if (!profile) return undefined;
+      const attributes = profile.attributes as Record<string, unknown> | undefined;
+      return resolveAttributeValue(attributes, key) ?? resolveAttributeValue(profile, key);
+    };
+
     const buildUser = async (): Promise<AuthUser | null> => {
       const tokenParsed = getTokenParsed() as Record<string, unknown> | undefined;
       const roles = extractRoles(tokenParsed);
 
       try {
         const profile = await getUserProfile();
+        const jobTitleName =
+          resolveProfileAttribute(profile as Record<string, unknown> | null, "jobTitleName") ??
+          resolveProfileAttribute(profile as Record<string, unknown> | null, "job_title_name") ??
+          resolveProfileAttribute(profile as Record<string, unknown> | null, "jobTitle") ??
+          resolveProfileAttribute(profile as Record<string, unknown> | null, "job_title") ??
+          resolveProfileAttribute(profile as Record<string, unknown> | null, "position") ??
+          resolveAttributeValue(tokenParsed, "jobTitleName") ??
+          resolveAttributeValue(tokenParsed, "job_title_name") ??
+          resolveAttributeValue(tokenParsed, "jobTitle") ??
+          resolveAttributeValue(tokenParsed, "job_title") ??
+          resolveAttributeValue(tokenParsed, "position");
+        const departmentName =
+          resolveProfileAttribute(profile as Record<string, unknown> | null, "departmentName") ??
+          resolveProfileAttribute(profile as Record<string, unknown> | null, "department_name") ??
+          resolveProfileAttribute(profile as Record<string, unknown> | null, "department") ??
+          resolveAttributeValue(tokenParsed, "departmentName") ??
+          resolveAttributeValue(tokenParsed, "department_name") ??
+          resolveAttributeValue(tokenParsed, "department");
+
         return {
           ...profile,
           email: profile?.email || (typeof tokenParsed?.email === "string" ? tokenParsed.email : undefined),
           name: profile?.firstName
             ? `${profile.firstName} ${profile.lastName}`
             : (typeof tokenParsed?.name === "string" ? tokenParsed.name : (typeof tokenParsed?.preferred_username === "string" ? tokenParsed.preferred_username : undefined)),
+          jobTitleName,
+          departmentName,
           roles,
         };
       } catch (err) {
         console.error("Failed to load user profile:", err);
+        const jobTitleName =
+          resolveAttributeValue(tokenParsed, "jobTitleName") ??
+          resolveAttributeValue(tokenParsed, "job_title_name") ??
+          resolveAttributeValue(tokenParsed, "jobTitle") ??
+          resolveAttributeValue(tokenParsed, "job_title") ??
+          resolveAttributeValue(tokenParsed, "position");
+        const departmentName =
+          resolveAttributeValue(tokenParsed, "departmentName") ??
+          resolveAttributeValue(tokenParsed, "department_name") ??
+          resolveAttributeValue(tokenParsed, "department");
         return {
           email: typeof tokenParsed?.email === "string" ? tokenParsed.email : undefined,
           name: typeof tokenParsed?.name === "string" ? tokenParsed.name : (typeof tokenParsed?.preferred_username === "string" ? tokenParsed.preferred_username : undefined),
+          jobTitleName,
+          departmentName,
           roles,
         };
       }
