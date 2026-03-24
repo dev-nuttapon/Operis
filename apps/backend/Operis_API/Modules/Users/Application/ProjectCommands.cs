@@ -5,6 +5,7 @@ using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
+using Operis_API.Modules.Workflows;
 
 namespace Operis_API.Modules.Users.Application;
 
@@ -26,7 +27,8 @@ public sealed class ProjectCommands(
     IAuditLogWriter auditLogWriter,
     IReferenceDataCache referenceDataCache,
     IBusinessAuditEventWriter businessAuditEventWriter,
-    ProjectHistoryWriter historyWriter) : IProjectCommands
+    ProjectHistoryWriter historyWriter,
+    IWorkflowInstanceCommands workflowInstanceCommands) : IProjectCommands
 {
     public async Task<(bool Success, string? Error, string? ErrorCode, ProjectResponse? Response)> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken)
     {
@@ -107,6 +109,10 @@ public sealed class ProjectCommands(
             null,
             new { entity.Code, entity.Name, entity.ProjectType },
             cancellationToken);
+        if (entity.WorkflowDefinitionId.HasValue)
+        {
+            await TryStartWorkflowInstancesForProjectAsync(entity.Id, entity.WorkflowDefinitionId.Value, cancellationToken);
+        }
         return (true, null, null, await ToProjectResponseAsync(entity, cancellationToken));
     }
 
@@ -154,6 +160,7 @@ public sealed class ProjectCommands(
         }
 
         var before = ToProjectState(entity);
+        var previousWorkflowDefinitionId = entity.WorkflowDefinitionId;
         entity.Code = code;
         entity.Name = name;
         entity.ProjectType = projectType;
@@ -191,6 +198,11 @@ public sealed class ProjectCommands(
             null,
             new { before, after = ToProjectState(entity) },
             cancellationToken);
+        if (entity.WorkflowDefinitionId.HasValue &&
+            (!previousWorkflowDefinitionId.HasValue || previousWorkflowDefinitionId.Value != entity.WorkflowDefinitionId.Value))
+        {
+            await TryStartWorkflowInstancesForProjectAsync(entity.Id, entity.WorkflowDefinitionId.Value, cancellationToken);
+        }
         return (true, null, null, await ToProjectResponseAsync(entity, cancellationToken), false);
     }
 
@@ -620,6 +632,37 @@ public sealed class ProjectCommands(
         }
 
         return null;
+    }
+
+    private async Task TryStartWorkflowInstancesForProjectAsync(Guid projectId, Guid workflowDefinitionId, CancellationToken cancellationToken)
+    {
+        var documentIds = await dbContext.WorkflowSteps
+            .AsNoTracking()
+            .Where(step => step.WorkflowDefinitionId == workflowDefinitionId && step.DocumentId.HasValue)
+            .Select(step => step.DocumentId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (documentIds.Count == 0)
+        {
+            return;
+        }
+
+        var publishedDocumentIds = await dbContext.Documents
+            .AsNoTracking()
+            .Where(doc => documentIds.Contains(doc.Id) && !doc.IsDeleted && doc.PublishedVersionId != null)
+            .Select(doc => doc.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var documentId in publishedDocumentIds)
+        {
+            await workflowInstanceCommands.CreateInstanceAsync(
+                new CreateWorkflowInstanceRequest(projectId, documentId, workflowDefinitionId),
+                null,
+                null,
+                null,
+                cancellationToken);
+        }
     }
 
     private async Task<string?> ValidateDocumentTemplateAsync(Guid? documentTemplateId, CancellationToken cancellationToken)

@@ -240,7 +240,14 @@
     "page_description": "View the documents assigned to you and complete each step.",
     "empty": "No workflow tasks yet.",
     "empty_project": "No workflow tasks for this project yet.",
-    "empty_project_hint": "Start a workflow to generate tasks for this project.",
+    "empty_project_hint": "Set a workflow and start a document to generate tasks.",
+    "empty_steps": {
+      "select_workflow": "Assign a workflow to the project",
+      "start_document": "Open a document and start the workflow",
+      "wait_task": "Tasks will appear here once started",
+      "go_project": "Open project settings",
+      "go_documents": "Go to documents"
+    },
     "project_label": "Project",
     "project_missing": "Select a project to view assigned files.",
     "projects": {

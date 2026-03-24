@@ -1,4 +1,4 @@
-import { Card, Table, Typography, Space, Tag, Grid, Button, Descriptions, Divider, App } from "antd";
+import { Card, Table, Typography, Space, Tag, Grid, Button, Descriptions, Divider, App, Steps } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -112,12 +112,29 @@ export function WorkflowTasksPage() {
             columns={columns}
             locale={{
               emptyText: (
-                <div>
+                <Space direction="vertical" size={8} style={{ width: "100%" }}>
                   <Typography.Text>{t("workflow_tasks.empty_project")}</Typography.Text>
-                  <Typography.Text type="secondary" style={{ display: "block", marginTop: 4 }}>
+                  <Typography.Text type="secondary">
                     {t("workflow_tasks.empty_project_hint")}
                   </Typography.Text>
-                </div>
+                  <Steps
+                    size="small"
+                    direction="vertical"
+                    items={[
+                      { title: t("workflow_tasks.empty_steps.select_workflow") },
+                      { title: t("workflow_tasks.empty_steps.start_document") },
+                      { title: t("workflow_tasks.empty_steps.wait_task") },
+                    ]}
+                  />
+                  <Space wrap>
+                    <Button onClick={() => navigate(`/app/projects/${projectId}/edit`)}>
+                      {t("workflow_tasks.empty_steps.go_project")}
+                    </Button>
+                    <Button onClick={() => navigate("/app/documents")}>
+                      {t("workflow_tasks.empty_steps.go_documents")}
+                    </Button>
+                  </Space>
+                </Space>
               ),
             }}
             pagination={{
