@@ -130,31 +130,31 @@
     "go_login": "ไปหน้า Login"
   },
   "workflow_definitions": {
-    "page_title": "จัดการ Workflow",
-    "page_description": "การจัดการ workflow จะอยู่ในโมดูลนี้เมื่อฟังก์ชันเติบโตครบขึ้น",
+    "page_title": "จัดการขั้นตอน",
+    "page_description": "การจัดการขั้นตอนจะอยู่ในโมดูลนี้เมื่อฟังก์ชันเติบโตครบขึ้น",
     "form": {
-      "name": "ชื่อ workflow",
+      "name": "ชื่อขั้นตอน",
       "template_label": "เทมเพลตเอกสาร",
       "template_placeholder": "เลือกเทมเพลตเอกสาร",
       "no_templates": "ไม่พบเทมเพลตเอกสาร"
     },
     "placeholders": {
-      "name": "กรอกชื่อ workflow"
+      "name": "กรอกชื่อขั้นตอน"
     },
     "validation": {
-      "name_required": "กรุณากรอกชื่อ workflow",
-      "name_max_length": "ชื่อ workflow ต้องมีไม่เกิน 200 ตัวอักษร"
+      "name_required": "กรุณากรอกชื่อขั้นตอน",
+      "name_max_length": "ชื่อขั้นตอนต้องมีไม่เกิน 200 ตัวอักษร"
     },
     "actions": {
       "create_draft": "สร้างฉบับร่าง",
-      "create": "สร้างเวิร์กโฟลว์",
+      "create": "สร้างขั้นตอน",
       "save": "บันทึก",
-      "back": "กลับไปหน้าเวิร์กโฟลว์",
+      "back": "กลับไปหน้าขั้นตอน",
       "activate": "เปิดใช้งาน",
       "archive": "จัดเก็บ"
     },
     "columns": {
-      "name": "ชื่อเวิร์กโฟลว์",
+      "name": "ชื่อขั้นตอน",
       "code": "รหัส",
       "status": "สถานะ",
       "template": "เทมเพลตเอกสาร",
@@ -163,15 +163,15 @@
       "actions": "การจัดการ"
     },
     "create_page": {
-      "title": "สร้างเวิร์กโฟลว์",
+      "title": "สร้างขั้นตอน",
       "description": "กำหนดขั้นตอนงานและบทบาทที่ต้องรับผิดชอบในแต่ละขั้นตอน"
     },
     "edit_page": {
-      "title": "แก้ไขเวิร์กโฟลว์",
+      "title": "แก้ไขขั้นตอน",
       "description": "ปรับขั้นตอนงานและบทบาทที่เกี่ยวข้อง"
     },
     "steps": {
-      "title": "ขั้นตอนเวิร์กโฟลว์",
+      "title": "ขั้นตอนงาน",
       "description": "เพิ่มขั้นตอนตามลำดับการทำงานของเอกสารในองค์กร",
       "fields": {
         "name": "ชื่อขั้นตอน",
@@ -216,7 +216,7 @@
         "document_required": "กรุณาเลือกเอกสาร",
         "min_approvals_required": "กรุณาระบุจำนวนผู้ตรวจขั้นต่ำ"
       },
-      "empty": "ยังไม่มีขั้นตอนเวิร์กโฟลว์"
+      "empty": "ยังไม่มีขั้นตอนงาน"
     },
     "filters": {
       "all": "ทั้งหมด",
@@ -225,25 +225,25 @@
       "archived": "จัดเก็บแล้ว",
       "summary": "ใช้งานอยู่ {{active}} / ฉบับร่าง {{draft}} / จัดเก็บแล้ว {{archived}}"
     },
-    "empty": "ยังไม่มี workflow",
+    "empty": "ยังไม่มี ขั้นตอน",
     "notifications": {
-      "create_failed_title": "ไม่สามารถสร้าง workflow ได้",
-      "created": "สร้างเวิร์กโฟลว์สำเร็จ",
-      "update_failed_title": "ไม่สามารถแก้ไข workflow ได้",
-      "updated": "แก้ไขเวิร์กโฟลว์สำเร็จ",
-      "activate_failed_title": "ไม่สามารถเปิดใช้งาน workflow ได้",
-      "archive_failed_title": "ไม่สามารถจัดเก็บ workflow ได้"
+      "create_failed_title": "ไม่สามารถสร้าง ขั้นตอน ได้",
+      "created": "สร้างขั้นตอนสำเร็จ",
+      "update_failed_title": "ไม่สามารถแก้ไข ขั้นตอน ได้",
+      "updated": "แก้ไขขั้นตอนสำเร็จ",
+      "activate_failed_title": "ไม่สามารถเปิดใช้งาน ขั้นตอน ได้",
+      "archive_failed_title": "ไม่สามารถจัดเก็บ ขั้นตอน ได้"
     }
   },
   "workflow_tasks": {
-    "page_title": "งานเวิร์กโฟลว์",
+    "page_title": "งานขั้นตอน",
     "page_description": "ดูเอกสารที่ได้รับมอบหมายและดำเนินงานตามขั้นตอน",
-    "empty": "ยังไม่มีงานเวิร์กโฟลว์",
-    "empty_project": "ยังไม่มีงานเวิร์กโฟลว์ในโครงการนี้",
-    "empty_project_hint": "ตั้งค่าเวิร์กโฟลว์และเริ่มเอกสารเพื่อสร้างรายการงาน",
+    "empty": "ยังไม่มีงานขั้นตอน",
+    "empty_project": "ยังไม่มีงานขั้นตอนในโครงการนี้",
+    "empty_project_hint": "ตั้งค่าขั้นตอนและเริ่มเอกสารเพื่อสร้างรายการงาน",
     "empty_steps": {
-      "select_workflow": "กำหนดเวิร์กโฟลว์ให้โครงการ",
-      "start_document": "ไปที่เอกสารแล้วกดเริ่มเวิร์กโฟลว์",
+      "select_workflow": "กำหนดขั้นตอนให้โครงการ",
+      "start_document": "ไปที่เอกสารแล้วกดเริ่มขั้นตอน",
       "wait_task": "เมื่อเริ่มแล้ว งานจะปรากฏในหน้านี้",
       "go_project": "ไปตั้งค่าโครงการ",
       "go_documents": "ไปหน้าเอกสาร"
@@ -268,19 +268,19 @@
     },
     "select_project": {
       "title": "เลือกพื้นที่ทำงาน",
-      "description": "เลือกโครงการก่อนเพื่อดูงานเวิร์กโฟลว์และการทำงาน",
+      "description": "เลือกโครงการก่อนเพื่อดูงานขั้นตอนและการทำงาน",
       "placeholder": "เลือกโครงการ",
-      "empty": "กรุณาเลือกโครงการเพื่อดูงานเวิร์กโฟลว์"
+      "empty": "กรุณาเลือกโครงการเพื่อดูงานขั้นตอน"
     },
     "start": {
-      "title": "เริ่มเวิร์กโฟลว์",
+      "title": "เริ่มขั้นตอน",
       "project_placeholder": "เลือกโครงการ",
       "document_placeholder": "เลือกเอกสาร",
       "document_disabled_placeholder": "โปรดเลือกโครงการก่อน",
       "project_label": "โครงการ",
-      "action": "เริ่มเวิร์กโฟลว์",
-      "started": "เริ่มเวิร์กโฟลว์สำเร็จ",
-      "failed": "ไม่สามารถเริ่มเวิร์กโฟลว์ได้",
+      "action": "เริ่มขั้นตอน",
+      "started": "เริ่มขั้นตอนสำเร็จ",
+      "failed": "ไม่สามารถเริ่มขั้นตอนได้",
       "validation_required": "กรุณาเลือกโครงการและเอกสาร",
       "load_more_projects": "โหลดโครงการเพิ่ม",
       "load_more_documents": "โหลดเอกสารเพิ่ม"
@@ -297,6 +297,13 @@
       "submit": "ส่งต่อขั้นตอนถัดไป",
       "submitted": "ทำรายการสำเร็จ",
       "submit_failed": "ไม่สามารถส่งต่อขั้นตอนได้"
+    },
+    "status_timeline": {
+      "title": "สถานะเอกสาร",
+      "loading": "กำลังโหลดสถานะ...",
+      "empty": "ยังไม่มีสถานะขั้นตอน",
+      "required": "ต้องดำเนินการ",
+      "optional": "ขั้นตอนไม่บังคับ"
     },
     "columns": {
       "project": "โครงการ",
@@ -354,7 +361,7 @@
     "documents": "เอกสาร",
     "document_list": "รายการเอกสาร",
     "document_templates": "เทมเพลตเอกสาร",
-    "workflows": "เวิร์กโฟลว์",
+    "workflows": "ขั้นตอน",
     "workflow_tasks": "พื้นที่ทำงาน",
     "admin": "ผู้ดูแลระบบ",
     "user_admin_group": "จัดการผู้ใช้งาน",
@@ -519,11 +526,11 @@
     "invitation_update_accepted": "ไม่สามารถแก้ไขคำเชิญที่ถูกยืนยันแล้วได้",
     "invitation_update_cancelled": "ไม่สามารถแก้ไขคำเชิญที่ถูกยกเลิกแล้วได้",
     "invitation_update_rejected": "ไม่สามารถแก้ไขคำเชิญที่ถูกปฏิเสธแล้วได้",
-    "workflow_definition_name_required": "กรุณาระบุชื่อ workflow",
-    "workflow_definition_not_found": "ไม่พบ workflow ที่เลือก",
-    "workflow_definition_already_exists": "มี workflow นี้อยู่แล้ว",
-    "workflow_definition_already_active": "workflow นี้ถูกเปิดใช้งานอยู่แล้ว",
-    "workflow_definition_already_archived": "workflow นี้ถูกจัดเก็บแล้ว",
+    "workflow_definition_name_required": "กรุณาระบุชื่อ ขั้นตอน",
+    "workflow_definition_not_found": "ไม่พบ ขั้นตอน ที่เลือก",
+    "workflow_definition_already_exists": "มี ขั้นตอน นี้อยู่แล้ว",
+    "workflow_definition_already_active": "ขั้นตอน นี้ถูกเปิดใช้งานอยู่แล้ว",
+    "workflow_definition_already_archived": "ขั้นตอน นี้ถูกจัดเก็บแล้ว",
     "password_required": "กรุณากรอกรหัสผ่าน",
     "password_min_length": "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร",
     "password_mismatch": "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน",
@@ -802,9 +809,9 @@
       "title": "เอกสารของโครงการ",
       "description": "เลือกเอกสารที่ต้องใช้ในโครงการนี้",
       "create_hint": "เลือกเทมเพลตเอกสารเพื่อดูรายการเอกสารที่ต้องใช้",
-      "workflow_label": "เวิร์กโฟลว์",
-      "workflow_placeholder": "เลือกเวิร์กโฟลว์",
-      "no_workflows": "ไม่พบเวิร์กโฟลว์",
+      "workflow_label": "ขั้นตอน",
+      "workflow_placeholder": "เลือกขั้นตอน",
+      "no_workflows": "ไม่พบขั้นตอน",
       "template_label": "เทมเพลตเอกสาร",
       "template_placeholder": "เลือกเทมเพลตเอกสาร",
       "no_templates": "ไม่พบเทมเพลตเอกสาร",
@@ -820,11 +827,11 @@
       },
       "actions": {
         "download": "ดาวน์โหลด",
-        "start_workflow": "เริ่มเวิร์กโฟลว์"
+        "start_workflow": "เริ่มขั้นตอน"
       },
       "messages": {
-        "workflow_started": "เริ่มเวิร์กโฟลว์แล้ว",
-        "workflow_failed_title": "ไม่สามารถเริ่มเวิร์กโฟลว์ได้"
+        "workflow_started": "เริ่มขั้นตอนแล้ว",
+        "workflow_failed_title": "ไม่สามารถเริ่มขั้นตอนได้"
       }
     },
     "members": {
@@ -1123,7 +1130,7 @@
     "quick_actions": {
       "role_gap": "เปิดดูช่องว่างของบทบาท",
       "org_chart": "ตรวจผังงานในโครงการ",
-      "workflow": "เปิดดู workflow",
+      "workflow": "เปิดดู ขั้นตอน",
       "compliance": "เปิดรายการตรวจความพร้อม",
       "evidence": "ดูชุดหลักฐาน",
       "audit": "เปิดประวัติการตรวจสอบ"
@@ -1185,7 +1192,7 @@
         "members": "จำนวนสมาชิกที่รับบทบาท"
       },
       "dependencies_title": "แผนภาพความเชื่อมโยงของบทบาท",
-      "open_workflow": "เปิดมุมมอง workflow",
+      "open_workflow": "เปิดมุมมอง ขั้นตอน",
       "open_evidence": "เปิดมุมมองหลักฐาน",
       "open_compliance": "เปิดมุมมองความพร้อม"
     },
@@ -1239,7 +1246,7 @@
       "questions": {
         "1": "เห็นชัดหรือไม่ว่าแต่ละขั้นควรเป็นบทบาทใดที่ทบทวน อนุมัติ หรือปล่อยใช้งาน",
         "2": "ทีมเข้าใจหรือไม่ว่าต้องมีหลักฐานอะไร ก่อนจะผ่านไปยัง gate ถัดไป",
-        "3": "เมื่อ workflow ติดขัด ผู้จัดการโครงการจะรู้หรือไม่ว่าควรคลิกไปแก้ที่ส่วนใดต่อ"
+        "3": "เมื่อ ขั้นตอน ติดขัด ผู้จัดการโครงการจะรู้หรือไม่ว่าควรคลิกไปแก้ที่ส่วนใดต่อ"
       }
     },
     "compliance": {
@@ -1327,7 +1334,7 @@
     },
     "auditor_mode": {
       "title": "โหมดผู้ตรวจประเมิน",
-      "description": "มุมมองนี้จะเน้น compliance, หลักฐาน, จุดควบคุมใน workflow และ audit trail เพื่อใช้คุยงานตรวจประเมินได้เร็วขึ้น"
+      "description": "มุมมองนี้จะเน้น compliance, หลักฐาน, จุดควบคุมใน ขั้นตอน และ audit trail เพื่อใช้คุยงานตรวจประเมินได้เร็วขึ้น"
     },
     "audit": {
       "timeline_title": "ลำดับเหตุการณ์ล่าสุด",
@@ -1565,7 +1572,7 @@
       "edit_page_title": "แก้ไขเทมเพลตเอกสาร",
       "edit_page_description": "ปรับชื่อเทมเพลตหรือรายการเอกสาร",
       "edit_page_back": "กลับ",
-  "edit_page_submit": "บันทึก",
+      "edit_page_submit": "บันทึก",
       "search_placeholder": "ค้นหาชื่อเทมเพลต",
       "empty": "ยังไม่มีเทมเพลต",
       "empty_selection": "ยังไม่ได้เลือกเอกสาร",
@@ -1587,51 +1594,51 @@
         "created_at": "วันที่สร้าง",
         "actions": "การทำงาน"
       },
-    "actions": {
-      "create": "สร้างเทมเพลต",
-      "create_new": "เพิ่มเทมเพลต",
-      "edit": "แก้ไข",
-      "history": "ประวัติ",
-      "load_more": "โหลดเอกสารเพิ่มอีก 10 รายการ",
-      "add_document": "เพิ่มเข้าตาราง",
-      "remove_document": "นำออก",
-      "available_documents": "เอกสารที่เลือกได้",
-      "selected_documents": "เอกสารที่เลือกแล้ว"
-    },
-    "history": {
-      "title": "ประวัติเทมเพลต",
-      "description": "ติดตามการเปลี่ยนแปลงของเทมเพลตเพื่อการตรวจสอบ",
-      "loading": "กำลังโหลดประวัติ...",
-      "empty": "ยังไม่มีประวัติ",
-      "columns": {
-        "occurred_at": "วันเวลา",
-        "action": "การกระทำ",
-        "actor": "ผู้กระทำ",
-        "reason": "เหตุผล",
-        "summary": "สรุป",
-        "before": "ข้อมูลก่อนเปลี่ยน",
-        "after": "ข้อมูลหลังเปลี่ยน",
-        "metadata": "ข้อมูลเพิ่มเติม"
-      },
       "actions": {
-        "create": "สร้าง",
-        "update": "แก้ไข",
-        "delete": "ลบ"
+        "create": "สร้างเทมเพลต",
+        "create_new": "เพิ่มเทมเพลต",
+        "edit": "แก้ไข",
+        "history": "ประวัติ",
+        "load_more": "โหลดเอกสารเพิ่มอีก 10 รายการ",
+        "add_document": "เพิ่มเข้าตาราง",
+        "remove_document": "นำออก",
+        "available_documents": "เอกสารที่เลือกได้",
+        "selected_documents": "เอกสารที่เลือกแล้ว"
+      },
+      "history": {
+        "title": "ประวัติเทมเพลต",
+        "description": "ติดตามการเปลี่ยนแปลงของเทมเพลตเพื่อการตรวจสอบ",
+        "loading": "กำลังโหลดประวัติ...",
+        "empty": "ยังไม่มีประวัติ",
+        "columns": {
+          "occurred_at": "วันเวลา",
+          "action": "การกระทำ",
+          "actor": "ผู้กระทำ",
+          "reason": "เหตุผล",
+          "summary": "สรุป",
+          "before": "ข้อมูลก่อนเปลี่ยน",
+          "after": "ข้อมูลหลังเปลี่ยน",
+          "metadata": "ข้อมูลเพิ่มเติม"
+        },
+        "actions": {
+          "create": "สร้าง",
+          "update": "แก้ไข",
+          "delete": "ลบ"
+        }
+      },
+      "history_page": {
+        "title": "ประวัติเทมเพลต",
+        "description": "ติดตามเหตุการณ์ของเทมเพลตเพื่อการตรวจสอบ",
+        "back_action": "กลับ"
+      },
+      "messages": {
+        "created": "สร้างเทมเพลตแล้ว",
+        "create_failed": "ไม่สามารถสร้างเทมเพลตได้",
+        "updated": "แก้ไขเทมเพลตแล้ว",
+        "update_failed": "ไม่สามารถแก้ไขเทมเพลตได้",
+        "load_failed": "ไม่สามารถโหลดรายละเอียดเทมเพลตได้",
+        "loading": "กำลังโหลดรายละเอียดเทมเพลต..."
       }
-    },
-    "history_page": {
-      "title": "ประวัติเทมเพลต",
-      "description": "ติดตามเหตุการณ์ของเทมเพลตเพื่อการตรวจสอบ",
-      "back_action": "กลับ"
-    },
-    "messages": {
-      "created": "สร้างเทมเพลตแล้ว",
-      "create_failed": "ไม่สามารถสร้างเทมเพลตได้",
-      "updated": "แก้ไขเทมเพลตแล้ว",
-    "update_failed": "ไม่สามารถแก้ไขเทมเพลตได้",
-    "load_failed": "ไม่สามารถโหลดรายละเอียดเทมเพลตได้",
-    "loading": "กำลังโหลดรายละเอียดเทมเพลต..."
-  }
     },
     "upload": {
       "action": "สร้างเอกสาร",

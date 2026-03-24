@@ -17,7 +17,7 @@
     "realm_label": "Keycloak Realm",
     "client_label": "Keycloak Client",
     "welcome_title": "Welcome to Operis",
-    "welcome_subtitle": "Enterprise Paperless & Workflow Platform"
+    "welcome_subtitle": "Enterprise Paperless & Step Platform"
   },
   "layout": {
     "notifications": {
@@ -130,8 +130,8 @@
     "go_login": "Go to Login"
   },
   "workflow_definitions": {
-    "page_title": "Workflow Definitions",
-    "page_description": "Workflow management will live in this module as the feature surface grows.",
+    "page_title": "Step Definitions",
+    "page_description": "Step management will live in this module as the feature surface grows.",
     "form": {
       "name": "Definition name",
       "template_label": "Document template",
@@ -139,7 +139,7 @@
       "no_templates": "No document templates found."
     },
     "placeholders": {
-      "name": "Enter workflow definition name"
+      "name": "Enter step definition name"
     },
     "validation": {
       "name_required": "Definition name is required.",
@@ -147,14 +147,14 @@
     },
     "actions": {
       "create_draft": "Create draft",
-      "create": "Create workflow",
+      "create": "Create step",
       "save": "Save",
-      "back": "Back to workflows",
+      "back": "Back to steps",
       "activate": "Activate",
       "archive": "Archive"
     },
     "columns": {
-      "name": "Workflow",
+      "name": "Step",
       "code": "Code",
       "status": "Status",
       "template": "Document template",
@@ -163,15 +163,15 @@
       "actions": "Management"
     },
     "create_page": {
-      "title": "Create workflow",
-      "description": "Define workflow steps and assign project roles for each step."
+      "title": "Create step",
+      "description": "Define step steps and assign project roles for each step."
     },
     "edit_page": {
-      "title": "Edit workflow",
-      "description": "Update workflow steps and role responsibilities."
+      "title": "Edit step",
+      "description": "Update step steps and role responsibilities."
     },
     "steps": {
-      "title": "Workflow steps",
+      "title": "Step steps",
       "description": "Add steps in the order the document should flow through the organization.",
       "fields": {
         "name": "Step name",
@@ -209,14 +209,14 @@
         "load_more_roles": "Load more roles"
       },
       "validation": {
-        "required": "Please add at least one workflow step.",
+        "required": "Please add at least one step step.",
         "name_required": "Step name is required.",
         "type_required": "Step type is required.",
         "roles_required": "Please select at least one role.",
         "document_required": "Please select a document.",
         "min_approvals_required": "Please set minimum reviewers."
       },
-      "empty": "No workflow steps yet."
+      "empty": "No step steps yet."
     },
     "filters": {
       "all": "All",
@@ -225,25 +225,25 @@
       "archived": "Archived",
       "summary": "{{active}} active / {{draft}} draft / {{archived}} archived"
     },
-    "empty": "No workflow definitions yet.",
+    "empty": "No step definitions yet.",
     "notifications": {
-      "create_failed_title": "Unable to create workflow definition",
-      "created": "Workflow created.",
-      "update_failed_title": "Unable to update workflow definition",
-      "updated": "Workflow updated.",
-      "activate_failed_title": "Unable to activate workflow definition",
-      "archive_failed_title": "Unable to archive workflow definition"
+      "create_failed_title": "Unable to create step definition",
+      "created": "Step created.",
+      "update_failed_title": "Unable to update step definition",
+      "updated": "Step updated.",
+      "activate_failed_title": "Unable to activate step definition",
+      "archive_failed_title": "Unable to archive step definition"
     }
   },
   "workflow_tasks": {
-    "page_title": "Workflow tasks",
+    "page_title": "Step tasks",
     "page_description": "View the documents assigned to you and complete each step.",
-    "empty": "No workflow tasks yet.",
-    "empty_project": "No workflow tasks for this project yet.",
-    "empty_project_hint": "Set a workflow and start a document to generate tasks.",
+    "empty": "No step tasks yet.",
+    "empty_project": "No step tasks for this project yet.",
+    "empty_project_hint": "Set a step and start a document to generate tasks.",
     "empty_steps": {
-      "select_workflow": "Assign a workflow to the project",
-      "start_document": "Open a document and start the workflow",
+      "select_workflow": "Assign a step to the project",
+      "start_document": "Open a document and start the step",
       "wait_task": "Tasks will appear here once started",
       "go_project": "Open project settings",
       "go_documents": "Go to documents"
@@ -268,19 +268,19 @@
     },
     "select_project": {
       "title": "Choose workspace project",
-      "description": "Select a project before viewing workflow tasks and workspace actions.",
+      "description": "Select a project before viewing step tasks and workspace actions.",
       "placeholder": "Select project",
-      "empty": "Select a project to view workflow tasks."
+      "empty": "Select a project to view step tasks."
     },
     "start": {
-      "title": "Start workflow",
+      "title": "Start step",
       "project_placeholder": "Select project",
       "document_placeholder": "Select document",
       "document_disabled_placeholder": "Select project first",
       "project_label": "Project",
-      "action": "Start workflow",
-      "started": "Workflow started.",
-      "failed": "Unable to start workflow.",
+      "action": "Start step",
+      "started": "Step started.",
+      "failed": "Unable to start step.",
       "validation_required": "Please select both project and document.",
       "load_more_projects": "Load more projects",
       "load_more_documents": "Load more documents"
@@ -296,7 +296,14 @@
       "download": "Download document",
       "submit": "Send to next step",
       "submitted": "Step completed.",
-      "submit_failed": "Unable to submit workflow step."
+      "submit_failed": "Unable to submit step step."
+    },
+    "status_timeline": {
+      "title": "Document status",
+      "loading": "Loading status...",
+      "empty": "No step status yet.",
+      "required": "Required step",
+      "optional": "Optional step"
     },
     "columns": {
       "project": "Project",
@@ -314,7 +321,7 @@
   },
   "notifications": {
     "page_title": "Notifications",
-    "page_description": "Track updates and workflow activity that matters to you.",
+    "page_description": "Track updates and step activity that matters to you.",
     "empty": "No notifications yet.",
     "columns": {
       "title": "Title",
@@ -354,7 +361,7 @@
     "documents": "Documents",
     "document_list": "Document list",
     "document_templates": "Document Templates",
-    "workflows": "Workflows",
+    "workflows": "Steps",
     "workflow_tasks": "Workspace",
     "admin": "Admin",
     "user_admin_group": "User Management",
@@ -519,11 +526,11 @@
     "invitation_update_accepted": "Accepted invitations cannot be updated.",
     "invitation_update_cancelled": "Cancelled invitations cannot be updated.",
     "invitation_update_rejected": "Rejected invitations cannot be updated.",
-    "workflow_definition_name_required": "Workflow definition name is required.",
-    "workflow_definition_not_found": "Workflow definition does not exist.",
-    "workflow_definition_already_exists": "Workflow definition already exists.",
-    "workflow_definition_already_active": "Workflow definition is already active.",
-    "workflow_definition_already_archived": "Workflow definition is already archived.",
+    "workflow_definition_name_required": "Step definition name is required.",
+    "workflow_definition_not_found": "Step definition does not exist.",
+    "workflow_definition_already_exists": "Step definition already exists.",
+    "workflow_definition_already_active": "Step definition is already active.",
+    "workflow_definition_already_archived": "Step definition is already archived.",
     "password_required": "Password is required.",
     "password_min_length": "Password must be at least 8 characters.",
     "password_mismatch": "Password and confirmation do not match.",
@@ -802,9 +809,9 @@
       "title": "Project documents",
       "description": "Select the documents required for this project.",
       "create_hint": "Choose a document template to preview the required documents.",
-      "workflow_label": "Workflow",
-      "workflow_placeholder": "Select a workflow",
-      "no_workflows": "No workflows available.",
+      "workflow_label": "Step",
+      "workflow_placeholder": "Select a step",
+      "no_workflows": "No steps available.",
       "template_label": "Document template",
       "template_placeholder": "Select a document template",
       "no_templates": "No document templates found.",
@@ -820,11 +827,11 @@
       },
       "actions": {
         "download": "Download",
-        "start_workflow": "Start workflow"
+        "start_workflow": "Start step"
       },
       "messages": {
-        "workflow_started": "Workflow started.",
-        "workflow_failed_title": "Unable to start workflow"
+        "workflow_started": "Step started.",
+        "workflow_failed_title": "Unable to start step"
       }
     },
     "members": {
@@ -1097,7 +1104,7 @@
       "team": "Team",
       "org_chart": "Org Chart",
       "roles": "Roles",
-      "workflow": "Workflow",
+      "workflow": "Step",
       "compliance": "Compliance",
       "evidence": "Evidence",
       "audit_trail": "Audit Trail"
@@ -1123,7 +1130,7 @@
     "quick_actions": {
       "role_gap": "Open role coverage gap",
       "org_chart": "Review project org chart",
-      "workflow": "Open workflow preview",
+      "workflow": "Open step preview",
       "compliance": "Open compliance checks",
       "evidence": "Review evidence pack",
       "audit": "Open audit trail"
@@ -1140,7 +1147,7 @@
       "quick_actions_title": "Quick actions",
       "callout_title": "Workspace focus",
       "callout_description": "This workspace consolidates team, roles, and evidence so governance status is visible at a glance.",
-      "workflow_preview_title": "Workflow Preview"
+      "workflow_preview_title": "Step Preview"
     },
     "team": {
       "title": "Project Team Register",
@@ -1185,12 +1192,12 @@
         "members": "Assigned Members"
       },
       "dependencies_title": "Role Dependency Map",
-      "open_workflow": "Open workflow",
+      "open_workflow": "Open step",
       "open_evidence": "Open evidence",
       "open_compliance": "Open compliance"
     },
     "workflow": {
-      "title": "Workflow Preview",
+      "title": "Step Preview",
       "description": "Review how project roles, approval gates, and required evidence should flow.",
       "state_flow_title": "State Flow",
       "state_flow_description": "Use this view to validate whether the item should move through the right governance states for the selected project size.",
@@ -1327,7 +1334,7 @@
     },
     "auditor_mode": {
       "title": "Auditor Mode",
-      "description": "This view prioritizes compliance, evidence, workflow controls, and audit trail so audit discussions can move faster."
+      "description": "This view prioritizes compliance, evidence, step controls, and audit trail so audit discussions can move faster."
     },
     "audit": {
       "timeline_title": "Recent Timeline",
@@ -1347,7 +1354,7 @@
       "team_register": "Team register",
       "org_chart": "Project org chart",
       "role_matrix": "Role matrix",
-      "workflow": "Workflow preview",
+      "workflow": "Step preview",
       "compliance": "Compliance checklist",
       "evidence": "Evidence package",
       "audit": "Audit trail",
@@ -1565,7 +1572,7 @@
       "edit_page_title": "Edit Document Template",
       "edit_page_description": "Update the template name or document list.",
       "edit_page_back": "Back",
-    "edit_page_submit": "Save",
+      "edit_page_submit": "Save",
       "search_placeholder": "Search template name",
       "empty": "No templates yet.",
       "empty_selection": "No documents selected yet.",
@@ -1587,51 +1594,51 @@
         "created_at": "Created date",
         "actions": "Actions"
       },
-    "actions": {
-      "create": "Create template",
-      "create_new": "Add template",
-      "edit": "Edit",
-      "history": "History",
-      "load_more": "Load 10 more documents",
-      "add_document": "Add to list",
-      "remove_document": "Remove",
-      "available_documents": "Available documents",
-      "selected_documents": "Selected documents"
-    },
-    "history": {
-      "title": "Template History",
-      "description": "Track template changes for audit and review.",
-      "loading": "Loading history...",
-      "empty": "No history yet.",
-      "columns": {
-        "occurred_at": "Time",
-        "action": "Action",
-        "actor": "Actor",
-        "reason": "Reason",
-        "summary": "Summary",
-        "before": "Before",
-        "after": "After",
-        "metadata": "Metadata"
-      },
       "actions": {
-        "create": "Created",
-        "update": "Updated",
-        "delete": "Deleted"
+        "create": "Create template",
+        "create_new": "Add template",
+        "edit": "Edit",
+        "history": "History",
+        "load_more": "Load 10 more documents",
+        "add_document": "Add to list",
+        "remove_document": "Remove",
+        "available_documents": "Available documents",
+        "selected_documents": "Selected documents"
+      },
+      "history": {
+        "title": "Template History",
+        "description": "Track template changes for audit and review.",
+        "loading": "Loading history...",
+        "empty": "No history yet.",
+        "columns": {
+          "occurred_at": "Time",
+          "action": "Action",
+          "actor": "Actor",
+          "reason": "Reason",
+          "summary": "Summary",
+          "before": "Before",
+          "after": "After",
+          "metadata": "Metadata"
+        },
+        "actions": {
+          "create": "Created",
+          "update": "Updated",
+          "delete": "Deleted"
+        }
+      },
+      "history_page": {
+        "title": "Template History",
+        "description": "Track template events for audit and review.",
+        "back_action": "Back"
+      },
+      "messages": {
+        "created": "Template created",
+        "create_failed": "Unable to create template",
+        "updated": "Template updated",
+        "update_failed": "Unable to update template",
+        "load_failed": "Unable to load template details",
+        "loading": "Loading template details..."
       }
-    },
-    "history_page": {
-      "title": "Template History",
-      "description": "Track template events for audit and review.",
-      "back_action": "Back"
-    },
-    "messages": {
-      "created": "Template created",
-      "create_failed": "Unable to create template",
-      "updated": "Template updated",
-    "update_failed": "Unable to update template",
-    "load_failed": "Unable to load template details",
-    "loading": "Loading template details..."
-  }
     },
     "upload": {
       "action": "Create Document",

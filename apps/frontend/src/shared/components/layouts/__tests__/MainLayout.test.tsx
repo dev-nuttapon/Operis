@@ -42,7 +42,7 @@ vi.mock('../../../i18n/config', () => ({
     t: (key: string, options?: { lng?: string }) => {
       if (key === 'common.application_name') return 'OPERIS';
       if (key === 'common.documents') return 'Documents';
-      if (key === 'common.workflows') return 'Workflows';
+      if (key === 'common.workflows') return 'Steps';
       if (key === 'common.profile') return 'Profile';
       if (key === 'auth.logout_button') return 'Logout';
       if (key === 'common.user_fallback') return 'User';

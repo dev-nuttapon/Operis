@@ -85,7 +85,7 @@ export function WorkflowDefinitionsPage() {
 
       {canManageDefinitions ? (
         <Flex justify="flex-end" style={{ marginBottom: 16 }}>
-          <Button type="primary" onClick={() => navigate("/app/workflows/new")}>
+          <Button type="primary" onClick={() => navigate("/app/steps/new")}>
             {t("workflow_definitions.actions.create")}
           </Button>
         </Flex>
@@ -121,7 +121,7 @@ export function WorkflowDefinitionsPage() {
               pageSize,
             }));
           }}
-          onEdit={(workflowDefinitionId) => navigate(`/app/workflows/${workflowDefinitionId}/edit`)}
+          onEdit={(workflowDefinitionId) => navigate(`/app/steps/${workflowDefinitionId}/edit`)}
           onActivate={(workflowDefinitionId) => activateMutation.mutate({ workflowDefinitionId })}
           onArchive={(workflowDefinitionId) => archiveMutation.mutate({ workflowDefinitionId })}
         />

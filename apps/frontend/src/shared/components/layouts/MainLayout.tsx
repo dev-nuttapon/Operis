@@ -154,7 +154,7 @@ export function MainLayout() {
           label: tr('common.master_project_roles'),
         },
         {
-          key: '/app/workflows',
+          key: '/app/steps',
           label: tr('common.workflows'),
         },
         {
@@ -303,7 +303,7 @@ export function MainLayout() {
     if (path.includes('/app/profile')) return tr('common.profile');
     if (path.includes('/app/change-password')) return tr('common.change_password');
     if (path === '/app/projects') return tr('common.my_projects');
-    if (path.includes('workflows')) return tr('common.workflows');
+    if (path.includes('steps')) return tr('common.workflows');
     if (path.includes('admin/users')) return tr('common.user_management');
     if (path.includes('admin/master/divisions')) return tr('common.master_divisions');
     if (path.includes('admin/master/departments')) return tr('common.master_departments');
@@ -649,7 +649,7 @@ function getOpenKeys(path: string) {
   if (
     path.startsWith('/app/projects') ||
     path.startsWith('/app/projects/roles') ||
-    path.startsWith('/app/workflows') ||
+    path.startsWith('/app/steps') ||
     path.startsWith('/app/workspace')
   ) {
     return ['/app/projects-group'];
@@ -703,8 +703,8 @@ function getSelectedMenuKey(path: string) {
     return '/app/workspace';
   }
 
-  if (path.startsWith('/app/workflows')) {
-    return '/app/workflows';
+  if (path.startsWith('/app/steps')) {
+    return '/app/steps';
   }
 
   if (path.startsWith('/app/notifications')) {

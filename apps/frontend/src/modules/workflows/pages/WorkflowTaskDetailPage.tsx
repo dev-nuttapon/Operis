@@ -1,9 +1,10 @@
-import { App, Button, Card, Descriptions, Divider, Grid, Space, Tag, Typography, Select } from "antd";
+import { App, Button, Card, Descriptions, Divider, Grid, Space, Tag, Typography, Select, Steps } from "antd";
 import { ArrowLeftOutlined, FolderOpenOutlined } from "@ant-design/icons";
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useWorkflowTasks } from "../hooks/useWorkflowTasks";
+import { useWorkflowInstance } from "../hooks/useWorkflowInstance";
 import { useWorkflowInstanceActions } from "../hooks/useWorkflowInstanceActions";
 import { downloadDocument } from "../../documents";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -29,6 +30,7 @@ export function WorkflowTaskDetailPage() {
     () => tasksQuery.data?.items.find((item) => item.workflowInstanceStepId === workflowInstanceStepId) ?? null,
     [tasksQuery.data?.items, workflowInstanceStepId],
   );
+  const instanceQuery = useWorkflowInstance(task?.workflowInstanceId ?? null, Boolean(task?.workflowInstanceId));
 
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
 
@@ -47,6 +49,25 @@ export function WorkflowTaskDetailPage() {
     ],
     [t],
   );
+
+  const statusItems = useMemo(() => {
+    if (!instanceQuery.data?.steps) {
+      return [];
+    }
+
+    return [...instanceQuery.data.steps]
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((step) => {
+        const status = step.status.toLowerCase();
+        const stepStatus =
+          status === "completed" ? "finish" : status === "in_progress" ? "process" : "wait";
+        return {
+          title: `${t(`workflow_definitions.steps.types.${step.stepType}`)} (${step.status})`,
+          description: step.isRequired ? t("workflow_tasks.status_timeline.required") : t("workflow_tasks.status_timeline.optional"),
+          status: stepStatus as "finish" | "process" | "wait",
+        };
+      });
+  }, [instanceQuery.data?.steps, t]);
 
   const selectedProjectLabel = task ? `${task.projectName}` : null;
 
@@ -110,6 +131,17 @@ export function WorkflowTaskDetailPage() {
                 { label: t("workflow_tasks.columns.status"), children: <Tag>{task.status}</Tag> },
               ]}
             />
+            <Divider style={{ margin: "12px 0" }} />
+            <Typography.Title level={5} style={{ marginTop: 0 }}>
+              {t("workflow_tasks.status_timeline.title")}
+            </Typography.Title>
+            {instanceQuery.isLoading ? (
+              <Typography.Text type="secondary">{t("workflow_tasks.status_timeline.loading")}</Typography.Text>
+            ) : statusItems.length === 0 ? (
+              <Typography.Text type="secondary">{t("workflow_tasks.status_timeline.empty")}</Typography.Text>
+            ) : (
+              <Steps size="small" direction="vertical" items={statusItems} />
+            )}
             <Divider style={{ margin: "12px 0" }} />
             <Space direction="vertical" size={8} style={{ width: "100%" }}>
               <Button onClick={() => navigate(`/app/documents/${task.documentId}/versions/new`)} block={isMobile}>

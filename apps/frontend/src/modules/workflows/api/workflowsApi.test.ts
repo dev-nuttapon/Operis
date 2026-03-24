@@ -18,7 +18,7 @@ describe("listWorkflowDefinitions", () => {
 
     await listWorkflowDefinitions();
 
-    expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions", { signal: undefined });
+    expect(apiRequest).toHaveBeenCalledWith("/api/v1/steps/definitions", { signal: undefined });
   });
 });
 
@@ -44,7 +44,7 @@ describe("createWorkflowDefinition", () => {
       ],
     });
 
-    expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions", {
+    expect(apiRequest).toHaveBeenCalledWith("/api/v1/steps/definitions", {
       method: "POST",
       body: {
         name: "Document Review",
@@ -73,7 +73,7 @@ describe("activateWorkflowDefinition", () => {
 
     await activateWorkflowDefinition("1");
 
-    expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions/1/activate", {
+    expect(apiRequest).toHaveBeenCalledWith("/api/v1/steps/definitions/1/activate", {
       method: "POST",
     });
   });
@@ -102,7 +102,7 @@ describe("updateWorkflowDefinition", () => {
       ],
     });
 
-    expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions/1", {
+    expect(apiRequest).toHaveBeenCalledWith("/api/v1/steps/definitions/1", {
       method: "PUT",
       body: {
         name: "Policy Approval",
@@ -131,7 +131,7 @@ describe("archiveWorkflowDefinition", () => {
 
     await archiveWorkflowDefinition("1");
 
-    expect(apiRequest).toHaveBeenCalledWith("/api/v1/workflows/definitions/1/archive", {
+    expect(apiRequest).toHaveBeenCalledWith("/api/v1/steps/definitions/1/archive", {
       method: "POST",
     });
   });

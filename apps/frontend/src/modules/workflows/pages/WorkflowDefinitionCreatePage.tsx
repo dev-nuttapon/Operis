@@ -68,9 +68,19 @@ export function WorkflowDefinitionCreatePage() {
     templateDocumentIds,
     Boolean(templateDocumentIds.length),
   );
-  const documentOptions = useMemo(
+  const baseDocumentOptions = useMemo(
     () => (templateDocumentsState.data ?? []).map((doc) => ({ label: doc.documentName, value: doc.id })),
     [templateDocumentsState.data],
+  );
+  const selectedDocumentIds = useMemo(
+    () => new Set(steps.map((step) => step.documentId).filter((value): value is string => Boolean(value))),
+    [steps],
+  );
+  const editingDocumentId = editingIndex !== null ? steps[editingIndex]?.documentId ?? null : null;
+  const documentOptions = useMemo(
+    () =>
+      baseDocumentOptions.filter((option) => option.value === editingDocumentId || !selectedDocumentIds.has(option.value)),
+    [baseDocumentOptions, editingDocumentId, selectedDocumentIds],
   );
   const documentLabelById = useMemo(
     () => new Map((templateDocumentsState.data ?? []).map((doc) => [doc.id, doc.documentName] as const)),
@@ -154,7 +164,7 @@ export function WorkflowDefinitionCreatePage() {
       {
         onSuccess: () => {
           notification.success({ message: t("workflow_definitions.notifications.created") });
-          navigate("/app/workflows");
+          navigate("/app/steps");
         },
         onError: (error) => {
           const presentation = getApiErrorPresentation(error, t("workflow_definitions.notifications.create_failed_title"));
@@ -166,7 +176,7 @@ export function WorkflowDefinitionCreatePage() {
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/workflows")} block={isMobile}>
+      <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/steps")} block={isMobile}>
         {t("workflow_definitions.actions.back")}
       </Button>
 
@@ -464,7 +474,7 @@ export function WorkflowDefinitionCreatePage() {
               >
                 {t("workflow_definitions.actions.save")}
               </Button>
-              <Button onClick={() => navigate("/app/workflows")} block={isMobile}>
+              <Button onClick={() => navigate("/app/steps")} block={isMobile}>
                 {t("common.actions.cancel")}
               </Button>
             </Flex>

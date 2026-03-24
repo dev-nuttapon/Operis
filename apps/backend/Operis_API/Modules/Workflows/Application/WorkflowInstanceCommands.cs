@@ -67,25 +67,17 @@ public sealed class WorkflowInstanceCommands(
 
         var workflowSteps = await dbContext.WorkflowSteps
             .AsNoTracking()
-            .Where(x => x.WorkflowDefinitionId == workflowDefinitionId.Value)
+            .Where(x => x.WorkflowDefinitionId == workflowDefinitionId.Value
+                        && (x.DocumentId == null || x.DocumentId == request.DocumentId))
             .OrderBy(x => x.DisplayOrder)
             .ToListAsync(cancellationToken);
 
         if (workflowSteps.Count == 0)
         {
-            return (false, "Workflow definition has no steps.", ApiErrorCodes.RequestValidationFailed, null);
+            return (false, "Workflow definition has no steps for the selected document.", ApiErrorCodes.RequestValidationFailed, null);
         }
 
-        var stepDocumentIds = workflowSteps
-            .Where(step => step.DocumentId.HasValue)
-            .Select(step => step.DocumentId!.Value)
-            .Distinct()
-            .ToList();
-
-        if (stepDocumentIds.Count > 0 && stepDocumentIds.Any(id => id != request.DocumentId))
-        {
-            return (false, "Workflow definition does not match selected document.", ApiErrorCodes.RequestValidationFailed, null);
-        }
+        // steps are already filtered by document, so no cross-document validation is required
 
         var instance = new WorkflowInstanceEntity
         {

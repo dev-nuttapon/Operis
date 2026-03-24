@@ -159,9 +159,9 @@ export function AppRouter() {
                 <Route path="projects/new" element={<ProjectCreatePage />} />
                 <Route path="projects/:projectId/edit" element={<ProjectEditPage />} />
                 <Route path="projects/:projectId/history" element={<ProjectHistoryPage />} />
-              <Route path="workflows" element={<WorkflowDefinitionsPage />} />
-              <Route path="workflows/new" element={<WorkflowDefinitionCreatePage />} />
-              <Route path="workflows/:workflowDefinitionId/edit" element={<WorkflowDefinitionEditPage />} />
+              <Route path="steps" element={<WorkflowDefinitionsPage />} />
+              <Route path="steps/new" element={<WorkflowDefinitionCreatePage />} />
+              <Route path="steps/:workflowDefinitionId/edit" element={<WorkflowDefinitionEditPage />} />
               <Route path="workspace" element={<WorkspaceProjectsPage />} />
               <Route path="workspace/:projectId" element={<WorkflowTasksPage />} />
               <Route path="workspace/:projectId/tasks/:workflowInstanceStepId" element={<WorkflowTaskDetailPage />} />

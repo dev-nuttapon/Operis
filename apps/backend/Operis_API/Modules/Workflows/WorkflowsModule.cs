@@ -20,8 +20,8 @@ public sealed class WorkflowsModule : IModule
 
     public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/v1/workflows")
-            .WithTags("Workflows")
+        var group = endpoints.MapGroup("/api/v1/steps")
+            .WithTags("Steps")
             .RequireAuthorization();
 
         group.MapGet("/definitions", ListWorkflowDefinitionsAsync)
@@ -127,7 +127,7 @@ public sealed class WorkflowsModule : IModule
 
         return result.Status switch
         {
-            WorkflowCommandStatus.Success => Results.Created($"/api/v1/workflows/definitions/{result.Response!.Id}", result.Response),
+            WorkflowCommandStatus.Success => Results.Created($"/api/v1/steps/definitions/{result.Response!.Id}", result.Response),
             WorkflowCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             WorkflowCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
             _ => BadRequestWithCode(null)
@@ -203,7 +203,7 @@ public sealed class WorkflowsModule : IModule
             cancellationToken);
 
         return result.Success
-            ? Results.Created($"/api/v1/workflows/instances/{result.Response!.Instance.Id}", result.Response)
+            ? Results.Created($"/api/v1/steps/instances/{result.Response!.Instance.Id}", result.Response)
             : BadRequestWithCode(result.Error, result.ErrorCode);
     }
 

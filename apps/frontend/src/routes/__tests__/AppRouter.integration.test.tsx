@@ -106,8 +106,8 @@ describe('AppRouter Integration Tests', () => {
     expect(window.location.pathname).toBe('/app/documents');
   });
 
-  it('renders the WorkflowDefinitionsPage when authenticated and visiting /app/workflows', async () => {
-    window.history.pushState({}, '', '/app/workflows');
+  it('renders the WorkflowDefinitionsPage when authenticated and visiting /app/steps', async () => {
+    window.history.pushState({}, '', '/app/steps');
 
     vi.spyOn(keycloakAuthService, 'initKeycloak').mockResolvedValue(true);
 
@@ -116,7 +116,7 @@ describe('AppRouter Integration Tests', () => {
     });
 
     expect(await screen.findByText('workflow_definitions.page_title')).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/app/workflows');
+    expect(window.location.pathname).toBe('/app/steps');
   });
 
   it('handles unknown routes by redirecting to /login fallback (`*`)', async () => {

@@ -181,22 +181,148 @@ public sealed class WorkflowCommands(
         var before = await LoadDetailContractAsync(entity.Id, cancellationToken);
         entity.Name = name;
         entity.Code = ToCode(name)!;
-        entity.DocumentTemplateId = request.DocumentTemplateId;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
 
         var existingSteps = await dbContext.WorkflowSteps
             .Where(x => x.WorkflowDefinitionId == entity.Id)
             .ToListAsync(cancellationToken);
+        var stepIds = existingSteps.Select(x => x.Id).ToList();
+        var existingRoles = stepIds.Count == 0
+            ? []
+            : await dbContext.WorkflowStepRoles
+                .Where(x => stepIds.Contains(x.WorkflowStepId))
+                .ToListAsync(cancellationToken);
+        var existingRoutes = stepIds.Count == 0
+            ? []
+            : await dbContext.WorkflowStepRoutes
+                .Where(x => stepIds.Contains(x.WorkflowStepId))
+                .ToListAsync(cancellationToken);
+
+        var hasInstances = await dbContext.WorkflowInstanceSteps
+            .AsNoTracking()
+            .AnyAsync(x => stepIds.Contains(x.WorkflowStepId), cancellationToken);
+
+        if (hasInstances)
+        {
+            var requestByOrder = request.Steps
+                .OrderBy(step => step.DisplayOrder)
+                .ToDictionary(step => step.DisplayOrder);
+            var existingByOrder = existingSteps
+                .OrderBy(step => step.DisplayOrder)
+                .ToDictionary(step => step.DisplayOrder);
+
+            var missingExisting = existingByOrder.Keys.Any(order => !requestByOrder.ContainsKey(order));
+            if (missingExisting)
+            {
+                return new WorkflowCommandResult(
+                    WorkflowCommandStatus.ValidationError,
+                    "Workflow definition already has instances and existing steps cannot be removed or reordered. Create a new workflow definition instead.",
+                    ApiErrorCodes.RequestValidationFailed);
+            }
+
+            foreach (var (order, existingStep) in existingByOrder)
+            {
+                var requestStep = requestByOrder[order];
+                existingStep.Name = requestStep.Name.Trim();
+                existingStep.StepType = requestStep.StepType.Trim().ToLowerInvariant();
+                existingStep.IsRequired = requestStep.IsRequired;
+                existingStep.DocumentId = requestStep.DocumentId;
+                existingStep.MinApprovals = NormalizeMinApprovals(requestStep.StepType, requestStep.MinApprovals);
+                existingStep.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
+            var newSteps = requestByOrder
+                .Where(pair => !existingByOrder.ContainsKey(pair.Key))
+                .OrderBy(pair => pair.Key)
+                .Select(pair => new WorkflowStepEntity
+                {
+                    Id = Guid.NewGuid(),
+                    WorkflowDefinitionId = entity.Id,
+                    DocumentId = pair.Value.DocumentId,
+                    Name = pair.Value.Name.Trim(),
+                    StepType = pair.Value.StepType.Trim().ToLowerInvariant(),
+                    DisplayOrder = pair.Value.DisplayOrder,
+                    IsRequired = pair.Value.IsRequired,
+                    MinApprovals = NormalizeMinApprovals(pair.Value.StepType, pair.Value.MinApprovals),
+                    CreatedAt = DateTimeOffset.UtcNow
+                })
+                .ToList();
+
+            entity.DocumentTemplateId = request.DocumentTemplateId;
+
+            dbContext.WorkflowStepRoles.RemoveRange(existingRoles);
+            dbContext.WorkflowStepRoutes.RemoveRange(existingRoutes);
+
+            if (newSteps.Count > 0)
+            {
+                dbContext.WorkflowSteps.AddRange(newSteps);
+            }
+
+            var allSteps = existingSteps.Concat(newSteps).OrderBy(step => step.DisplayOrder).ToList();
+
+            var updatedStepRoles = allSteps
+                .Join(request.Steps, entityStep => entityStep.DisplayOrder, requestStep => requestStep.DisplayOrder,
+                    (entityStep, requestStep) => new { entityStep, requestStep })
+                .SelectMany(pair => pair.requestStep.RoleIds.Distinct().Select(roleId => new WorkflowStepRoleEntity
+                {
+                    Id = Guid.NewGuid(),
+                    WorkflowStepId = pair.entityStep.Id,
+                    ProjectRoleId = roleId,
+                    CreatedAt = DateTimeOffset.UtcNow
+                }))
+                .ToList();
+
+            var updatedStepRoutes = BuildStepRoutes(request.Steps, allSteps);
+
+            await using var updateTransaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            dbContext.WorkflowStepRoles.AddRange(updatedStepRoles);
+            dbContext.WorkflowStepRoutes.AddRange(updatedStepRoutes);
+
+            auditLogWriter.Append(new AuditLogEntry(
+                Module: "workflows",
+                Action: "update",
+                EntityType: "workflow_definition",
+                EntityId: entity.Id.ToString(),
+                StatusCode: StatusCodes.Status200OK,
+                Before: before,
+                After: BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes),
+                Changes: new
+                {
+                    entity.Name,
+                    entity.Code,
+                    entity.UpdatedAt,
+                    Steps = allSteps.Select(step => new
+                    {
+                        step.Id,
+                        step.Name,
+                        step.StepType,
+                        step.DisplayOrder,
+                        step.IsRequired
+                    })
+                }));
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await updateTransaction.CommitAsync(cancellationToken);
+            await TryAppendBusinessEventAsync(
+                "workflows",
+                "workflow.definition.updated",
+                "workflow_definition",
+                entity.Id.ToString(),
+                "Updated workflow definition",
+                null,
+                new { before, after = BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes) },
+                cancellationToken);
+
+            return new WorkflowCommandResult(
+                WorkflowCommandStatus.Success,
+                Response: BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes));
+        }
+
+        entity.DocumentTemplateId = request.DocumentTemplateId;
 
         if (existingSteps.Count > 0)
         {
-            var stepIds = existingSteps.Select(x => x.Id).ToList();
-            var existingRoles = await dbContext.WorkflowStepRoles
-                .Where(x => stepIds.Contains(x.WorkflowStepId))
-                .ToListAsync(cancellationToken);
-            var existingRoutes = await dbContext.WorkflowStepRoutes
-                .Where(x => stepIds.Contains(x.WorkflowStepId))
-                .ToListAsync(cancellationToken);
             dbContext.WorkflowStepRoles.RemoveRange(existingRoles);
             dbContext.WorkflowStepRoutes.RemoveRange(existingRoutes);
             dbContext.WorkflowSteps.RemoveRange(existingSteps);
@@ -277,6 +403,7 @@ public sealed class WorkflowCommands(
             WorkflowCommandStatus.Success,
             Response: BuildDetailContract(entity, steps, stepRoles, stepRoutes));
     }
+
 
     public async Task<WorkflowCommandResult> ActivateDefinitionAsync(Guid workflowDefinitionId, CancellationToken cancellationToken)
     {
@@ -566,6 +693,7 @@ public sealed class WorkflowCommands(
         var displayOrders = new HashSet<int>();
         var roleIds = new HashSet<Guid>();
         var documentIds = new HashSet<Guid>();
+        var missingDocumentId = false;
 
         foreach (var step in steps)
         {
@@ -598,21 +726,17 @@ public sealed class WorkflowCommands(
             {
                 documentIds.Add(step.DocumentId.Value);
             }
+            else
+            {
+                missingDocumentId = true;
+            }
         }
 
-        if (documentIds.Count > 1)
+        if (documentTemplateId.HasValue && (documentIds.Count == 0 || missingDocumentId))
         {
             return new WorkflowCommandResult(
                 WorkflowCommandStatus.ValidationError,
-                "Workflow steps must reference a single document.",
-                ApiErrorCodes.RequestValidationFailed);
-        }
-
-        if (documentTemplateId.HasValue && documentIds.Count == 0)
-        {
-            return new WorkflowCommandResult(
-                WorkflowCommandStatus.ValidationError,
-                "Workflow document is required for the selected template.",
+                "Workflow steps must reference documents from the selected template.",
                 ApiErrorCodes.RequestValidationFailed);
         }
 
@@ -628,33 +752,33 @@ public sealed class WorkflowCommands(
             }
         }
 
-        if (documentIds.Count == 1)
+        if (documentIds.Count >= 1)
         {
-            var documentId = documentIds.First();
             var documentExists = await dbContext.Documents
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == documentId && !x.IsDeleted, cancellationToken);
-            if (!documentExists)
+                .Where(x => documentIds.Contains(x.Id) && !x.IsDeleted)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            if (documentExists.Count != documentIds.Count)
             {
                 return new WorkflowCommandResult(
                     WorkflowCommandStatus.ValidationError,
                     "Workflow document does not exist.",
                     ApiErrorCodes.RequestValidationFailed);
             }
-
-            if (steps.All(step => step.DocumentId.HasValue) && steps.First().DocumentId.HasValue)
-            {
-                // ok
-            }
         }
 
-        if (documentIds.Count == 1 && documentTemplateId.HasValue)
+        if (documentIds.Count >= 1 && documentTemplateId.HasValue)
         {
-            var documentId = documentIds.First();
-            var inTemplate = await dbContext.DocumentTemplateItems
+            var inTemplateCount = await dbContext.DocumentTemplateItems
                 .AsNoTracking()
-                .AnyAsync(x => x.TemplateId == documentTemplateId.Value && x.DocumentId == documentId, cancellationToken);
-            if (!inTemplate)
+                .Where(x => x.TemplateId == documentTemplateId.Value && documentIds.Contains(x.DocumentId))
+                .Select(x => x.DocumentId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            if (inTemplateCount != documentIds.Count)
             {
                 return new WorkflowCommandResult(
                     WorkflowCommandStatus.ValidationError,
