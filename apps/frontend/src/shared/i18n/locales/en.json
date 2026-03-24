@@ -402,7 +402,8 @@
       "history": "History",
       "send_invitation": "Send Invitation",
       "approve": "Approve",
-      "reject": "Reject"
+      "reject": "Reject",
+      "back": "Back"
     },
     "theme": {
       "light": "Light",

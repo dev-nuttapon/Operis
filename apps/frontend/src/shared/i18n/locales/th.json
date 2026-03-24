@@ -402,7 +402,8 @@
       "history": "ประวัติ",
       "send_invitation": "ส่งคำเชิญ",
       "approve": "อนุมัติ",
-      "reject": "ปฏิเสธ"
+      "reject": "ปฏิเสธ",
+      "back": "กลับ"
     },
     "theme": {
       "light": "สว่าง",
