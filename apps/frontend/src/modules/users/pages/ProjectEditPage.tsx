@@ -1,4 +1,4 @@
-import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid, Divider, Table, Select, Modal } from "antd";
+import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid, Divider, Table, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
@@ -28,7 +28,7 @@ function toUserLabel(user: User) {
 
 export function ProjectEditPage() {
   const { t } = useTranslation();
-  const { notification } = App.useApp();
+  const { notification, modal } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const screens = Grid.useBreakpoint();
@@ -243,10 +243,12 @@ export function ProjectEditPage() {
         align: "center",
         render: (_, record) => (
           <Button
+            type="text"
+            danger
             size="small"
             icon={<DeleteOutlined />}
             onClick={() => {
-              Modal.confirm({
+              modal.confirm({
                 title: t("projects.members.actions.remove_confirm_title"),
                 content: t("projects.members.actions.remove_confirm_description", { name: record.name }),
                 icon: <ExclamationCircleOutlined />,

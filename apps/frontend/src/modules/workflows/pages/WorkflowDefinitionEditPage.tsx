@@ -24,7 +24,7 @@ type StepDraft = {
 
 export function WorkflowDefinitionEditPage() {
   const { t } = useTranslation();
-  const { notification } = App.useApp();
+  const { notification, modal } = App.useApp();
   const navigate = useNavigate();
   const { workflowDefinitionId } = useParams<{ workflowDefinitionId: string }>();
   const screens = Grid.useBreakpoint();
@@ -476,7 +476,16 @@ export function WorkflowDefinitionEditPage() {
                         type="text"
                         danger
                         icon={<DeleteOutlined />}
-                        onClick={() => handleRemoveStep(index)}
+                        onClick={() => {
+                          modal.confirm({
+                            title: t("common.actions.delete"),
+                            content: t("workflow_definitions.steps.confirm_delete"),
+                            okText: t("common.actions.delete"),
+                            okButtonProps: { danger: true },
+                            cancelText: t("common.actions.cancel"),
+                            onOk: () => handleRemoveStep(index),
+                          });
+                        }}
                       >
                         {t("common.actions.delete")}
                       </Button>
