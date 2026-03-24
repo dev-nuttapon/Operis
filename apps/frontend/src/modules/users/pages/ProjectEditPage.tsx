@@ -39,7 +39,7 @@ export function ProjectEditPage() {
   const permissionState = usePermissions();
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
   const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
-  const canEditMembers = canManageProjectMembers || canManageProjects;
+  const canEditMembers = canManageProjectMembers;
   const canLoadProjectRoles = canEditMembers;
 
   const defaultBackTarget = "/app/projects";
@@ -59,7 +59,7 @@ export function ProjectEditPage() {
   });
 
   const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
-  const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
+  const userOptionsState = useProjectUserOptions(canEditMembers, toUserLabel);
   const projectRoleOptionsState = useProjectRoleOptions({ enabled: canLoadProjectRoles });
   const workflowDefinitionOptionsState = useWorkflowDefinitionOptions({ enabled: canManageProjects, status: "active" });
   const projectTypeOptions = useMemo(() => {

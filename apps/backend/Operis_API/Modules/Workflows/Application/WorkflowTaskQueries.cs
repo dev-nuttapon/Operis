@@ -49,6 +49,19 @@ public sealed class WorkflowTaskQueries(OperisDbContext dbContext) : IWorkflowTa
             baseQuery = baseQuery.Where(x => x.ProjectId == query.ProjectId.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(currentUserId))
+        {
+            baseQuery = baseQuery.Where(item =>
+                dbContext.WorkflowStepRoles.Any(stepRole =>
+                    stepRole.WorkflowStepId == item.WorkflowStepId &&
+                    dbContext.UserProjectAssignments.Any(assignment =>
+                        assignment.UserId == currentUserId &&
+                        assignment.ProjectId == item.ProjectId &&
+                        assignment.ProjectRoleId == stepRole.ProjectRoleId &&
+                        assignment.Status == "Active" &&
+                        (assignment.EndAt == null || assignment.EndAt > now))));
+        }
+
         var total = await baseQuery.CountAsync(cancellationToken);
 
         var pageItems = await baseQuery
@@ -118,6 +131,20 @@ public sealed class WorkflowTaskQueries(OperisDbContext dbContext) : IWorkflowTa
                 canAct = assignedRoles.Intersect(roleIds).Any();
             }
 
+            var relevantRoleNames = roleNames;
+            if (assignedRoles is not null && assignedRoles.Count > 0)
+            {
+                var names = roleLookup
+                    .Where(x => x.WorkflowStepId == item.WorkflowStepId && assignedRoles.Contains(x.ProjectRoleId))
+                    .Select(x => x.Name)
+                    .Distinct()
+                    .ToArray();
+                if (names.Length > 0)
+                {
+                    relevantRoleNames = string.Join(", ", names);
+                }
+            }
+
             return new WorkflowTaskListItem(
                 item.InstanceId,
                 item.InstanceStepId,
@@ -127,7 +154,7 @@ public sealed class WorkflowTaskQueries(OperisDbContext dbContext) : IWorkflowTa
                 item.DocumentName ?? "-",
                 item.Name ?? "-",
                 item.StepType ?? "-",
-                roleNames ?? "-",
+                relevantRoleNames ?? "-",
                 item.Status ?? "-",
                 null,
                 canAct);
