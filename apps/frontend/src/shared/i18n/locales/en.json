@@ -1450,6 +1450,7 @@
       "uploaded_at": "Uploaded date",
       "document_count": "Total files",
       "published_version": "Published version",
+      "latest_published_version": "Latest published version",
       "created_at": "Created date",
       "published_revision": "Published revision",
       "status": "Status",
@@ -1599,11 +1600,13 @@
       "empty_selection": "No documents selected yet.",
       "fields": {
         "name": "Template name",
-        "documents": "Documents in template"
+        "documents": "Documents in template",
+        "version": "Document version"
       },
       "placeholders": {
         "name": "e.g. ISO Project Starter",
-        "documents": "Select documents to include"
+        "documents": "Select documents to include",
+        "version": "Select document version"
       },
       "validation": {
         "name_required": "Please enter a template name",
@@ -1624,7 +1627,11 @@
         "add_document": "Add to list",
         "remove_document": "Remove",
         "available_documents": "Available documents",
-        "selected_documents": "Selected documents"
+        "selected_documents": "Selected documents",
+        "refresh_item": "Update version",
+        "refresh_item_title": "Update document version",
+        "refresh_item_description": "Choose which version of the document to use in this template.",
+        "refresh_item_confirm": "Update version"
       },
       "history": {
         "title": "Template History",
@@ -1657,6 +1664,7 @@
         "create_failed": "Unable to create template",
         "updated": "Template updated",
         "update_failed": "Unable to update template",
+        "confirm_remove_document": "Remove this document from the template?",
         "load_failed": "Unable to load template details",
         "loading": "Loading template details..."
       }

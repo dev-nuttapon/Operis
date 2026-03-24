@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { App, Button, Card, Form, Input, Space, Typography, Alert, Table, Flex, Grid, Tooltip, Select } from "antd";
+import { App, Button, Card, Form, Input, Space, Typography, Alert, Table, Flex, Grid, Tooltip, Select, Modal, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
-import { useDocumentOptions, useDocumentTemplate, useUpdateDocumentTemplate } from "../hooks/useDocumentTemplates";
+import { useDocumentOptions, useDocumentTemplate, useRefreshDocumentTemplateItemVersion, useUpdateDocumentTemplate } from "../hooks/useDocumentTemplates";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import type { DocumentListItemView } from "../types/documents";
+import { useDocumentVersions } from "../hooks/useDocuments";
+import type { DocumentTemplateItemDetail } from "../types/documentTemplates";
 
 type TemplateFormValues = {
   name: string;
@@ -18,11 +20,14 @@ type TemplateFormValues = {
 type SelectedDocumentRow = {
   id: string;
   documentName: string;
+  documentVersionId?: string | null;
   fileName?: string | null;
   contentType?: string | null;
   sizeBytes?: number | null;
   publishedVersionCode?: string | null;
   publishedRevision?: number | null;
+  latestPublishedVersionCode?: string | null;
+  latestPublishedRevision?: number | null;
 };
 
 const toSizeLabel = (bytes?: number | null) => {
@@ -76,15 +81,26 @@ export function DocumentTemplateEditPage() {
   const permissionState = usePermissions();
   const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
   const canUpdateTemplates = permissionState.hasPermission(permissions.documents.upload);
+  const canManageVersions = permissionState.hasPermission(permissions.documents.manageVersions);
+  const canRefreshVersions = canUpdateTemplates || canManageVersions;
   const [form] = Form.useForm<TemplateFormValues>();
   const [submitting, setSubmitting] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [selectedRows, setSelectedRows] = useState<SelectedDocumentRow[]>([]);
   const [documentSelectionError, setDocumentSelectionError] = useState<string | null>(null);
+  const [versionModalOpen, setVersionModalOpen] = useState(false);
+  const [versionDocumentId, setVersionDocumentId] = useState<string | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
   const documentOptions = useDocumentOptions(canReadDocuments);
   const templateQuery = useDocumentTemplate(templateId ?? null, Boolean(templateId));
   const updateTemplateMutation = useUpdateDocumentTemplate();
+  const refreshItemMutation = useRefreshDocumentTemplateItemVersion();
+  const versionsQuery = useDocumentVersions(
+    versionDocumentId,
+    { page: 1, pageSize: 200 },
+    versionModalOpen && Boolean(versionDocumentId) && canReadDocuments,
+  );
   const optionMetaById = useMemo(
     () => new Map(documentOptions.options.map((option) => [option.value, option.meta] as const)),
     [documentOptions.options],
@@ -94,21 +110,28 @@ export function DocumentTemplateEditPage() {
     if (!templateQuery.data || !templateId) return;
     form.setFieldsValue({
       name: templateQuery.data.name,
-      documentIds: templateQuery.data.documentIds,
     });
-    const resolved = templateQuery.data.documentIds
-      .map((id: string) => optionMetaById.get(id))
-      .filter((item): item is DocumentListItemView => Boolean(item));
+    const items = (templateQuery.data.items ?? []) as DocumentTemplateItemDetail[];
+    if (items.length === 0) {
+      setSelectedRows([]);
+      return;
+    }
     setSelectedRows(
-      resolved.map((item) => ({
-        id: item.id,
-        documentName: item.documentName,
-        fileName: item.fileName,
-        contentType: item.contentType,
-        sizeBytes: item.sizeBytes,
-        publishedVersionCode: item.publishedVersionCode,
-        publishedRevision: item.publishedRevision,
-      })),
+      items.map((item) => {
+        const meta = optionMetaById.get(item.documentId);
+        return {
+          id: item.documentId,
+          documentName: item.documentName ?? meta?.documentName ?? item.documentId,
+          documentVersionId: item.documentVersionId ?? null,
+          fileName: meta?.fileName ?? null,
+          contentType: meta?.contentType ?? null,
+          sizeBytes: meta?.sizeBytes ?? null,
+          publishedVersionCode: item.versionCode ?? null,
+          publishedRevision: item.revision ?? null,
+          latestPublishedVersionCode: meta?.publishedVersionCode ?? null,
+          latestPublishedRevision: meta?.publishedRevision ?? null,
+        };
+      }),
     );
   }, [form, optionMetaById, templateId, templateQuery.data]);
 
@@ -134,14 +157,16 @@ export function DocumentTemplateEditPage() {
         {
           id: item.id,
           documentName: item.documentName,
+          documentVersionId: null,
           fileName: item.fileName,
           contentType: item.contentType,
           sizeBytes: item.sizeBytes,
           publishedVersionCode: item.publishedVersionCode,
           publishedRevision: item.publishedRevision,
+          latestPublishedVersionCode: item.publishedVersionCode,
+          latestPublishedRevision: item.publishedRevision,
         },
       ];
-      form.setFieldsValue({ documentIds: next.map((row) => row.id) });
       return next;
     });
     setSelectedDocumentId(null);
@@ -149,10 +174,18 @@ export function DocumentTemplateEditPage() {
   };
 
   const handleRemoveDocument = (id: string) => {
-    setSelectedRows((current) => {
-      const next = current.filter((row) => row.id !== id);
-      form.setFieldsValue({ documentIds: next.map((row) => row.id) });
-      return next;
+    Modal.confirm({
+      title: t("common.actions.confirm_delete"),
+      content: t("documents.templates.messages.confirm_remove_document"),
+      icon: <ExclamationCircleOutlined />,
+      okText: t("common.actions.confirm_delete"),
+      cancelText: t("common.actions.cancel"),
+      okButtonProps: { danger: true },
+      onOk: () =>
+        setSelectedRows((current) => {
+          const next = current.filter((row) => row.id !== id);
+          return next;
+        }),
     });
   };
 
@@ -182,6 +215,30 @@ export function DocumentTemplateEditPage() {
     );
   };
 
+  const handleOpenVersionPicker = (record: SelectedDocumentRow) => {
+    setVersionDocumentId(record.id);
+    setSelectedVersionId(record.documentVersionId ?? null);
+    setVersionModalOpen(true);
+  };
+
+  const handleConfirmVersion = async () => {
+    if (!templateId || !versionDocumentId || !selectedVersionId) {
+      return;
+    }
+    try {
+      await refreshItemMutation.mutateAsync({
+        templateId,
+        documentId: versionDocumentId,
+        documentVersionId: selectedVersionId,
+      });
+      notification.success({ message: t("documents.templates.messages.updated") });
+      setVersionModalOpen(false);
+    } catch (error) {
+      const presentation = getApiErrorPresentation(error, t("documents.templates.messages.update_failed"));
+      notification.error({ message: presentation.title, description: presentation.description });
+    }
+  };
+
   const columns = useMemo<ColumnsType<SelectedDocumentRow>>(
     () => [
       { title: t("documents.columns.document_name"), dataIndex: "documentName" },
@@ -189,25 +246,49 @@ export function DocumentTemplateEditPage() {
       { title: t("documents.columns.content_type"), dataIndex: "contentType", render: (value) => toFileExtension(value) },
       { title: t("documents.columns.size"), dataIndex: "sizeBytes", render: (value) => toSizeLabel(value) },
       { title: t("documents.columns.published_version"), dataIndex: "publishedVersionCode", render: (value) => value ?? "-" },
-      { title: t("documents.columns.published_revision"), dataIndex: "publishedRevision", render: (value) => (value ? `r${value}` : "-") },
+      {
+        title: t("documents.columns.latest_published_version"),
+        dataIndex: "latestPublishedVersionCode",
+        render: (value) => value ?? "-",
+      },
       {
         title: "",
         key: "remove",
         align: "center",
         render: (_, record) => (
-          <Button
-            type="text"
-            danger
-            size="small"
-            icon={<DeleteOutlined />}
-            onClick={() => handleRemoveDocument(record.id)}
-          >
-            {t("common.actions.delete")}
-          </Button>
+          <Space size={4}>
+            <Button
+              type="text"
+              size="small"
+              disabled={!canRefreshVersions || refreshItemMutation.isPending}
+              onClick={() => handleOpenVersionPicker(record)}
+            >
+              {t("documents.templates.actions.refresh_item")}
+            </Button>
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => handleRemoveDocument(record.id)}
+            >
+              {t("common.actions.delete")}
+            </Button>
+          </Space>
         ),
       },
     ],
-    [handleRemoveDocument, t],
+    [canUpdateTemplates, canRefreshVersions, handleRemoveDocument, refreshItemMutation.isPending, t],
+  );
+
+  const versionOptions = useMemo(
+    () =>
+      (versionsQuery.data?.items ?? []).map((version) => ({
+        value: version.id,
+        label: `${version.versionCode ?? "-"} (Rev ${version.revision ?? "-"})`,
+        isPublished: version.isPublished,
+      })),
+    [versionsQuery.data?.items],
   );
 
   return (
@@ -328,7 +409,7 @@ export function DocumentTemplateEditPage() {
                 locale={{ emptyText: t("documents.templates.empty_selection") }}
               />
             </Form>
-            <Flex justify="flex-start">
+            <Flex gap={12} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"} justify="flex-start">
               <Button
                 type="primary"
                 icon={<SaveOutlined />}
@@ -340,6 +421,45 @@ export function DocumentTemplateEditPage() {
                 {t("documents.templates.edit_page_submit")}
               </Button>
             </Flex>
+            <Modal
+              open={versionModalOpen}
+              title={t("documents.templates.actions.refresh_item_title")}
+              okText={t("documents.templates.actions.refresh_item_confirm")}
+              cancelText={t("common.actions.cancel")}
+              onCancel={() => setVersionModalOpen(false)}
+              onOk={() => void handleConfirmVersion()}
+              okButtonProps={{
+                disabled: !selectedVersionId || refreshItemMutation.isPending,
+                loading: refreshItemMutation.isPending,
+              }}
+            >
+              <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                <Typography.Text type="secondary">
+                  {t("documents.templates.actions.refresh_item_description")}
+                </Typography.Text>
+                <Form layout="vertical">
+                  <Form.Item label={t("documents.templates.fields.version")}>
+                    <Select
+                      showSearch
+                      optionFilterProp="label"
+                      placeholder={t("documents.templates.placeholders.version")}
+                      value={selectedVersionId ?? undefined}
+                      options={versionOptions}
+                      loading={versionsQuery.isLoading}
+                      onChange={(value) => setSelectedVersionId(value)}
+                      optionRender={(option) => (
+                        <Space size={8}>
+                          <span>{option.label}</span>
+                          {option.data.isPublished ? (
+                            <Tag color="green">{t("documents.version_status.published")}</Tag>
+                          ) : null}
+                        </Space>
+                      )}
+                    />
+                  </Form.Item>
+                </Form>
+              </Space>
+            </Modal>
           </>
         )}
       </Card>

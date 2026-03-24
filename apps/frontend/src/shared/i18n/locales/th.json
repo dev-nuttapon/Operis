@@ -1450,6 +1450,7 @@
       "uploaded_at": "วันที่อัปโหลด",
       "document_count": "จำนวนเอกสาร",
       "published_version": "เวอร์ชันที่ประกาศใช้",
+      "latest_published_version": "เวอร์ชันล่าสุดที่ประกาศใช้",
       "created_at": "วันที่สร้าง",
       "published_revision": "Revisionที่ประกาศใช้",
       "status": "สถานะ",
@@ -1599,11 +1600,13 @@
       "empty_selection": "ยังไม่ได้เลือกเอกสาร",
       "fields": {
         "name": "ชื่อเทมเพลต",
-        "documents": "เอกสารที่อยู่ในเทมเพลต"
+        "documents": "เอกสารที่อยู่ในเทมเพลต",
+        "version": "เวอร์ชันเอกสาร"
       },
       "placeholders": {
         "name": "เช่น ISO Project Starter",
-        "documents": "เลือกเอกสารที่จะอยู่ในเทมเพลต"
+        "documents": "เลือกเอกสารที่จะอยู่ในเทมเพลต",
+        "version": "เลือกเวอร์ชันเอกสาร"
       },
       "validation": {
         "name_required": "กรุณาระบุชื่อเทมเพลต",
@@ -1624,7 +1627,11 @@
         "add_document": "เพิ่มเข้าตาราง",
         "remove_document": "นำออก",
         "available_documents": "เอกสารที่เลือกได้",
-        "selected_documents": "เอกสารที่เลือกแล้ว"
+        "selected_documents": "เอกสารที่เลือกแล้ว",
+        "refresh_item": "อัปเดทเวอร์ชัน",
+        "refresh_item_title": "อัปเดทเวอร์ชันเอกสาร",
+        "refresh_item_description": "เลือกเวอร์ชันของเอกสารที่จะใช้ในเทมเพลต",
+        "refresh_item_confirm": "อัปเดทเวอร์ชัน"
       },
       "history": {
         "title": "ประวัติเทมเพลต",
@@ -1657,6 +1664,7 @@
         "create_failed": "ไม่สามารถสร้างเทมเพลตได้",
         "updated": "แก้ไขเทมเพลตแล้ว",
         "update_failed": "ไม่สามารถแก้ไขเทมเพลตได้",
+        "confirm_remove_document": "ยืนยันการนำเอกสารออกจากเทมเพลตนี้หรือไม่",
         "load_failed": "ไม่สามารถโหลดรายละเอียดเทมเพลตได้",
         "loading": "กำลังโหลดรายละเอียดเทมเพลต..."
       }

@@ -6,6 +6,7 @@ import {
   getDocumentTemplate,
   listDocumentTemplates,
   listDocumentTemplateHistory,
+  refreshDocumentTemplateItemVersion,
   updateDocumentTemplate,
   type DocumentTemplateListInput,
   type DocumentTemplateHistoryListInput,
@@ -50,6 +51,18 @@ export function useUpdateDocumentTemplate() {
       updateDocumentTemplate(templateId, payload),
     onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({ queryKey: ["documents", "templates"] });
+      await queryClient.invalidateQueries({ queryKey: ["documents", "templates", variables.templateId] });
+    },
+  });
+}
+
+export function useRefreshDocumentTemplateItemVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ templateId, documentId, documentVersionId }: { templateId: string; documentId: string; documentVersionId?: string | null }) =>
+      refreshDocumentTemplateItemVersion(templateId, documentId, documentVersionId),
+    onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({ queryKey: ["documents", "templates", variables.templateId] });
     },
   });

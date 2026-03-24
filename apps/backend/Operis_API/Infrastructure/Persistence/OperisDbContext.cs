@@ -167,6 +167,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.TemplateId).HasColumnName("template_id");
             entity.Property(x => x.DocumentId).HasColumnName("document_id");
+            entity.Property(x => x.DocumentVersionId).HasColumnName("document_version_id");
             entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
             entity.HasOne<DocumentTemplateEntity>()
                 .WithMany()
@@ -176,8 +177,13 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
                 .WithMany()
                 .HasForeignKey(x => x.DocumentId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<DocumentVersionEntity>()
+                .WithMany()
+                .HasForeignKey(x => x.DocumentVersionId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => x.TemplateId);
             entity.HasIndex(x => x.DocumentId);
+            entity.HasIndex(x => x.DocumentVersionId);
             entity.HasIndex(x => new { x.TemplateId, x.DocumentId }).IsUnique();
         });
 

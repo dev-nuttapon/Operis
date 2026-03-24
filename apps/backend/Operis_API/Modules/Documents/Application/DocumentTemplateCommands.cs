@@ -30,8 +30,11 @@ public sealed class DocumentTemplateCommands(
         var existingDocuments = await dbContext.Documents
             .AsNoTracking()
             .Where(x => !x.IsDeleted && documentIds.Contains(x.Id))
-            .Select(x => x.Id)
+            .Select(x => new { x.Id, x.PublishedVersionId })
             .ToListAsync(cancellationToken);
+        var existingDocumentIds = existingDocuments.Select(x => x.Id).ToList();
+        var documentVersionById = existingDocuments
+            .ToDictionary(x => x.Id, x => x.PublishedVersionId);
 
         var template = new DocumentTemplateEntity
         {
@@ -44,11 +47,12 @@ public sealed class DocumentTemplateCommands(
 
         dbContext.DocumentTemplates.Add(template);
 
-        var items = existingDocuments.Select((documentId, index) => new DocumentTemplateItemEntity
+        var items = documentIds.Select((documentId, index) => new DocumentTemplateItemEntity
         {
             Id = Guid.NewGuid(),
             TemplateId = templateId,
             DocumentId = documentId,
+            DocumentVersionId = documentVersionById.GetValueOrDefault(documentId),
             DisplayOrder = index + 1,
         });
 
@@ -60,23 +64,25 @@ public sealed class DocumentTemplateCommands(
             "template_create",
             template.Id,
             template.Name,
-            new { template.Name, DocumentCount = existingDocuments.Count },
+            new { template.Name, DocumentCount = existingDocumentIds.Count },
             cancellationToken);
 
         await TryAppendHistoryAsync(
             template.Id,
             "create",
             null,
-            new { template.Name, DocumentIds = existingDocuments },
+            new { template.Name, DocumentIds = existingDocumentIds },
             template.Name,
             null,
-            new { DocumentCount = existingDocuments.Count },
+            new { DocumentCount = existingDocumentIds.Count },
             cancellationToken);
 
+        var responseItems = await LoadTemplateItemsAsync(template.Id, cancellationToken);
         return new DocumentTemplateResponse(
             template.Id,
             template.Name,
-            existingDocuments,
+            responseItems.Select(item => item.DocumentId).ToList(),
+            responseItems,
             template.CreatedAt);
     }
 
@@ -101,8 +107,11 @@ public sealed class DocumentTemplateCommands(
         var existingDocuments = await dbContext.Documents
             .AsNoTracking()
             .Where(x => !x.IsDeleted && documentIds.Contains(x.Id))
-            .Select(x => x.Id)
+            .Select(x => new { x.Id, x.PublishedVersionId })
             .ToListAsync(cancellationToken);
+        var existingDocumentIds = existingDocuments.Select(x => x.Id).ToList();
+        var documentVersionById = existingDocuments
+            .ToDictionary(x => x.Id, x => x.PublishedVersionId);
 
         var oldItems = await dbContext.DocumentTemplateItems
             .Where(x => x.TemplateId == command.TemplateId)
@@ -116,11 +125,12 @@ public sealed class DocumentTemplateCommands(
         var updated = template with { Name = command.Name.Trim() };
         dbContext.DocumentTemplates.Update(updated);
 
-        var items = existingDocuments.Select((documentId, index) => new DocumentTemplateItemEntity
+        var items = documentIds.Select((documentId, index) => new DocumentTemplateItemEntity
         {
             Id = Guid.NewGuid(),
             TemplateId = command.TemplateId,
             DocumentId = documentId,
+            DocumentVersionId = documentVersionById.GetValueOrDefault(documentId),
             DisplayOrder = index + 1,
         });
 
@@ -132,7 +142,7 @@ public sealed class DocumentTemplateCommands(
             "template_update",
             updated.Id,
             updated.Name,
-            new { updated.Name, DocumentCount = existingDocuments.Count },
+            new { updated.Name, DocumentCount = existingDocumentIds.Count },
             cancellationToken);
 
         var previousDocumentIds = oldItems.Select(x => x.DocumentId).ToList();
@@ -140,17 +150,127 @@ public sealed class DocumentTemplateCommands(
             updated.Id,
             "update",
             new { template.Name, DocumentIds = previousDocumentIds },
-            new { updated.Name, DocumentIds = existingDocuments },
+            new { updated.Name, DocumentIds = existingDocumentIds },
             updated.Name,
             null,
-            new { DocumentCount = existingDocuments.Count },
+            new { DocumentCount = existingDocumentIds.Count },
             cancellationToken);
 
+        var responseItems = await LoadTemplateItemsAsync(updated.Id, cancellationToken);
         return new DocumentTemplateResponse(
             updated.Id,
             updated.Name,
-            existingDocuments,
+            responseItems.Select(item => item.DocumentId).ToList(),
+            responseItems,
             updated.CreatedAt);
+    }
+
+    private async Task<IReadOnlyList<DocumentTemplateItemResponse>> LoadTemplateItemsAsync(
+        Guid templateId,
+        CancellationToken cancellationToken)
+    {
+        return await (from item in dbContext.DocumentTemplateItems.AsNoTracking()
+                join doc in dbContext.Documents.AsNoTracking() on item.DocumentId equals doc.Id
+                join version in dbContext.DocumentVersions.AsNoTracking() on item.DocumentVersionId equals version.Id into versions
+                from version in versions.DefaultIfEmpty()
+                where item.TemplateId == templateId
+                orderby item.DisplayOrder
+                select new DocumentTemplateItemResponse(
+                    item.DocumentId,
+                    item.DocumentVersionId,
+                    doc.DocumentName,
+                    version != null ? version.VersionCode : null,
+                    version != null ? (int?)version.Revision : null))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<DocumentTemplateItemResponse> RefreshTemplateItemVersionAsync(
+        DocumentTemplateItemRefreshCommand command,
+        CancellationToken cancellationToken)
+    {
+        var template = await dbContext.DocumentTemplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == command.TemplateId, cancellationToken);
+
+        if (template is null)
+        {
+            throw new InvalidOperationException("Template not found.");
+        }
+
+        var document = await dbContext.Documents
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == command.DocumentId, cancellationToken);
+
+        if (document is null)
+        {
+            throw new InvalidOperationException("Document does not exist.");
+        }
+
+        Guid? targetVersionId = null;
+        if (command.DocumentVersionId is not null)
+        {
+            var exists = await dbContext.DocumentVersions
+                .AsNoTracking()
+                .AnyAsync(
+                    x => !x.IsDeleted
+                         && x.Id == command.DocumentVersionId
+                         && x.DocumentId == command.DocumentId,
+                    cancellationToken);
+
+            if (!exists)
+            {
+                throw new InvalidOperationException("Document version does not exist.");
+            }
+
+            targetVersionId = command.DocumentVersionId;
+        }
+        else
+        {
+            if (document.PublishedVersionId is null)
+            {
+                throw new InvalidOperationException("Document must have a published version.");
+            }
+
+            targetVersionId = document.PublishedVersionId;
+        }
+
+        var item = await dbContext.DocumentTemplateItems
+            .FirstOrDefaultAsync(x => x.TemplateId == command.TemplateId && x.DocumentId == command.DocumentId, cancellationToken);
+
+        if (item is null)
+        {
+            throw new InvalidOperationException("Template item not found.");
+        }
+
+        var updated = item with { DocumentVersionId = targetVersionId };
+        dbContext.DocumentTemplateItems.Update(updated);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await TryAppendBusinessEventAsync(
+            "template_refresh_version",
+            template.Id,
+            template.Name,
+            new { template.Name, DocumentId = command.DocumentId, DocumentVersionId = updated.DocumentVersionId },
+            cancellationToken);
+
+        await TryAppendHistoryAsync(
+            template.Id,
+            "update_version",
+            new { DocumentId = command.DocumentId, DocumentVersionId = item.DocumentVersionId },
+            new { DocumentId = command.DocumentId, DocumentVersionId = updated.DocumentVersionId },
+            template.Name,
+            null,
+            new { DocumentId = command.DocumentId },
+            cancellationToken);
+
+        var refreshed = await LoadTemplateItemsAsync(command.TemplateId, cancellationToken);
+        var responseItem = refreshed.FirstOrDefault(x => x.DocumentId == command.DocumentId);
+        return responseItem ?? new DocumentTemplateItemResponse(
+            command.DocumentId,
+            updated.DocumentVersionId,
+            document.DocumentName,
+            null,
+            null);
     }
 
     private async Task TryAppendBusinessEventAsync(

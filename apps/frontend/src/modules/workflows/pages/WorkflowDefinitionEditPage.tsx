@@ -63,8 +63,10 @@ export function WorkflowDefinitionEditPage() {
     canManage,
   );
   const templateDetailState = useDocumentTemplate(selectedTemplateId, Boolean(selectedTemplateId));
+  const templateItems = templateDetailState.data?.items ?? [];
   const templateDocumentIds =
     (templateDetailState.data?.documentIds
+      ?? templateItems.map((item) => item.documentId)
       ?? (templateDetailState.data as { DocumentIds?: string[] } | null)?.DocumentIds
       ?? []) as string[];
   const templateDocumentsState = useDocumentsByIds(
@@ -96,10 +98,19 @@ export function WorkflowDefinitionEditPage() {
     () => new Map((templateDocumentsState.data ?? []).map((doc) => [doc.id, doc.documentName] as const)),
     [templateDocumentsState.data],
   );
-  const documentPublishedById = useMemo(
-    () => new Map((templateDocumentsState.data ?? []).map((doc) => [doc.id, formatPublishedVersion(doc)] as const)),
-    [formatPublishedVersion, templateDocumentsState.data],
-  );
+  const documentPublishedById = useMemo(() => {
+    if (templateItems.length > 0) {
+      return new Map(
+        templateItems.map((item) => [
+          item.documentId,
+          item.versionCode
+            ? `${item.versionCode}${item.revision ? ` r${item.revision}` : ""}`
+            : t("workflow_definitions.steps.document_unpublished"),
+        ] as const),
+      );
+    }
+    return new Map((templateDocumentsState.data ?? []).map((doc) => [doc.id, formatPublishedVersion(doc)] as const));
+  }, [formatPublishedVersion, templateDocumentsState.data, templateItems, t]);
 
   useEffect(() => {
     if (!definitionQuery.data) return;

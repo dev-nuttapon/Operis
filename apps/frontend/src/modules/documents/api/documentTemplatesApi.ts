@@ -1,6 +1,6 @@
 import { apiRequest } from "../../../shared/lib/apiClient";
 import type { PaginatedResult } from "../../../shared/types/pagination";
-import type { DocumentTemplateCreateInput, DocumentTemplateDetail, DocumentTemplateHistoryItem, DocumentTemplateListItem } from "../types/documentTemplates";
+import type { DocumentTemplateCreateInput, DocumentTemplateDetail, DocumentTemplateHistoryItem, DocumentTemplateItemDetail, DocumentTemplateListItem } from "../types/documentTemplates";
 
 export type DocumentTemplateListInput = {
   search?: string;
@@ -32,6 +32,17 @@ export function updateDocumentTemplate(templateId: string, input: DocumentTempla
   return apiRequest<DocumentTemplateDetail>(`/api/v1/documents/templates/${templateId}`, {
     method: "PUT",
     body: input,
+  });
+}
+
+export function refreshDocumentTemplateItemVersion(
+  templateId: string,
+  documentId: string,
+  documentVersionId?: string | null,
+) {
+  return apiRequest<DocumentTemplateItemDetail>(`/api/v1/documents/templates/${templateId}/items/${documentId}/refresh-version`, {
+    method: "POST",
+    body: documentVersionId ? { documentVersionId } : undefined,
   });
 }
 

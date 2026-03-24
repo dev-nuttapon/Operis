@@ -9,7 +9,16 @@ export interface DocumentTemplateDetail {
   id: string;
   name: string;
   documentIds: string[];
+  items: DocumentTemplateItemDetail[];
   createdAt: string;
+}
+
+export interface DocumentTemplateItemDetail {
+  documentId: string;
+  documentVersionId: string | null;
+  documentName: string | null;
+  versionCode: string | null;
+  revision: number | null;
 }
 
 export interface DocumentTemplateCreateInput {

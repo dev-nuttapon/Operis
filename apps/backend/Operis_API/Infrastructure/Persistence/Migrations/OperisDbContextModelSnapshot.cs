@@ -433,6 +433,10 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("document_id");
 
+                    b.Property<Guid?>("DocumentVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_version_id");
+
                     b.Property<Guid>("TemplateId")
                         .HasColumnType("uuid")
                         .HasColumnName("template_id");
@@ -440,6 +444,8 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("DocumentVersionId");
 
                     b.HasIndex("TemplateId");
 
@@ -2338,6 +2344,11 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Documents.Infrastructure.DocumentVersionEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Operis_API.Modules.Documents.Infrastructure.DocumentTemplateEntity", null)
                         .WithMany()

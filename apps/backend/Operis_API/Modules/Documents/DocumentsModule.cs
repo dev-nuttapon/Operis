@@ -67,6 +67,8 @@ public sealed class DocumentsModule : IModule
             .WithName("Documents_GetTemplate");
         group.MapPut("/templates/{templateId:guid}", UpdateDocumentTemplateAsync)
             .WithName("Documents_UpdateTemplate");
+        group.MapPost("/templates/{templateId:guid}/items/{documentId:guid}/refresh-version", RefreshDocumentTemplateItemVersionAsync)
+            .WithName("Documents_TemplateRefreshItemVersion");
         group.MapGet("/templates/{templateId:guid}/history", ListDocumentTemplateHistoryAsync)
             .WithName("Documents_TemplateHistory");
 
@@ -120,7 +122,8 @@ public sealed class DocumentsModule : IModule
         HttpRequest request,
         CancellationToken cancellationToken)
     {
-        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload))
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload)
+            && !permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
         {
             return Results.Forbid();
         }
@@ -402,6 +405,7 @@ public sealed class DocumentsModule : IModule
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
         IDocumentTemplateCommands commands,
+        IDocumentTemplateQueries queries,
         DocumentTemplateCreateRequest request,
         CancellationToken cancellationToken)
     {
@@ -413,6 +417,12 @@ public sealed class DocumentsModule : IModule
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequestWithCode("A template name is required.", ApiErrorCodes.RequestValidationFailed);
+        }
+
+        var validation = await queries.ValidateTemplateDocumentsAsync(request.DocumentIds, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return BadRequestWithCode(validation.ErrorMessage, ApiErrorCodes.RequestValidationFailed);
         }
 
         var result = await commands.CreateTemplateAsync(
@@ -466,6 +476,12 @@ public sealed class DocumentsModule : IModule
             return NotFoundWithCode();
         }
 
+        var validation = await queries.ValidateTemplateDocumentsAsync(request.DocumentIds, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return BadRequestWithCode(validation.ErrorMessage, ApiErrorCodes.RequestValidationFailed);
+        }
+
         var result = await commands.UpdateTemplateAsync(
             new DocumentTemplateUpdateCommand(
                 templateId,
@@ -475,6 +491,49 @@ public sealed class DocumentsModule : IModule
             cancellationToken);
 
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> RefreshDocumentTemplateItemVersionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentTemplateCommands commands,
+        IDocumentTemplateQueries queries,
+        Guid templateId,
+        Guid documentId,
+        DocumentTemplateItemVersionUpdateRequest? request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload)
+            && !permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
+        {
+            return Results.Forbid();
+        }
+
+        var existing = await queries.GetTemplateAsync(templateId, cancellationToken);
+        if (existing is null)
+        {
+            return NotFoundWithCode();
+        }
+
+        try
+        {
+            var result = await commands.RefreshTemplateItemVersionAsync(
+                new DocumentTemplateItemRefreshCommand(
+                    templateId,
+                    documentId,
+                    request?.DocumentVersionId,
+                    principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
+                cancellationToken);
+            return Results.Ok(result);
+        }
+        catch (InvalidOperationException ex) when (string.Equals(ex.Message, "Template not found.", StringComparison.Ordinal))
+        {
+            return NotFoundWithCode();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequestWithCode(ex.Message, ApiErrorCodes.RequestValidationFailed);
+        }
     }
 
     private static async Task<IResult> ListDocumentTemplateHistoryAsync(

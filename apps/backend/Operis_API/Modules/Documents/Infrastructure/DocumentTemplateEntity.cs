@@ -17,5 +17,6 @@ public sealed record DocumentTemplateItemEntity
     public Guid Id { get; init; }
     public Guid TemplateId { get; init; }
     public Guid DocumentId { get; init; }
+    public Guid? DocumentVersionId { get; init; }
     public int DisplayOrder { get; init; }
 }
