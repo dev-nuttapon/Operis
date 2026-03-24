@@ -274,7 +274,7 @@ public sealed class ProjectQueries(
             await semaphore.WaitAsync(cancellationToken);
             try
             {
-                var profile = await keycloakAdminClient.GetUserByIdAsync(userId, cancellationToken);
+                var profile = await ResolveProfileAsync(userId, cancellationToken);
                 var displayName = ResolveDisplayName(profile, userId);
                 if (!string.IsNullOrWhiteSpace(displayName))
                 {
@@ -293,8 +293,28 @@ public sealed class ProjectQueries(
 
     private async Task<string?> ResolveUserDisplayNameAsync(string userId, CancellationToken cancellationToken)
     {
-        var profile = await keycloakAdminClient.GetUserByIdAsync(userId, cancellationToken);
+        var profile = await ResolveProfileAsync(userId, cancellationToken);
         return ResolveDisplayName(profile, userId);
+    }
+
+    private async Task<KeycloakUserProfile?> ResolveProfileAsync(string userId, CancellationToken cancellationToken)
+    {
+        var profile = await keycloakAdminClient.GetUserByIdAsync(userId, cancellationToken);
+        if (profile is not null)
+        {
+            return profile;
+        }
+
+        var matches = await keycloakAdminClient.SearchUsersAsync(userId, 0, 5, cancellationToken);
+        if (matches.Count == 0)
+        {
+            return null;
+        }
+
+        return matches.FirstOrDefault(item => string.Equals(item.Id, userId, StringComparison.Ordinal))
+            ?? matches.FirstOrDefault(item => string.Equals(item.Username, userId, StringComparison.OrdinalIgnoreCase))
+            ?? matches.FirstOrDefault(item => string.Equals(item.Email, userId, StringComparison.OrdinalIgnoreCase))
+            ?? matches.First();
     }
 
     private static string? ResolveDisplayName(KeycloakUserProfile? profile, string fallbackId)
