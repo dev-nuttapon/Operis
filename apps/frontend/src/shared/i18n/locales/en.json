@@ -289,6 +289,10 @@
       "title": "Workspace",
       "description": "Download the document, work on it, then submit to the next step.",
       "empty": "Select a task to see workspace actions.",
+      "loading": "Loading task...",
+      "not_found": "Task not found.",
+      "upload": "Upload document",
+      "action_placeholder": "Select status/action",
       "download": "Download document",
       "submit": "Send to next step",
       "submitted": "Step completed.",
@@ -301,7 +305,11 @@
       "type": "Step type",
       "role": "Role",
       "status": "Document status",
-      "due": "Due date"
+      "due": "Due date",
+      "actions": "Actions"
+    },
+    "actions": {
+      "work": "Work"
     }
   },
   "notifications": {

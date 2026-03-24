@@ -198,8 +198,7 @@ public sealed class ProjectCommands(
             null,
             new { before, after = ToProjectState(entity) },
             cancellationToken);
-        if (entity.WorkflowDefinitionId.HasValue &&
-            (!previousWorkflowDefinitionId.HasValue || previousWorkflowDefinitionId.Value != entity.WorkflowDefinitionId.Value))
+        if (entity.WorkflowDefinitionId.HasValue)
         {
             await TryStartWorkflowInstancesForProjectAsync(entity.Id, entity.WorkflowDefinitionId.Value, cancellationToken);
         }

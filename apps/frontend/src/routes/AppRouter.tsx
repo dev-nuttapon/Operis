@@ -110,6 +110,9 @@ const WorkflowDefinitionEditPage = lazy(() =>
 const WorkflowTasksPage = lazy(() =>
   import("../modules/workflows/pages/WorkflowTasksPage").then((module) => ({ default: module.WorkflowTasksPage }))
 );
+const WorkflowTaskDetailPage = lazy(() =>
+  import("../modules/workflows/pages/WorkflowTaskDetailPage").then((module) => ({ default: module.WorkflowTaskDetailPage }))
+);
 const WorkspaceProjectsPage = lazy(() =>
   import("../modules/workflows/pages/WorkspaceProjectsPage").then((module) => ({ default: module.WorkspaceProjectsPage }))
 );
@@ -161,6 +164,7 @@ export function AppRouter() {
               <Route path="workflows/:workflowDefinitionId/edit" element={<WorkflowDefinitionEditPage />} />
               <Route path="workspace" element={<WorkspaceProjectsPage />} />
               <Route path="workspace/:projectId" element={<WorkflowTasksPage />} />
+              <Route path="workspace/:projectId/tasks/:workflowInstanceStepId" element={<WorkflowTaskDetailPage />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
               <Route path="admin/users/new" element={<AdminUserCreatePage />} />
