@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Modal, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
+import { Alert, Button, Card, Modal, Space, Table, Tag, Typography, Skeleton, Flex, Grid, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined, BranchesOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -47,13 +47,6 @@ export function DocumentVersionsPage() {
       align: "center",
     },
     {
-      title: tr("documents.columns.revision"),
-      dataIndex: "revision",
-      key: "revision",
-      align: "center",
-      render: (value: number) => `r${value}`,
-    },
-    {
       title: tr("documents.columns.status"),
       dataIndex: "isPublished",
       key: "status",
@@ -67,7 +60,28 @@ export function DocumentVersionsPage() {
       title: tr("documents.columns.file_name"),
       dataIndex: "fileName",
       key: "fileName",
+      width: 360,
       ellipsis: true,
+      render: (value: string | null | undefined) => {
+        const display = value ?? "-";
+        const short = display.length > 100 ? `${display.slice(0, 100)}...` : display;
+        return (
+          <Tooltip title={display} placement="topLeft">
+            <span
+              style={{
+                display: "inline-block",
+                maxWidth: 340,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                verticalAlign: "bottom",
+              }}
+            >
+              {short}
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: tr("documents.columns.size"),
