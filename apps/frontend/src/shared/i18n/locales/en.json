@@ -239,6 +239,25 @@
     "page_title": "Workflow tasks",
     "page_description": "View the documents assigned to you and complete each step.",
     "empty": "No workflow tasks yet.",
+    "empty_project": "No workflow tasks for this project yet.",
+    "empty_project_hint": "Start a workflow to generate tasks for this project.",
+    "project_label": "Project",
+    "project_missing": "Select a project to view assigned files.",
+    "projects": {
+      "title": "Workspace projects",
+      "description": "Select a project to view your assigned files and document status.",
+      "empty": "No projects available yet.",
+      "columns": {
+        "code": "Code",
+        "name": "Project",
+        "owner": "Owner",
+        "status": "Status",
+        "actions": "Manage"
+      },
+      "actions": {
+        "work": "Work"
+      }
+    },
     "select_project": {
       "title": "Choose workspace project",
       "description": "Select a project before viewing workflow tasks and workspace actions.",
@@ -273,7 +292,7 @@
       "step": "Step",
       "type": "Step type",
       "role": "Role",
-      "status": "Status",
+      "status": "Document status",
       "due": "Due date"
     }
   },

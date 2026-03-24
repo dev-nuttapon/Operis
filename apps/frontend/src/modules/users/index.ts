@@ -9,4 +9,6 @@ export * from "./hooks/useRegistrationPasswordSetup";
 export * from "./hooks/useUserPreferencesSync";
 export * from "./hooks/useProjectRoleOptions";
 export * from "./hooks/useProjectOptions";
+export * from "./hooks/useProjectList";
+export * from "./hooks/useProjectDetail";
 export * from "./hooks/useCurrentUserProfile";

@@ -1,37 +1,34 @@
-import { Card, Table, Typography, Space, Tag, Grid, Button, Descriptions, Divider, App, Select } from "antd";
+import { Card, Table, Typography, Space, Tag, Grid, Button, Descriptions, Divider, App } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FolderOpenOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, FolderOpenOutlined } from "@ant-design/icons";
 import { useWorkflowTasks } from "../hooks/useWorkflowTasks";
 import type { WorkflowTaskItem } from "../types/workflows";
-import { downloadDocument, useDocumentOptions } from "../../documents";
+import { downloadDocument } from "../../documents";
 import { useWorkflowInstanceActions } from "../hooks/useWorkflowInstanceActions";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
-import { useProjectOptions } from "../../users";
+import { useProjectDetail } from "../../users";
+import { useNavigate, useParams } from "react-router-dom";
 
 export function WorkflowTasksPage() {
   const { t } = useTranslation();
   const { notification } = App.useApp();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const navigate = useNavigate();
+  const { projectId } = useParams<{ projectId: string }>();
   const permissionState = usePermissions();
-  const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
-  const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
   const [paging, setPaging] = useState({ page: 1, pageSize: 10 });
   const workflowActions = useWorkflowInstanceActions();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
-  const [startError, setStartError] = useState<string | null>(null);
-  const projectOptionsState = useProjectOptions({ enabled: canReadProjects, assignedOnly: !canManageProjects });
-  const documentOptions = useDocumentOptions(canReadDocuments);
+  const projectDetailQuery = useProjectDetail(projectId);
   const tasksQuery = useWorkflowTasks(
-    { ...paging, projectId: selectedProjectId ?? undefined },
-    Boolean(selectedProjectId),
+    { ...paging, projectId: projectId ?? undefined },
+    Boolean(projectId),
   );
 
   const columns = useMemo<ColumnsType<WorkflowTaskItem>>(
@@ -59,36 +56,17 @@ export function WorkflowTasksPage() {
 
   const tasks = tasksQuery.data?.items ?? [];
   const selectedTask = tasks.find((item) => item.workflowInstanceStepId === selectedTaskId) ?? null;
-  const selectedProjectLabel =
-    selectedProjectId && projectOptionsState.itemsById?.get(selectedProjectId)
-      ? `${projectOptionsState.itemsById.get(selectedProjectId)!.code} - ${
-          projectOptionsState.itemsById.get(selectedProjectId)!.name
-        }`
-      : null;
-
-  const handleStartWorkflow = async () => {
-    if (!selectedProjectId || !selectedDocumentId) {
-      setStartError(t("workflow_tasks.start.validation_required"));
-      return;
-    }
-    setStartError(null);
-    try {
-      await workflowActions.createInstanceMutation.mutateAsync({
-        projectId: selectedProjectId,
-        documentId: selectedDocumentId,
-      });
-      notification.success({ message: t("workflow_tasks.start.started") });
-      setSelectedProjectId(null);
-      setSelectedDocumentId(null);
-      await tasksQuery.refetch();
-    } catch (error) {
-      const presentation = getApiErrorPresentation(error, t("workflow_tasks.start.failed"));
-      notification.error({ message: presentation.title, description: presentation.description });
-    }
-  };
+  const selectedProjectLabel = projectDetailQuery.data
+    ? `${projectDetailQuery.data.code} - ${projectDetailQuery.data.name}`
+    : null;
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space style={{ width: "100%", justifyContent: "flex-start" }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/app/workspace")} block={isMobile}>
+          {t("common.actions.back")}
+        </Button>
+      </Space>
       <Card variant="borderless">
         <Space align="start" size={16}>
           <div
@@ -111,70 +89,16 @@ export function WorkflowTasksPage() {
             <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
               {t("workflow_tasks.page_description")}
             </Typography.Paragraph>
+            {selectedProjectLabel ? (
+              <Typography.Text type="secondary" style={{ display: "block", marginTop: 4 }}>
+                {t("workflow_tasks.project_label")}: {selectedProjectLabel}
+              </Typography.Text>
+            ) : null}
           </div>
         </Space>
       </Card>
 
-      <Card variant="borderless">
-        <Typography.Title level={4} style={{ marginTop: 0 }}>
-          {t("workflow_tasks.select_project.title")}
-        </Typography.Title>
-        <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-          {t("workflow_tasks.select_project.description")}
-        </Typography.Paragraph>
-        <Select
-          showSearch
-          allowClear
-          placeholder={t("workflow_tasks.select_project.placeholder")}
-          value={selectedProjectId}
-          options={projectOptionsState.options}
-          onSearch={projectOptionsState.onSearch}
-          onChange={(value) => {
-            setSelectedProjectId(value ?? null);
-            setSelectedDocumentId(null);
-            setSelectedTaskId(null);
-            setStartError(null);
-            setPaging((current) => ({ ...current, page: 1 }));
-          }}
-          loading={projectOptionsState.loading}
-          filterOption={false}
-          optionRender={(option) => (
-            <span style={{ display: "block", whiteSpace: "normal" }}>{option.label}</span>
-          )}
-          dropdownRender={(menu) => (
-            <>
-              {menu}
-              {projectOptionsState.hasMore ? (
-                <div style={{ padding: 8 }}>
-                  <button
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => projectOptionsState.onLoadMore?.()}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      background: "transparent",
-                      color: "#1677ff",
-                      cursor: "pointer",
-                      padding: 4,
-                    }}
-                  >
-                    {t("workflow_tasks.start.load_more_projects")}
-                  </button>
-                </div>
-              ) : null}
-            </>
-          )}
-        />
-      </Card>
-
-      {!selectedProjectId ? (
-        <Card variant="borderless">
-          <Typography.Text type="secondary">{t("workflow_tasks.select_project.empty")}</Typography.Text>
-        </Card>
-      ) : null}
-
-      {selectedProjectId ? (
+      {projectId ? (
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
         <Card variant="borderless">
           <Table
@@ -182,7 +106,16 @@ export function WorkflowTasksPage() {
             dataSource={tasks}
             loading={tasksQuery.isLoading}
             columns={columns}
-            locale={{ emptyText: t("workflow_tasks.empty") }}
+            locale={{
+              emptyText: (
+                <div>
+                  <Typography.Text>{t("workflow_tasks.empty_project")}</Typography.Text>
+                  <Typography.Text type="secondary" style={{ display: "block", marginTop: 4 }}>
+                    {t("workflow_tasks.empty_project_hint")}
+                  </Typography.Text>
+                </div>
+              ),
+            }}
             pagination={{
               current: tasksQuery.data?.page ?? paging.page,
               pageSize: tasksQuery.data?.pageSize ?? paging.pageSize,
@@ -212,76 +145,6 @@ export function WorkflowTasksPage() {
             {t("workflow_tasks.workspace.description")}
           </Typography.Paragraph>
 
-          {canManageProjects ? (
-            <>
-              <Typography.Text strong>{t("workflow_tasks.start.title")}</Typography.Text>
-              {selectedProjectLabel ? (
-                <Typography.Paragraph style={{ marginTop: 4 }}>
-                  {t("workflow_tasks.start.project_label")}: {selectedProjectLabel}
-                </Typography.Paragraph>
-              ) : null}
-              <Space direction="vertical" size={8} style={{ width: "100%", marginTop: 8 }}>
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder={
-                    selectedProjectId
-                      ? t("workflow_tasks.start.document_placeholder")
-                      : t("workflow_tasks.start.document_disabled_placeholder")
-                  }
-                  value={selectedDocumentId}
-                  options={selectedProjectId ? documentOptions.options : []}
-                  onSearch={(value) => {
-                    if (selectedProjectId) {
-                      documentOptions.onSearch(value);
-                    }
-                  }}
-                  onChange={(value) => setSelectedDocumentId(value ?? null)}
-                  loading={selectedProjectId ? documentOptions.loading : false}
-                  disabled={!selectedProjectId}
-                  filterOption={false}
-                  optionRender={(option) => (
-                    <span style={{ display: "block", whiteSpace: "normal" }}>{option.label}</span>
-                  )}
-                  dropdownRender={(menu) => (
-                    <>
-                      {menu}
-                      {selectedProjectId && documentOptions.hasMore ? (
-                        <div style={{ padding: 8 }}>
-                          <button
-                            type="button"
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => documentOptions.onLoadMore?.()}
-                            style={{
-                              width: "100%",
-                              border: "none",
-                              background: "transparent",
-                              color: "#1677ff",
-                              cursor: "pointer",
-                              padding: 4,
-                            }}
-                          >
-                            {t("workflow_tasks.start.load_more_documents")}
-                          </button>
-                        </div>
-                      ) : null}
-                    </>
-                  )}
-                />
-                {startError ? <Typography.Text type="danger">{startError}</Typography.Text> : null}
-                <Button
-                  type="primary"
-                  onClick={handleStartWorkflow}
-                  disabled={!selectedProjectId || !selectedDocumentId}
-                  loading={workflowActions.createInstanceMutation.isPending}
-                >
-                  {t("workflow_tasks.start.action")}
-                </Button>
-              </Space>
-              <Divider style={{ margin: "16px 0" }} />
-            </>
-          ) : null}
-
           {selectedTask ? (
             <>
               <Descriptions
@@ -300,6 +163,7 @@ export function WorkflowTasksPage() {
                 <Button
                   type="primary"
                   onClick={() => void downloadDocument(selectedTask.documentId)}
+                  block={isMobile}
                 >
                   {t("workflow_tasks.workspace.download")}
                 </Button>
@@ -319,6 +183,7 @@ export function WorkflowTasksPage() {
                       notification.error({ message: presentation.title, description: presentation.description });
                     }
                   }}
+                  block={isMobile}
                 >
                   {t("workflow_tasks.workspace.submit")}
                 </Button>
@@ -331,7 +196,13 @@ export function WorkflowTasksPage() {
           )}
         </Card>
       </Space>
-      ) : null}
+      ) : (
+        <Card variant="borderless">
+          <Typography.Text type="secondary">
+            {canReadProjects ? t("workflow_tasks.project_missing") : t("errors.title_forbidden")}
+          </Typography.Text>
+        </Card>
+      )}
     </Space>
   );
 }
