@@ -61,7 +61,7 @@ public sealed class WorkflowTaskQueries(OperisDbContext dbContext) : IWorkflowTa
                         assignment.UserId == currentUserId &&
                         assignment.ProjectId == item.ProjectId &&
                         assignment.ProjectRoleId == stepRole.ProjectRoleId &&
-                        assignment.Status == "Active" &&
+                        EF.Functions.ILike(assignment.Status, "active") &&
                         (assignment.EndAt == null || assignment.EndAt > now))));
         }
 
@@ -111,7 +111,7 @@ public sealed class WorkflowTaskQueries(OperisDbContext dbContext) : IWorkflowTa
                 .Where(x =>
                     x.UserId == currentUserId &&
                     projectIds.Contains(x.ProjectId) &&
-                    x.Status == "Active" &&
+                    EF.Functions.ILike(x.Status, "active") &&
                     (x.EndAt == null || x.EndAt > now))
                 .ToListAsync(cancellationToken);
 
