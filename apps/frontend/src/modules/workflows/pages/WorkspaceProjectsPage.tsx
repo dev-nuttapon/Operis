@@ -7,10 +7,11 @@ import { useTranslation } from "react-i18next";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import { useProjectList } from "../../users";
+import { formatDate } from "../../users/utils/adminUsersPresentation";
 import type { ProjectListItem } from "../../users/types/users";
 
 export function WorkspaceProjectsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -41,6 +42,17 @@ export function WorkspaceProjectsPage() {
       { title: t("workflow_tasks.projects.columns.code"), dataIndex: "code", width: 140 },
       { title: t("workflow_tasks.projects.columns.name"), dataIndex: "name", ellipsis: true },
       { title: t("workflow_tasks.projects.columns.owner"), dataIndex: "ownerDisplayName", render: (value) => value ?? "-" },
+      {
+        title: t("workflow_tasks.projects.columns.actual_period"),
+        key: "actualPeriod",
+        width: 220,
+        render: (_, record) => {
+          const start = formatDate(record.startAt ?? null, i18n.language);
+          const end = formatDate(record.endAt ?? null, i18n.language);
+          if (start === "-" && end === "-") return "-";
+          return `${start} - ${end}`;
+        },
+      },
       {
         title: t("workflow_tasks.projects.columns.status"),
         dataIndex: "status",

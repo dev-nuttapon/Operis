@@ -222,6 +222,7 @@ public sealed record ProjectListItem(
     string? Phase,
     string Status,
     DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? StartAt,
     DateTimeOffset? EndAt,
     DateTimeOffset CreatedAt);
 public sealed record ProjectResponse(

@@ -3,6 +3,7 @@ using System.Text;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
+using Operis_API.Modules.Workflows;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
 
@@ -82,7 +83,9 @@ public interface IProjectQueries
 
 public sealed class ProjectQueries(
     OperisDbContext dbContext,
-    IAuditLogWriter auditLogWriter) : IProjectQueries
+    IAuditLogWriter auditLogWriter,
+    IKeycloakAdminClient keycloakAdminClient,
+    IWorkflowProjectStatusQueries workflowProjectStatusQueries) : IProjectQueries
 {
     public async Task<PagedResult<ProjectListItem>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken)
     {
@@ -123,9 +126,27 @@ public sealed class ProjectQueries(
                     project.Phase,
                     project.Status,
                     project.PlannedStartAt,
+                    project.StartAt,
                     project.EndAt,
                     project.CreatedAt))
             .ToListAsync(cancellationToken);
+
+        var workflowStatus = await workflowProjectStatusQueries.GetProjectStatusSummaryAsync(
+            items.Select(item => item.Id),
+            cancellationToken);
+
+        var ownerDisplayNames = await ResolveUserDisplayNamesAsync(
+            items.Select(x => x.OwnerUserId),
+            cancellationToken);
+        var resolvedItems = items
+            .Select(item => item with
+            {
+                Status = ResolveProjectStatus(item.Status, item.StartAt, item.EndAt, workflowStatus.TryGetValue(item.Id, out var summary) ? summary : null),
+                OwnerDisplayName = item.OwnerUserId is not null && ownerDisplayNames.TryGetValue(item.OwnerUserId, out var name)
+                    ? name
+                    : item.OwnerDisplayName
+            })
+            .ToList();
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "users",
@@ -135,7 +156,7 @@ public sealed class ProjectQueries(
             Metadata: new { total, page, pageSize, query.Search, query.SortBy, query.SortOrder }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new PagedResult<ProjectListItem>(items, total, page, pageSize);
+        return new PagedResult<ProjectListItem>(resolvedItems, total, page, pageSize);
     }
 
     public async Task<ProjectResponse?> GetProjectAsync(Guid projectId, CancellationToken cancellationToken)
@@ -159,15 +180,22 @@ public sealed class ProjectQueries(
             return null;
         }
 
+        var ownerDisplayName = project.Entity.OwnerUserId is not null
+            ? await ResolveUserDisplayNameAsync(project.Entity.OwnerUserId, cancellationToken)
+            : null;
+        var sponsorDisplayName = project.Entity.SponsorUserId is not null
+            ? await ResolveUserDisplayNameAsync(project.Entity.SponsorUserId, cancellationToken)
+            : null;
+
         return new ProjectResponse(
             project.Entity.Id,
             project.Entity.Code,
             project.Entity.Name,
             project.Entity.ProjectType,
             project.Entity.OwnerUserId,
-            project.OwnerDisplayName,
+            ownerDisplayName ?? project.OwnerDisplayName,
             project.Entity.SponsorUserId,
-            project.SponsorDisplayName,
+            sponsorDisplayName ?? project.SponsorDisplayName,
             project.Entity.Methodology,
             project.Entity.Phase,
             project.Entity.Status,
@@ -183,6 +211,119 @@ public sealed class ProjectQueries(
             project.Entity.DeletedReason,
             project.Entity.DeletedBy,
             project.Entity.DeletedAt);
+    }
+
+    private static string ResolveProjectStatus(
+        string? status,
+        DateTimeOffset? startAt,
+        DateTimeOffset? endAt,
+        WorkflowProjectStatusSummary? workflowSummary)
+    {
+        var normalized = string.IsNullOrWhiteSpace(status) ? "planned" : status.Trim().ToLowerInvariant();
+
+        if (normalized is "cancelled" or "completed" or "onhold")
+        {
+            return normalized;
+        }
+
+        if (workflowSummary is not null)
+        {
+            if (workflowSummary.InProgress > 0)
+            {
+                return "active";
+            }
+
+            if (workflowSummary.Completed > 0 && workflowSummary.InProgress == 0)
+            {
+                return "completed";
+            }
+        }
+
+        if (endAt.HasValue)
+        {
+            return "completed";
+        }
+
+        if (startAt.HasValue)
+        {
+            return "active";
+        }
+
+        return normalized == "active" ? "active" : "planned";
+    }
+
+    private async Task<IReadOnlyDictionary<string, string>> ResolveUserDisplayNamesAsync(
+        IEnumerable<string?> userIds,
+        CancellationToken cancellationToken)
+    {
+        var distinctIds = userIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        if (distinctIds.Length == 0)
+        {
+            return new Dictionary<string, string>(StringComparer.Ordinal);
+        }
+
+        var results = new Dictionary<string, string>(StringComparer.Ordinal);
+        using var semaphore = new SemaphoreSlim(4);
+        var tasks = distinctIds.Select(async userId =>
+        {
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                var profile = await keycloakAdminClient.GetUserByIdAsync(userId, cancellationToken);
+                var displayName = ResolveDisplayName(profile, userId);
+                if (!string.IsNullOrWhiteSpace(displayName))
+                {
+                    results[userId] = displayName!;
+                }
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+        return results;
+    }
+
+    private async Task<string?> ResolveUserDisplayNameAsync(string userId, CancellationToken cancellationToken)
+    {
+        var profile = await keycloakAdminClient.GetUserByIdAsync(userId, cancellationToken);
+        return ResolveDisplayName(profile, userId);
+    }
+
+    private static string? ResolveDisplayName(KeycloakUserProfile? profile, string fallbackId)
+    {
+        if (profile is null)
+        {
+            return fallbackId;
+        }
+
+        var displayName = string.Join(' ', new[] { profile.FirstName, profile.LastName }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim()));
+
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            return displayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(profile.Email))
+        {
+            return profile.Email;
+        }
+
+        if (!string.IsNullOrWhiteSpace(profile.Username))
+        {
+            return profile.Username;
+        }
+
+        return fallbackId;
     }
 
     public Task<bool> HasProjectAccessAsync(Guid projectId, string userId, CancellationToken cancellationToken) =>

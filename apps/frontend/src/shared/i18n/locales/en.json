@@ -251,6 +251,7 @@
         "code": "Code",
         "name": "Project",
         "owner": "Owner",
+        "actual_period": "Actual period",
         "status": "Status",
         "actions": "Manage"
       },

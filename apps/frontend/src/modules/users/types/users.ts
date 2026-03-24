@@ -283,6 +283,7 @@ export interface ProjectListItem {
   phase: string | null;
   status: string;
   plannedStartAt: string | null;
+  startAt: string | null;
   endAt: string | null;
   createdAt: string;
 }
