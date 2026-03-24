@@ -1036,7 +1036,7 @@ public sealed class UsersModule : IModule
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
-        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageMembers))
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Projects.ManageMembers, Permissions.Projects.Manage))
         {
             return Results.Forbid();
         }
@@ -1157,7 +1157,7 @@ public sealed class UsersModule : IModule
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
-        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageMembers))
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Projects.ManageMembers, Permissions.Projects.Manage))
         {
             return Results.Forbid();
         }
@@ -1179,7 +1179,7 @@ public sealed class UsersModule : IModule
         IProjectCommands commands,
         CancellationToken cancellationToken)
     {
-        if (LacksPermission(principal, permissionMatrix, Permissions.Projects.ManageMembers))
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Projects.ManageMembers, Permissions.Projects.Manage))
         {
             return Results.Forbid();
         }

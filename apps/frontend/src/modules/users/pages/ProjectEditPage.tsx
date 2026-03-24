@@ -1,6 +1,6 @@
-import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid, Divider, Table, Select } from "antd";
+import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid, Divider, Table, Select, Modal } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -39,7 +39,7 @@ export function ProjectEditPage() {
   const permissionState = usePermissions();
   const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
   const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
-  const canEditMembers = canManageProjectMembers;
+  const canEditMembers = canManageProjectMembers || canManageProjects;
   const canLoadProjectRoles = canEditMembers;
 
   const defaultBackTarget = "/app/projects";
@@ -246,12 +246,22 @@ export function ProjectEditPage() {
             size="small"
             icon={<DeleteOutlined />}
             onClick={() => {
-              const nextKeys = memberTargetKeys.filter((key) => key !== record.id);
-              setMemberTargetKeys(nextKeys);
-              setMemberRoleByUserId((current) => {
-                const next = { ...current };
-                delete next[record.id];
-                return next;
+              Modal.confirm({
+                title: t("projects.members.actions.remove_confirm_title"),
+                content: t("projects.members.actions.remove_confirm_description", { name: record.name }),
+                icon: <ExclamationCircleOutlined />,
+                okText: t("common.actions.confirm_delete"),
+                cancelText: t("common.actions.cancel"),
+                okButtonProps: { danger: true },
+                onOk: () => {
+                  const nextKeys = memberTargetKeys.filter((key) => key !== record.id);
+                  setMemberTargetKeys(nextKeys);
+                  setMemberRoleByUserId((current) => {
+                    const next = { ...current };
+                    delete next[record.id];
+                    return next;
+                  });
+                },
               });
             }}
           >

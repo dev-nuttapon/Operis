@@ -31,10 +31,9 @@ export function WorkflowTasksPage() {
     Boolean(projectId),
   );
 
-  const columns = useMemo<ColumnsType<WorkflowTaskItem>>(
-    () => [
-      { title: t("workflow_tasks.columns.project"), dataIndex: "projectName", width: 200, ellipsis: true },
-      { title: t("workflow_tasks.columns.document"), dataIndex: "documentName", width: 220, ellipsis: true },
+  const columns = useMemo<ColumnsType<WorkflowTaskItem>>(() => {
+    const base: ColumnsType<WorkflowTaskItem> = [
+      { title: t("workflow_tasks.columns.document"), dataIndex: "documentName", width: 240, ellipsis: true },
       { title: t("workflow_tasks.columns.step"), dataIndex: "stepName", width: 200, ellipsis: true },
       {
         title: t("workflow_tasks.columns.type"),
@@ -50,9 +49,14 @@ export function WorkflowTasksPage() {
         render: (value) => <Tag>{value}</Tag>,
       },
       { title: t("workflow_tasks.columns.due"), dataIndex: "dueAt", width: 160 },
-    ],
-    [t],
-  );
+    ];
+
+    if (!projectId) {
+      base.unshift({ title: t("workflow_tasks.columns.project"), dataIndex: "projectName", width: 200, ellipsis: true });
+    }
+
+    return base;
+  }, [projectId, t]);
 
   const tasks = tasksQuery.data?.items ?? [];
   const selectedTask = tasks.find((item) => item.workflowInstanceStepId === selectedTaskId) ?? null;

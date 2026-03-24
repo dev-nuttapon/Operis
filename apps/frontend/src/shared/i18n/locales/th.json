@@ -828,7 +828,9 @@
         "selected": "สมาชิกที่เลือก"
       },
       "actions": {
-        "remove": "ลบ"
+        "remove": "ลบ",
+        "remove_confirm_title": "ยืนยันการลบสมาชิก",
+        "remove_confirm_description": "ต้องการลบ {{name}} ออกจากโครงการหรือไม่"
       },
       "messages": {
         "no_roles": "ยังไม่มีตำแหน่งในโครงการ"

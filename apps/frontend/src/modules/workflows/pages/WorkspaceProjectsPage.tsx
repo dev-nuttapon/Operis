@@ -22,7 +22,7 @@ export function WorkspaceProjectsPage() {
   const [paging, setPaging] = useState({ page: 1, pageSize: 10 });
 
   const projectsQuery = useProjectList(
-    { page: paging.page, pageSize: paging.pageSize, assignedOnly: !canManageProjects },
+    { page: paging.page, pageSize: paging.pageSize, assignedOnly: true },
     canViewProjects,
   );
 

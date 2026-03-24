@@ -402,59 +402,57 @@ public sealed class ProjectQueries(
                      from role in roleJoin.DefaultIfEmpty()
                      join reportsTo in dbContext.Users.AsNoTracking() on assignment.ReportsToUserId equals reportsTo.Id into reportsJoin
                      from reportsTo in reportsJoin.DefaultIfEmpty()
-                     select new ProjectAssignmentRow(
-                         assignment.Id,
-                         assignment.UserId,
-                         user != null ? user.Id : null,
-                         user != null ? user.Id : null,
-                         assignment.ProjectId,
-                         projectName,
-                         assignment.ProjectRoleId,
-                         role != null ? role.Name : string.Empty,
-                         assignment.ReportsToUserId,
-                         reportsTo != null ? reportsTo.Id : null,
-                         assignment.IsPrimary,
-                         assignment.Status,
-                         assignment.ChangeReason,
-                         assignment.ReplacedByAssignmentId,
-                         assignment.StartAt,
-                         assignment.EndAt,
-                         assignment.CreatedAt,
-                         assignment.UpdatedAt);
+                     select new
+                     {
+                         Assignment = assignment,
+                         User = user,
+                         Role = role,
+                         ReportsTo = reportsTo
+                     };
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var searchPattern = $"%{query.Search.Trim()}%";
             source = source.Where(x =>
-                EF.Functions.ILike(x.UserId, searchPattern)
-                || (x.UserEmail != null && EF.Functions.ILike(x.UserEmail, searchPattern))
-                || EF.Functions.ILike(x.ProjectRoleName, searchPattern));
+                EF.Functions.ILike(x.Assignment.UserId, searchPattern)
+                || (x.User != null && EF.Functions.ILike(x.User.Id, searchPattern))
+                || (x.Role != null && EF.Functions.ILike(x.Role.Name, searchPattern)));
         }
 
-        source = ApplyProjectAssignmentSorting(source, query.SortBy, query.SortOrder);
         var total = await source.CountAsync(cancellationToken);
-        var items = await source
+        var descending = string.Equals(query.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        var ordered = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "startat" => descending
+                ? source.OrderByDescending(x => x.Assignment.StartAt)
+                : source.OrderBy(x => x.Assignment.StartAt),
+            _ => descending
+                ? source.OrderByDescending(x => x.Assignment.CreatedAt)
+                : source.OrderBy(x => x.Assignment.CreatedAt)
+        };
+
+        var items = await ordered
             .Skip(skip)
             .Take(pageSize)
             .Select(x => new ProjectAssignmentResponse(
-                x.Id,
-                x.UserId,
-                x.UserEmail,
-                x.UserDisplayName,
-                x.ProjectId,
-                x.ProjectName,
-                x.ProjectRoleId,
-                x.ProjectRoleName,
-                x.ReportsToUserId,
-                x.ReportsToDisplayName,
-                x.IsPrimary,
-                x.Status,
-                x.ChangeReason,
-                x.ReplacedByAssignmentId,
-                x.StartAt,
-                x.EndAt,
-                x.CreatedAt,
-                x.UpdatedAt))
+                x.Assignment.Id,
+                x.Assignment.UserId,
+                x.User != null ? x.User.Id : null,
+                x.User != null ? x.User.Id : null,
+                x.Assignment.ProjectId,
+                projectName,
+                x.Assignment.ProjectRoleId,
+                x.Role != null ? x.Role.Name : string.Empty,
+                x.Assignment.ReportsToUserId,
+                x.ReportsTo != null ? x.ReportsTo.Id : null,
+                x.Assignment.IsPrimary,
+                x.Assignment.Status,
+                x.Assignment.ChangeReason,
+                x.Assignment.ReplacedByAssignmentId,
+                x.Assignment.StartAt,
+                x.Assignment.EndAt,
+                x.Assignment.CreatedAt,
+                x.Assignment.UpdatedAt))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -1331,16 +1329,6 @@ public sealed class ProjectQueries(
         {
             "name" => descending ? source.OrderByDescending(x => x.Name) : source.OrderBy(x => x.Name),
             _ => descending ? source.OrderByDescending(x => x.DisplayOrder) : source.OrderBy(x => x.DisplayOrder)
-        };
-    }
-
-    private static IQueryable<ProjectAssignmentRow> ApplyProjectAssignmentSorting(IQueryable<ProjectAssignmentRow> source, string? sortBy, string? sortOrder)
-    {
-        var descending = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
-        return (sortBy ?? string.Empty).ToLowerInvariant() switch
-        {
-            "startat" => descending ? source.OrderByDescending(x => x.StartAt) : source.OrderBy(x => x.StartAt),
-            _ => descending ? source.OrderByDescending(x => x.CreatedAt) : source.OrderBy(x => x.CreatedAt)
         };
     }
 

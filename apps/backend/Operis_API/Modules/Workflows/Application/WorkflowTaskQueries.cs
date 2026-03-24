@@ -49,6 +49,9 @@ public sealed class WorkflowTaskQueries(OperisDbContext dbContext) : IWorkflowTa
             baseQuery = baseQuery.Where(x => x.ProjectId == query.ProjectId.Value);
         }
 
+        baseQuery = baseQuery
+            .Where(x => x.InstanceStatus == "in_progress" && x.Status == "in_progress");
+
         if (!string.IsNullOrWhiteSpace(currentUserId))
         {
             baseQuery = baseQuery.Where(item =>

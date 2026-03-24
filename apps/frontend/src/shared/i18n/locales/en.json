@@ -828,7 +828,9 @@
         "selected": "Selected members"
       },
       "actions": {
-        "remove": "Remove"
+        "remove": "Remove",
+        "remove_confirm_title": "Remove member",
+        "remove_confirm_description": "Remove {{name}} from this project?"
       },
       "messages": {
         "no_roles": "No project roles available."
