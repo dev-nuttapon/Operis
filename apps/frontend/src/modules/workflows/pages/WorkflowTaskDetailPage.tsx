@@ -1,12 +1,13 @@
-import { App, Button, Card, Descriptions, Divider, Grid, Space, Tag, Typography, Select, Steps } from "antd";
+import { App, Button, Card, Descriptions, Divider, Grid, Space, Tag, Typography, Steps, Table } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, FolderOpenOutlined } from "@ant-design/icons";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useWorkflowTasks } from "../hooks/useWorkflowTasks";
 import { useWorkflowInstance } from "../hooks/useWorkflowInstance";
 import { useWorkflowInstanceActions } from "../hooks/useWorkflowInstanceActions";
-import { downloadDocument } from "../../documents";
+import { downloadDocument, useDocumentVersions, type DocumentVersionListItem } from "../../documents";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 
 export function WorkflowTaskDetailPage() {
@@ -31,24 +32,13 @@ export function WorkflowTaskDetailPage() {
     [tasksQuery.data?.items, workflowInstanceStepId],
   );
   const instanceQuery = useWorkflowInstance(task?.workflowInstanceId ?? null, Boolean(task?.workflowInstanceId));
-
-  const [selectedAction, setSelectedAction] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (task?.stepType) {
-      setSelectedAction(task.stepType);
-    }
-  }, [task?.stepType]);
-
-  const actionOptions = useMemo(
-    () => [
-      { value: "submit", label: t("workflow_definitions.steps.types.submit") },
-      { value: "peer_review", label: t("workflow_definitions.steps.types.peer_review") },
-      { value: "review", label: t("workflow_definitions.steps.types.review") },
-      { value: "approve", label: t("workflow_definitions.steps.types.approve") },
-    ],
-    [t],
+  const [versionPaging, setVersionPaging] = useState({ page: 1, pageSize: 10 });
+  const versionsQuery = useDocumentVersions(
+    task?.documentId ?? null,
+    versionPaging,
+    Boolean(task?.documentId),
   );
+  const [selectedSendId, setSelectedSendId] = useState<string | null>(null);
 
   const statusItems = useMemo(() => {
     if (!instanceQuery.data?.steps) {
@@ -70,6 +60,91 @@ export function WorkflowTaskDetailPage() {
   }, [instanceQuery.data?.steps, t]);
 
   const selectedProjectLabel = task ? `${task.projectName}` : null;
+  const canSend = Boolean(task?.canAct);
+
+  const versionColumns: ColumnsType<DocumentVersionListItem> = useMemo(
+    () => [
+      {
+        title: t("workflow_tasks.workspace.files.version_code"),
+        dataIndex: "versionCode",
+        key: "versionCode",
+        align: "center",
+      },
+      {
+        title: t("workflow_tasks.workspace.files.revision"),
+        dataIndex: "revision",
+        key: "revision",
+        align: "center",
+        render: (value: number) => `r${value}`,
+      },
+      {
+        title: t("workflow_tasks.workspace.files.file_name"),
+        dataIndex: "fileName",
+        key: "fileName",
+        ellipsis: true,
+      },
+      {
+        title: t("workflow_tasks.workspace.files.uploaded_at"),
+        dataIndex: "uploadedAt",
+        key: "uploadedAt",
+        render: (value: string) => new Date(value).toLocaleDateString(),
+      },
+      {
+        title: t("workflow_tasks.workspace.files.status"),
+        dataIndex: "isPublished",
+        key: "status",
+        align: "center",
+        render: (value: boolean) =>
+          value ? <Tag color="green">{t("workflow_tasks.workspace.files.published")}</Tag> : <Tag>{t("workflow_tasks.workspace.files.draft")}</Tag>,
+      },
+      {
+        title: t("workflow_tasks.workspace.files.actions"),
+        key: "actions",
+        align: "center",
+        render: (_, item) => (
+          <Button
+            type="primary"
+            size="small"
+            disabled={!canSend || workflowActions.applyStepActionMutation.isPending || (selectedSendId !== null && selectedSendId !== item.id)}
+            onClick={async () => {
+              if (!task) {
+                return;
+              }
+
+              try {
+                setSelectedSendId(item.id);
+                await workflowActions.applyStepActionMutation.mutateAsync({
+                  workflowInstanceId: task.workflowInstanceId,
+                  workflowInstanceStepId: task.workflowInstanceStepId,
+                  action: task.stepType,
+                });
+                notification.success({ message: t("workflow_tasks.workspace.submitted") });
+                await Promise.all([tasksQuery.refetch(), instanceQuery.refetch(), versionsQuery.refetch()]);
+              } catch (error) {
+                const presentation = getApiErrorPresentation(error, t("workflow_tasks.workspace.submit_failed"));
+                notification.error({ message: presentation.title, description: presentation.description });
+              } finally {
+                setSelectedSendId(null);
+              }
+            }}
+          >
+            {t("workflow_tasks.workspace.send_document")}
+          </Button>
+        ),
+      },
+    ],
+    [
+      canSend,
+      instanceQuery,
+      notification,
+      selectedSendId,
+      t,
+      task,
+      tasksQuery,
+      versionsQuery,
+      workflowActions.applyStepActionMutation,
+    ],
+  );
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -144,41 +219,40 @@ export function WorkflowTaskDetailPage() {
             )}
             <Divider style={{ margin: "12px 0" }} />
             <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <Button onClick={() => navigate(`/app/documents/${task.documentId}/versions/new`)} block={isMobile}>
+              <Button
+                onClick={() =>
+                  navigate(`/app/workspace/${projectId}/tasks/${workflowInstanceStepId}/upload`)
+                }
+                block={isMobile}
+              >
                 {t("workflow_tasks.workspace.upload")}
               </Button>
               <Button type="primary" onClick={() => void downloadDocument(task.documentId)} block={isMobile}>
                 {t("workflow_tasks.workspace.download")}
               </Button>
-              <Select
-                value={selectedAction ?? undefined}
-                options={actionOptions}
-                onChange={(value) => setSelectedAction(value)}
-                placeholder={t("workflow_tasks.workspace.action_placeholder")}
-                style={{ width: "100%" }}
-                disabled={!task.canAct}
-              />
-              <Button
-                disabled={!task.canAct || !selectedAction || workflowActions.applyStepActionMutation.isPending}
-                onClick={async () => {
-                  try {
-                    await workflowActions.applyStepActionMutation.mutateAsync({
-                      workflowInstanceId: task.workflowInstanceId,
-                      workflowInstanceStepId: task.workflowInstanceStepId,
-                      action: selectedAction,
-                    });
-                    notification.success({ message: t("workflow_tasks.workspace.submitted") });
-                    await tasksQuery.refetch();
-                  } catch (error) {
-                    const presentation = getApiErrorPresentation(error, t("workflow_tasks.workspace.submit_failed"));
-                    notification.error({ message: presentation.title, description: presentation.description });
-                  }
-                }}
-                block={isMobile}
-              >
-                {t("workflow_tasks.workspace.submit")}
-              </Button>
             </Space>
+            <Divider style={{ margin: "16px 0" }} />
+            <Typography.Title level={5} style={{ marginTop: 0 }}>
+              {t("workflow_tasks.workspace.uploaded_documents")}
+            </Typography.Title>
+            <Table<DocumentVersionListItem>
+              rowKey="id"
+              loading={versionsQuery.isLoading}
+              columns={versionColumns}
+              dataSource={versionsQuery.data?.items ?? []}
+              pagination={{
+                current: versionsQuery.data?.page ?? versionPaging.page,
+                pageSize: versionsQuery.data?.pageSize ?? versionPaging.pageSize,
+                total: versionsQuery.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 25, 50, 100],
+                onChange: (page, pageSize) => setVersionPaging({ page, pageSize }),
+              }}
+              scroll={{ x: "max-content" }}
+              locale={{
+                emptyText: versionsQuery.isError ? t("workflow_tasks.workspace.files.load_failed") : t("workflow_tasks.workspace.files.empty"),
+              }}
+            />
           </>
         )}
       </Card>

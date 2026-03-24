@@ -15,6 +15,7 @@ const allowedDocumentExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx"] as 
 type LocationState = {
   documentName?: string;
   from?: string;
+  mode?: "working";
 };
 
 export function DocumentVersionUploadPage() {
@@ -36,6 +37,7 @@ export function DocumentVersionUploadPage() {
   const tr = (key: string) => i18n.t(key, { lng: language });
 
   const documentLabel = useMemo(() => locationState?.documentName ?? documentId ?? "-", [locationState?.documentName, documentId]);
+  const isWorkingMode = locationState?.mode === "working";
 
   const handlePickFile = () => {
     fileInputRef.current?.click();
@@ -129,11 +131,11 @@ export function DocumentVersionUploadPage() {
           </div>
           <div>
             <Title level={3} style={{ margin: 0 }}>
-              {tr("documents.version_page.title")}
+              {isWorkingMode ? tr("documents.version_page.working_title") : tr("documents.version_page.title")}
             </Title>
             <Text type="secondary">{documentLabel}</Text>
             <Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
-              {tr("documents.version_page.description")}
+              {isWorkingMode ? tr("documents.version_page.working_description") : tr("documents.version_page.description")}
             </Paragraph>
           </div>
         </Space>

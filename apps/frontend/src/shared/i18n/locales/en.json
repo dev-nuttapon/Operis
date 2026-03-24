@@ -297,7 +297,25 @@
       "download": "Download document",
       "submit": "Send to next step",
       "submitted": "Step completed.",
-      "submit_failed": "Unable to submit step step."
+      "submit_failed": "Unable to submit step step.",
+      "uploaded_documents": "Uploaded documents",
+      "send_document": "Send document",
+      "files": {
+        "version_code": "Working version",
+        "revision": "Revision",
+        "file_name": "File name",
+        "uploaded_at": "Uploaded at",
+        "status": "File status",
+        "published": "Published",
+        "draft": "Draft",
+        "actions": "Actions",
+        "empty": "No working files yet.",
+        "load_failed": "Unable to load working files."
+      }
+    },
+    "upload": {
+      "title": "Upload working document",
+      "description": "Upload a working version for this step."
     },
     "status_timeline": {
       "title": "Document status",
@@ -1671,6 +1689,8 @@
     "version_page": {
       "title": "Add Document Version",
       "description": "Upload a new file and provide a version code.",
+      "working_title": "Upload Working Version",
+      "working_description": "Upload an edited working file and submit it later in the workflow step.",
       "back_action": "Back",
       "fields": {
         "document_name": "Document name",
