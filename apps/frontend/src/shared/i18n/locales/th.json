@@ -350,6 +350,8 @@
     "view_all_notifications": "ดูทั้งหมด (3)",
     "role_label": "บทบาท",
     "role_empty": "ไม่มีบทบาท",
+    "department_label": "แผนก",
+    "job_title_label": "ตำแหน่ง",
     "position_label": "ตำแหน่ง / แผนก",
     "position_empty": "ยังไม่ระบุ",
     "language": "ภาษา",

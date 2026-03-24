@@ -98,8 +98,9 @@ export function getUser(userId: string, signal?: AbortSignal) {
   return apiRequest<User>(`/api/v1/users/${encodeURIComponent(userId)}`, { signal });
 }
 
-export function getCurrentUser(signal?: AbortSignal) {
-  return apiRequest<User>("/api/v1/users/me", { signal });
+export function getCurrentUser(signal?: AbortSignal, includeIdentity = false) {
+  const query = includeIdentity ? "?includeIdentity=true" : "";
+  return apiRequest<User>(`/api/v1/users/me${query}`, { signal });
 }
 
 export function createRegistrationRequest(input: CreateRegistrationRequestInput) {

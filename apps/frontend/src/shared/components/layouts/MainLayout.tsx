@@ -71,7 +71,9 @@ export function MainLayout() {
   const departmentLabel =
     currentUserQuery.data?.departmentName ??
     (typeof user?.departmentName === "string" ? user.departmentName : undefined);
-  const positionLabel = formatPositionLabel(jobTitleLabel, departmentLabel, tr);
+  const positionFallback = tr('common.position_empty');
+  const departmentText = departmentLabel ?? positionFallback;
+  const jobTitleText = jobTitleLabel ?? positionFallback;
   const isDarkMode = token.colorBgBase.toLowerCase() === '#020617';
   const avatarBg = isDarkMode ? '#1e293b' : '#dbeafe';
   const avatarText = isDarkMode ? '#e2e8f0' : '#1e3a8a';
@@ -588,7 +590,10 @@ export function MainLayout() {
                     {displayName}
                   </Typography.Text>
                   <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>
-                    {tr('common.position_label')}: {positionLabel}
+                    {tr('common.department_label')}: {departmentText}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>
+                    {tr('common.job_title_label')}: {jobTitleText}
                   </Typography.Text>
                 </div>
               </Flex>
@@ -722,12 +727,4 @@ function getSelectedMenuKey(path: string) {
   }
 
   return path;
-}
-
-function formatPositionLabel(jobTitle: string | undefined, department: string | undefined, tr: (key: string) => string) {
-  const parts = [jobTitle, department].map((value) => value?.trim()).filter(Boolean) as string[];
-  if (!parts.length) {
-    return tr('common.position_empty');
-  }
-  return parts.join(' · ');
 }

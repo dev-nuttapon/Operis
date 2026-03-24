@@ -4,16 +4,37 @@ import userEvent from '@testing-library/user-event';
 import { MainLayout } from '../MainLayout';
 import { MemoryRouter } from 'react-router-dom';
 import { useAuth } from '../../../../modules/auth';
+import { useCurrentUserProfile } from '../../../../modules/users';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { useI18nLanguage } from '../../../i18n/hooks/useI18nLanguage';
+import { usePermissions } from '../../../authz/usePermissions';
+
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<typeof import('antd')>('antd');
+  return {
+    ...actual,
+    Grid: {
+      ...actual.Grid,
+      useBreakpoint: () => ({ lg: true }),
+    },
+  };
+});
 
 // Mocks
 vi.mock('../../../../modules/auth', () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock('../../../../modules/users', () => ({
+  useCurrentUserProfile: vi.fn(),
+}));
+
 vi.mock('../../../store/useThemeStore', () => ({
   useThemeStore: vi.fn(),
+}));
+
+vi.mock('../../../authz/usePermissions', () => ({
+  usePermissions: vi.fn(),
 }));
 
 vi.mock('../../../i18n/config', () => ({
@@ -76,7 +97,17 @@ describe('MainLayout', () => {
       theme: 'light',
       setTheme: mockSetTheme,
     });
+    vi.mocked(usePermissions).mockReturnValue({
+      hasAnyPermission: () => true,
+      hasPermission: () => true,
+    } as ReturnType<typeof usePermissions>);
     vi.mocked(useI18nLanguage).mockReturnValue('en');
+    vi.mocked(useCurrentUserProfile).mockReturnValue({
+      data: { departmentName: 'Operations', jobTitleName: 'Analyst' },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useCurrentUserProfile>);
   });
 
   it('renders correctly with sidebar and header elements', () => {
@@ -91,7 +122,7 @@ describe('MainLayout', () => {
     
     // Verify menu items
     expect(screen.getByText('Documents')).toBeInTheDocument();
-    expect(screen.getByText('Workflows')).toBeInTheDocument();
+    expect(screen.getByText('common.my_projects:en')).toBeInTheDocument();
     
     expect(screen.getByText('Test User')).toBeInTheDocument();
   });

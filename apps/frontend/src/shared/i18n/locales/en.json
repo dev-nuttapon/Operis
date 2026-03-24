@@ -350,6 +350,8 @@
     "view_all_notifications": "View all (3)",
     "role_label": "Role",
     "role_empty": "No role",
+    "department_label": "Department",
+    "job_title_label": "Job title",
     "position_label": "Job title / Department",
     "position_empty": "Not specified",
     "language": "Language",

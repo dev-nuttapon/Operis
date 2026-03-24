@@ -308,6 +308,7 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> GetCurrentUserAsync(
         ClaimsPrincipal principal,
         IUserQueries queries,
+        bool includeIdentity = false,
         CancellationToken cancellationToken = default)
     {
         var userId = ResolveCurrentUserId(principal);
@@ -316,7 +317,7 @@ public sealed class UsersModule : IModule
             return Results.Unauthorized();
         }
 
-        var result = await queries.GetUserAsync(userId, includeIdentity: true, cancellationToken);
+        var result = await queries.GetUserAsync(userId, includeIdentity, cancellationToken);
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
