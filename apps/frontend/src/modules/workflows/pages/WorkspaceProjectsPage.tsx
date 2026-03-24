@@ -45,12 +45,16 @@ export function WorkspaceProjectsPage() {
       {
         title: t("workflow_tasks.projects.columns.actual_period"),
         key: "actualPeriod",
-        width: 220,
+        width: 240,
         render: (_, record) => {
           const start = formatDate(record.startAt ?? null, i18n.language);
           const end = formatDate(record.endAt ?? null, i18n.language);
           if (start === "-" && end === "-") return "-";
-          return `${start} - ${end}`;
+          return (
+            <Typography.Text style={{ whiteSpace: "nowrap" }}>
+              {start} - {end}
+            </Typography.Text>
+          );
         },
       },
       {
