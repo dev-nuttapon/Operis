@@ -523,3 +523,9 @@ export interface CompleteRegistrationPasswordSetupInput {
   password: string;
   confirmPassword: string;
 }
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}

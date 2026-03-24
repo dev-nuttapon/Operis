@@ -61,6 +61,13 @@ Public entry:
 * [apps/frontend/src/modules/workflows/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/workflows/index.ts)
 * [apps/frontend/src/modules/workflows/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/workflows/README.md)
 
+## notifications
+
+Public entry:
+
+* [apps/frontend/src/modules/notifications/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/notifications/index.ts)
+* [apps/frontend/src/modules/notifications/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/notifications/README.md)
+
 ---
 
 # Backend Public Surfaces

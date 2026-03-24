@@ -3,6 +3,7 @@ import type { PaginatedResult, PaginationInput } from "../../../shared/types/pag
 import type {
   AcceptInvitationInput,
   ApproveRegistrationInput,
+  ChangePasswordInput,
   CompleteRegistrationPasswordSetupInput,
   CreateDepartmentInput,
   CreateJobTitleInput,
@@ -519,5 +520,12 @@ export function updateCurrentUserPreferences(input: UpdateCurrentUserPreferences
       preferredLanguage: input.preferredLanguage,
       preferredTheme: input.preferredTheme,
     },
+  });
+}
+
+export function changeCurrentUserPassword(input: ChangePasswordInput) {
+  return apiRequest<void>("/api/v1/users/me/change-password", {
+    method: "POST",
+    body: input,
   });
 }

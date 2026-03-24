@@ -393,6 +393,44 @@ public sealed class KeycloakAdminClient(HttpClient httpClient, IOptions<Keycloak
         return new KeycloakUpdateUserResult(true, false, null);
     }
 
+    public async Task<KeycloakPasswordValidationResult> ValidateUserPasswordAsync(
+        string username,
+        string password,
+        CancellationToken cancellationToken)
+    {
+        if (!IsConfigured())
+        {
+            return new KeycloakPasswordValidationResult(false, false, "Keycloak is not configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            return new KeycloakPasswordValidationResult(false, true, "Username and password are required.");
+        }
+
+        var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{TrimTrailingSlash(_options.BaseUrl)}/realms/{_options.Realm}/protocol/openid-connect/token");
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "password",
+            ["client_id"] = _options.ClientId,
+            ["client_secret"] = _options.ClientSecret,
+            ["username"] = username,
+            ["password"] = password
+        });
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return new KeycloakPasswordValidationResult(true, false, null);
+        }
+
+        var error = await response.Content.ReadAsStringAsync(cancellationToken);
+        var invalidCredentials = error.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase);
+        return new KeycloakPasswordValidationResult(false, invalidCredentials, error);
+    }
+
     public async Task<IReadOnlyList<KeycloakRole>> ListRealmRolesAsync(CancellationToken cancellationToken)
     {
         if (!IsConfigured())

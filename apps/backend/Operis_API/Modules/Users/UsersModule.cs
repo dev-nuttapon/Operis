@@ -28,6 +28,7 @@ public sealed class UsersModule : IModule
         services.AddScoped<IUserOrgAssignmentCommands, UserOrgAssignmentCommands>();
         services.AddScoped<IUserReferenceDataCommands, UserReferenceDataCommands>();
         services.AddScoped<IUserReferenceDataQueries, UserReferenceDataQueries>();
+        services.AddScoped<IUserSelfServiceCommands, UserSelfServiceCommands>();
         services.AddScoped<IProjectCommands, ProjectCommands>();
         services.AddScoped<IProjectQueries, ProjectQueries>();
         services.AddScoped<IProjectTemplateCommands, ProjectTemplateCommands>();
@@ -211,6 +212,9 @@ public sealed class UsersModule : IModule
 
         group.MapPut("/me/preferences", UpdateCurrentUserPreferencesAsync)
             .WithName("Users_UpdateCurrentUserPreferences");
+
+        group.MapPost("/me/change-password", ChangeCurrentUserPasswordAsync)
+            .WithName("Users_ChangePassword");
 
         group.MapPost("/register", CreateRegistrationRequestAsync)
             .AllowAnonymous()
@@ -1282,6 +1286,28 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             UserPreferenceCommandStatus.NotFound => Results.NotFound(),
+            _ => Results.NoContent()
+        };
+    }
+
+    private static async Task<IResult> ChangeCurrentUserPasswordAsync(
+        ChangePasswordRequest request,
+        ClaimsPrincipal principal,
+        IUserSelfServiceCommands commands,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return Results.Json(ApiProblemDetailsFactory.Create(StatusCodes.Status401Unauthorized, "unauthorized", "Unauthorized.", "The current user identity is missing."), statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        var result = await commands.ChangePasswordAsync(currentUserId, request, cancellationToken);
+        return result.Status switch
+        {
+            UserPasswordChangeStatus.NotFound => NotFoundWithCode(),
+            UserPasswordChangeStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            UserPasswordChangeStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.NoContent()
         };
     }

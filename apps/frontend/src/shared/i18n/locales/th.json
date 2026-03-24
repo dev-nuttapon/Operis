@@ -346,6 +346,8 @@
     "project_org_chart": "ผังงานในโครงการ",
     "project_workspace": "พื้นที่ทำงานโครงการ",
     "notifications": "การแจ้งเตือน",
+    "profile": "โปรไฟล์",
+    "change_password": "เปลี่ยนรหัสผ่าน",
     "mark_all_read": "อ่านทั้งหมด",
     "view_all_notifications": "ดูทั้งหมด (3)",
     "role_label": "บทบาท",
@@ -489,6 +491,7 @@
     "password_required": "กรุณากรอกรหัสผ่าน",
     "password_min_length": "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร",
     "password_mismatch": "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน",
+    "current_password_invalid": "รหัสผ่านปัจจุบันไม่ถูกต้อง",
     "password_setup_completed": "ลิงก์ตั้งรหัสผ่านนี้ถูกใช้งานไปแล้ว",
     "password_setup_expired": "ลิงก์ตั้งรหัสผ่านนี้หมดอายุแล้ว",
     "registration_not_approved": "คำขอลงทะเบียนนี้ยังไม่ได้รับการอนุมัติ",
@@ -496,6 +499,18 @@
     "keycloak_user_exists": "มีผู้ใช้งานนี้ในระบบยืนยันตัวตนแล้ว",
     "document_file_type_not_allowed": "อนุญาตให้อัปโหลดเฉพาะเอกสาร PDF, Word และ Excel เท่านั้น",
     "update_user_affiliation_failed": "ไม่สามารถบันทึกสังกัดผู้ใช้งานได้"
+  },
+  "profile": {
+    "change_password_title": "เปลี่ยนรหัสผ่าน",
+    "change_password_description": "กรอกรหัสผ่านปัจจุบันและรหัสผ่านใหม่เพื่ออัปเดตบัญชีของคุณ",
+    "change_password_success": "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว",
+    "change_password_failed": "ไม่สามารถเปลี่ยนรหัสผ่านได้",
+    "current_password_label": "รหัสผ่านปัจจุบัน",
+    "current_password_placeholder": "รหัสผ่านปัจจุบัน",
+    "new_password_label": "รหัสผ่านใหม่",
+    "new_password_placeholder": "รหัสผ่านใหม่",
+    "confirm_password_label": "ยืนยันรหัสผ่านใหม่",
+    "confirm_password_placeholder": "ยืนยันรหัสผ่านใหม่"
   },
   "admin_users": {
     "columns": {

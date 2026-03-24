@@ -115,7 +115,7 @@ describe('AppRouter Integration Tests', () => {
       renderWithProviders(<AppRouter />);
     });
 
-    expect(await screen.findByText('Workflow Definitions')).toBeInTheDocument();
+    expect(await screen.findByText('workflow_definitions.page_title')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/app/workflows');
   });
 

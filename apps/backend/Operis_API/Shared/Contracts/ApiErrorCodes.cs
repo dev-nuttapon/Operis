@@ -46,6 +46,7 @@ namespace Operis_API.Shared.Contracts;
     public const string PasswordRequired = "password_required";
     public const string PasswordMinLength = "password_min_length";
     public const string PasswordMismatch = "password_mismatch";
+    public const string CurrentPasswordInvalid = "current_password_invalid";
     public const string RegistrationReviewed = "registration_reviewed";
     public const string RegistrationNotApproved = "registration_not_approved";
     public const string PasswordSetupCompleted = "password_setup_completed";

@@ -8,6 +8,7 @@ public interface IKeycloakAdminClient
     Task<KeycloakCreateUserResult> CreateUserAsync(string email, string firstName, string lastName, string? password, CancellationToken cancellationToken);
     Task<KeycloakUpdateUserResult> UpdateUserAsync(string keycloakUserId, string email, string firstName, string lastName, CancellationToken cancellationToken);
     Task<KeycloakUpdateUserResult> UpdatePasswordAsync(string keycloakUserId, string password, bool temporary, CancellationToken cancellationToken);
+    Task<KeycloakPasswordValidationResult> ValidateUserPasswordAsync(string username, string password, CancellationToken cancellationToken);
     Task<KeycloakUpdateUserResult> DisableUserAsync(string keycloakUserId, CancellationToken cancellationToken);
     Task<KeycloakUpdateUserResult> DeleteUserAsync(string keycloakUserId, CancellationToken cancellationToken);
     Task<KeycloakUpdateUserResult> ExecuteActionsEmailAsync(string keycloakUserId, IEnumerable<string> actions, CancellationToken cancellationToken);
@@ -19,6 +20,7 @@ public interface IKeycloakAdminClient
 
 public sealed record KeycloakCreateUserResult(bool Success, bool AlreadyExists, string? UserId, string? ErrorMessage);
 public sealed record KeycloakUpdateUserResult(bool Success, bool Conflict, string? ErrorMessage);
+public sealed record KeycloakPasswordValidationResult(bool Success, bool InvalidCredentials, string? ErrorMessage);
 
 public sealed record KeycloakUserProfile(
     string Id,

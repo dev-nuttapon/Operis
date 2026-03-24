@@ -1,10 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentUser } from "../api/usersApi";
 
-export function useCurrentUserProfile() {
+interface CurrentUserProfileOptions {
+  includeIdentity?: boolean;
+}
+
+export function useCurrentUserProfile(options?: CurrentUserProfileOptions) {
+  const includeIdentity = Boolean(options?.includeIdentity);
+
   return useQuery({
-    queryKey: ["current-user-profile"],
-    queryFn: ({ signal }) => getCurrentUser(signal, false),
+    queryKey: ["current-user-profile", includeIdentity],
+    queryFn: ({ signal }) => getCurrentUser(signal, includeIdentity),
     staleTime: 60_000,
   });
 }

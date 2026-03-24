@@ -89,6 +89,12 @@ const ProjectOrgChartPage = lazy(() =>
 const ProjectWorkspacePrototypePage = lazy(() =>
   import("../modules/users/pages/ProjectWorkspacePrototypePage").then((module) => ({ default: module.ProjectWorkspacePrototypePage }))
 );
+const UserProfilePage = lazy(() =>
+  import("../modules/users/pages/UserProfilePage").then((module) => ({ default: module.UserProfilePage }))
+);
+const ChangePasswordPage = lazy(() =>
+  import("../modules/users/pages/ChangePasswordPage").then((module) => ({ default: module.ChangePasswordPage }))
+);
 const ActivityLogsPage = lazy(() =>
   import("../modules/activities/pages/ActivityLogsPage").then((module) => ({ default: module.ActivityLogsPage }))
 );
@@ -131,6 +137,8 @@ export function AppRouter() {
             <Route path="/app" element={<ProtectedRoute />}>
               <Route element={<MainLayout />}>
                 <Route index element={<Navigate to="documents" replace />} />
+                <Route path="profile" element={<UserProfilePage />} />
+                <Route path="change-password" element={<ChangePasswordPage />} />
                 <Route path="documents" element={<DocumentDashboardPage />} />
                 <Route path="documents/templates" element={<DocumentTemplatesPage />} />
                 <Route path="document-templates" element={<DocumentTemplatesPage />} />

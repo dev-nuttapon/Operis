@@ -15,6 +15,8 @@ import {
   TeamOutlined,
   ApartmentOutlined,
   FolderOpenOutlined,
+  UserOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../modules/auth';
@@ -231,6 +233,12 @@ export function MainLayout() {
 
   const profileMenuItems: MenuProps['items'] = [
     {
+      key: 'profile',
+      label: tr('common.profile'),
+      icon: <UserOutlined />,
+    },
+    { type: 'divider' },
+    {
       key: 'language',
       label: `${tr('common.language')}: ${currentLanguageLabel}`,
       icon: <GlobalOutlined />,
@@ -259,6 +267,10 @@ export function MainLayout() {
   ];
 
   const handleProfileMenuClick: MenuProps['onClick'] = ({ key }) => {
+    if (key === 'profile') {
+      navigate('/app/profile');
+      return;
+    }
     if (key === 'logout') void logout();
     if (['light', 'dark', 'system'].includes(key)) setTheme(key as ThemeMode);
     if (key === 'th' || key === 'en') {
@@ -294,6 +306,8 @@ export function MainLayout() {
     if (path.includes('dashboard')) return tr('common.dashboard');
     if (path.includes('document-templates')) return tr('common.document_templates');
     if (path.includes('documents')) return tr('common.documents');
+    if (path.includes('/app/profile')) return tr('common.profile');
+    if (path.includes('/app/change-password')) return tr('common.change_password');
     if (path === '/app/projects') return tr('common.my_projects');
     if (path.includes('workflows')) return tr('common.workflows');
     if (path.includes('admin/users')) return tr('common.user_management');
@@ -575,35 +589,42 @@ export function MainLayout() {
                 </div>
               ) : null}
             </div>
-            
+
             <Dropdown menu={{ items: profileMenuItems, onClick: handleProfileMenuClick }} trigger={['click']}>
-              <Flex align="center" gap="middle" style={{ cursor: 'pointer' }}>
-                <Avatar 
-                  size={36} 
-                  style={{ backgroundColor: avatarBg, color: avatarText, fontWeight: 700 }}
-                >
-                  {avatarInitial}
-                </Avatar>
-                <div style={{ lineHeight: 1 }}>
-                  <Typography.Text strong style={{ display: 'block', fontSize: 14 }}>
-                    {displayName}
-                  </Typography.Text>
-                  <Typography.Text
-                    type="secondary"
-                    style={{
-                      display: 'block',
-                      fontSize: 12,
-                      marginTop: 4,
-                      whiteSpace: 'nowrap',
-                      maxWidth: 220,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
+              <Button
+                type="text"
+                style={{ padding: 0, height: 'auto' }}
+                aria-label={tr('common.profile')}
+              >
+                <Flex align="center" gap="middle">
+                  <Avatar 
+                    size={36} 
+                    style={{ backgroundColor: avatarBg, color: avatarText, fontWeight: 700 }}
                   >
-                    {jobTitleText}
-                  </Typography.Text>
-                </div>
-              </Flex>
+                    {avatarInitial}
+                  </Avatar>
+                  <div style={{ lineHeight: 1, textAlign: 'left' }}>
+                    <Typography.Text strong style={{ display: 'block', fontSize: 14 }}>
+                      {displayName}
+                    </Typography.Text>
+                    <Typography.Text
+                      type="secondary"
+                      style={{
+                        display: 'block',
+                        fontSize: 12,
+                        marginTop: 4,
+                        whiteSpace: 'nowrap',
+                        maxWidth: 220,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {jobTitleText}
+                    </Typography.Text>
+                  </div>
+                  <DownOutlined style={{ fontSize: 12, opacity: 0.6 }} />
+                </Flex>
+              </Button>
             </Dropdown>
           </Flex>
         </Header>

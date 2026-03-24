@@ -9,6 +9,7 @@ public sealed record CompleteRegistrationPasswordSetupRequest(string Password, s
 public sealed record CreateInvitationRequest(string Email, string InvitedBy, DateTimeOffset? ExpiresAt, Guid? DivisionId, Guid? DepartmentId, Guid? JobTitleId);
 public sealed record UpdateInvitationRequest(string Email, DateTimeOffset? ExpiresAt, Guid? DivisionId, Guid? DepartmentId, Guid? JobTitleId);
 public sealed record AcceptInvitationRequest(string FirstName, string LastName, string Password, string ConfirmPassword);
+public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmPassword);
 public sealed record CreateUserRequest(string Email, string FirstName, string LastName, string Password, string ConfirmPassword, string CreatedBy, Guid? DivisionId, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
 public sealed record UpdateUserRequest(string Email, string FirstName, string LastName, Guid? DivisionId, Guid? DepartmentId, Guid? JobTitleId, IReadOnlyList<Guid>? RoleIds);
 public sealed record UpsertUserOrgAssignmentRequest(Guid? DivisionId, Guid? DepartmentId, Guid? PositionId);
