@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { App, Button, Card, Form, Input, Select, Space, Typography, Alert, Table, Flex, Grid } from "antd";
-import { ArrowLeftOutlined, DeleteOutlined, FileTextOutlined, SaveOutlined } from "@ant-design/icons";
+import { App, Button, Card, Form, Input, Select, Space, Typography, Alert, Table, Flex, Grid, Tooltip, Modal } from "antd";
+import { ArrowLeftOutlined, DeleteOutlined, FileTextOutlined, SaveOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { permissions } from "../../../shared/authz/permissions";
@@ -20,6 +20,8 @@ type SelectedDocumentRow = {
   sizeBytes?: number | null;
   publishedVersionCode?: string | null;
   publishedRevision?: number | null;
+  latestPublishedVersionCode?: string | null;
+  latestPublishedRevision?: number | null;
 };
 
 const toSizeLabel = (bytes?: number | null) => {
@@ -31,9 +33,41 @@ const toSizeLabel = (bytes?: number | null) => {
   return `${mb.toFixed(1)} MB`;
 };
 
+const toFileExtension = (value?: string | null) => {
+  if (!value) return "-";
+  const lower = value.toLowerCase();
+  if (lower.includes("pdf")) return "pdf";
+  if (lower.includes("word")) return "docx";
+  if (lower.includes("excel") || lower.includes("spreadsheet")) return "xls";
+  if (lower.includes("powerpoint") || lower.includes("presentation")) return "pptx";
+  if (lower.includes("text")) return "txt";
+  return value.split("/").pop() ?? value;
+};
+
+const renderFileName = (value?: string | null) => {
+  const display = value ?? "-";
+  const short = display.length > 100 ? `${display.slice(0, 100)}...` : display;
+  return (
+    <Tooltip title={display} placement="topLeft">
+      <span
+        style={{
+          display: "inline-block",
+          maxWidth: 340,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          verticalAlign: "bottom",
+        }}
+      >
+        {short}
+      </span>
+    </Tooltip>
+  );
+};
+
 export function DocumentTemplateCreatePage() {
   const { t } = useTranslation();
-  const { notification } = App.useApp();
+  const { notification, modal } = App.useApp();
   const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -79,6 +113,8 @@ export function DocumentTemplateCreatePage() {
           sizeBytes: item.sizeBytes,
           publishedVersionCode: item.publishedVersionCode,
           publishedRevision: item.publishedRevision,
+          latestPublishedVersionCode: item.publishedVersionCode,
+          latestPublishedRevision: item.publishedRevision,
         },
       ];
     });
@@ -87,7 +123,15 @@ export function DocumentTemplateCreatePage() {
   };
 
   const handleRemoveDocument = (id: string) => {
-    setSelectedRows((current) => current.filter((row) => row.id !== id));
+    modal.confirm({
+      title: t("common.actions.confirm_delete"),
+      content: t("documents.templates.messages.confirm_remove_document"),
+      icon: <ExclamationCircleOutlined />,
+      okText: t("common.actions.confirm_delete"),
+      cancelText: t("common.actions.cancel"),
+      okButtonProps: { danger: true },
+      onOk: () => setSelectedRows((current) => current.filter((row) => row.id !== id)),
+    });
   };
 
   const handleCreate = async () => {
@@ -224,8 +268,8 @@ export function DocumentTemplateCreatePage() {
                 size={isMobile ? "small" : "middle"}
                 columns={[
                   { title: t("documents.columns.document_name"), dataIndex: "documentName" },
-                  { title: t("documents.columns.file_name"), dataIndex: "fileName", render: (value) => value ?? "-" },
-                  { title: t("documents.columns.content_type"), dataIndex: "contentType", render: (value) => value ?? "-" },
+                  { title: t("documents.columns.file_name"), dataIndex: "fileName", render: (value) => renderFileName(value) },
+                  { title: t("documents.columns.content_type"), dataIndex: "contentType", render: (value) => toFileExtension(value) },
                   { title: t("documents.columns.size"), dataIndex: "sizeBytes", render: (value) => toSizeLabel(value) },
                   {
                     title: t("documents.columns.published_version"),
@@ -233,9 +277,9 @@ export function DocumentTemplateCreatePage() {
                     render: (value) => value ?? "-",
                   },
                   {
-                    title: t("documents.columns.published_revision"),
-                    dataIndex: "publishedRevision",
-                    render: (value) => (value ? `r${value}` : "-"),
+                    title: t("documents.columns.latest_published_version"),
+                    dataIndex: "latestPublishedVersionCode",
+                    render: (value) => value ?? "-",
                   },
                   {
                     title: t("admin_users.columns.actions"),

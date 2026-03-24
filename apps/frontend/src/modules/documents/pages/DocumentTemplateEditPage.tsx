@@ -73,7 +73,7 @@ const renderFileName = (value?: string | null) => {
 
 export function DocumentTemplateEditPage() {
   const { t } = useTranslation();
-  const { notification } = App.useApp();
+  const { notification, modal } = App.useApp();
   const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -174,7 +174,7 @@ export function DocumentTemplateEditPage() {
   };
 
   const handleRemoveDocument = (id: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: t("common.actions.confirm_delete"),
       content: t("documents.templates.messages.confirm_remove_document"),
       icon: <ExclamationCircleOutlined />,

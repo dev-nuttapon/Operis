@@ -216,6 +216,7 @@
         "type_required": "Step type is required.",
         "roles_required": "Please select at least one role.",
         "document_required": "Please select a document.",
+        "document_not_in_template": "Selected documents must belong to the template.",
         "min_approvals_required": "Please set minimum reviewers."
       },
       "empty": "No steps yet.",

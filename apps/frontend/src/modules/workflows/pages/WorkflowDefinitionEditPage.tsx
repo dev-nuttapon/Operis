@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { App, Alert, Button, Card, Flex, Form, Input, Select, Space, Switch, Table, Typography, Grid, Skeleton, InputNumber } from "antd";
 import { ArrowLeftOutlined, DeleteOutlined, SaveOutlined, EditOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
@@ -41,6 +41,8 @@ export function WorkflowDefinitionEditPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [templateSearch, setTemplateSearch] = useState("");
   const debouncedTemplateSearch = useDebouncedValue(templateSearch, 300);
+  const templateInitializedRef = useRef(false);
+  const previousTemplateIdRef = useRef<string | null>(null);
 
   const roleOptionsState = useProjectRoleOptions({ enabled: canReadRoles });
   const roleLabelById = useMemo(
@@ -69,6 +71,10 @@ export function WorkflowDefinitionEditPage() {
       ?? templateItems.map((item) => item.documentId)
       ?? (templateDetailState.data as { DocumentIds?: string[] } | null)?.DocumentIds
       ?? []) as string[];
+  const templateDocumentIdSet = useMemo(
+    () => new Set(templateDocumentIds),
+    [templateDocumentIds],
+  );
   const templateDocumentsState = useDocumentsByIds(
     templateDocumentIds,
     Boolean(templateDocumentIds.length),
@@ -103,14 +109,17 @@ export function WorkflowDefinitionEditPage() {
       return new Map(
         templateItems.map((item) => [
           item.documentId,
-          item.versionCode
-            ? `${item.versionCode}${item.revision ? ` r${item.revision}` : ""}`
-            : t("workflow_definitions.steps.document_unpublished"),
+          item.versionCode ? item.versionCode : t("workflow_definitions.steps.document_unpublished"),
         ] as const),
       );
     }
-    return new Map((templateDocumentsState.data ?? []).map((doc) => [doc.id, formatPublishedVersion(doc)] as const));
-  }, [formatPublishedVersion, templateDocumentsState.data, templateItems, t]);
+    return new Map(
+      (templateDocumentsState.data ?? []).map((doc) => [
+        doc.id,
+        doc.publishedVersionCode ? doc.publishedVersionCode : t("workflow_definitions.steps.document_unpublished"),
+      ] as const),
+    );
+  }, [templateDocumentsState.data, templateItems, t]);
 
   useEffect(() => {
     if (!definitionQuery.data) return;
@@ -125,7 +134,22 @@ export function WorkflowDefinitionEditPage() {
           displayOrder: index + 1,
         })),
     );
+    previousTemplateIdRef.current = definitionQuery.data.documentTemplateId ?? null;
   }, [definitionQuery.data, form]);
+
+  useEffect(() => {
+    if (!templateInitializedRef.current) {
+      templateInitializedRef.current = true;
+      previousTemplateIdRef.current = selectedTemplateId ?? null;
+      return;
+    }
+    if (previousTemplateIdRef.current !== selectedTemplateId) {
+      setSteps([]);
+      setEditingIndex(null);
+      stepForm.resetFields();
+      previousTemplateIdRef.current = selectedTemplateId ?? null;
+    }
+  }, [selectedTemplateId, stepForm]);
 
   const handleAddStep = async () => {
     const values = await stepForm.validateFields();
@@ -198,6 +222,20 @@ export function WorkflowDefinitionEditPage() {
     if (steps.length === 0) {
       notification.error({ message: t("workflow_definitions.steps.validation.required") });
       return;
+    }
+    if (selectedTemplateId) {
+      const missingDocument = steps.some((step) => !step.documentId);
+      if (missingDocument) {
+        notification.error({ message: t("workflow_definitions.steps.validation.document_required") });
+        return;
+      }
+      const invalidDocument = steps.some(
+        (step) => step.documentId && !templateDocumentIdSet.has(step.documentId),
+      );
+      if (invalidDocument) {
+        notification.error({ message: t("workflow_definitions.steps.validation.document_not_in_template") });
+        return;
+      }
     }
 
     updateMutation.mutate(
@@ -315,6 +353,9 @@ export function WorkflowDefinitionEditPage() {
                     {
                       validator: async (_, value) => {
                         if (selectedTemplateId && !value) {
+                          throw new Error(t("workflow_definitions.steps.validation.document_required"));
+                        }
+                        if (selectedTemplateId && value && !templateDocumentIdSet.has(value)) {
                           throw new Error(t("workflow_definitions.steps.validation.document_required"));
                         }
                       },
