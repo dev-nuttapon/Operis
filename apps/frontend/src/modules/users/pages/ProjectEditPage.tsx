@@ -355,7 +355,7 @@ export function ProjectEditPage() {
                   </>
                 )}
               />
-              <div style={{ width: isMobile ? "100%" : "auto" }}>
+              <div style={{ width: isMobile ? "100%" : "auto", marginBottom:16 }}>
                 <Button
                   type="primary"
                   disabled={!canEditMembers || !selectedMemberId}
