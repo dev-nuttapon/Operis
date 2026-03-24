@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Divider, Flex, Typography } from "antd";
+import { Alert, Button, Card, Divider, Flex, Typography, Space } from "antd";
+import { FolderOpenOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -34,13 +35,34 @@ export function WorkflowDefinitionsPage() {
       : null;
 
   return (
+    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Card variant="borderless">
+        <Space align="start" size={16}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              color: "#fff",
+            }}
+          >
+            <FolderOpenOutlined />
+          </div>
+          <div>
+            <Title level={2} style={{ margin: 0 }}>
+              {t("workflow_definitions.page_title")}
+            </Title>
+            <Paragraph type="secondary" style={{ marginTop: 4 }}>
+              {t("workflow_definitions.page_description")}
+            </Paragraph>
+          </div>
+        </Space>
+      </Card>
+
     <Card variant="borderless" style={{ borderRadius: 16 }}>
-      <Title level={2} style={{ marginTop: 0 }}>
-        {t("workflow_definitions.page_title")}
-      </Title>
-      <Paragraph type="secondary">
-        {t("workflow_definitions.page_description")}
-      </Paragraph>
 
       {!canReadWorkflows ? (
         <Alert
@@ -105,5 +127,6 @@ export function WorkflowDefinitionsPage() {
         />
       ) : null}
     </Card>
+    </Space>
   );
 }

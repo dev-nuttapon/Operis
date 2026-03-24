@@ -2,6 +2,7 @@ import { Card, Table, Typography, Space, Tag, Grid, Button, Descriptions, Divide
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { FolderOpenOutlined } from "@ant-design/icons";
 import { useWorkflowTasks } from "../hooks/useWorkflowTasks";
 import type { WorkflowTaskItem } from "../types/workflows";
 import { downloadDocument, useDocumentOptions } from "../../documents";
@@ -89,12 +90,29 @@ export function WorkflowTasksPage() {
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card variant="borderless">
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          {t("workflow_tasks.page_title")}
-        </Typography.Title>
-        <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
-          {t("workflow_tasks.page_description")}
-        </Typography.Paragraph>
+        <Space align="start" size={16}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              color: "#fff",
+            }}
+          >
+            <FolderOpenOutlined />
+          </div>
+          <div>
+            <Typography.Title level={3} style={{ margin: 0 }}>
+              {t("workflow_tasks.page_title")}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
+              {t("workflow_tasks.page_description")}
+            </Typography.Paragraph>
+          </div>
+        </Space>
       </Card>
 
       <Card variant="borderless">

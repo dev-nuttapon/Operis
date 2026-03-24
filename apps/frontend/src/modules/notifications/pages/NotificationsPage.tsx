@@ -1,4 +1,5 @@
 import { Card, Table, Typography, Space, Tag, Grid, Flex, Switch, Button, App, Drawer, Descriptions } from "antd";
+import { BellOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -69,50 +70,67 @@ export function NotificationsPage() {
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card variant="borderless">
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          {t("notifications.page_title")}
-        </Typography.Title>
-        <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
-          {t("notifications.page_description")}
-        </Typography.Paragraph>
-        <Flex gap={12} align="center" wrap="wrap">
-          <Flex align="center" gap={8}>
-            <Switch
-              checked={unreadOnly}
-              onChange={(checked) => {
-                setUnreadOnly(checked);
-                setPaging((current) => ({ ...current, page: 1 }));
-              }}
-            />
-            <Typography.Text>{t("notifications.actions.unread_only")}</Typography.Text>
-          </Flex>
-          <Button
-            onClick={async () => {
-              try {
-                await actions.markAllReadMutation.mutateAsync();
-                notification.success({ message: t("notifications.messages.mark_all_read") });
-              } catch {
-                notification.error({ message: t("notifications.messages.mark_all_read_failed") });
-              }
+        <Space align="start" size={16}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              color: "#fff",
             }}
-            disabled={actions.markAllReadMutation.isPending}
           >
-            {t("notifications.actions.mark_all_read")}
-          </Button>
-          <Button
-            onClick={async () => {
-              try {
-                await actions.seedMutation.mutateAsync(8);
-                notification.success({ message: t("notifications.messages.seeded") });
-              } catch {
-                notification.error({ message: t("notifications.messages.seed_failed") });
-              }
-            }}
-            disabled={actions.seedMutation.isPending}
-          >
-            {t("notifications.actions.seed")}
-          </Button>
-        </Flex>
+            <BellOutlined />
+          </div>
+          <div style={{ width: "100%" }}>
+            <Typography.Title level={3} style={{ margin: 0 }}>
+              {t("notifications.page_title")}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
+              {t("notifications.page_description")}
+            </Typography.Paragraph>
+            <Flex gap={12} align="center" wrap="wrap">
+              <Flex align="center" gap={8}>
+                <Switch
+                  checked={unreadOnly}
+                  onChange={(checked) => {
+                    setUnreadOnly(checked);
+                    setPaging((current) => ({ ...current, page: 1 }));
+                  }}
+                />
+                <Typography.Text>{t("notifications.actions.unread_only")}</Typography.Text>
+              </Flex>
+              <Button
+                onClick={async () => {
+                  try {
+                    await actions.markAllReadMutation.mutateAsync();
+                    notification.success({ message: t("notifications.messages.mark_all_read") });
+                  } catch {
+                    notification.error({ message: t("notifications.messages.mark_all_read_failed") });
+                  }
+                }}
+                disabled={actions.markAllReadMutation.isPending}
+              >
+                {t("notifications.actions.mark_all_read")}
+              </Button>
+              <Button
+                onClick={async () => {
+                  try {
+                    await actions.seedMutation.mutateAsync(8);
+                    notification.success({ message: t("notifications.messages.seeded") });
+                  } catch {
+                    notification.error({ message: t("notifications.messages.seed_failed") });
+                  }
+                }}
+                disabled={actions.seedMutation.isPending}
+              >
+                {t("notifications.actions.seed")}
+              </Button>
+            </Flex>
+          </div>
+        </Space>
       </Card>
 
       <Card variant="borderless">

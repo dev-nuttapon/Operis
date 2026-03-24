@@ -150,10 +150,6 @@ export function MainLayout() {
       label: tr('common.my_projects'),
       children: [
         {
-          key: '/app/projects',
-          label: tr('common.project_list'),
-        },
-        {
           key: '/app/projects/roles',
           label: tr('common.master_project_roles'),
         },
@@ -162,18 +158,16 @@ export function MainLayout() {
           label: tr('common.workflows'),
         },
         {
+          key: '/app/projects',
+          label: tr('common.project_list'),
+        },
+        {
           key: '/app/workspace',
           label: tr('common.workflow_tasks'),
         },
       ],
     },
-    ...(hasNotificationsAccess
-      ? [{
-          key: '/app/notifications',
-          icon: <BellOutlined />,
-          label: tr('common.notifications'),
-        }]
-      : []),
+    ...[],
     ...(hasAdminAccess
       ? [{
           key: '/app/admin',
