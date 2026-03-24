@@ -199,10 +199,12 @@
         "type": "Type",
         "roles": "Roles",
         "document": "Document",
+        "published_version": "Published version",
         "required": "Required",
         "min_approvals": "Min reviewers",
         "next_step": "Next step"
       },
+      "document_unpublished": "Unpublished",
       "actions": {
         "add": "Add step",
         "update": "Update step",

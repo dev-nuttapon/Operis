@@ -71,6 +71,13 @@ export function WorkflowDefinitionEditPage() {
     templateDocumentIds,
     Boolean(templateDocumentIds.length),
   );
+  const formatPublishedVersion = useMemo(
+    () => (doc: { publishedVersionCode?: string | null; publishedRevision?: number | null }) =>
+      doc.publishedVersionCode
+        ? `${doc.publishedVersionCode}${doc.publishedRevision ? ` r${doc.publishedRevision}` : ""}`
+        : t("workflow_definitions.steps.document_unpublished"),
+    [t],
+  );
   const baseDocumentOptions = useMemo(
     () => (templateDocumentsState.data ?? []).map((doc) => ({ label: doc.documentName, value: doc.id })),
     [templateDocumentsState.data],
@@ -88,6 +95,10 @@ export function WorkflowDefinitionEditPage() {
   const documentLabelById = useMemo(
     () => new Map((templateDocumentsState.data ?? []).map((doc) => [doc.id, doc.documentName] as const)),
     [templateDocumentsState.data],
+  );
+  const documentPublishedById = useMemo(
+    () => new Map((templateDocumentsState.data ?? []).map((doc) => [doc.id, formatPublishedVersion(doc)] as const)),
+    [formatPublishedVersion, templateDocumentsState.data],
   );
 
   useEffect(() => {
@@ -401,6 +412,11 @@ export function WorkflowDefinitionEditPage() {
                   title: t("workflow_definitions.steps.columns.document"),
                   dataIndex: "documentId",
                   render: (value?: string | null) => (value ? documentLabelById.get(value) ?? value : "-"),
+                },
+                {
+                  title: t("workflow_definitions.steps.columns.published_version"),
+                  dataIndex: "documentId",
+                  render: (value?: string | null) => (value ? documentPublishedById.get(value) ?? "-" : "-"),
                 },
                 {
                   title: t("workflow_definitions.steps.columns.min_approvals"),

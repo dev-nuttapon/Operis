@@ -199,10 +199,12 @@
         "type": "ประเภท",
         "roles": "บทบาท",
         "document": "เอกสาร",
+        "published_version": "เวอร์ชันที่ประกาศใช้",
         "required": "จำเป็น",
         "min_approvals": "ขั้นต่ำ",
         "next_step": "ขั้นตอนถัดไป"
       },
+      "document_unpublished": "ยังไม่ประกาศใช้",
       "actions": {
         "add": "เพิ่มขั้นตอน",
         "update": "อัปเดตขั้นตอน",
