@@ -15,7 +15,6 @@ public sealed class WorkflowsModule : IModule
         services.AddScoped<IWorkflowInstanceQueries, WorkflowInstanceQueries>();
         services.AddScoped<IWorkflowInstanceCommands, WorkflowInstanceCommands>();
         services.AddScoped<IWorkflowTaskQueries, WorkflowTaskQueries>();
-        services.AddScoped<IWorkflowProjectStatusQueries, WorkflowProjectStatusQueries>();
         return services;
     }
 

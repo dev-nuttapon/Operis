@@ -3,7 +3,6 @@ using System.Text;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
-using Operis_API.Modules.Workflows;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
 
@@ -84,8 +83,7 @@ public interface IProjectQueries
 public sealed class ProjectQueries(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter,
-    IKeycloakAdminClient keycloakAdminClient,
-    IWorkflowProjectStatusQueries workflowProjectStatusQueries) : IProjectQueries
+    IKeycloakAdminClient keycloakAdminClient) : IProjectQueries
 {
     public async Task<PagedResult<ProjectListItem>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken)
     {
@@ -131,17 +129,12 @@ public sealed class ProjectQueries(
                     project.CreatedAt))
             .ToListAsync(cancellationToken);
 
-        var workflowStatus = await workflowProjectStatusQueries.GetProjectStatusSummaryAsync(
-            items.Select(item => item.Id),
-            cancellationToken);
-
         var ownerDisplayNames = await ResolveUserDisplayNamesAsync(
             items.Select(x => x.OwnerUserId),
             cancellationToken);
         var resolvedItems = items
             .Select(item => item with
             {
-                Status = ResolveProjectStatus(item.Status, item.StartAt, item.EndAt, workflowStatus.TryGetValue(item.Id, out var summary) ? summary : null),
                 OwnerDisplayName = item.OwnerUserId is not null && ownerDisplayNames.TryGetValue(item.OwnerUserId, out var name)
                     ? name
                     : item.OwnerDisplayName
@@ -211,45 +204,6 @@ public sealed class ProjectQueries(
             project.Entity.DeletedReason,
             project.Entity.DeletedBy,
             project.Entity.DeletedAt);
-    }
-
-    private static string ResolveProjectStatus(
-        string? status,
-        DateTimeOffset? startAt,
-        DateTimeOffset? endAt,
-        WorkflowProjectStatusSummary? workflowSummary)
-    {
-        var normalized = string.IsNullOrWhiteSpace(status) ? "planned" : status.Trim().ToLowerInvariant();
-
-        if (normalized is "cancelled" or "completed" or "onhold")
-        {
-            return normalized;
-        }
-
-        if (workflowSummary is not null)
-        {
-            if (workflowSummary.InProgress > 0)
-            {
-                return "active";
-            }
-
-            if (workflowSummary.Completed > 0 && workflowSummary.InProgress == 0)
-            {
-                return "completed";
-            }
-        }
-
-        if (endAt.HasValue)
-        {
-            return "completed";
-        }
-
-        if (startAt.HasValue)
-        {
-            return "active";
-        }
-
-        return normalized == "active" ? "active" : "planned";
     }
 
     private async Task<IReadOnlyDictionary<string, string>> ResolveUserDisplayNamesAsync(
