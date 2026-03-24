@@ -72,7 +72,6 @@ export function MainLayout() {
     currentUserQuery.data?.departmentName ??
     (typeof user?.departmentName === "string" ? user.departmentName : undefined);
   const positionFallback = tr('common.position_empty');
-  const departmentText = departmentLabel ?? positionFallback;
   const jobTitleText = jobTitleLabel ?? positionFallback;
   const isDarkMode = token.colorBgBase.toLowerCase() === '#020617';
   const avatarBg = isDarkMode ? '#1e293b' : '#dbeafe';
@@ -589,11 +588,19 @@ export function MainLayout() {
                   <Typography.Text strong style={{ display: 'block', fontSize: 14 }}>
                     {displayName}
                   </Typography.Text>
-                  <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>
-                    {tr('common.department_label')}: {departmentText}
-                  </Typography.Text>
-                  <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 2 }}>
-                    {tr('common.job_title_label')}: {jobTitleText}
+                  <Typography.Text
+                    type="secondary"
+                    style={{
+                      display: 'block',
+                      fontSize: 12,
+                      marginTop: 4,
+                      whiteSpace: 'nowrap',
+                      maxWidth: 220,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {jobTitleText}
                   </Typography.Text>
                 </div>
               </Flex>
