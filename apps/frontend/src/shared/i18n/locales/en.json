@@ -396,6 +396,7 @@
     "user_invitations": "Invitations",
     "registration_approvals": "Registration Approvals",
     "activity_logs": "Activity Logs",
+    "admin_settings": "Settings",
     "audit_logs": "Audit Logs",
     "master_data_management": "Master Data Management",
     "master_permanent_structure": "Permanent Structure",
@@ -432,6 +433,7 @@
       "detail": "Details",
       "manage": "Manage",
       "edit": "Edit",
+      "refresh_user": "Reload user from Keycloak",
       "add": "Add",
       "delete": "Delete",
       "yes": "Yes",
@@ -457,6 +459,8 @@
       "system": "System"
     },
     "version": "v1.0.0",
+    "keycloak_refreshed": "Reloaded user data from Keycloak.",
+    "keycloak_refresh_failed": "Unable to reload user data from Keycloak.",
     "user_affiliations": "User Affiliations",
     "affiliation_manage": "Set affiliation"
   },
@@ -648,6 +652,9 @@
     "load_more_divisions": "Load 5 more divisions",
     "load_more_departments": "Load 5 more departments",
     "load_more_job_titles": "Load 5 more job titles",
+    "actions": {
+      "refresh_from_keycloak": "Reload from Keycloak"
+    },
     "validation": {
       "delete_reason_required": "Please provide a deletion reason.",
       "reason_required": "Please provide a reason."
@@ -680,7 +687,9 @@
       "project_role_created": "Created project role {{name}}",
       "project_role_updated": "Updated project role {{name}}",
       "project_role_deleted": "Deleted project role {{name}}",
-      "user_affiliation_saved": "Saved affiliation for {{email}}"
+      "user_affiliation_saved": "Saved affiliation for {{email}}",
+      "keycloak_refreshed": "Reloaded user {{email}} from Keycloak.",
+      "keycloak_refresh_failed": "Unable to reload user data from Keycloak."
     },
     "notifications": {
       "email_in_use_title": "This email is already in use",
@@ -1810,6 +1819,23 @@
     },
     "notifications": {
       "load_failed_title": "Unable to load activity logs"
+    }
+  },
+  "admin_settings": {
+    "title": "Admin Settings",
+    "description": "Run system tasks to refresh and sync users from Keycloak.",
+    "actions": {
+      "refresh_keycloak_cache": "Reload users",
+      "refresh_workflows_cache": "Reload workflows",
+      "refresh_templates_cache": "Reload templates"
+    },
+    "messages": {
+      "refresh_success": "Reloaded {{refreshed}} users (missing {{missing}}).",
+      "refresh_failed": "Unable to reload users from Keycloak.",
+      "refresh_workflows_success": "Workflow list cache reloaded ({{total}} items).",
+      "refresh_workflows_failed": "Unable to reload workflow list cache.",
+      "refresh_templates_success": "Document template cache reloaded ({{total}} items).",
+      "refresh_templates_failed": "Unable to reload document template cache."
     }
   },
   "audit_logs": {

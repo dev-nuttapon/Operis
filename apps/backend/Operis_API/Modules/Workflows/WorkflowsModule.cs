@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Workflows.Infrastructure;
 using Operis_API.Shared.Contracts;
 using Operis_API.Shared.Modules;
 using Operis_API.Shared.Security;
@@ -15,6 +17,7 @@ public sealed class WorkflowsModule : IModule
         services.AddScoped<IWorkflowInstanceQueries, WorkflowInstanceQueries>();
         services.AddScoped<IWorkflowInstanceCommands, WorkflowInstanceCommands>();
         services.AddScoped<IWorkflowTaskQueries, WorkflowTaskQueries>();
+        services.AddSingleton<IWorkflowDefinitionCache, WorkflowDefinitionCache>();
         return services;
     }
 
@@ -26,6 +29,8 @@ public sealed class WorkflowsModule : IModule
 
         group.MapGet("/definitions", ListWorkflowDefinitionsAsync)
             .WithName("Workflows_ListDefinitions");
+        group.MapPost("/definitions/cache/refresh", RefreshWorkflowDefinitionCacheAsync)
+            .WithName("Workflows_RefreshDefinitionCache");
         group.MapGet("/definitions/{workflowDefinitionId:guid}", GetWorkflowDefinitionAsync)
             .WithName("Workflows_GetDefinition");
         group.MapPost("/definitions", CreateWorkflowDefinitionAsync)
@@ -90,6 +95,23 @@ public sealed class WorkflowsModule : IModule
             new WorkflowDefinitionListQuery(status, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> RefreshWorkflowDefinitionCacheAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        OperisDbContext dbContext,
+        IWorkflowDefinitionCache cache,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.ManageDefinitions)
+            && !permissionMatrix.HasPermission(principal, Permissions.Users.Update))
+        {
+            return Results.Forbid();
+        }
+
+        var total = await cache.RefreshAsync(dbContext, cancellationToken);
+        return Results.Ok(new { Total = total });
     }
 
     private static async Task<IResult> ListWorkflowTasksAsync(

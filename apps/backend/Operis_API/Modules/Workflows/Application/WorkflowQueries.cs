@@ -7,44 +7,36 @@ namespace Operis_API.Modules.Workflows;
 
 public sealed class WorkflowQueries(
     OperisDbContext dbContext,
+    IWorkflowDefinitionCache definitionCache,
     IAuditLogWriter auditLogWriter) : IWorkflowQueries
 {
     public async Task<WorkflowDefinitionListResponse> ListDefinitionsAsync(
         WorkflowDefinitionListQuery query,
         CancellationToken cancellationToken)
     {
-        var source = dbContext.WorkflowDefinitions.AsNoTracking();
-        var statusSummary = await BuildStatusSummaryAsync(source, cancellationToken);
         var normalizedStatus = NormalizeStatus(query.Status);
-        if (!string.IsNullOrWhiteSpace(normalizedStatus))
-        {
-            source = source.Where(x => x.Status == normalizedStatus);
-        }
+        var definitions = await definitionCache.GetDefinitionsAsync(dbContext, cancellationToken);
+        var statusSummary = BuildStatusSummary(definitions);
 
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
-        var total = await source.CountAsync(cancellationToken);
-
-        var definitions = await source
-            .OrderByDescending(x => x.CreatedAt)
-            .Select(x => new WorkflowDefinitionContract(
-                x.Id,
-                x.Code,
-                x.Name,
-                x.Status,
-                x.DocumentTemplateId))
+        var filtered = string.IsNullOrWhiteSpace(normalizedStatus)
+            ? definitions
+            : definitions.Where(x => string.Equals(x.Status, normalizedStatus, StringComparison.OrdinalIgnoreCase)).ToList();
+        var total = filtered.Count;
+        var pagedDefinitions = filtered
             .Skip(skip)
             .Take(pageSize)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         auditLogWriter.Append(new AuditLogEntry(
             Module: "workflows",
             Action: "list",
             EntityType: "workflow_definition",
             StatusCode: StatusCodes.Status200OK,
-            Metadata: new { count = definitions.Count, total, page, pageSize, status = normalizedStatus }));
+            Metadata: new { count = pagedDefinitions.Count, total, page, pageSize, status = normalizedStatus }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new WorkflowDefinitionListResponse(definitions, total, page, pageSize, statusSummary);
+        return new WorkflowDefinitionListResponse(pagedDefinitions, total, page, pageSize, statusSummary);
     }
 
     public async Task<WorkflowDefinitionDetailContract?> GetDefinitionAsync(Guid workflowDefinitionId, CancellationToken cancellationToken)
@@ -163,20 +155,14 @@ public sealed class WorkflowQueries(
         return status.Trim().ToLowerInvariant();
     }
 
-    private static async Task<WorkflowDefinitionStatusSummary> BuildStatusSummaryAsync(
-        IQueryable<WorkflowDefinitionEntity> source,
-        CancellationToken cancellationToken)
+    private static WorkflowDefinitionStatusSummary BuildStatusSummary(
+        IReadOnlyList<WorkflowDefinitionContract> definitions)
     {
-        var counts = await source
-            .GroupBy(x => x.Status)
-            .Select(group => new { Status = group.Key, Count = group.Count() })
-            .ToListAsync(cancellationToken);
-
-        var draft = counts.FirstOrDefault(x => x.Status == "draft")?.Count ?? 0;
-        var active = counts.FirstOrDefault(x => x.Status == "active")?.Count ?? 0;
-        var archived = counts.FirstOrDefault(x => x.Status == "archived")?.Count ?? 0;
-        var total = draft + active + archived;
-
-        return new WorkflowDefinitionStatusSummary(total, draft, active, archived);
+        var all = definitions.Count;
+        var draft = definitions.Count(x => string.Equals(x.Status, "Draft", StringComparison.OrdinalIgnoreCase));
+        var active = definitions.Count(x => string.Equals(x.Status, "Active", StringComparison.OrdinalIgnoreCase));
+        var archived = definitions.Count(x => string.Equals(x.Status, "Archived", StringComparison.OrdinalIgnoreCase));
+        return new WorkflowDefinitionStatusSummary(all, draft, active, archived);
     }
+
 }

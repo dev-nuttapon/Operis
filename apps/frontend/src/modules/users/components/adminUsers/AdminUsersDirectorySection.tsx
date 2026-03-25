@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Collapse, DatePicker, Form, Input, Select, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
+import { App, Button, Card, Collapse, DatePicker, Form, Input, Select, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
-import { DeleteOutlined, EditOutlined, UserAddOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, ReloadOutlined, UserAddOutlined } from "@ant-design/icons";
 import { permissions } from "../../../../shared/authz/permissions";
 import { usePermissions } from "../../../../shared/authz/usePermissions";
 import dayjs from "dayjs";
@@ -17,6 +17,8 @@ import { useDepartmentFilterOptions } from "../../hooks/useDepartmentFilterOptio
 import { useDivisionOptions } from "../../hooks/useDivisionOptions";
 import { useJobTitleOptions } from "../../hooks/useJobTitleOptions";
 import { ActionMenu } from "../../../../shared/components/ActionMenu";
+import { useRefreshKeycloakUser } from "../../hooks/useRefreshKeycloakUser";
+import { getApiErrorPresentation } from "../../../../shared/lib/apiClient";
 
 type AdvancedFilterValues = {
   status?: UserStatus;
@@ -71,6 +73,7 @@ export function AdminUsersDirectorySection({
   setPaging,
   t,
 }: AdminUsersDirectorySectionProps) {
+  const { notification } = App.useApp();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const navigate = useNavigate();
@@ -79,6 +82,7 @@ export function AdminUsersDirectorySection({
   const canCreateUsers = permissionState.hasPermission(permissions.users.create);
   const canUpdateUsers = permissionState.hasPermission(permissions.users.update);
   const canDeleteUsers = permissionState.hasPermission(permissions.users.delete);
+  const refreshKeycloakUserMutation = useRefreshKeycloakUser();
   const canReadMasterData =
     permissionState.hasPermission(permissions.masterData.managePermanentOrg) || permissionState.hasPermission(permissions.users.read);
 
@@ -174,6 +178,25 @@ export function AdminUsersDirectorySection({
                 }),
             },
             {
+              key: "refresh",
+              icon: <ReloadOutlined />,
+              label: t("admin_users.actions.refresh_from_keycloak"),
+              disabled: !canUpdateUsers,
+              onClick: () => {
+                refreshKeycloakUserMutation.mutate(record.id, {
+                  onSuccess: () => {
+                    notification.success({
+                      message: t("admin_users.messages.keycloak_refreshed", { email: record.keycloak?.email || record.id }),
+                    });
+                  },
+                  onError: (error) => {
+                    const presentation = getApiErrorPresentation(error, t("admin_users.messages.keycloak_refresh_failed"));
+                    notification.error({ message: presentation.title, description: presentation.description });
+                  },
+                });
+              },
+            },
+            {
               key: "delete",
               icon: <DeleteOutlined />,
               label: t("common.actions.delete"),
@@ -185,7 +208,7 @@ export function AdminUsersDirectorySection({
               },
             },
           ]}
-          loading={deleteUserLoading}
+          loading={deleteUserLoading || refreshKeycloakUserMutation.isPending}
         />
       ),
     },

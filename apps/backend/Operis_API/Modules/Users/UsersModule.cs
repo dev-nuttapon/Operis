@@ -36,6 +36,7 @@ public sealed class UsersModule : IModule
         services.AddScoped<IProjectHistoryQueries, ProjectHistoryQueries>();
         services.AddScoped<ProjectHistoryWriter>();
         services.AddSingleton<IReferenceDataCache, ReferenceDataCache>();
+        services.AddSingleton<IKeycloakUserCache, KeycloakUserCache>();
         services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);
@@ -56,6 +57,12 @@ public sealed class UsersModule : IModule
         group.MapGet("/me", GetCurrentUserAsync)
             .WithName("Users_GetCurrent");
 
+        group.MapPost("/me/keycloak/refresh", RefreshCurrentUserKeycloakAsync)
+            .WithName("Users_RefreshCurrentKeycloakUser");
+
+        group.MapPost("/keycloak/refresh-cache", RefreshKeycloakUsersCacheAsync)
+            .WithName("Users_RefreshKeycloakCache");
+
         group.MapGet("/{userId}", GetUserAsync)
             .WithName("Users_Get");
 
@@ -64,6 +71,9 @@ public sealed class UsersModule : IModule
 
         group.MapPut("/{userId}", UpdateUserAsync)
             .WithName("Users_Update");
+
+        group.MapPost("/{userId}/keycloak/refresh", RefreshKeycloakUserAsync)
+            .WithName("Users_RefreshKeycloakUser");
 
         group.MapPut("/{userId}/org-assignment", UpsertUserOrgAssignmentAsync)
             .WithName("Users_UpsertOrgAssignment");
@@ -323,6 +333,47 @@ public sealed class UsersModule : IModule
 
         var result = await queries.GetUserAsync(userId, includeIdentity, cancellationToken);
         return result is null ? Results.NotFound() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> RefreshCurrentUserKeycloakAsync(
+        ClaimsPrincipal principal,
+        IUserManagementCommands commands,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = ResolveCurrentUserId(principal);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var result = await commands.RefreshKeycloakUserAsync(userId, cancellationToken);
+        return result.Status switch
+        {
+            UserCommandStatus.NotFound => NotFoundWithCode(),
+            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
+            _ => Results.Ok()
+        };
+    }
+
+    private static async Task<IResult> RefreshKeycloakUsersCacheAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IUserManagementCommands commands,
+        CancellationToken cancellationToken = default)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.RefreshAllKeycloakUsersAsync(cancellationToken);
+        return result.Status switch
+        {
+            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
+            _ => Results.Ok(new { result.Refreshed, result.Missing })
+        };
     }
 
     private static async Task<IResult> ListRolesAsync(
@@ -1231,6 +1282,28 @@ public sealed class UsersModule : IModule
             UserCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.Ok(result.Response)
+        };
+    }
+
+    private static async Task<IResult> RefreshKeycloakUserAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        string userId,
+        IUserManagementCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.RefreshKeycloakUserAsync(userId, cancellationToken);
+        return result.Status switch
+        {
+            UserCommandStatus.NotFound => NotFoundWithCode(),
+            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
+            _ => Results.Ok()
         };
     }
 

@@ -12,7 +12,8 @@ public sealed class UserQueries(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter,
     IKeycloakAdminClient keycloakAdminClient,
-    IReferenceDataCache referenceDataCache) : IUserQueries
+    IReferenceDataCache referenceDataCache,
+    IKeycloakUserCache keycloakUserCache) : IUserQueries
 {
     private const int IdentityConcurrency = 4;
 
@@ -243,9 +244,30 @@ public sealed class UserQueries(
 
     private async Task<KeycloakUserProfile?> ResolveKeycloakProfileAsync(UserEntity user, CancellationToken cancellationToken)
     {
-        return string.IsNullOrWhiteSpace(user.Id)
-            ? null
-            : await keycloakAdminClient.GetUserByIdAsync(user.Id, cancellationToken);
+        if (string.IsNullOrWhiteSpace(user.Id))
+        {
+            return null;
+        }
+
+        var cached = await keycloakUserCache.GetAsync(user.Id, cancellationToken);
+        if (cached is not null)
+        {
+            return cached;
+        }
+
+        var profile = await keycloakAdminClient.GetUserByIdAsync(user.Id, cancellationToken);
+        if (profile is null)
+        {
+            return null;
+        }
+
+        await keycloakUserCache.SetAsync(user.Id, profile, cancellationToken);
+        if (!string.Equals(profile.Id, user.Id, StringComparison.Ordinal))
+        {
+            await keycloakUserCache.SetAsync(profile.Id, profile, cancellationToken);
+        }
+
+        return profile;
     }
 
     private static IQueryable<UserEntity> ApplyUserSorting(IQueryable<UserEntity> query, string? sortBy, string? sortOrder)

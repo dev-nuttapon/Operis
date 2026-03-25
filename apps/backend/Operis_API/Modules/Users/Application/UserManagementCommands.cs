@@ -11,7 +11,8 @@ namespace Operis_API.Modules.Users.Application;
 public sealed class UserManagementCommands(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter,
-    IKeycloakAdminClient keycloakAdminClient) : IUserManagementCommands
+    IKeycloakAdminClient keycloakAdminClient,
+    IKeycloakUserCache keycloakUserCache) : IUserManagementCommands
 {
     public async Task<UserCommandResult> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken)
     {
@@ -305,6 +306,102 @@ public sealed class UserManagementCommands(
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UserCommandResult(UserCommandStatus.Success);
+    }
+
+    public async Task<UserCommandResult> RefreshKeycloakUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "User id is required.", ApiErrorCodes.RequestValidationFailed);
+        }
+
+        var profile = await keycloakAdminClient.GetUserByIdAsync(userId, cancellationToken);
+        if (profile is null)
+        {
+            var matches = await keycloakAdminClient.SearchUsersAsync(userId, 0, 5, cancellationToken);
+            profile = matches.FirstOrDefault(item => string.Equals(item.Id, userId, StringComparison.Ordinal))
+                      ?? matches.FirstOrDefault(item => string.Equals(item.Username, userId, StringComparison.OrdinalIgnoreCase))
+                      ?? matches.FirstOrDefault(item => string.Equals(item.Email, userId, StringComparison.OrdinalIgnoreCase))
+                      ?? matches.FirstOrDefault();
+        }
+
+        if (profile is null)
+        {
+            return new UserCommandResult(UserCommandStatus.NotFound);
+        }
+
+        await keycloakUserCache.SetAsync(userId, profile, cancellationToken);
+        if (!string.Equals(profile.Id, userId, StringComparison.Ordinal))
+        {
+            await keycloakUserCache.SetAsync(profile.Id, profile, cancellationToken);
+        }
+
+        return new UserCommandResult(UserCommandStatus.Success);
+    }
+
+    public async Task<KeycloakCacheRefreshResult> RefreshAllKeycloakUsersAsync(CancellationToken cancellationToken)
+    {
+        var userIds = await dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        if (userIds.Count == 0)
+        {
+            return new KeycloakCacheRefreshResult(UserCommandStatus.Success, 0, 0);
+        }
+
+        var refreshed = 0;
+        var missing = 0;
+
+        using var semaphore = new SemaphoreSlim(4);
+        var tasks = userIds.Select(async userId =>
+        {
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                var profile = await keycloakAdminClient.GetUserByIdAsync(userId, cancellationToken);
+                if (profile is null)
+                {
+                    var matches = await keycloakAdminClient.SearchUsersAsync(userId, 0, 5, cancellationToken);
+                    profile = matches.FirstOrDefault(item => string.Equals(item.Id, userId, StringComparison.Ordinal))
+                              ?? matches.FirstOrDefault(item => string.Equals(item.Username, userId, StringComparison.OrdinalIgnoreCase))
+                              ?? matches.FirstOrDefault(item => string.Equals(item.Email, userId, StringComparison.OrdinalIgnoreCase))
+                              ?? matches.FirstOrDefault();
+                }
+
+                if (profile is null)
+                {
+                    Interlocked.Increment(ref missing);
+                    return;
+                }
+
+                await keycloakUserCache.SetAsync(userId, profile, cancellationToken);
+                if (!string.Equals(profile.Id, userId, StringComparison.Ordinal))
+                {
+                    await keycloakUserCache.SetAsync(profile.Id, profile, cancellationToken);
+                }
+
+                Interlocked.Increment(ref refreshed);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "refresh-keycloak-cache",
+            EntityType: "user",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { refreshed, missing, total = userIds.Count }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new KeycloakCacheRefreshResult(UserCommandStatus.Success, refreshed, missing);
     }
 
     private async Task<KeycloakUserProfile?> ResolveKeycloakProfileAsync(UserEntity user, CancellationToken cancellationToken)

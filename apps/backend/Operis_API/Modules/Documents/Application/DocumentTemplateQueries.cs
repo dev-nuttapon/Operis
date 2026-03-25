@@ -6,7 +6,9 @@ using Operis_API.Modules.Documents.Infrastructure;
 
 namespace Operis_API.Modules.Documents.Application;
 
-public sealed class DocumentTemplateQueries(OperisDbContext dbContext) : IDocumentTemplateQueries
+public sealed class DocumentTemplateQueries(
+    OperisDbContext dbContext,
+    IDocumentTemplateCache templateCache) : IDocumentTemplateQueries
 {
     public async Task<PagedResult<DocumentTemplateListItem>> ListTemplatesAsync(
         DocumentTemplateListQuery query,
@@ -15,28 +17,20 @@ public sealed class DocumentTemplateQueries(OperisDbContext dbContext) : IDocume
         var normalizedPage = query.Page <= 0 ? 1 : query.Page;
         var normalizedPageSize = query.PageSize <= 0 ? 10 : query.PageSize;
 
-        var templateQuery = dbContext.DocumentTemplates
-            .AsNoTracking()
-            .Where(x => !x.IsDeleted);
+        var templates = await templateCache.GetTemplatesAsync(dbContext, cancellationToken);
+        var filtered = templates.AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var search = query.Search.Trim();
-            templateQuery = templateQuery.Where(x => EF.Functions.ILike(x.Name, $"%{search}%"));
+            var search = query.Search.Trim().ToLowerInvariant();
+            filtered = filtered.Where(x => x.Name.ToLowerInvariant().Contains(search));
         }
 
-        var total = await templateQuery.CountAsync(cancellationToken);
-
-        var items = await templateQuery
-            .OrderByDescending(x => x.CreatedAt)
+        var total = filtered.Count();
+        var items = filtered
             .Skip((normalizedPage - 1) * normalizedPageSize)
             .Take(normalizedPageSize)
-            .Select(x => new DocumentTemplateListItem(
-                x.Id,
-                x.Name,
-                dbContext.DocumentTemplateItems.Count(item => item.TemplateId == x.Id),
-                x.CreatedAt))
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return new PagedResult<DocumentTemplateListItem>(items, total, normalizedPage, normalizedPageSize);
     }

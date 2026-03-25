@@ -7,4 +7,6 @@ public interface IUserManagementCommands
     Task<UserCommandResult> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken);
     Task<UserCommandResult> UpdateUserAsync(string userId, UpdateUserRequest request, CancellationToken cancellationToken);
     Task<UserCommandResult> DeleteUserAsync(string userId, SoftDeleteRequest request, string actor, CancellationToken cancellationToken);
+    Task<UserCommandResult> RefreshKeycloakUserAsync(string userId, CancellationToken cancellationToken);
+    Task<KeycloakCacheRefreshResult> RefreshAllKeycloakUsersAsync(CancellationToken cancellationToken);
 }

@@ -396,6 +396,7 @@
     "user_invitations": "เชิญผู้ใช้งาน",
     "registration_approvals": "อนุมัติการลงทะเบียน",
     "activity_logs": "Activity Logs",
+    "admin_settings": "ตั้งค่า",
     "audit_logs": "Audit Logs",
     "master_data_management": "จัดการข้อมูล Master",
     "master_permanent_structure": "โครงสร้างถาวร",
@@ -432,6 +433,7 @@
       "detail": "รายละเอียด",
       "manage": "จัดการ",
       "edit": "แก้ไข",
+      "refresh_user": "รีโหลดข้อมูลผู้ใช้จาก Keycloak",
       "add": "เพิ่ม",
       "delete": "ลบ",
       "yes": "ใช่",
@@ -457,6 +459,8 @@
       "system": "ระบบ"
     },
     "version": "v1.0.0",
+    "keycloak_refreshed": "รีโหลดข้อมูลผู้ใช้จาก Keycloak แล้ว",
+    "keycloak_refresh_failed": "ไม่สามารถรีโหลดข้อมูลผู้ใช้จาก Keycloak ได้",
     "user_affiliations": "กำหนดสังกัด",
     "affiliation_manage": "กำหนดสังกัด"
   },
@@ -648,6 +652,9 @@
     "load_more_divisions": "โหลดเพิ่มอีก 5 ฝ่าย",
     "load_more_departments": "โหลดเพิ่มอีก 5 แผนก",
     "load_more_job_titles": "โหลดเพิ่มอีก 5 ตำแหน่งงาน",
+    "actions": {
+      "refresh_from_keycloak": "โหลดข้อมูลจาก Keycloak"
+    },
     "validation": {
       "delete_reason_required": "กรุณาระบุเหตุผลในการลบ",
       "reason_required": "กรุณาระบุเหตุผล"
@@ -680,7 +687,9 @@
       "project_role_created": "สร้างตำแหน่งโครงการ {{name}} แล้ว",
       "project_role_updated": "แก้ไขตำแหน่งโครงการ {{name}} แล้ว",
       "project_role_deleted": "ลบตำแหน่งโครงการ {{name}} แล้ว",
-      "user_affiliation_saved": "บันทึกสังกัดของ {{email}} แล้ว"
+      "user_affiliation_saved": "บันทึกสังกัดของ {{email}} แล้ว",
+      "keycloak_refreshed": "รีเฟรชข้อมูลผู้ใช้งาน {{email}} จาก Keycloak แล้ว",
+      "keycloak_refresh_failed": "ไม่สามารถรีเฟรชข้อมูลผู้ใช้งานจาก Keycloak ได้"
     },
     "notifications": {
       "email_in_use_title": "อีเมลนี้ถูกใช้งานแล้ว",
@@ -1810,6 +1819,23 @@
     },
     "notifications": {
       "load_failed_title": "ไม่สามารถโหลด Activity Logs ได้"
+    }
+  },
+  "admin_settings": {
+    "title": "ตั้งค่าผู้ดูแลระบบ",
+    "description": "จัดการงานระบบที่ใช้สำหรับรีเฟรชข้อมูลและซิงก์ข้อมูลจาก Keycloak",
+    "actions": {
+      "refresh_keycloak_cache": "รีโหลดผู้ใช้",
+      "refresh_workflows_cache": "รีโหลดเวิร์กโฟลว์",
+      "refresh_templates_cache": "รีโหลดเทมเพลต"
+    },
+    "messages": {
+      "refresh_success": "รีโหลดผู้ใช้สำเร็จ {{refreshed}} รายการ (ไม่พบ {{missing}} รายการ)",
+      "refresh_failed": "ไม่สามารถรีโหลดผู้ใช้จาก Keycloak ได้",
+      "refresh_workflows_success": "รีโหลดแคชรายการขั้นตอนเรียบร้อยแล้ว ({{total}} รายการ)",
+      "refresh_workflows_failed": "ไม่สามารถรีโหลดแคชรายการขั้นตอนได้",
+      "refresh_templates_success": "รีโหลดแคชเทมเพลตเอกสารเรียบร้อยแล้ว ({{total}} รายการ)",
+      "refresh_templates_failed": "ไม่สามารถรีโหลดแคชเทมเพลตเอกสารได้"
     }
   },
   "audit_logs": {

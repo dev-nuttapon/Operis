@@ -104,6 +104,30 @@ export function getCurrentUser(signal?: AbortSignal, includeIdentity = false) {
   return apiRequest<User>(`/api/v1/users/me${query}`, { signal });
 }
 
+export function refreshCurrentKeycloakUser() {
+  return apiRequest<void>("/api/v1/users/me/keycloak/refresh", {
+    method: "POST",
+  });
+}
+
+export function refreshKeycloakUsersCache() {
+  return apiRequest<{ refreshed: number; missing: number }>("/api/v1/users/keycloak/refresh-cache", {
+    method: "POST",
+  });
+}
+
+export function refreshWorkflowDefinitionsCache() {
+  return apiRequest<{ total: number }>("/api/v1/steps/definitions/cache/refresh", {
+    method: "POST",
+  });
+}
+
+export function refreshDocumentTemplateCache() {
+  return apiRequest<{ total: number }>("/api/v1/documents/templates/cache/refresh", {
+    method: "POST",
+  });
+}
+
 export function createRegistrationRequest(input: CreateRegistrationRequestInput) {
   return publicApiRequest<RegistrationRequest>("/api/v1/users/register", {
     method: "POST",
@@ -496,6 +520,12 @@ export function deleteProjectAssignment(id: string, input: SoftDeleteInput) {
   return apiRequest<void>(`/api/v1/users/project-assignments/${id}`, {
     method: "DELETE",
     body: input,
+  });
+}
+
+export function refreshKeycloakUser(userId: string) {
+  return apiRequest<void>(`/api/v1/users/${encodeURIComponent(userId)}/keycloak/refresh`, {
+    method: "POST",
   });
 }
 

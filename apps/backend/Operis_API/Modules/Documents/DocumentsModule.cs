@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Documents.Application;
 using Operis_API.Modules.Documents.Contracts;
 using Operis_API.Shared.Auditing;
@@ -25,6 +26,7 @@ public sealed class DocumentsModule : IModule
         services.AddScoped<IDocumentTemplateCommands, DocumentTemplateCommands>();
         services.AddScoped<IDocumentTemplateHistoryQueries, DocumentTemplateHistoryQueries>();
         services.AddScoped<DocumentTemplateHistoryWriter>();
+        services.AddSingleton<Infrastructure.IDocumentTemplateCache, Infrastructure.DocumentTemplateCache>();
         return services;
     }
 
@@ -61,6 +63,8 @@ public sealed class DocumentsModule : IModule
             .WithName("Documents_History");
         group.MapGet("/templates", ListDocumentTemplatesAsync)
             .WithName("Documents_ListTemplates");
+        group.MapPost("/templates/cache/refresh", RefreshDocumentTemplateCacheAsync)
+            .WithName("Documents_RefreshTemplateCache");
         group.MapPost("/templates", CreateDocumentTemplateAsync)
             .WithName("Documents_CreateTemplate");
         group.MapGet("/templates/{templateId:guid}", GetDocumentTemplateAsync)
@@ -399,6 +403,23 @@ public sealed class DocumentsModule : IModule
 
         var result = await queries.ListTemplatesAsync(new DocumentTemplateListQuery(search, page, pageSize), cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> RefreshDocumentTemplateCacheAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        OperisDbContext dbContext,
+        Infrastructure.IDocumentTemplateCache cache,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload)
+            && !permissionMatrix.HasPermission(principal, Permissions.Users.Update))
+        {
+            return Results.Forbid();
+        }
+
+        var total = await cache.RefreshAsync(dbContext, cancellationToken);
+        return Results.Ok(new { Total = total });
     }
 
     private static async Task<IResult> CreateDocumentTemplateAsync(

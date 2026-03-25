@@ -1,7 +1,7 @@
 import { App, Alert, Button, Card, Form, Space, Typography, Skeleton, Flex, Grid, Divider, Table, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, EditOutlined, SaveOutlined, DeleteOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { permissions } from "../../../shared/authz/permissions";
@@ -11,6 +11,7 @@ import { useProjectTypeOptions } from "../hooks/useProjectTypeOptions";
 import { ProjectForm, normalizeProjectPayload, toInitialValues, type ProjectFormValues } from "../components/projects/ProjectForm";
 import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
+import { useRefreshKeycloakUsersCache } from "../hooks/useRefreshKeycloakUsersCache";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { useWorkflowDefinition, useWorkflowDefinitionOptions } from "../../workflows";
@@ -71,6 +72,8 @@ export function ProjectEditPage() {
     () => new Map(projectRoleOptionsState.options.map((option) => [option.value, option.label] as const)),
     [projectRoleOptionsState.options],
   );
+  const refreshKeycloakUsersCache = useRefreshKeycloakUsersCache();
+  const hasTriggeredUserRefresh = useRef(false);
   const projectTypeOptions = useMemo(() => {
     const templateOptions = projectTypeOptionsState.options;
     return templateOptions.length > 0 ? templateOptions : [
@@ -101,7 +104,28 @@ export function ProjectEditPage() {
       });
       return next;
     });
-  }, [projectAssignmentsQuery.data]);
+
+    if (
+      canEditMembers
+      && assignments.length > 0
+      && !hasTriggeredUserRefresh.current
+      && assignments.some((assignment) =>
+        !assignment.userDisplayName
+        || assignment.userDisplayName === assignment.userId
+        || !assignment.userEmail
+        || assignment.userEmail === assignment.userId)
+    ) {
+      hasTriggeredUserRefresh.current = true;
+      refreshKeycloakUsersCache.mutate(undefined, {
+        onSuccess: () => {
+          void projectAssignmentsQuery.refetch();
+        },
+        onError: () => {
+          hasTriggeredUserRefresh.current = false;
+        },
+      });
+    }
+  }, [canEditMembers, projectAssignmentsQuery, projectAssignmentsQuery.data, refreshKeycloakUsersCache]);
 
   const handleSubmit = async () => {
     if (!projectId) return;

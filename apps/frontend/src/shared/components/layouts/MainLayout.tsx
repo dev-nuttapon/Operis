@@ -220,6 +220,10 @@ export function MainLayout() {
               key: '/app/admin/activity-logs',
               label: tr('common.activity_logs'),
             },
+            {
+              key: '/app/admin/settings',
+              label: tr('common.admin_settings'),
+            },
           ],
         }]
       : []),
@@ -738,6 +742,10 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/admin/activity-logs')) {
     return '/app/admin/activity-logs';
+  }
+
+  if (path.startsWith('/app/admin/settings')) {
+    return '/app/admin/settings';
   }
 
   if (path.startsWith('/app/admin/master')) {

@@ -11,7 +11,8 @@ namespace Operis_API.Modules.Workflows;
 public sealed class WorkflowCommands(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter,
-    IBusinessAuditEventWriter businessAuditEventWriter) : IWorkflowCommands
+    IBusinessAuditEventWriter businessAuditEventWriter,
+    IWorkflowDefinitionCache definitionCache) : IWorkflowCommands
 {
     private static readonly HashSet<string> AllowedStepTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -135,6 +136,7 @@ public sealed class WorkflowCommands(
             null,
             new { entity.Code, entity.Name, entity.Status },
             cancellationToken);
+        await definitionCache.InvalidateAsync(cancellationToken);
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
@@ -313,6 +315,7 @@ public sealed class WorkflowCommands(
                 null,
             new { before, after = BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes, true) },
                 cancellationToken);
+            await definitionCache.InvalidateAsync(cancellationToken);
 
             return new WorkflowCommandResult(
                 WorkflowCommandStatus.Success,
@@ -398,6 +401,7 @@ public sealed class WorkflowCommands(
             null,
             new { before, after = BuildDetailContract(entity, steps, stepRoles, stepRoutes, false) },
             cancellationToken);
+        await definitionCache.InvalidateAsync(cancellationToken);
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
@@ -683,6 +687,7 @@ public sealed class WorkflowCommands(
             null,
             new { before, after },
             cancellationToken);
+        await definitionCache.InvalidateAsync(cancellationToken);
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,

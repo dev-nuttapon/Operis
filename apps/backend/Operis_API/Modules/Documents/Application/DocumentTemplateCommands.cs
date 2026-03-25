@@ -9,7 +9,8 @@ namespace Operis_API.Modules.Documents.Application;
 public sealed class DocumentTemplateCommands(
     OperisDbContext dbContext,
     IBusinessAuditEventWriter auditEventWriter,
-    DocumentTemplateHistoryWriter historyWriter) : IDocumentTemplateCommands
+    DocumentTemplateHistoryWriter historyWriter,
+    IDocumentTemplateCache templateCache) : IDocumentTemplateCommands
 {
     public async Task<DocumentTemplateResponse> CreateTemplateAsync(
         DocumentTemplateCreateCommand command,
@@ -78,6 +79,7 @@ public sealed class DocumentTemplateCommands(
             cancellationToken);
 
         var responseItems = await LoadTemplateItemsAsync(template.Id, cancellationToken);
+        await templateCache.InvalidateAsync(cancellationToken);
         return new DocumentTemplateResponse(
             template.Id,
             template.Name,
@@ -157,6 +159,7 @@ public sealed class DocumentTemplateCommands(
             cancellationToken);
 
         var responseItems = await LoadTemplateItemsAsync(updated.Id, cancellationToken);
+        await templateCache.InvalidateAsync(cancellationToken);
         return new DocumentTemplateResponse(
             updated.Id,
             updated.Name,

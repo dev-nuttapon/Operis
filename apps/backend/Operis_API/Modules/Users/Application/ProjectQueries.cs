@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using System.Text;
+using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Infrastructure;
@@ -83,7 +84,8 @@ public interface IProjectQueries
 public sealed class ProjectQueries(
     OperisDbContext dbContext,
     IAuditLogWriter auditLogWriter,
-    IKeycloakAdminClient keycloakAdminClient) : IProjectQueries
+    IKeycloakAdminClient keycloakAdminClient,
+    IKeycloakUserCache keycloakUserCache) : IProjectQueries
 {
     public async Task<PagedResult<ProjectListItem>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken)
     {
@@ -251,11 +253,60 @@ public sealed class ProjectQueries(
         return ResolveDisplayName(profile, userId);
     }
 
+    private async Task<IReadOnlyDictionary<string, KeycloakUserProfile>> ResolveUserProfilesAsync(
+        IEnumerable<string?> userIds,
+        CancellationToken cancellationToken)
+    {
+        var distinctIds = userIds
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (distinctIds.Count == 0)
+        {
+            return new Dictionary<string, KeycloakUserProfile>(StringComparer.Ordinal);
+        }
+
+        var results = new ConcurrentDictionary<string, KeycloakUserProfile>(StringComparer.Ordinal);
+        using var semaphore = new SemaphoreSlim(4);
+        var tasks = distinctIds.Select(async userId =>
+        {
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                var profile = await ResolveProfileAsync(userId, cancellationToken);
+                if (profile is not null)
+                {
+                    results[userId] = profile;
+                }
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+        return results;
+    }
+
     private async Task<KeycloakUserProfile?> ResolveProfileAsync(string userId, CancellationToken cancellationToken)
     {
+        var cached = await keycloakUserCache.GetAsync(userId, cancellationToken);
+        if (cached is not null)
+        {
+            return cached;
+        }
+
         var profile = await keycloakAdminClient.GetUserByIdAsync(userId, cancellationToken);
         if (profile is not null)
         {
+            await keycloakUserCache.SetAsync(userId, profile, cancellationToken);
+            if (!string.Equals(profile.Id, userId, StringComparison.Ordinal))
+            {
+                await keycloakUserCache.SetAsync(profile.Id, profile, cancellationToken);
+            }
             return profile;
         }
 
@@ -265,10 +316,21 @@ public sealed class ProjectQueries(
             return null;
         }
 
-        return matches.FirstOrDefault(item => string.Equals(item.Id, userId, StringComparison.Ordinal))
+        var resolved = matches.FirstOrDefault(item => string.Equals(item.Id, userId, StringComparison.Ordinal))
             ?? matches.FirstOrDefault(item => string.Equals(item.Username, userId, StringComparison.OrdinalIgnoreCase))
             ?? matches.FirstOrDefault(item => string.Equals(item.Email, userId, StringComparison.OrdinalIgnoreCase))
             ?? matches.First();
+
+        if (resolved is not null)
+        {
+            await keycloakUserCache.SetAsync(userId, resolved, cancellationToken);
+            if (!string.Equals(resolved.Id, userId, StringComparison.Ordinal))
+            {
+                await keycloakUserCache.SetAsync(resolved.Id, resolved, cancellationToken);
+            }
+        }
+
+        return resolved;
     }
 
     private static string? ResolveDisplayName(KeycloakUserProfile? profile, string fallbackId)
@@ -455,6 +517,33 @@ public sealed class ProjectQueries(
                 x.Assignment.UpdatedAt))
             .ToListAsync(cancellationToken);
 
+        var profileMap = await ResolveUserProfilesAsync(
+            items.SelectMany(item => new[] { item.UserId, item.ReportsToUserId }),
+            cancellationToken);
+
+        var resolvedItems = items.Select(item =>
+        {
+            profileMap.TryGetValue(item.UserId, out var userProfile);
+            var displayName = userProfile is null
+                ? item.UserDisplayName ?? item.UserId
+                : ResolveDisplayName(userProfile, item.UserId);
+            var email = userProfile?.Email ?? item.UserEmail;
+
+            string? reportsToDisplayName = item.ReportsToDisplayName;
+            if (!string.IsNullOrWhiteSpace(item.ReportsToUserId)
+                && profileMap.TryGetValue(item.ReportsToUserId, out var reportsToProfile))
+            {
+                reportsToDisplayName = ResolveDisplayName(reportsToProfile, item.ReportsToUserId);
+            }
+
+            return item with
+            {
+                UserEmail = email,
+                UserDisplayName = displayName,
+                ReportsToDisplayName = reportsToDisplayName
+            };
+        }).ToList();
+
         auditLogWriter.Append(new AuditLogEntry(
             Module: "users",
             Action: "list",
@@ -463,7 +552,7 @@ public sealed class ProjectQueries(
             Metadata: new { total, page, pageSize, query.ProjectId, query.Search, query.SortBy, query.SortOrder }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new PagedResult<ProjectAssignmentResponse>(items, total, page, pageSize);
+        return new PagedResult<ProjectAssignmentResponse>(resolvedItems, total, page, pageSize);
     }
 
     public async Task<ProjectAssignmentResponse?> GetProjectAssignmentAsync(Guid assignmentId, CancellationToken cancellationToken)
@@ -508,7 +597,30 @@ public sealed class ProjectQueries(
             StatusCode: result is null ? StatusCodes.Status404NotFound : StatusCodes.Status200OK));
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return result;
+        if (result is null)
+        {
+            return null;
+        }
+
+        var profile = await ResolveProfileAsync(result.UserId, cancellationToken);
+        var reportsToProfile = !string.IsNullOrWhiteSpace(result.ReportsToUserId)
+            ? await ResolveProfileAsync(result.ReportsToUserId, cancellationToken)
+            : null;
+
+        var displayName = profile is null
+            ? result.UserDisplayName ?? result.UserId
+            : ResolveDisplayName(profile, result.UserId);
+        var email = profile?.Email ?? result.UserEmail;
+        var reportsToDisplayName = reportsToProfile is null || string.IsNullOrWhiteSpace(result.ReportsToUserId)
+            ? result.ReportsToDisplayName
+            : ResolveDisplayName(reportsToProfile, result.ReportsToUserId);
+
+        return result with
+        {
+            UserEmail = email,
+            UserDisplayName = displayName,
+            ReportsToDisplayName = reportsToDisplayName
+        };
     }
 
     public async Task<IReadOnlyList<ProjectOrgChartNodeResponse>> GetProjectOrgChartAsync(Guid projectId, CancellationToken cancellationToken)
