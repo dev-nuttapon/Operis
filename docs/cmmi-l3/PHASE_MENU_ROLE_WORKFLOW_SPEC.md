@@ -4,6 +4,13 @@ This document combines:
 - Menu structure and delivery phases
 - Detailed screen roles/permissions
 - Workflow states for each screen
+- Phase execution rules for implementation
+
+Companion documents for first-version delivery:
+
+- `docs/cmmi-l3/PHASE_TRANSITION_MATRIX.md`
+- `docs/cmmi-l3/PHASE_TEST_SPEC.md`
+- `docs/cmmi-l3/PHASE_OPERATIONS_RUNBOOK.md`
 
 Legend:
 - C: Create
