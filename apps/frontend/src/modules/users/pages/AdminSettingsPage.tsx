@@ -1,5 +1,14 @@
 import { App, Alert, Button, Card, Flex, Grid, Space, Typography } from "antd";
-import { ReloadOutlined, SettingOutlined } from "@ant-design/icons";
+import {
+  ApartmentOutlined,
+  FileTextOutlined,
+  ReloadOutlined,
+  SettingOutlined,
+  SolutionOutlined,
+  TeamOutlined,
+  TagsOutlined,
+  UnorderedListOutlined,
+} from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "../../../shared/authz/usePermissions";
@@ -35,6 +44,17 @@ export function AdminSettingsPage() {
   const refreshDivisionsMutation = useRefreshDivisionsCache();
   const refreshProjectRolesMutation = useRefreshProjectRolesCache();
 
+  const buttonStyle = {
+    height: 44,
+    borderRadius: 12,
+    paddingInline: 16,
+  } as const;
+
+  const ghostStyle = {
+    borderColor: "rgba(148, 163, 184, 0.3)",
+    color: "#e2e8f0",
+  } as const;
+
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Card variant="borderless">
@@ -63,16 +83,23 @@ export function AdminSettingsPage() {
         </Space>
       </Card>
 
-      <Card variant="borderless">
+      <Card
+        variant="borderless"
+        style={{
+          background: "linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))",
+          border: "1px solid rgba(148, 163, 184, 0.2)",
+        }}
+      >
         {!hasAnyPermission ? (
           <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
         ) : (
           <Flex gap={12} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"}>
             <Button
               type="primary"
-              icon={<ReloadOutlined />}
+              icon={<TeamOutlined />}
               loading={refreshMutation.isPending}
               disabled={!canManageUsers}
+              style={buttonStyle}
               onClick={() => {
                 refreshMutation.mutate(undefined, {
                   onSuccess: (result) => {
@@ -92,9 +119,10 @@ export function AdminSettingsPage() {
               {t("admin_settings.actions.refresh_keycloak_cache")}
             </Button>
             <Button
-              icon={<ReloadOutlined />}
+              icon={<UnorderedListOutlined />}
               loading={refreshWorkflowMutation.isPending}
               disabled={!canManageWorkflows}
+              style={ghostStyle}
               onClick={() => {
                 refreshWorkflowMutation.mutate(undefined, {
                   onSuccess: (result) => {
@@ -114,9 +142,10 @@ export function AdminSettingsPage() {
               {t("admin_settings.actions.refresh_workflows_cache")}
             </Button>
             <Button
-              icon={<ReloadOutlined />}
+              icon={<FileTextOutlined />}
               loading={refreshTemplateMutation.isPending}
               disabled={!canManageTemplates}
+              style={ghostStyle}
               onClick={() => {
                 refreshTemplateMutation.mutate(undefined, {
                   onSuccess: (result) => {
@@ -136,9 +165,10 @@ export function AdminSettingsPage() {
               {t("admin_settings.actions.refresh_templates_cache")}
             </Button>
             <Button
-              icon={<ReloadOutlined />}
+              icon={<ApartmentOutlined />}
               loading={refreshDepartmentsMutation.isPending}
               disabled={!canManageUsers}
+              style={ghostStyle}
               onClick={() => {
                 refreshDepartmentsMutation.mutate(undefined, {
                   onSuccess: (result) => {
@@ -159,9 +189,10 @@ export function AdminSettingsPage() {
               {t("admin_settings.actions.refresh_departments_cache")}
             </Button>
             <Button
-              icon={<ReloadOutlined />}
+              icon={<TagsOutlined />}
               loading={refreshDivisionsMutation.isPending}
               disabled={!canManageUsers}
+              style={ghostStyle}
               onClick={() => {
                 refreshDivisionsMutation.mutate(undefined, {
                   onSuccess: (result) => {
@@ -182,9 +213,10 @@ export function AdminSettingsPage() {
               {t("admin_settings.actions.refresh_divisions_cache")}
             </Button>
             <Button
-              icon={<ReloadOutlined />}
+              icon={<SolutionOutlined />}
               loading={refreshJobTitlesMutation.isPending}
               disabled={!canManageUsers}
+              style={ghostStyle}
               onClick={() => {
                 refreshJobTitlesMutation.mutate(undefined, {
                   onSuccess: (result) => {
@@ -208,6 +240,7 @@ export function AdminSettingsPage() {
               icon={<ReloadOutlined />}
               loading={refreshProjectRolesMutation.isPending}
               disabled={!canManageUsers}
+              style={ghostStyle}
               onClick={() => {
                 refreshProjectRolesMutation.mutate(undefined, {
                   onSuccess: (result) => {
