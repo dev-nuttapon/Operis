@@ -2456,6 +2456,98 @@ Every API endpoint in a phase must define:
    - timeout expectation
    - async execution rule if export or heavy processing is involved
 
+## 2.17A Response Envelope Standard
+
+Unless a phase explicitly requires a different shape, use these response envelopes:
+
+1. List response
+   - `items`: array
+   - `page`: integer
+   - `pageSize`: integer
+   - `total`: integer
+2. Detail response
+   - flat object plus expanded related summaries only when requested
+3. Mutation response
+   - minimal changed object summary
+   - `id`
+   - `status`
+   - `updatedAt` or `createdAt` as applicable
+4. Error response
+   - `code`: stable business error code
+   - `message`: user-safe message
+   - `traceId`: request correlation id
+   - `details`: optional field-level validation payload
+
+## 2.17B Operational Endpoint Policy
+
+Every endpoint must define:
+
+1. Timeout class
+   - `interactive_read`: target timeout `3s`
+   - `interactive_write`: target timeout `5s`
+   - `heavy_read_or_export`: queue asynchronously if expected to exceed `5s`
+2. Idempotency
+   - all approval, submit, archive, close, retry, and release actions must define whether duplicate requests are safe
+   - mutation endpoints with financial, security, release, or escalation impact should support idempotency keys when replays are plausible
+3. Retry policy
+   - no blind retry on validation or authorization failures
+   - bounded retry for transient infrastructure or queue delivery failure
+4. Async policy
+   - export, evidence packaging, trend generation, large audit retrieval, and bulk notification dispatch should be asynchronous above configured thresholds
+
+## 2.17C Performance Threshold Defaults
+
+Use these defaults unless a phase overrides them with stricter values:
+
+1. Default list page size: `25`
+2. Maximum list page size: `100`
+3. Default audit/queue page size: `50`
+4. Synchronous export/evidence packaging limit: `5s` target wall time
+5. Above sync limit: enqueue background job and return job status handle
+6. Heavy detail endpoints should lazy-load secondary panels rather than expand everything in the first response
+
+## 2.17D Security Response and Logging Rules
+
+1. Authorization failure returns stable code and no sensitive existence leak unless policy allows it.
+2. Sensitive exports require actor, scope, reason when applicable, and audit event.
+3. Privileged actions must emit audit records even on denial.
+4. Security-sensitive endpoints must attach a correlation id to responses and logs.
+
+## 2.17E Given/When/Then Scenario Standard
+
+Every phase should define scenarios in this form:
+
+1. Functional scenario
+   - Given system state
+   - When user performs action
+   - Then data, workflow state, and UI result are correct
+2. Permission scenario
+   - Given role without permission
+   - When protected action is attempted
+   - Then action is blocked and logged if required
+3. Audit scenario
+   - Given auditable action
+   - When state changes
+   - Then expected audit event is emitted with required metadata
+4. Security scenario
+   - Given classified or sensitive data
+   - When unauthorized or lower-scope actor requests it
+   - Then access is denied or redacted according to policy
+5. Performance scenario
+   - Given representative dataset volume
+   - When list/detail/export endpoint is invoked
+   - Then paging, latency, and async behavior remain within target thresholds
+
+## 2.17F Database Engine and Index Notes
+
+Assume PostgreSQL unless an implementation phase explicitly states otherwise.
+
+1. Add composite indexes that match dominant list filters and sort order together.
+2. Add descending time indexes for high-volume audit, queue, event, and history tables where recent-first access dominates.
+3. Avoid indexing large text columns directly unless using specialized search strategy.
+4. For uniqueness scoped to project or domain, prefer composite unique indexes over application-only checks.
+5. Revisit indexes after each high-volume phase based on actual query plans.
+
 ## 2.18 Phase 0 Field-Level Executable Spec
 
 ### Table: `users`
@@ -2726,14 +2818,1070 @@ Every API endpoint in a phase must define:
   - `400 file_too_large`
   - `400 mime_type_not_allowed`
 
-## 2.21 Remaining Gap to Reach Near-Final Executable Spec
+## 2.21 Phase 3 Field-Level Executable Spec
+
+### Table: `requirements`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `code`: string, required, max 128, unique within project
+  - `title`: string, required, max 512
+  - `description`: string, required, max 8000
+  - `priority`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+  - `owner_user_id`: string, required, indexed
+  - `status`: enum(`draft`,`review`,`approved`,`baselined`,`superseded`), required, indexed
+  - `current_version_id`: string, optional
+  - `created_at`: datetime, required
+  - `updated_at`: datetime, required
+- Indexes
+  - unique(`project_id`,`code`)
+  - index(`project_id`,`status`,`priority`)
+
+### Table: `requirement_versions`
+- Columns
+  - `id`: string, required, PK
+  - `requirement_id`: string, required, indexed
+  - `version_number`: integer, required
+  - `business_reason`: string, required, max 4000
+  - `acceptance_criteria`: string, required, max 8000
+  - `security_impact`: string, optional, max 4000
+  - `performance_impact`: string, optional, max 4000
+  - `status`: enum(`draft`,`submitted`,`approved`,`rejected`,`superseded`), required
+  - `created_at`: datetime, required
+- Indexes
+  - unique(`requirement_id`,`version_number`)
+
+### Table: `requirement_baselines`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `baseline_name`: string, required, max 256
+  - `approved_by`: string, required
+  - `approved_at`: datetime, required
+  - `status`: enum(`proposed`,`approved`,`locked`,`superseded`), required, indexed
+- Indexes
+  - index(`project_id`,`status`)
+
+### Table: `traceability_links`
+- Columns
+  - `id`: string, required, PK
+  - `source_type`: string, required, max 64, indexed
+  - `source_id`: string, required, indexed
+  - `target_type`: string, required, max 64, indexed
+  - `target_id`: string, required, indexed
+  - `link_rule`: string, required, max 128
+  - `status`: enum(`created`,`validated`,`broken`,`resolved`), required, indexed
+  - `created_by`: string, required
+  - `created_at`: datetime, required
+- Indexes
+  - unique(`source_type`,`source_id`,`target_type`,`target_id`,`link_rule`)
+  - index(`status`,`source_type`,`target_type`)
+
+### `POST /requirements` request schema
+- Request
+  - `projectId`: string, required
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `description`: string, required, max 8000
+  - `priority`: enum(`low`,`medium`,`high`,`critical`), required
+  - `ownerUserId`: string, required
+  - `businessReason`: string, required, max 4000
+  - `acceptanceCriteria`: string, required, max 8000
+  - `securityImpact`: string, optional, max 4000
+  - `performanceImpact`: string, optional, max 4000
+- Response
+  - `id`: string
+  - `code`: string
+  - `status`: string
+  - `currentVersionId`: string
+- Errors
+  - `400 validation_failed`
+  - `404 project_not_found`
+  - `409 requirement_code_duplicate`
+
+### `POST /requirement-baselines` request schema
+- Request
+  - `projectId`: string, required
+  - `baselineName`: string, required, max 256
+  - `requirementIds[]`: array<string>, required, min 1
+  - `reason`: string, required, max 2000
+- Response
+  - `id`: string
+  - `status`: string
+  - `approvedAt`: string(datetime)
+- Errors
+  - `400 requirement_not_approved`
+  - `400 baseline_name_required`
+  - `400 validation_failed`
+
+### `GET /traceability` response schema
+- Query
+  - `projectId`: string, required
+  - `status`: enum(`created`,`validated`,`broken`,`resolved`), optional
+  - `sourceType`: string, optional
+  - `targetType`: string, optional
+  - `missingOnly`: boolean, optional, default `false`
+  - `page`: integer, optional, default `1`
+  - `pageSize`: integer, optional, default `25`, max `100`
+- Response
+  - `items[]`
+    - `sourceType`: string
+    - `sourceId`: string
+    - `sourceCode`: string
+    - `targetType`: string
+    - `targetId`: string | null
+    - `targetCode`: string | null
+    - `status`: string
+    - `linkRule`: string
+  - `page`, `pageSize`, `total`
+
+## 2.22 Phase 4 Field-Level Executable Spec
+
+### Table: `change_requests`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `code`: string, required, max 128, unique within project
+  - `title`: string, required, max 512
+  - `requested_by`: string, required
+  - `reason`: string, required, max 4000
+  - `status`: enum(`draft`,`submitted`,`in_review`,`approved`,`rejected`,`implemented`,`closed`), required, indexed
+  - `priority`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+  - `target_baseline_id`: string, optional, indexed
+  - `created_at`: datetime, required
+  - `updated_at`: datetime, required
+- Indexes
+  - unique(`project_id`,`code`)
+  - index(`project_id`,`status`,`priority`)
+
+### Table: `change_impacts`
+- Columns
+  - `id`: string, required, PK
+  - `change_request_id`: string, required, unique
+  - `scope_impact`: string, required, max 4000
+  - `schedule_impact`: string, required, max 4000
+  - `quality_impact`: string, required, max 4000
+  - `security_impact`: string, required, max 4000
+  - `performance_impact`: string, required, max 4000
+  - `risk_impact`: string, required, max 4000
+
+### Table: `configuration_items`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `code`: string, required, max 128
+  - `name`: string, required, max 256
+  - `item_type`: string, required, max 128, indexed
+  - `owner_module`: string, required, max 128
+  - `status`: enum(`draft`,`approved`,`baseline`,`superseded`), required, indexed
+  - `baseline_ref`: string, optional
+- Indexes
+  - unique(`project_id`,`code`)
+  - index(`project_id`,`item_type`,`status`)
+
+### Table: `baseline_registry`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `baseline_name`: string, required, max 256
+  - `baseline_type`: string, required, max 64
+  - `source_entity_type`: string, required, max 64
+  - `source_entity_id`: string, required
+  - `status`: enum(`proposed`,`approved`,`locked`,`superseded`), required, indexed
+  - `approved_by`: string, optional
+  - `approved_at`: datetime, optional
+- Indexes
+  - index(`project_id`,`baseline_type`,`status`)
+
+### `POST /change-requests` request schema
+- Request
+  - `projectId`: string, required
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `reason`: string, required, max 4000
+  - `priority`: enum(`low`,`medium`,`high`,`critical`), required
+  - `targetBaselineId`: string, optional
+  - `impact`: object, required
+    - `scopeImpact`: string, required
+    - `scheduleImpact`: string, required
+    - `qualityImpact`: string, required
+    - `securityImpact`: string, required
+    - `performanceImpact`: string, required
+    - `riskImpact`: string, required
+- Response
+  - `id`, `code`, `status`
+- Errors
+  - `400 validation_failed`
+  - `409 change_request_code_duplicate`
+  - `404 baseline_not_found`
+
+### `POST /baseline-registry` request schema
+- Request
+  - `projectId`: string, required
+  - `baselineName`: string, required, max 256
+  - `baselineType`: string, required
+  - `sourceEntityType`: string, required
+  - `sourceEntityId`: string, required
+  - `changeRequestId`: string, required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 approved_change_request_required`
+  - `400 validation_failed`
+
+## 2.23 Phase 5 Field-Level Executable Spec
+
+### Table: `risks`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `description`: string, required, max 4000
+  - `probability`: integer, required, range `1..5`
+  - `impact`: integer, required, range `1..5`
+  - `owner_user_id`: string, required, indexed
+  - `mitigation_plan`: string, optional, max 4000
+  - `status`: enum(`draft`,`assessed`,`mitigated`,`closed`), required, indexed
+  - `next_review_at`: datetime, optional, indexed
+- Indexes
+  - unique(`project_id`,`code`)
+  - index(`project_id`,`status`,`next_review_at`)
+
+### Table: `issues`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `description`: string, required, max 4000
+  - `owner_user_id`: string, required, indexed
+  - `due_date`: date, optional, indexed
+  - `status`: enum(`open`,`in_progress`,`resolved`,`closed`), required, indexed
+  - `severity`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+- Indexes
+  - unique(`project_id`,`code`)
+  - index(`project_id`,`status`,`severity`)
+
+### `POST /risks` request schema
+- Request
+  - `projectId`, `code`, `title`, `description`, `probability`, `impact`, `ownerUserId`: required
+  - `mitigationPlan`: optional
+  - `nextReviewAt`: optional datetime
+- Response
+  - `id`, `code`, `status`
+- Errors
+  - `400 validation_failed`
+  - `409 risk_code_duplicate`
+
+### `POST /issues` request schema
+- Request
+  - `projectId`, `code`, `title`, `description`, `ownerUserId`, `severity`: required
+  - `dueDate`: optional
+- Response
+  - `id`, `code`, `status`
+- Errors
+  - `400 validation_failed`
+  - `409 issue_code_duplicate`
+
+## 2.24 Phase 6 Field-Level Executable Spec
+
+### Table: `meeting_records`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `meeting_type`: string, required, max 128, indexed
+  - `title`: string, required, max 512
+  - `meeting_at`: datetime, required, indexed
+  - `facilitator_user_id`: string, required
+  - `status`: enum(`draft`,`approved`,`archived`), required, indexed
+- Indexes
+  - index(`project_id`,`meeting_type`,`meeting_at`)
+
+### Table: `decisions`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `decision_type`: string, required, max 128
+  - `rationale`: string, required, max 4000
+  - `approved_by`: string, optional
+  - `status`: enum(`proposed`,`approved`,`applied`,`archived`), required, indexed
+- Indexes
+  - unique(`project_id`,`code`)
+  - index(`project_id`,`status`,`decision_type`)
+
+### `POST /meetings` request schema
+- Request
+  - `projectId`, `meetingType`, `title`, `meetingAt`, `facilitatorUserId`: required
+  - `attendeeUserIds[]`: optional
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+  - `404 project_not_found`
+
+### `POST /decisions` request schema
+- Request
+  - `projectId`, `code`, `title`, `decisionType`, `rationale`: required
+  - `meetingId`: optional
+- Response
+  - `id`, `code`, `status`
+- Errors
+  - `400 validation_failed`
+  - `409 decision_code_duplicate`
+
+## 2.25 Phase 7 Field-Level Executable Spec
+
+### Table: `test_plans`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `scope_summary`: string, required, max 4000
+  - `owner_user_id`: string, required, indexed
+  - `status`: enum(`draft`,`review`,`approved`,`baseline`), required, indexed
+- Indexes
+  - unique(`project_id`,`code`)
+  - index(`project_id`,`status`)
+
+### Table: `test_cases`
+- Columns
+  - `id`: string, required, PK
+  - `test_plan_id`: string, required, indexed
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `preconditions`: string, optional, max 4000
+  - `expected_result`: string, required, max 4000
+  - `status`: enum(`draft`,`ready`,`active`,`retired`), required, indexed
+- Indexes
+  - unique(`test_plan_id`,`code`)
+  - index(`test_plan_id`,`status`)
+
+### Table: `test_executions`
+- Columns
+  - `id`: string, required, PK
+  - `test_case_id`: string, required, indexed
+  - `executed_by`: string, required
+  - `executed_at`: datetime, required, indexed
+  - `result`: enum(`passed`,`failed`,`retest`), required, indexed
+  - `evidence_ref`: string, optional
+  - `notes`: string, optional, max 4000
+- Indexes
+  - index(`test_case_id`,`executed_at`)
+  - index(`result`,`executed_at`)
+
+### `POST /test-plans` request schema
+- Request
+  - `projectId`, `code`, `title`, `scopeSummary`, `ownerUserId`: required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+  - `409 test_plan_code_duplicate`
+
+### `POST /test-executions` request schema
+- Request
+  - `testCaseId`: string, required
+  - `result`: enum(`passed`,`failed`,`retest`), required
+  - `evidenceRef`: string, optional
+  - `notes`: string, optional, max 4000
+- Response
+  - `id`, `executedAt`, `result`
+- Errors
+  - `400 validation_failed`
+  - `404 test_case_not_found`
+
+## 2.26 Phase 8 Field-Level Executable Spec
+
+### Table: `audit_events`
+- Columns
+  - `id`: string, required, PK
+  - `occurred_at`: datetime, required, indexed
+  - `actor_user_id`: string, optional, indexed
+  - `entity_type`: string, required, max 128, indexed
+  - `entity_id`: string, required, indexed
+  - `action`: string, required, max 128, indexed
+  - `outcome`: enum(`success`,`failure`,`denied`), required, indexed
+  - `reason`: string, optional, max 2000
+  - `metadata_json`: json, optional
+- Indexes
+  - index(`occurred_at`)
+  - index(`entity_type`,`action`,`occurred_at`)
+  - index(`actor_user_id`,`occurred_at`)
+
+### Table: `evidence_exports`
+- Columns
+  - `id`: string, required, PK
+  - `requested_by`: string, required, indexed
+  - `scope_type`: string, required, max 64
+  - `scope_ref`: string, required
+  - `requested_at`: datetime, required, indexed
+  - `status`: enum(`requested`,`generated`,`downloaded`,`expired`), required, indexed
+  - `output_ref`: string, optional
+- Indexes
+  - index(`requested_by`,`requested_at`)
+  - index(`status`,`requested_at`)
+
+### `GET /audit-events` response schema
+- Query
+  - `projectId`: string, optional
+  - `entityType`: string, optional
+  - `action`: string, optional
+  - `actorUserId`: string, optional
+  - `from`: datetime, optional
+  - `to`: datetime, optional
+  - `page`: integer, default `1`
+  - `pageSize`: integer, default `50`, max `200`
+- Response
+  - `items[]`
+    - `id`, `occurredAt`, `actorUserId`, `entityType`, `entityId`, `action`, `outcome`, `reason`
+  - `page`, `pageSize`, `total`
+
+### `POST /evidence-exports` request schema
+- Request
+  - `scopeType`: string, required
+  - `scopeRef`: string, required
+  - `from`: datetime, optional
+  - `to`: datetime, optional
+  - `includedArtifactTypes[]`: array<string>, optional
+- Response
+  - `id`, `status`
+- Errors
+  - `400 export_scope_required`
+  - `400 export_date_range_required`
+  - `403 forbidden`
+
+## 2.27 Phase 9 Field-Level Executable Spec
+
+### Table: `metric_definitions`
+- Columns
+  - `id`: string, required, PK
+  - `code`: string, required, max 128, unique
+  - `name`: string, required, max 256
+  - `metric_type`: string, required, max 128, indexed
+  - `owner_user_id`: string, required, indexed
+  - `target_value`: decimal, required
+  - `threshold_value`: decimal, required
+  - `status`: enum(`draft`,`approved`,`active`,`deprecated`), required, indexed
+- Indexes
+  - unique(`code`)
+  - index(`metric_type`,`status`)
+
+### Table: `quality_gate_results`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `gate_type`: string, required, max 128, indexed
+  - `evaluated_at`: datetime, required, indexed
+  - `result`: enum(`pending`,`passed`,`failed`,`overridden`), required, indexed
+  - `reason`: string, optional, max 2000
+  - `override_reason`: string, optional, max 2000
+- Indexes
+  - index(`project_id`,`gate_type`,`evaluated_at`)
+  - index(`result`,`evaluated_at`)
+
+### `POST /metric-definitions` request schema
+- Request
+  - `code`: string, required, max 128
+  - `name`: string, required, max 256
+  - `metricType`: string, required
+  - `ownerUserId`: string, required
+  - `targetValue`: decimal, required
+  - `thresholdValue`: decimal, required
+- Response
+  - `id`, `code`, `status`
+- Errors
+  - `400 metric_target_required`
+  - `400 metric_threshold_required`
+  - `409 metric_code_duplicate`
+
+### `PUT /quality-gates/{id}/override` request schema
+- Request
+  - `reason`: string, required, max 2000
+- Response
+  - `id`, `result`, `overrideReason`
+- Errors
+  - `403 forbidden`
+  - `400 quality_gate_override_reason_required`
+
+## 2.28 Phase 10 Field-Level Executable Spec
+
+### Table: `project_role_definitions`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `role_code`: string, required, max 128
+  - `role_name`: string, required, max 256
+  - `status`: enum(`active`,`archived`), required, indexed
+- Indexes
+  - unique(`project_id`,`role_code`)
+
+### Table: `project_team_assignments`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `user_id`: string, required, indexed
+  - `project_role_id`: string, required, indexed
+  - `start_date`: date, required
+  - `end_date`: date, optional
+  - `status`: enum(`active`,`removed`), required, indexed
+- Indexes
+  - index(`project_id`,`status`)
+  - index(`user_id`,`status`)
+
+### `POST /team-assignments` request schema
+- Request
+  - `projectId`: string, required
+  - `userId`: string, required
+  - `projectRoleId`: string, required
+  - `startDate`: string(date), required
+  - `endDate`: string(date), optional
+- Response
+  - `id`, `status`
+- Errors
+  - `400 project_role_required`
+  - `400 invalid_assignment_period`
+  - `404 project_not_found`
+
+### `POST /phase-approvals` request schema
+- Request
+  - `projectId`: string, required
+  - `phaseCode`: string, required
+  - `entryCriteriaSummary`: string, required, max 4000
+  - `requiredEvidenceRefs[]`: array<string>, required, min 1
+- Response
+  - `id`, `status`
+- Errors
+  - `400 phase_entry_criteria_required`
+  - `400 phase_evidence_required`
+
+## 2.29 Phase 11 Field-Level Executable Spec
+
+### Table: `master_data_items`
+- Columns
+  - `id`: string, required, PK
+  - `domain`: string, required, max 128, indexed
+  - `code`: string, required, max 128
+  - `name`: string, required, max 256
+  - `status`: enum(`active`,`archived`), required, indexed
+  - `display_order`: integer, required, default `0`
+  - `updated_at`: datetime, required, indexed
+- Indexes
+  - unique(`domain`,`code`)
+  - index(`domain`,`status`,`display_order`)
+
+### `POST /master-data` request schema
+- Request
+  - `domain`: string, required
+  - `code`: string, required, max 128
+  - `name`: string, required, max 256
+  - `displayOrder`: integer, optional, default `0`
+- Response
+  - `id`, `domain`, `code`, `status`
+- Errors
+  - `400 validation_failed`
+  - `409 master_data_code_duplicate`
+
+## 2.30 Phase 12 Field-Level Executable Spec
+
+### Table: `access_reviews`
+- Columns
+  - `id`: string, required, PK
+  - `scope_type`: string, required, max 64
+  - `scope_ref`: string, required
+  - `review_cycle`: string, required, max 64
+  - `reviewed_by`: string, optional
+  - `status`: enum(`scheduled`,`in_review`,`approved`,`archived`), required, indexed
+  - `decision_rationale`: string, optional, max 2000
+- Indexes
+  - index(`scope_type`,`status`)
+
+### Table: `external_dependencies`
+- Columns
+  - `id`: string, required, PK
+  - `name`: string, required, max 256
+  - `dependency_type`: string, required, max 128, indexed
+  - `owner_user_id`: string, required, indexed
+  - `criticality`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+  - `status`: enum(`active`,`review_due`,`updated`,`archived`), required, indexed
+  - `review_due_at`: datetime, optional, indexed
+- Indexes
+  - index(`criticality`,`status`,`review_due_at`)
+
+### `POST /access-reviews` request schema
+- Request
+  - `scopeType`: string, required
+  - `scopeRef`: string, required
+  - `reviewCycle`: string, required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+
+### `POST /external-dependencies` request schema
+- Request
+  - `name`: string, required, max 256
+  - `dependencyType`: string, required
+  - `ownerUserId`: string, required
+  - `criticality`: enum(`low`,`medium`,`high`,`critical`), required
+  - `reviewDueAt`: string(datetime), optional
+- Response
+  - `id`, `status`
+- Errors
+  - `400 dependency_owner_required`
+  - `400 dependency_criticality_required`
+
+## 2.31 Phase 13 Field-Level Executable Spec
+
+### Table: `raci_maps`
+- Columns
+  - `id`: string, required, PK
+  - `process_code`: string, required, max 128, indexed
+  - `role_name`: string, required, max 256
+  - `responsibility_type`: enum(`R`,`A`,`C`,`I`), required, indexed
+  - `status`: enum(`draft`,`approved`,`active`,`archived`), required, indexed
+- Indexes
+  - unique(`process_code`,`role_name`,`responsibility_type`)
+
+### Table: `sla_rules`
+- Columns
+  - `id`: string, required, PK
+  - `scope_type`: string, required, max 64, indexed
+  - `scope_ref`: string, required
+  - `target_duration_hours`: integer, required
+  - `escalation_policy_id`: string, required
+  - `status`: enum(`draft`,`approved`,`active`,`archived`), required, indexed
+- Indexes
+  - index(`scope_type`,`status`)
+
+### `POST /sla-rules` request schema
+- Request
+  - `scopeType`: string, required
+  - `scopeRef`: string, required
+  - `targetDurationHours`: integer, required, min `1`
+  - `escalationPolicyId`: string, required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 sla_target_required`
+  - `400 sla_escalation_policy_required`
+
+## 2.32 Phase 14 Field-Level Executable Spec
+
+### Table: `releases`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `release_code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `planned_at`: datetime, optional, indexed
+  - `released_at`: datetime, optional, indexed
+  - `status`: enum(`draft`,`approved`,`released`,`archived`), required, indexed
+- Indexes
+  - unique(`project_id`,`release_code`)
+  - index(`project_id`,`status`,`planned_at`)
+
+### Table: `deployment_checklists`
+- Columns
+  - `id`: string, required, PK
+  - `release_id`: string, required, indexed
+  - `checklist_item`: string, required, max 512
+  - `owner_user_id`: string, required
+  - `status`: enum(`draft`,`reviewed`,`approved`,`executed`), required, indexed
+  - `completed_at`: datetime, optional
+- Indexes
+  - index(`release_id`,`status`)
+
+### `POST /releases` request schema
+- Request
+  - `projectId`: string, required
+  - `releaseCode`: string, required, max 128
+  - `title`: string, required, max 512
+  - `plannedAt`: string(datetime), optional
+- Response
+  - `id`, `releaseCode`, `status`
+- Errors
+  - `400 validation_failed`
+  - `409 release_code_duplicate`
+
+## 2.33 Phase 15 Field-Level Executable Spec
+
+### Table: `defects`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `description`: string, required, max 4000
+  - `severity`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+  - `owner_user_id`: string, required, indexed
+  - `status`: enum(`open`,`in_progress`,`resolved`,`closed`), required, indexed
+  - `detected_in_phase`: string, optional, max 64
+- Indexes
+  - unique(`project_id`,`code`)
+  - index(`project_id`,`severity`,`status`)
+
+### Table: `non_conformances`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `description`: string, required, max 4000
+  - `source_type`: string, required, max 128
+  - `owner_user_id`: string, required
+  - `status`: enum(`open`,`in_review`,`corrective_action`,`closed`), required, indexed
+  - `corrective_action_ref`: string, optional
+- Indexes
+  - unique(`project_id`,`code`)
+  - index(`project_id`,`status`)
+
+### `POST /defects` request schema
+- Request
+  - `projectId`, `code`, `title`, `description`, `severity`, `ownerUserId`: required
+  - `detectedInPhase`: optional
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+  - `409 defect_code_duplicate`
+
+## 2.34 Phase 16 Field-Level Executable Spec
+
+### Table: `suppliers`
+- Columns
+  - `id`: string, required, PK
+  - `name`: string, required, max 256
+  - `supplier_type`: string, required, max 128, indexed
+  - `owner_user_id`: string, required, indexed
+  - `status`: enum(`active`,`review_due`,`updated`,`archived`), required, indexed
+  - `criticality`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+- Indexes
+  - unique(`name`)
+  - index(`criticality`,`status`)
+
+### Table: `supplier_agreements`
+- Columns
+  - `id`: string, required, PK
+  - `supplier_id`: string, required, indexed
+  - `agreement_type`: string, required, max 128
+  - `effective_from`: date, required
+  - `effective_to`: date, optional
+  - `status`: enum(`draft`,`approved`,`active`,`archived`), required, indexed
+  - `evidence_ref`: string, required
+- Indexes
+  - index(`supplier_id`,`status`)
+
+### `POST /supplier-agreements` request schema
+- Request
+  - `supplierId`: string, required
+  - `agreementType`: string, required
+  - `effectiveFrom`: string(date), required
+  - `effectiveTo`: string(date), optional
+  - `evidenceRef`: string, required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 supplier_agreement_effective_dates_required`
+  - `400 supplier_agreement_evidence_required`
+
+## 2.35 Phase 17 Field-Level Executable Spec
+
+### Table: `metric_reviews`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `review_period`: string, required, max 64
+  - `reviewed_by`: string, required
+  - `status`: enum(`planned`,`reviewed`,`actions_tracked`,`closed`), required, indexed
+  - `summary`: string, optional, max 4000
+- Indexes
+  - index(`project_id`,`status`)
+
+### Table: `trend_reports`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `metric_definition_id`: string, required, indexed
+  - `period_from`: date, required
+  - `period_to`: date, required
+  - `status`: enum(`draft`,`approved`,`archived`), required, indexed
+  - `report_ref`: string, optional
+- Indexes
+  - index(`project_id`,`metric_definition_id`)
+
+### `POST /metric-reviews` request schema
+- Request
+  - `projectId`: string, required
+  - `reviewPeriod`: string, required
+  - `reviewedBy`: string, required
+  - `summary`: string, optional, max 4000
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+
+## 2.36 Phase 18 Field-Level Executable Spec
+
+### Table: `lessons_learned`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `title`: string, required, max 512
+  - `summary`: string, required, max 4000
+  - `lesson_type`: string, required, max 128, indexed
+  - `owner_user_id`: string, required, indexed
+  - `status`: enum(`draft`,`reviewed`,`published`,`archived`), required, indexed
+  - `source_ref`: string, optional
+- Indexes
+  - index(`project_id`,`lesson_type`,`status`)
+
+### `POST /lessons-learned` request schema
+- Request
+  - `projectId`, `title`, `summary`, `lessonType`, `ownerUserId`: required
+  - `sourceRef`: optional
+- Response
+  - `id`, `status`
+- Errors
+  - `400 lesson_summary_required`
+  - `400 validation_failed`
+
+## 2.37 Phase 19 Field-Level Executable Spec
+
+### Table: `access_recertification_schedules`
+- Columns
+  - `id`: string, required, PK
+  - `scope_type`: string, required, max 64
+  - `scope_ref`: string, required
+  - `planned_at`: datetime, required, indexed
+  - `review_owner_user_id`: string, required, indexed
+  - `status`: enum(`planned`,`in_review`,`approved`,`completed`), required, indexed
+- Indexes
+  - index(`status`,`planned_at`)
+
+### Table: `access_recertification_decisions`
+- Columns
+  - `id`: string, required, PK
+  - `schedule_id`: string, required, indexed
+  - `subject_user_id`: string, required, indexed
+  - `decision`: enum(`kept`,`revoked`,`adjusted`), required, indexed
+  - `reason`: string, required, max 2000
+  - `decided_by`: string, required
+  - `decided_at`: datetime, required
+- Indexes
+  - index(`schedule_id`,`decision`)
+
+### `POST /access-recertifications` request schema
+- Request
+  - `scopeType`: string, required
+  - `scopeRef`: string, required
+  - `plannedAt`: string(datetime), required
+  - `reviewOwnerUserId`: string, required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+
+## 2.38 Phase 20 Field-Level Executable Spec
+
+### Table: `architecture_records`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `title`: string, required, max 512
+  - `architecture_type`: string, required, max 128, indexed
+  - `owner_user_id`: string, required, indexed
+  - `status`: enum(`draft`,`reviewed`,`approved`,`active`,`superseded`), required, indexed
+  - `current_version_id`: string, optional
+- Indexes
+  - index(`project_id`,`architecture_type`,`status`)
+
+### Table: `design_reviews`
+- Columns
+  - `id`: string, required, PK
+  - `architecture_record_id`: string, required, indexed
+  - `review_type`: string, required, max 128
+  - `reviewed_by`: string, optional
+  - `status`: enum(`draft`,`in_review`,`approved`,`rejected`,`baseline`), required, indexed
+  - `decision_reason`: string, optional, max 2000
+- Indexes
+  - index(`architecture_record_id`,`status`)
+
+### `POST /architecture-records` request schema
+- Request
+  - `projectId`, `title`, `architectureType`, `ownerUserId`: required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+
+## 2.39 Phase 21 Field-Level Executable Spec
+
+### Table: `security_incidents`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, optional, indexed
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `severity`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+  - `reported_at`: datetime, required, indexed
+  - `owner_user_id`: string, required, indexed
+  - `status`: enum(`reported`,`assessed`,`contained`,`resolved`,`closed`), required, indexed
+- Indexes
+  - unique(`code`)
+  - index(`severity`,`status`,`reported_at`)
+
+### Table: `vulnerability_records`
+- Columns
+  - `id`: string, required, PK
+  - `asset_ref`: string, required, indexed
+  - `title`: string, required, max 512
+  - `severity`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+  - `identified_at`: datetime, required, indexed
+  - `owner_user_id`: string, required, indexed
+  - `status`: enum(`open`,`assessed`,`scheduled`,`patched`,`verified`,`closed`), required, indexed
+- Indexes
+  - index(`asset_ref`,`status`)
+  - index(`severity`,`status`)
+
+### `POST /security-incidents` request schema
+- Request
+  - `projectId`: string, optional
+  - `code`: string, required, max 128
+  - `title`: string, required, max 512
+  - `severity`: enum(`low`,`medium`,`high`,`critical`), required
+  - `ownerUserId`: string, required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+  - `409 security_incident_code_duplicate`
+
+## 2.40 Phase 22 Field-Level Executable Spec
+
+### Table: `performance_baselines`
+- Columns
+  - `id`: string, required, PK
+  - `scope_type`: string, required, max 64
+  - `scope_ref`: string, required
+  - `metric_name`: string, required, max 128, indexed
+  - `target_value`: decimal, required
+  - `threshold_value`: decimal, required
+  - `status`: enum(`draft`,`approved`,`active`,`superseded`), required, indexed
+- Indexes
+  - index(`scope_type`,`metric_name`,`status`)
+
+### Table: `slow_operation_reviews`
+- Columns
+  - `id`: string, required, PK
+  - `operation_type`: string, required, max 64, indexed
+  - `operation_key`: string, required, max 256, indexed
+  - `observed_latency_ms`: integer, required
+  - `status`: enum(`open`,`investigating`,`optimized`,`verified`,`closed`), required, indexed
+  - `owner_user_id`: string, required, indexed
+- Indexes
+  - index(`operation_type`,`status`)
+  - index(`owner_user_id`,`status`)
+
+### `POST /performance-baselines` request schema
+- Request
+  - `scopeType`, `scopeRef`, `metricName`, `targetValue`, `thresholdValue`: required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+
+## 2.41 Phase 23 Field-Level Executable Spec
+
+### Table: `backup_evidence`
+- Columns
+  - `id`: string, required, PK
+  - `backup_scope`: string, required, max 128, indexed
+  - `executed_at`: datetime, required, indexed
+  - `executed_by`: string, required
+  - `status`: enum(`planned`,`completed`,`verified`,`archived`), required, indexed
+  - `evidence_ref`: string, optional
+- Indexes
+  - index(`backup_scope`,`executed_at`)
+
+### Table: `legal_holds`
+- Columns
+  - `id`: string, required, PK
+  - `scope_type`: string, required, max 64
+  - `scope_ref`: string, required
+  - `placed_at`: datetime, required, indexed
+  - `placed_by`: string, required
+  - `status`: enum(`active`,`released`,`archived`), required, indexed
+  - `reason`: string, required, max 2000
+- Indexes
+  - index(`status`,`placed_at`)
+
+### `POST /legal-holds` request schema
+- Request
+  - `scopeType`, `scopeRef`, `reason`: required
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+
+## 2.42 Phase 24 Field-Level Executable Spec
+
+### Table: `capa_records`
+- Columns
+  - `id`: string, required, PK
+  - `source_type`: string, required, max 64, indexed
+  - `source_ref`: string, required, indexed
+  - `title`: string, required, max 512
+  - `owner_user_id`: string, required, indexed
+  - `root_cause_summary`: string, optional, max 4000
+  - `status`: enum(`open`,`root_cause_analysis`,`action_planned`,`action_in_progress`,`verified`,`closed`), required, indexed
+- Indexes
+  - index(`source_type`,`status`)
+  - index(`owner_user_id`,`status`)
+
+### Table: `notification_queue`
+- Columns
+  - `id`: string, required, PK
+  - `channel`: string, required, max 64, indexed
+  - `target_ref`: string, required, max 256
+  - `payload_ref`: string, optional
+  - `queued_at`: datetime, required, indexed
+  - `status`: enum(`queued`,`sent`,`failed`,`retried`,`closed`), required, indexed
+  - `retry_count`: integer, required, default `0`
+  - `last_error`: string, optional, max 2000
+- Indexes
+  - index(`status`,`queued_at`)
+  - index(`channel`,`status`)
+
+### `POST /capa` request schema
+- Request
+  - `sourceType`, `sourceRef`, `title`, `ownerUserId`: required
+  - `rootCauseSummary`: optional
+- Response
+  - `id`, `status`
+- Errors
+  - `400 validation_failed`
+
+### `PUT /notification-queue/{id}/retry` request schema
+- Request
+  - `reason`: string, optional, max 1000
+- Response
+  - `id`, `status`, `retryCount`
+- Errors
+  - `400 notification_retry_invalid_state`
+  - `404 notification_not_found`
+
+## 2.43 Remaining Gap to Reach Near-Final Executable Spec
 
 After this file update, the remaining work to reach near-final executable spec is:
 
-1. Add field-level request/response schema for Phase 3 to Phase 24.
-2. Add exact column-level definitions for Phase 3 to Phase 24.
-3. Add explicit timeout, retry, and async thresholds per heavy endpoint/export flow.
-4. Add test scenario packs in Given/When/Then format per phase.
+1. Add complete field-by-field request and response coverage for every non-core endpoint in each phase.
+2. Add phase-specific Given/When/Then scenarios under each phase instead of relying only on the global scenario standard.
+3. Add endpoint-level overrides where a phase must deviate from the default timeout, retry, idempotency, paging, or async rules.
+4. Add query-plan-driven index refinements once real implementation and dataset characteristics are known.
 
 At that point, the document is suitable as a near-final executable specification for phased delivery.
 
