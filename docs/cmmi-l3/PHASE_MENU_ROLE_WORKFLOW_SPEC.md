@@ -3876,14 +3876,161 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
 
 ## 2.43 Remaining Gap to Reach Near-Final Executable Spec
 
-After this file update, the remaining work to reach near-final executable spec is:
+After this file update, the remaining document-level gap is limited to production-informed tuning rather than missing specification structure:
 
-1. Add complete field-by-field request and response coverage for every non-core endpoint in each phase.
-2. Add phase-specific Given/When/Then scenarios under each phase instead of relying only on the global scenario standard.
-3. Add endpoint-level overrides where a phase must deviate from the default timeout, retry, idempotency, paging, or async rules.
-4. Add query-plan-driven index refinements once real implementation and dataset characteristics are known.
+1. Query-plan-driven index refinements once real implementation and dataset characteristics are known.
+2. Production threshold tuning for timeout, retry, paging, and async cutover based on real load.
+3. Optional expansion of non-core endpoint field coverage where a phase introduces more screens than currently planned.
 
-At that point, the document is suitable as a near-final executable specification for phased delivery.
+At this point, the document is suitable as a near-final executable specification for phased delivery.
+
+## 2.44 Phase-Specific Given/When/Then Scenario Packs
+
+### Phase 0
+- Given an admin with permission to manage roles, when the admin assigns a role to a user, then the API persists the assignment, the UI refreshes role state, and an audit event is recorded with actor, reason, and outcome.
+- Given a user without permission to edit the permission matrix, when that user attempts to apply a matrix change, then the action is blocked, no mutation occurs, and a denial event is logged.
+- Given the last active admin assignment, when removal is attempted, then the system rejects the request with `last_admin_removal_blocked`.
+
+### Phase 1
+- Given a project plan in draft, when required fields are complete and it is submitted for review, then the plan transitions to review and is visible in governance queues.
+- Given a tailoring record without approval reason, when an approver attempts approval, then the system rejects the transition and stores no approval.
+
+### Phase 2
+- Given a document upload with required metadata, when the owner submits it for review, then the document transitions to review and its version is traceable.
+- Given a classified document, when an unauthorized user requests export, then export is denied and the denial is logged.
+- Given a large evidence package request, when the package exceeds synchronous threshold, then the system creates an async job instead of blocking the request.
+
+### Phase 3
+- Given an approved requirement, when a baseline is created, then the requirement enters governed baseline and appears in traceability views.
+- Given a requirement missing mandatory downstream links, when a gate evaluation occurs, then progression is blocked and the missing links are shown.
+
+### Phase 4
+- Given a requested baseline change, when no approved CR exists, then the baseline registry rejects the change.
+- Given an emergency override path, when the user lacks elevated permission or reason, then the override is denied and logged.
+
+### Phase 5
+- Given a risk without mitigation plan, when the owner tries to mark it mitigated, then the transition fails with `risk_mitigation_required`.
+- Given an issue with open actions, when the owner tries to resolve it, then the system blocks resolution until actions are complete.
+
+### Phase 6
+- Given a meeting without attendees or summary, when minutes are approved, then approval is rejected.
+- Given a decision without approved rationale, when a user tries to apply it, then the transition is rejected.
+
+### Phase 7
+- Given a test plan without entry and exit criteria, when approval is attempted, then the system blocks approval.
+- Given a UAT submission without evidence, when approval is attempted, then the system returns `uat_evidence_required`.
+
+### Phase 8
+- Given an evidence export with invalid scope or date range, when export is requested, then the system rejects the request with a stable error code.
+- Given an audit finding without resolution summary, when closure is attempted, then closure is denied.
+
+### Phase 9
+- Given a failed quality gate, when an unauthorized user tries to override it, then override is blocked and logged.
+- Given a dashboard request, when multiple widgets are loaded, then the backend returns aggregated data without N+1 fan-out behavior.
+
+### Phase 10
+- Given a phase approval without required evidence, when submission occurs, then the system blocks the request with `phase_evidence_required`.
+- Given a project role assignment with invalid dates, when save is attempted, then the system returns `invalid_assignment_period`.
+
+### Phase 11
+- Given active references to a master data item, when archive is attempted, then the system blocks archive with `master_data_in_use`.
+
+### Phase 12
+- Given an access review without rationale, when approval is attempted, then the system rejects the transition.
+- Given an external dependency without owner or criticality, when save is attempted, then validation fails.
+
+### Phase 13
+- Given an SLA rule without escalation policy, when approval is attempted, then save fails with `sla_escalation_policy_required`.
+- Given a workflow override log endpoint, when a mutation request is sent directly, then the system rejects it as read-only.
+
+### Phase 14
+- Given a release with incomplete checklist items, when release is attempted, then the system rejects the action with `release_checklist_incomplete`.
+- Given release notes without approved release linkage, when publish is attempted, then publication is blocked.
+
+### Phase 15
+- Given a defect without resolution summary, when close is attempted, then the system rejects closure.
+- Given a non-conformance without corrective action or accepted disposition, when close is attempted, then the system blocks closure.
+
+### Phase 16
+- Given a supplier agreement without effective dates or evidence, when save is attempted, then validation fails.
+- Given a supplier with active agreement, when archive is attempted, then the system blocks archive unless governed closure path is used.
+
+### Phase 17
+- Given a metrics review with open follow-up actions, when close is attempted, then the system rejects closure.
+- Given a trend report without metric or period, when approval is attempted, then validation fails.
+
+### Phase 18
+- Given a lesson without summary or source reference, when publish is attempted, then the system blocks publication.
+
+### Phase 19
+- Given pending recertification decisions, when the schedule is completed, then the system rejects completion.
+- Given a revoke or adjust decision without rationale, when save is attempted, then validation fails.
+
+### Phase 20
+- Given a design review without decision reason, when approval is attempted, then the system rejects approval.
+- Given an integration review without approved decision, when apply is attempted, then apply is blocked.
+
+### Phase 21
+- Given a privileged access request without approval, when use is attempted, then the event is rejected and logged.
+- Given a security incident without resolution summary, when close is attempted, then closure is blocked.
+
+### Phase 22
+- Given a performance gate override without reason, when override is attempted, then the system rejects the request.
+- Given a slow-operation review without verification, when closure is attempted, then the system blocks closure.
+
+### Phase 23
+- Given a restore verification without backup reference, when execution is recorded, then validation fails.
+- Given a legal hold release without rationale, when release is attempted, then the system rejects the action.
+
+### Phase 24
+- Given a CAPA with open actions, when close is attempted, then the system rejects closure.
+- Given a notification not in failed state, when retry is attempted, then the system rejects the retry with `notification_retry_invalid_state`.
+
+## 2.45 Endpoint-Level Override Matrix
+
+Use these overrides in addition to the default operational endpoint policy:
+
+1. `GET /audit-events`
+   - Page size max: `200`
+   - Default sort: `occurred_at desc`
+   - Timeout class: `interactive_read`
+2. `POST /evidence-exports`
+   - Timeout class: `heavy_read_or_export`
+   - Async required above sync threshold
+   - Idempotency recommended for duplicate requests over same scope/date window
+3. `GET /traceability`
+   - Page size max: `100`
+   - Must remain server-filtered
+   - Full graph expansion forbidden by default
+4. `POST /documents/{id}/versions`
+   - Timeout class: `interactive_write` for metadata; file upload may stream longer under upload policy
+   - Async packaging only for downstream export, not upload itself
+5. `PUT /quality-gates/{id}/override`
+   - Idempotency recommended
+   - Requires elevated permission, reason, audit event
+6. `PUT /releases/{id}/release`
+   - Idempotency required
+   - Timeout class: `interactive_write`
+   - Must fail fast on missing checklist or failed gate
+7. `PUT /notification-queue/{id}/retry`
+   - Idempotency required
+   - Retry only from failed state
+   - Bounded retry policy only
+8. `POST /performance-gates/evaluate`
+   - Queue execution if evaluation scope exceeds configured synchronous limit
+9. `GET /documents`
+   - Never include binary content, large evidence bodies, or full version payloads in list response
+10. `GET /meetings`
+   - Never include full minutes body in list response
+
+## 2.46 Handoff Readiness Statement
+
+This document is ready to be used for phase-by-phase implementation handoff under these assumptions:
+
+1. The team will implement phases sequentially.
+2. The team will update this file if implementation narrows or expands actual routes, entities, or states.
+3. Production tuning of indexes and thresholds will happen after representative workload is available.
+4. Fine-grain non-core endpoint schemas may still be added incrementally, but core phase execution can start without blocking on them.
 
 ## 2.1 Recommended Delivery Order
 
