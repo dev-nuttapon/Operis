@@ -921,6 +921,39 @@ For every next phase from Phase 1 onward:
 5. Add performance and security thresholds before coding.
 6. Only then start backend and frontend implementation.
 
+## 2.12A Phase Execution Contract
+
+When a future implementation round is requested as `Implement Phase N`, that phase is considered complete only if all items below are delivered together in the same round unless explicitly deferred:
+
+1. Workflow alignment
+   - The phase workflow matches the intended CMMI Level 3 operating flow.
+   - State transitions, approvals, evidence requirements, and traceability rules are implemented.
+   - Cross-module links required by the phase are working end-to-end.
+2. Backend delivery
+   - Data model, domain rules, API contracts, and authorization are implemented.
+   - Audit events are emitted for all critical state changes and sensitive actions.
+   - Validation rules prevent invalid transitions and missing evidence.
+3. Frontend delivery
+   - Required list/detail/form/action screens for the phase are implemented.
+   - Permission-aware UI behavior is enforced.
+   - Empty/loading/error states are included.
+4. Security delivery
+   - Route-level and action-level protection are enforced.
+   - Sensitive data handling, export restrictions, and approval evidence rules are applied.
+   - Security-relevant actions are logged and reviewable.
+5. Performance delivery
+   - Lists page correctly.
+   - Filters and search are server-driven where needed.
+   - Heavy exports or evidence packaging run asynchronously when appropriate.
+   - Queries and endpoints introduced by the phase avoid obvious scale risks.
+6. Verification delivery
+   - Tests are added for critical workflow paths, permissions, and validation.
+   - Any required smoke or integration verification for the phase is run when feasible.
+7. Documentation update
+   - This file is updated if implementation decisions refine the phase scope, routes, fields, thresholds, or transitions.
+
+If any of these are intentionally excluded for a round, the round is not a full phase implementation and must be requested as a partial phase.
+
 ## 2.13 Detailed Build Packages for Early Phases
 
 These packages extend the minimum build spec and should be treated as the default working shape for Phase 1 to Phase 4.
@@ -1121,6 +1154,31 @@ These packages extend the minimum build spec and should be treated as the defaul
   - List fields: `code`, `title`, `severity`, `owner`, `due date`, `status`, `open actions`
   - Detail fields: `root issue`, `actions[]`, `dependencies`, `resolution summary`
 
+#### Phase 5 API Contract
+- `GET /risks`
+- `POST /risks`
+- `GET /risks/{id}`
+- `PUT /risks/{id}`
+- `PUT /risks/{id}/assess`
+- `PUT /risks/{id}/mitigate`
+- `PUT /risks/{id}/close`
+- `GET /issues`
+- `POST /issues`
+- `GET /issues/{id}`
+- `PUT /issues/{id}`
+- `POST /issues/{id}/actions`
+- `PUT /issues/{id}/resolve`
+- `PUT /issues/{id}/close`
+
+#### Phase 5 Validation and Error Contract
+- Risk cannot move to `Mitigated` without owner and mitigation plan
+- Issue cannot move to `Resolved` while open actions remain incomplete
+- Errors
+  - `risk_owner_required`
+  - `risk_mitigation_required`
+  - `issue_open_actions_exist`
+  - `invalid_workflow_transition`
+
 #### Phase 5 Transition Matrix
 - Risk
   - Draft → Assessed → Mitigated → Closed
@@ -1138,6 +1196,10 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Status changes, owner changes, and action closures are logged
 - Performance
   - Risk and issue lists must filter by owner, severity, and due date with paging
+- Thresholds
+  - Default page size: `25`
+  - Max page size: `100`
+  - Risk/issue list target response: `< 500 ms` for normal filters
 
 ### Phase 6 Detailed Build Package
 
@@ -1161,6 +1223,29 @@ These packages extend the minimum build spec and should be treated as the defaul
   - List fields: `code`, `title`, `decision type`, `approved by`, `status`, `linked meeting`
   - Detail fields: `rationale`, `alternatives considered`, `impacted artifacts`
 
+#### Phase 6 API Contract
+- `GET /meetings`
+- `POST /meetings`
+- `GET /meetings/{id}`
+- `PUT /meetings/{id}`
+- `PUT /meetings/{id}/approve`
+- `GET /meetings/{id}/minutes`
+- `PUT /meetings/{id}/minutes`
+- `GET /decisions`
+- `POST /decisions`
+- `GET /decisions/{id}`
+- `PUT /decisions/{id}/approve`
+- `PUT /decisions/{id}/apply`
+
+#### Phase 6 Validation and Error Contract
+- Meeting minutes cannot be approved without attendees and summary
+- Decision cannot move to `Applied` without approved rationale
+- Errors
+  - `meeting_attendees_required`
+  - `meeting_summary_required`
+  - `decision_rationale_required`
+  - `invalid_workflow_transition`
+
 #### Phase 6 Transition Matrix
 - Meeting record
   - Draft → Approved → Archived
@@ -1178,6 +1263,10 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Decision approval, edit history, and attendee confirmation are logged when applicable
 - Performance
   - Meeting and decision searches must filter by project, type, and date without loading full text content in list queries
+- Thresholds
+  - Default page size: `25`
+  - Max page size: `100`
+  - Full minute content is excluded from list endpoints by default
 
 ### Phase 7 Detailed Build Package
 
@@ -1201,6 +1290,32 @@ These packages extend the minimum build spec and should be treated as the defaul
 - UAT Sign-off
   - Fields: `release`, `scope`, `decision`, `decision reason`, `linked evidence`
 
+#### Phase 7 API Contract
+- `GET /test-plans`
+- `POST /test-plans`
+- `GET /test-plans/{id}`
+- `PUT /test-plans/{id}`
+- `PUT /test-plans/{id}/approve`
+- `GET /test-cases`
+- `POST /test-cases`
+- `GET /test-cases/{id}`
+- `POST /test-executions`
+- `GET /test-executions`
+- `POST /uat-signoffs`
+- `PUT /uat-signoffs/{id}/submit`
+- `PUT /uat-signoffs/{id}/approve`
+- `PUT /uat-signoffs/{id}/reject`
+
+#### Phase 7 Validation and Error Contract
+- Test plan cannot be approved without linked scope and entry/exit criteria
+- UAT cannot be approved without release reference and evidence
+- Errors
+  - `test_plan_scope_required`
+  - `test_plan_criteria_required`
+  - `uat_release_required`
+  - `uat_evidence_required`
+  - `invalid_workflow_transition`
+
 #### Phase 7 Transition Matrix
 - Test plan
   - Draft → Review → Approved → Baseline
@@ -1220,6 +1335,10 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Execution results, evidence references, and UAT decisions are logged
 - Performance
   - Test execution history must page and filter by result, executor, and date
+- Thresholds
+  - Default page size: `25`
+  - Max page size: `100`
+  - Evidence-rich execution exports should run asynchronously above configured size threshold
 
 ### Phase 8 Detailed Build Package
 
@@ -1243,6 +1362,28 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Evidence Export
   - Fields: `scope`, `date range`, `included artifact types`, `request status`, `output`
 
+#### Phase 8 API Contract
+- `GET /audit-events`
+- `GET /audit-plans`
+- `POST /audit-plans`
+- `GET /audit-plans/{id}`
+- `PUT /audit-plans/{id}`
+- `POST /audit-findings`
+- `PUT /audit-findings/{id}`
+- `PUT /audit-findings/{id}/close`
+- `POST /evidence-exports`
+- `GET /evidence-exports`
+- `GET /evidence-exports/{id}`
+
+#### Phase 8 Validation and Error Contract
+- Evidence export requires valid scope and date range
+- Audit finding cannot close without resolution summary
+- Errors
+  - `export_scope_required`
+  - `export_date_range_required`
+  - `audit_finding_resolution_required`
+  - `invalid_workflow_transition`
+
 #### Phase 8 Transition Matrix
 - Audit plan
   - Planned → In Review → Findings Issued → Closed
@@ -1260,6 +1401,10 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Audit events are immutable and queryable
 - Performance
   - Audit queries and evidence packaging must use paging and asynchronous jobs for large result sets
+- Thresholds
+  - Audit list default page size: `50`
+  - Evidence export above synchronous limit must queue background job
+  - Export retention must follow retention policy and classification rules
 
 ### Phase 9 Detailed Build Package
 
@@ -1283,6 +1428,26 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Quality Gate Status
   - Fields: `gate type`, `project`, `result`, `evaluated at`, `blocking reason`, `override`
 
+#### Phase 9 API Contract
+- `GET /metric-definitions`
+- `POST /metric-definitions`
+- `PUT /metric-definitions/{id}`
+- `GET /metric-collection-schedules`
+- `POST /metric-collection-schedules`
+- `GET /metric-results`
+- `GET /quality-gates`
+- `POST /quality-gates/evaluate`
+- `PUT /quality-gates/{id}/override`
+
+#### Phase 9 Validation and Error Contract
+- Gate override requires reason and elevated permission
+- Metric definition requires target and threshold
+- Errors
+  - `metric_target_required`
+  - `metric_threshold_required`
+  - `quality_gate_override_reason_required`
+  - `invalid_workflow_transition`
+
 #### Phase 9 Transition Matrix
 - Metric definition
   - Draft → Approved → Active → Deprecated
@@ -1300,6 +1465,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Metric threshold changes and gate overrides are auditable
 - Performance
   - Dashboard aggregation must avoid per-widget fan-out
+- Thresholds
+  - Dashboard should load summary widgets without N+1 API fan-out
+  - Gate evaluation must complete within configured SLA for synchronous checks or switch to queued evaluation
 
 ### Phase 10 Detailed Build Package
 
@@ -1319,6 +1487,27 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Project Phase Approval
   - Fields: `phase`, `entry criteria`, `required evidence`, `decision`, `decision reason`
 
+#### Phase 10 API Contract
+- `GET /project-roles`
+- `POST /project-roles`
+- `GET /team-assignments`
+- `POST /team-assignments`
+- `PUT /team-assignments/{id}`
+- `POST /phase-approvals`
+- `PUT /phase-approvals/{id}/submit`
+- `PUT /phase-approvals/{id}/approve`
+- `PUT /phase-approvals/{id}/reject`
+
+#### Phase 10 Validation and Error Contract
+- Phase approval requires entry criteria and required evidence links
+- Team assignment requires valid role and active date range
+- Errors
+  - `phase_entry_criteria_required`
+  - `phase_evidence_required`
+  - `project_role_required`
+  - `invalid_assignment_period`
+  - `invalid_workflow_transition`
+
 #### Phase 10 Transition Matrix
 - Project role
   - Active → Archived
@@ -1336,6 +1525,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Assignment changes and phase approvals are auditable
 - Performance
   - Team and role queries must support project-scoped paging and filtering
+- Thresholds
+  - Team queries default page size: `25`
+  - Phase approval detail should pre-load only required evidence summaries, not full artifacts
 
 ### Phase 11 Detailed Build Package
 
@@ -1350,6 +1542,21 @@ These packages extend the minimum build spec and should be treated as the defaul
   - List fields: `domain`, `code`, `name`, `status`, `last changed`
   - Detail fields: `name`, `code`, `display order`, `status`, `change reason`
 
+#### Phase 11 API Contract
+- `GET /master-data`
+- `POST /master-data`
+- `GET /master-data/{id}`
+- `PUT /master-data/{id}`
+- `PUT /master-data/{id}/archive`
+
+#### Phase 11 Validation and Error Contract
+- Code must be unique within domain
+- Archive is blocked when active references exist unless governed exception path exists
+- Errors
+  - `master_data_code_duplicate`
+  - `master_data_in_use`
+  - `invalid_workflow_transition`
+
 #### Phase 11 Transition Matrix
 - Master data item
   - Active → Archived
@@ -1363,6 +1570,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Every master data change records actor and reason
 - Performance
   - Lookup endpoints should be optimized for option-loading use cases
+- Thresholds
+  - Lookup endpoints should support small payload projections for dropdown use
+  - Domain lists should sort by display order then name
 
 ### Phase 12 Detailed Build Package
 
@@ -1386,6 +1596,30 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Configuration Audit Log
   - Fields: `scope`, `plan date`, `status`, `finding count`
 
+#### Phase 12 API Contract
+- `GET /access-reviews`
+- `POST /access-reviews`
+- `PUT /access-reviews/{id}`
+- `PUT /access-reviews/{id}/approve`
+- `GET /security-reviews`
+- `POST /security-reviews`
+- `PUT /security-reviews/{id}`
+- `GET /external-dependencies`
+- `POST /external-dependencies`
+- `PUT /external-dependencies/{id}`
+- `GET /configuration-audits`
+- `POST /configuration-audits`
+
+#### Phase 12 Validation and Error Contract
+- Access review approval requires reviewer decision and rationale
+- External dependency requires owner and criticality
+- Errors
+  - `access_review_decision_required`
+  - `access_review_rationale_required`
+  - `dependency_owner_required`
+  - `dependency_criticality_required`
+  - `invalid_workflow_transition`
+
 #### Phase 12 Transition Matrix
 - Access review
   - Scheduled → In Review → Approved → Archived
@@ -1405,6 +1639,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Review decisions and findings are exportable
 - Performance
   - Review logs must be filterable by due date, status, and scope
+- Thresholds
+  - Review lists default page size: `25`
+  - Dependency register must support due-date sorting and review-due filtering
 
 ### Phase 13 Detailed Build Package
 
@@ -1432,6 +1669,28 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Data Retention Policy
   - Fields: `policy code`, `scope`, `retention`, `archive rule`, `status`
 
+#### Phase 13 API Contract
+- `GET /raci-maps`
+- `POST /raci-maps`
+- `PUT /raci-maps/{id}`
+- `GET /approval-evidence`
+- `GET /workflow-overrides`
+- `GET /sla-rules`
+- `POST /sla-rules`
+- `PUT /sla-rules/{id}`
+- `GET /retention-policies`
+- `POST /retention-policies`
+- `PUT /retention-policies/{id}`
+
+#### Phase 13 Validation and Error Contract
+- SLA rule requires target duration and escalation policy
+- Override log is read-only and must only be written by governed workflow actions
+- Errors
+  - `sla_target_required`
+  - `sla_escalation_policy_required`
+  - `override_log_mutation_forbidden`
+  - `invalid_workflow_transition`
+
 #### Phase 13 Transition Matrix
 - RACI map
   - Draft → Approved → Active → Archived
@@ -1449,6 +1708,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Approval and override evidence must be immutable
 - Performance
   - Governance logs must remain searchable at scale
+- Thresholds
+  - Governance logs default page size: `50`
+  - Approval evidence search must support date, actor, entity type, and outcome filters
 
 ### Phase 14 Detailed Build Package
 
@@ -1468,6 +1730,29 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Release Notes
   - Fields: `summary`, `included changes`, `known issues`, `publish status`
 
+#### Phase 14 API Contract
+- `GET /releases`
+- `POST /releases`
+- `GET /releases/{id}`
+- `PUT /releases/{id}`
+- `PUT /releases/{id}/approve`
+- `PUT /releases/{id}/release`
+- `GET /deployment-checklists`
+- `POST /deployment-checklists`
+- `PUT /deployment-checklists/{id}`
+- `GET /release-notes`
+- `POST /release-notes`
+- `PUT /release-notes/{id}/publish`
+
+#### Phase 14 Validation and Error Contract
+- Release requires checklist completion and quality gate pass unless override path is used
+- Release notes cannot publish without approved release
+- Errors
+  - `release_checklist_incomplete`
+  - `release_quality_gate_failed`
+  - `release_notes_release_required`
+  - `invalid_workflow_transition`
+
 #### Phase 14 Transition Matrix
 - Release
   - Draft → Approved → Released → Archived
@@ -1485,6 +1770,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Release publication and deployment execution are logged
 - Performance
   - Release history queries support project/date filtering and paging
+- Thresholds
+  - Release list default page size: `25`
+  - Deployment checklist should batch-update status changes where practical
 
 ### Phase 15 Detailed Build Package
 
@@ -1502,6 +1790,27 @@ These packages extend the minimum build spec and should be treated as the defaul
   - List fields: `code`, `title`, `source`, `owner`, `status`, `corrective action`
   - Detail fields: `description`, `root cause`, `resolution`, `linked findings`
 
+#### Phase 15 API Contract
+- `GET /defects`
+- `POST /defects`
+- `GET /defects/{id}`
+- `PUT /defects/{id}`
+- `PUT /defects/{id}/resolve`
+- `PUT /defects/{id}/close`
+- `GET /non-conformances`
+- `POST /non-conformances`
+- `GET /non-conformances/{id}`
+- `PUT /non-conformances/{id}`
+- `PUT /non-conformances/{id}/close`
+
+#### Phase 15 Validation and Error Contract
+- Defect closure requires resolution summary
+- Non-conformance closure requires corrective action reference or accepted disposition
+- Errors
+  - `defect_resolution_required`
+  - `non_conformance_corrective_action_required`
+  - `invalid_workflow_transition`
+
 #### Phase 15 Transition Matrix
 - Defect
   - Open → In Progress → Resolved → Closed
@@ -1517,6 +1826,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - State transitions and ownership changes are logged
 - Performance
   - Defect and NC logs must support project/severity/date paging filters
+- Thresholds
+  - Default page size: `25`
+  - Defect and NC searches must support project + status + severity composite filtering
 
 ### Phase 16 Detailed Build Package
 
@@ -1531,6 +1843,24 @@ These packages extend the minimum build spec and should be treated as the defaul
   - List fields: `name`, `type`, `owner`, `criticality`, `status`
 - SLA/Contract Evidence
   - Fields: `supplier`, `agreement type`, `effective dates`, `SLA terms`, `evidence`, `status`
+
+#### Phase 16 API Contract
+- `GET /suppliers`
+- `POST /suppliers`
+- `GET /suppliers/{id}`
+- `PUT /suppliers/{id}`
+- `GET /supplier-agreements`
+- `POST /supplier-agreements`
+- `PUT /supplier-agreements/{id}`
+
+#### Phase 16 Validation and Error Contract
+- Agreement requires evidence and effective dates
+- Supplier archive blocked when active agreement exists unless governed closure path exists
+- Errors
+  - `supplier_agreement_evidence_required`
+  - `supplier_agreement_effective_dates_required`
+  - `supplier_active_agreement_exists`
+  - `invalid_workflow_transition`
 
 #### Phase 16 Transition Matrix
 - Supplier
@@ -1547,6 +1877,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Agreement approval and supplier review changes are logged
 - Performance
   - Supplier and agreement lists support filtering by criticality, owner, and due review date
+- Thresholds
+  - Default page size: `25`
+  - Agreement evidence metadata should be listed without downloading the evidence binary
 
 ### Phase 17 Detailed Build Package
 
@@ -1561,6 +1894,23 @@ These packages extend the minimum build spec and should be treated as the defaul
   - List fields: `project`, `period`, `reviewer`, `status`, `actions tracked`
 - Trend Analysis Report
   - Fields: `metric`, `period`, `trend direction`, `variance`, `recommended action`
+
+#### Phase 17 API Contract
+- `GET /metric-reviews`
+- `POST /metric-reviews`
+- `PUT /metric-reviews/{id}`
+- `GET /trend-reports`
+- `POST /trend-reports`
+- `GET /trend-reports/{id}`
+
+#### Phase 17 Validation and Error Contract
+- Review cannot close while tracked actions remain open
+- Trend report approval requires defined metric and period
+- Errors
+  - `metric_review_open_actions_exist`
+  - `trend_metric_required`
+  - `trend_period_required`
+  - `invalid_workflow_transition`
 
 #### Phase 17 Transition Matrix
 - Metric review
@@ -1577,6 +1927,8 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Review closure and approved trend conclusions are logged
 - Performance
   - Trend calculation should use pre-aggregated or indexed data paths for large periods
+- Thresholds
+  - Heavy trend generation jobs should queue in background above configured data volume
 
 ### Phase 18 Detailed Build Package
 
@@ -1588,6 +1940,21 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Lessons Learned
   - List fields: `title`, `type`, `project`, `owner`, `status`, `published at`
   - Detail fields: `context`, `what happened`, `what to repeat`, `what to avoid`, `linked evidence`
+
+#### Phase 18 API Contract
+- `GET /lessons-learned`
+- `POST /lessons-learned`
+- `GET /lessons-learned/{id}`
+- `PUT /lessons-learned/{id}`
+- `PUT /lessons-learned/{id}/publish`
+
+#### Phase 18 Validation and Error Contract
+- Publish requires context, lesson summary, and linked evidence or source reference
+- Errors
+  - `lesson_context_required`
+  - `lesson_summary_required`
+  - `lesson_source_required`
+  - `invalid_workflow_transition`
 
 #### Phase 18 Transition Matrix
 - Lesson
@@ -1602,6 +1969,8 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Publication and archive events are logged
 - Performance
   - Knowledge search must support keyword, type, project, and date filters
+- Thresholds
+  - Search must support paged keyword search with stable sort order
 
 ### Phase 19 Detailed Build Package
 
@@ -1615,6 +1984,22 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Access Recertification Schedule
   - List fields: `scope`, `planned date`, `review owner`, `status`, `completed count`
   - Detail fields: `subjects`, `decisions`, `rationale`, `exceptions`
+
+#### Phase 19 API Contract
+- `GET /access-recertifications`
+- `POST /access-recertifications`
+- `GET /access-recertifications/{id}`
+- `PUT /access-recertifications/{id}`
+- `POST /access-recertifications/{id}/decisions`
+- `PUT /access-recertifications/{id}/complete`
+
+#### Phase 19 Validation and Error Contract
+- Schedule cannot complete while pending decisions remain
+- Revocation or adjustment decision requires rationale
+- Errors
+  - `access_recertification_pending_decisions`
+  - `access_recertification_decision_rationale_required`
+  - `invalid_workflow_transition`
 
 #### Phase 19 Transition Matrix
 - Recertification schedule
@@ -1631,6 +2016,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Decision rationale and actor are always logged
 - Performance
   - Recertification lists support scoping by role, system area, and due date
+- Thresholds
+  - Default page size: `25`
+  - Subject decision lists should page on large scope reviews
 
 ### Phase 20 Detailed Build Package
 
@@ -1650,6 +2038,26 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Integration Review
   - Fields: `integration scope`, `risks`, `dependency impact`, `decision`, `evidence`
 
+#### Phase 20 API Contract
+- `GET /architecture-records`
+- `POST /architecture-records`
+- `GET /architecture-records/{id}`
+- `PUT /architecture-records/{id}`
+- `GET /design-reviews`
+- `POST /design-reviews`
+- `PUT /design-reviews/{id}`
+- `GET /integration-reviews`
+- `POST /integration-reviews`
+- `PUT /integration-reviews/{id}`
+
+#### Phase 20 Validation and Error Contract
+- Design review approval requires decision reason
+- Integration review cannot apply without approved decision
+- Errors
+  - `design_review_decision_reason_required`
+  - `integration_review_approval_required`
+  - `invalid_workflow_transition`
+
 #### Phase 20 Transition Matrix
 - Architecture record
   - Draft → Reviewed → Approved → Active → Superseded
@@ -1667,6 +2075,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Review decisions and superseded architecture versions are retained
 - Performance
   - Design and architecture lists must not load large document content into list queries
+- Thresholds
+  - Architecture lists default page size: `25`
+  - Linked design artifacts should load lazily in detail screens
 
 ### Phase 21 Detailed Build Package
 
@@ -1694,6 +2105,34 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Data Classification Policy
   - Fields: `policy code`, `level`, `scope`, `status`
 
+#### Phase 21 API Contract
+- `GET /security-incidents`
+- `POST /security-incidents`
+- `GET /security-incidents/{id}`
+- `PUT /security-incidents/{id}`
+- `GET /vulnerabilities`
+- `POST /vulnerabilities`
+- `PUT /vulnerabilities/{id}`
+- `GET /secret-rotations`
+- `POST /secret-rotations`
+- `PUT /secret-rotations/{id}`
+- `GET /privileged-access-events`
+- `POST /privileged-access-events`
+- `PUT /privileged-access-events/{id}`
+- `GET /classification-policies`
+- `POST /classification-policies`
+- `PUT /classification-policies/{id}`
+
+#### Phase 21 Validation and Error Contract
+- Privileged access use requires approved request
+- Secret rotation verification requires verifier and verification time
+- Security incident closure requires resolution summary
+- Errors
+  - `privileged_access_approval_required`
+  - `secret_rotation_verification_required`
+  - `security_incident_resolution_required`
+  - `invalid_workflow_transition`
+
 #### Phase 21 Transition Matrix
 - Security incident
   - Reported → Assessed → Contained → Resolved → Closed
@@ -1715,6 +2154,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Incident lifecycle and privileged access lifecycle are immutable and searchable
 - Performance
   - Security logs must support time-range and severity filtering without full scan defaults
+- Thresholds
+  - Security event searches default page size: `50`
+  - Incident lists support severity/date filtering and descending time order by default
 
 ### Phase 22 Detailed Build Package
 
@@ -1738,6 +2180,28 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Performance Regression Gate
   - Fields: `scope`, `result`, `reason`, `override`, `evidence`
 
+#### Phase 22 API Contract
+- `GET /performance-baselines`
+- `POST /performance-baselines`
+- `PUT /performance-baselines/{id}`
+- `GET /capacity-reviews`
+- `POST /capacity-reviews`
+- `PUT /capacity-reviews/{id}`
+- `GET /slow-operations`
+- `POST /slow-operations`
+- `PUT /slow-operations/{id}`
+- `GET /performance-gates`
+- `POST /performance-gates/evaluate`
+- `PUT /performance-gates/{id}/override`
+
+#### Phase 22 Validation and Error Contract
+- Performance gate override requires reason and elevated role
+- Slow operation cannot close without optimization verification
+- Errors
+  - `performance_gate_override_reason_required`
+  - `slow_operation_verification_required`
+  - `invalid_workflow_transition`
+
 #### Phase 22 Transition Matrix
 - Performance baseline
   - Draft → Approved → Active → Superseded
@@ -1757,6 +2221,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Gate overrides and performance threshold changes are logged
 - Performance
   - Review screens must aggregate from pre-filtered or indexed sources where possible
+- Thresholds
+  - Slow operation lists default page size: `50`
+  - Gate evaluation above configured data volume should queue or down-scope evaluation
 
 ### Phase 23 Detailed Build Package
 
@@ -1780,6 +2247,26 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Legal Hold Register
   - Fields: `scope`, `placed at`, `placed by`, `status`, `reason`
 
+#### Phase 23 API Contract
+- `GET /backup-evidence`
+- `POST /backup-evidence`
+- `GET /restore-verifications`
+- `POST /restore-verifications`
+- `GET /dr-drills`
+- `POST /dr-drills`
+- `PUT /dr-drills/{id}`
+- `GET /legal-holds`
+- `POST /legal-holds`
+- `PUT /legal-holds/{id}/release`
+
+#### Phase 23 Validation and Error Contract
+- Restore verification requires backup reference
+- Legal hold release requires rationale and authorized role
+- Errors
+  - `restore_backup_reference_required`
+  - `legal_hold_release_reason_required`
+  - `invalid_workflow_transition`
+
 #### Phase 23 Transition Matrix
 - Backup evidence
   - Planned → Completed → Verified → Archived
@@ -1799,6 +2286,9 @@ These packages extend the minimum build spec and should be treated as the defaul
   - Backup, restore, and DR execution are time-stamped and immutable
 - Performance
   - Evidence lists must filter by scope and date with paging
+- Thresholds
+  - DR and backup evidence lists default page size: `25`
+  - Evidence binary retrieval remains out of list query paths
 
 ### Phase 24 Detailed Build Package
 
@@ -1820,6 +2310,28 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Escalation History
   - Fields: `scope`, `triggered at`, `reason`, `escalated to`, `status`
 
+#### Phase 24 API Contract
+- `GET /capa`
+- `POST /capa`
+- `GET /capa/{id}`
+- `PUT /capa/{id}`
+- `POST /capa/{id}/actions`
+- `PUT /capa/{id}/verify`
+- `PUT /capa/{id}/close`
+- `GET /notification-queue`
+- `POST /notification-queue`
+- `PUT /notification-queue/{id}/retry`
+- `GET /escalations`
+- `POST /escalations`
+
+#### Phase 24 Validation and Error Contract
+- CAPA cannot close while open actions remain
+- Retry requires previous failed notification state
+- Errors
+  - `capa_open_actions_exist`
+  - `notification_retry_invalid_state`
+  - `invalid_workflow_transition`
+
 #### Phase 24 Transition Matrix
 - CAPA
   - Open → Root Cause Analysis → Action Planned → Action In Progress → Verified → Closed
@@ -1839,6 +2351,391 @@ These packages extend the minimum build spec and should be treated as the defaul
   - CAPA progression, retries, and escalations are logged and reviewable
 - Performance
   - Queue views and escalation history must support paging and operational filtering
+- Thresholds
+  - Notification queue default page size: `50`
+  - Retry and escalation operations must be idempotent where possible
+
+## 2.14 Command Templates for Future Rounds
+
+Use these prompts when you want implementation rounds to complete a full phase, including workflow, security, and performance.
+
+### Full phase command
+
+`Implement Phase N from docs/cmmi-l3/PHASE_MENU_ROLE_WORKFLOW_SPEC.md as a full phase. Complete backend, frontend, workflow alignment to CMMI Level 3, security controls, performance controls, tests, and update the spec if implementation refines it.`
+
+### Full phase command with strict completion rule
+
+`Implement Phase N from docs/cmmi-l3/PHASE_MENU_ROLE_WORKFLOW_SPEC.md and finish the phase in full. Do not treat it as complete unless workflow, permissions, audit logging, security handling, performance safeguards, and required screens/APIs for the phase are all done together. Update the spec if anything changes.`
+
+### Sequential build command
+
+`Implement the next unfinished phase from docs/cmmi-l3/PHASE_MENU_ROLE_WORKFLOW_SPEC.md as a full phase. Keep CMMI Level 3 workflow integrity, system security, and performance requirements in scope. Finish the implementation and update the spec.`
+
+### Partial phase command
+
+`Implement only the backend executable spec for Phase N from docs/cmmi-l3/PHASE_MENU_ROLE_WORKFLOW_SPEC.md. Do not mark the phase complete. Update the spec with any implementation decisions.`
+
+### Review command
+
+`Review Phase N implementation against docs/cmmi-l3/PHASE_MENU_ROLE_WORKFLOW_SPEC.md with focus on CMMI Level 3 workflow integrity, security controls, performance behavior, and missing acceptance coverage.`
+
+## 2.15 Definition of a Finished Phase
+
+A phase is finished only when all conditions below are true:
+
+1. Required screens for the phase are implemented and wired to real APIs.
+2. Required backend models, validation, workflow transitions, and audit events are implemented.
+3. Required role and permission checks are enforced in UI and API.
+4. Security requirements relevant to the phase are implemented, not deferred as notes.
+5. Performance requirements relevant to the phase are implemented, not deferred as notes.
+6. Tests or verification evidence exist for the phase's critical paths.
+7. Any changed scope or implementation decision has been reflected back into this spec.
+
+## 2.16 Database Column and Index Standard
+
+Every phase database design must define the following at table level before implementation:
+
+1. Column contract
+   - Name
+   - Type
+   - Nullability
+   - Default value
+   - Max length for string columns
+   - Enum/value set where applicable
+2. Required common columns on mutable records
+   - `id`
+   - `created_at`
+   - `created_by`
+   - `updated_at`
+   - `updated_by`
+   - `deleted_at` when soft delete applies
+3. Index contract
+   - Primary key
+   - Unique constraints
+   - Foreign key indexes
+   - Primary list/query indexes
+   - Time-range indexes for audit and history tables
+4. State and ownership columns
+   - `status`
+   - owning project or module reference
+   - approval fields when approval exists
+5. Retention and classification columns where required
+   - `classification`
+   - `retention_class`
+   - legal-hold or archive flags where applicable
+
+## 2.17 Request and Response Schema Standard
+
+Every API endpoint in a phase must define:
+
+1. Request schema
+   - Field name
+   - Type
+   - Required/optional
+   - Validation rule
+   - Allowed values
+2. Response schema
+   - Field name
+   - Type
+   - Nullability
+   - Expansion rules for related objects
+3. Error schema
+   - HTTP status
+   - Stable business error code
+   - User-safe message
+   - Retryable or non-retryable classification
+4. Query schema for list endpoints
+   - `page`
+   - `pageSize`
+   - `sortBy`
+   - `sortOrder`
+   - `search`
+   - module-specific filters
+5. Operational behavior
+   - idempotency rule if applicable
+   - timeout expectation
+   - async execution rule if export or heavy processing is involved
+
+## 2.18 Phase 0 Field-Level Executable Spec
+
+### Table: `users`
+- Columns
+  - `id`: string, required, PK
+  - `email`: string, required, max 320, unique
+  - `display_name`: string, required, max 256
+  - `status`: enum(`active`,`disabled`), required, indexed
+  - `created_at`: datetime, required
+  - `created_by`: string, required
+  - `updated_at`: datetime, required
+  - `updated_by`: string, required
+- Indexes
+  - unique(`email`)
+  - index(`status`)
+  - index(`updated_at`)
+
+### Table: `roles`
+- Columns
+  - `id`: string, required, PK
+  - `code`: string, required, max 128, unique
+  - `name`: string, required, max 256
+  - `status`: enum(`active`,`archived`), required
+  - `created_at`: datetime, required
+  - `updated_at`: datetime, required
+- Indexes
+  - unique(`code`)
+  - index(`status`)
+
+### Table: `permissions`
+- Columns
+  - `id`: string, required, PK
+  - `module_code`: string, required, max 128, indexed
+  - `permission_key`: string, required, max 256, unique
+  - `description`: string, optional, max 512
+- Indexes
+  - unique(`permission_key`)
+  - index(`module_code`)
+
+### Table: `role_permissions`
+- Columns
+  - `id`: string, required, PK
+  - `role_id`: string, required, FK(`roles.id`)
+  - `permission_id`: string, required, FK(`permissions.id`)
+  - `allowed`: boolean, required, default `true`
+- Indexes
+  - unique(`role_id`,`permission_id`)
+
+### Table: `user_role_assignments`
+- Columns
+  - `id`: string, required, PK
+  - `user_id`: string, required, FK(`users.id`)
+  - `role_id`: string, required, FK(`roles.id`)
+  - `assigned_at`: datetime, required
+  - `assigned_by`: string, required
+  - `reason`: string, required, max 1000
+- Indexes
+  - unique(`user_id`,`role_id`)
+  - index(`assigned_at`)
+
+### Table: `security_events`
+- Columns
+  - `id`: string, required, PK
+  - `event_type`: string, required, max 128, indexed
+  - `actor_user_id`: string, optional, indexed
+  - `target_type`: string, optional, max 128
+  - `target_id`: string, optional
+  - `reason`: string, optional, max 1000
+  - `outcome`: enum(`success`,`failure`,`denied`), required
+  - `occurred_at`: datetime, required, indexed
+  - `metadata_json`: json, optional
+- Indexes
+  - index(`event_type`,`occurred_at`)
+  - index(`actor_user_id`,`occurred_at`)
+
+### `GET /admin/users` response schema
+- Query
+  - `page`: integer, optional, min 1, default 1
+  - `pageSize`: integer, optional, min 5, max 100, default 25
+  - `search`: string, optional, max 200
+  - `status`: enum(`active`,`disabled`), optional
+  - `role`: string, optional
+- Response
+  - `items[]`
+    - `id`: string
+    - `email`: string
+    - `displayName`: string
+    - `status`: string
+    - `roles[]`: string
+    - `updatedAt`: string(datetime)
+  - `page`: integer
+  - `pageSize`: integer
+  - `total`: integer
+- Errors
+  - `401 unauthorized`
+  - `403 forbidden`
+
+### `PUT /admin/users/{id}/roles` request schema
+- Request
+  - `roleIds`: array<string>, required, min 1
+  - `reason`: string, required, max 1000
+- Response
+  - `id`: string
+  - `roles[]`: string
+  - `updatedAt`: string(datetime)
+- Errors
+  - `403 forbidden`
+  - `404 user_not_found`
+  - `409 last_admin_removal_blocked`
+  - `400 validation_failed`
+
+### `PUT /admin/permissions/matrix` request schema
+- Request
+  - `entries[]`: required
+    - `roleId`: string, required
+    - `permissionKey`: string, required
+    - `allowed`: boolean, required
+  - `reason`: string, required, max 1000
+- Response
+  - `updatedCount`: integer
+  - `updatedAt`: string(datetime)
+- Errors
+  - `403 forbidden`
+  - `400 validation_failed`
+
+## 2.19 Phase 1 Field-Level Executable Spec
+
+### Table: `process_assets`
+- Columns
+  - `id`: string, required, PK
+  - `code`: string, required, max 128, unique
+  - `name`: string, required, max 256
+  - `category`: string, required, max 128, indexed
+  - `status`: enum(`draft`,`reviewed`,`approved`,`active`,`deprecated`), required, indexed
+  - `owner_user_id`: string, required
+  - `effective_from`: datetime, optional
+  - `effective_to`: datetime, optional
+  - `current_version_id`: string, optional
+  - `created_at`: datetime, required
+  - `updated_at`: datetime, required
+- Indexes
+  - unique(`code`)
+  - index(`category`,`status`)
+
+### Table: `project_plans`
+- Columns
+  - `id`: string, required, PK
+  - `project_id`: string, required, indexed
+  - `name`: string, required, max 256
+  - `scope_summary`: string, required, max 4000
+  - `lifecycle_model`: string, required, max 128
+  - `start_date`: date, required
+  - `target_end_date`: date, required
+  - `owner_user_id`: string, required
+  - `status`: enum(`draft`,`review`,`approved`,`baseline`,`superseded`), required
+- Indexes
+  - index(`project_id`,`status`)
+
+### `POST /project-plans` request schema
+- Request
+  - `projectId`: string, required
+  - `name`: string, required, max 256
+  - `scopeSummary`: string, required, max 4000
+  - `lifecycleModel`: string, required
+  - `startDate`: string(date), required
+  - `targetEndDate`: string(date), required
+  - `ownerUserId`: string, required
+- Response
+  - `id`: string
+  - `status`: string
+- Errors
+  - `400 validation_failed`
+  - `404 project_not_found`
+
+### `PUT /tailoring-records/{id}/approve` request schema
+- Request
+  - `decision`: enum(`approved`,`rejected`), required
+  - `reason`: string, required, max 2000
+- Response
+  - `id`: string
+  - `status`: string
+  - `approvedAt`: string(datetime)
+- Errors
+  - `403 forbidden`
+  - `404 tailoring_record_not_found`
+  - `400 tailoring_reason_required`
+
+## 2.20 Phase 2 Field-Level Executable Spec
+
+### Table: `document_types`
+- Columns
+  - `id`: string, required, PK
+  - `code`: string, required, max 128, unique
+  - `name`: string, required, max 256
+  - `module_owner`: string, required, max 128
+  - `classification_default`: string, required, max 64
+  - `retention_class_default`: string, required, max 64
+  - `status`: enum(`active`,`deprecated`), required
+- Indexes
+  - unique(`code`)
+  - index(`status`)
+
+### Table: `documents`
+- Columns
+  - `id`: string, required, PK
+  - `document_type_id`: string, required, indexed
+  - `project_id`: string, required, indexed
+  - `phase_code`: string, required, max 64, indexed
+  - `owner_user_id`: string, required, indexed
+  - `current_version_id`: string, optional
+  - `status`: enum(`draft`,`review`,`approved`,`rejected`,`baseline`,`archived`), required, indexed
+  - `classification`: string, required, max 64, indexed
+  - `retention_class`: string, required, max 64
+  - `title`: string, required, max 512
+  - `created_at`: datetime, required
+  - `updated_at`: datetime, required
+- Indexes
+  - index(`project_id`,`status`,`phase_code`)
+  - index(`document_type_id`,`status`)
+  - index(`owner_user_id`,`updated_at`)
+
+### Table: `document_versions`
+- Columns
+  - `id`: string, required, PK
+  - `document_id`: string, required, indexed
+  - `version_number`: integer, required
+  - `storage_key`: string, required, max 512, unique
+  - `file_name`: string, required, max 512
+  - `file_size`: bigint, required
+  - `mime_type`: string, required, max 128
+  - `uploaded_by`: string, required
+  - `uploaded_at`: datetime, required
+  - `status`: enum(`uploaded`,`submitted`,`approved`,`rejected`,`superseded`), required
+- Indexes
+  - unique(`document_id`,`version_number`)
+  - index(`uploaded_at`)
+
+### `POST /documents` request schema
+- Request
+  - `documentTypeId`: string, required
+  - `projectId`: string, required
+  - `phaseCode`: string, required
+  - `ownerUserId`: string, required
+  - `classification`: string, required
+  - `retentionClass`: string, required
+  - `title`: string, required, max 512
+  - `tags[]`: array<string>, optional
+- Response
+  - `id`: string
+  - `status`: string
+  - `title`: string
+- Errors
+  - `400 validation_failed`
+  - `404 document_type_not_found`
+  - `404 project_not_found`
+
+### `POST /documents/{id}/versions` request schema
+- Request
+  - `file`: binary, required
+  - `fileName`: string, required, max 512
+  - `mimeType`: string, required
+- Response
+  - `id`: string
+  - `versionNumber`: integer
+  - `status`: string
+- Errors
+  - `400 file_required`
+  - `400 file_too_large`
+  - `400 mime_type_not_allowed`
+
+## 2.21 Remaining Gap to Reach Near-Final Executable Spec
+
+After this file update, the remaining work to reach near-final executable spec is:
+
+1. Add field-level request/response schema for Phase 3 to Phase 24.
+2. Add exact column-level definitions for Phase 3 to Phase 24.
+3. Add explicit timeout, retry, and async thresholds per heavy endpoint/export flow.
+4. Add test scenario packs in Given/When/Then format per phase.
+
+At that point, the document is suitable as a near-final executable specification for phased delivery.
 
 ## 2.1 Recommended Delivery Order
 
