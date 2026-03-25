@@ -833,6 +833,7 @@
       "title": "ขั้นตอน",
       "description": "เลือกขั้นตอนที่ใช้กับโครงการนี้",
       "create_hint": "เลือกขั้นตอนที่ต้องการใช้กับโครงการนี้",
+      "workflow_label": "ขั้นตอน",
       "workflow_placeholder": "เลือกขั้นตอน",
       "no_workflows": "ไม่พบขั้นตอน",
       "template_label": "เทมเพลตเอกสาร",

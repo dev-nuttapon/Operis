@@ -833,6 +833,7 @@
       "title": "Steps",
       "description": "Select the steps used for this project.",
       "create_hint": "Choose the steps to apply to this project.",
+      "workflow_label": "Steps",
       "workflow_placeholder": "Select steps",
       "no_workflows": "No steps available.",
       "template_label": "Document template",

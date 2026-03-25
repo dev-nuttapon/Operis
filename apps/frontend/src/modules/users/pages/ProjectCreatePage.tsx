@@ -13,7 +13,8 @@ import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
 import { useProjectRoleOptions } from "../hooks/useProjectRoleOptions";
 import type { User } from "../types/users";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
-import { useWorkflowDefinitionOptions } from "../../workflows";
+import { useWorkflowDefinition, useWorkflowDefinitionOptions } from "../../workflows";
+import { useDocumentsByIds } from "../../documents";
 
 type LocationState = {
   from?: string;
@@ -54,6 +55,14 @@ export function ProjectCreatePage() {
   const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
   const projectRoleOptionsState = useProjectRoleOptions({ enabled: canEditMembers });
   const workflowDefinitionOptionsState = useWorkflowDefinitionOptions({ enabled: canManageProjects, status: "active" });
+  const workflowDefinitionDetailQuery = useWorkflowDefinition(
+    selectedWorkflowDefinitionId,
+    Boolean(selectedWorkflowDefinitionId),
+  );
+  const roleLabelById = useMemo(
+    () => new Map(projectRoleOptionsState.options.map((option) => [option.value, option.label] as const)),
+    [projectRoleOptionsState.options],
+  );
   // Page must remain usable even if dropdown option APIs fail.
   // Selects should degrade gracefully to empty options instead of crashing the route.
   const projectTypeOptions = useMemo(() => {
@@ -223,6 +232,86 @@ export function ProjectCreatePage() {
     [canEditMembers, memberRoleByUserId, projectRoleOptionsState.options, t],
   );
 
+  const stepTypeOptions = useMemo(
+    () => [
+      { value: "submit", label: t("workflow_definitions.steps.types.submit") },
+      { value: "peer_review", label: t("workflow_definitions.steps.types.peer_review") },
+      { value: "review", label: t("workflow_definitions.steps.types.review") },
+      { value: "approve", label: t("workflow_definitions.steps.types.approve") },
+    ],
+    [t],
+  );
+
+  const workflowSteps = workflowDefinitionDetailQuery.data?.steps ?? [];
+  const workflowDocumentIds = useMemo(
+    () => workflowSteps.map((step) => step.documentId).filter((value): value is string => Boolean(value)),
+    [workflowSteps],
+  );
+  const workflowDocumentsQuery = useDocumentsByIds(
+    workflowDocumentIds,
+    Boolean(workflowDocumentIds.length),
+  );
+  const documentById = useMemo(
+    () => new Map((workflowDocumentsQuery.data ?? []).map((doc) => [doc.id, doc] as const)),
+    [workflowDocumentsQuery.data],
+  );
+  const stepLabelByOrder = useMemo(
+    () => new Map(workflowSteps.map((step) => [step.displayOrder, `${step.displayOrder}. ${step.name}`] as const)),
+    [workflowSteps],
+  );
+
+  const workflowStepColumns = useMemo<ColumnsType<{ id?: string; displayOrder: number; name: string; stepType: string; isRequired: boolean; roleIds?: string[]; documentId?: string | null; minApprovals?: number; routes?: { nextDisplayOrder?: number | null }[] }>>(
+    () => [
+      { title: t("workflow_definitions.steps.columns.order"), dataIndex: "displayOrder" },
+      { title: t("workflow_definitions.steps.columns.name"), dataIndex: "name" },
+      {
+        title: t("workflow_definitions.steps.columns.type"),
+        dataIndex: "stepType",
+        render: (value: string) => stepTypeOptions.find((option) => option.value === value)?.label ?? value,
+      },
+      {
+        title: t("workflow_definitions.steps.columns.roles"),
+        dataIndex: "roleIds",
+        render: (value?: string[]) => (value && value.length > 0
+          ? value.map((roleId) => roleLabelById.get(roleId) ?? roleId).join(", ")
+          : "-"),
+      },
+      {
+        title: t("workflow_definitions.steps.columns.document"),
+        dataIndex: "documentId",
+        render: (value?: string | null) => (value ? documentById.get(value)?.documentName ?? value : "-"),
+      },
+      {
+        title: t("workflow_definitions.steps.columns.published_version"),
+        dataIndex: "documentId",
+        render: (value?: string | null) => (value ? documentById.get(value)?.publishedVersionCode ?? "-" : "-"),
+      },
+      {
+        title: t("workflow_definitions.steps.columns.min_approvals"),
+        dataIndex: "minApprovals",
+        align: "center",
+        render: (value?: number) => value ?? 1,
+      },
+      {
+        title: t("workflow_definitions.steps.columns.required"),
+        dataIndex: "isRequired",
+        render: (value: boolean) => (value ? t("common.actions.yes") : t("common.actions.no")),
+      },
+      {
+        title: t("workflow_definitions.steps.columns.next_step"),
+        key: "nextStep",
+        render: (_value, record) => {
+          const labels = (record.routes ?? [])
+            .map((route) => route.nextDisplayOrder)
+            .filter((value): value is number => Boolean(value))
+            .map((order) => stepLabelByOrder.get(order) ?? `${order}`);
+          return labels.length > 0 ? labels.join(", ") : "-";
+        },
+      },
+    ],
+    [documentById, roleLabelById, stepLabelByOrder, stepTypeOptions, t],
+  );
+
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
       <Space style={{ width: "100%", justifyContent: "flex-start" }}>
@@ -344,7 +433,7 @@ export function ProjectCreatePage() {
               {t("projects.documents_section.create_hint")}
             </Typography.Paragraph>
             <Form layout="vertical">
-              <Form.Item>
+              <Form.Item label={t("projects.documents_section.workflow_label")}>
                 <Select
                   allowClear
                   showSearch
@@ -357,6 +446,18 @@ export function ProjectCreatePage() {
                 />
               </Form.Item>
             </Form>
+            {selectedWorkflowDefinitionId ? (
+              <Table
+                rowKey={(record) => record.id ?? `step-${record.displayOrder}`}
+                pagination={false}
+                dataSource={workflowDefinitionDetailQuery.data?.steps ?? []}
+                loading={workflowDefinitionDetailQuery.isLoading}
+                columns={workflowStepColumns}
+                locale={{ emptyText: t("workflow_definitions.steps.empty") }}
+                scroll={{ x: "max-content" }}
+                size={isMobile ? "small" : "middle"}
+              />
+            ) : null}
             <Flex
               gap={12}
               wrap={!isMobile}
