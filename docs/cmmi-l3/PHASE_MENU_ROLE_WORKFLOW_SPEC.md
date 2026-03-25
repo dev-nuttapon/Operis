@@ -4032,6 +4032,136 @@ This document is ready to be used for phase-by-phase implementation handoff unde
 3. Production tuning of indexes and thresholds will happen after representative workload is available.
 4. Fine-grain non-core endpoint schemas may still be added incrementally, but core phase execution can start without blocking on them.
 
+## 2.47 Non-Core Endpoint Completion Rules
+
+To avoid ambiguity during implementation, every phase must derive the non-core endpoints below from the same contracts already defined for the core endpoints:
+
+1. Standard non-core endpoint families
+   - `list`
+   - `detail`
+   - `create`
+   - `update`
+   - `submit`
+   - `approve`
+   - `reject`
+   - `close`
+   - `archive`
+   - `export`
+   - `history`
+   - `retry`
+2. Non-core endpoints inherit
+   - the same entity field set as the matching core endpoint
+   - the same audit and security rules as the matching transition
+   - the same default paging and response envelope rules unless overridden
+3. Non-core endpoints must never introduce hidden workflow transitions outside the declared transition matrix.
+4. If a screen exposes an action button, the corresponding endpoint contract must exist before the phase is marked complete.
+
+## 2.48 Standard Response Field Maps
+
+Use these standard response maps when a phase does not define a custom one:
+
+1. Entity summary response
+   - `id`
+   - `code` when entity is code-based
+   - `title` or `name`
+   - `status`
+   - `ownerUserId` when ownership applies
+   - `updatedAt`
+2. Approval response
+   - `id`
+   - `status`
+   - `decision`
+   - `decisionReason`
+   - `decidedBy`
+   - `decidedAt`
+3. Export/job response
+   - `id`
+   - `status`
+   - `requestedAt`
+   - `completedAt`
+   - `outputRef`
+4. Audit event response
+   - `id`
+   - `occurredAt`
+   - `actorUserId`
+   - `entityType`
+   - `entityId`
+   - `action`
+   - `outcome`
+   - `reason`
+
+## 2.49 Phase Endpoint Family Matrix
+
+Each phase is expected to cover these endpoint families at minimum:
+
+1. Phase 0
+   - `list`, `detail`, `update`, `history`
+2. Phase 1
+   - `list`, `detail`, `create`, `update`, `submit`, `approve`, `history`
+3. Phase 2
+   - `list`, `detail`, `create`, `update`, `submit`, `approve`, `reject`, `archive`, `export`, `history`
+4. Phase 3
+   - `list`, `detail`, `create`, `update`, `submit`, `approve`, `baseline`, `history`
+5. Phase 4
+   - `list`, `detail`, `create`, `update`, `submit`, `approve`, `reject`, `close`, `history`
+6. Phase 5
+   - `list`, `detail`, `create`, `update`, `close`, `history`
+7. Phase 6
+   - `list`, `detail`, `create`, `update`, `approve`, `archive`, `history`
+8. Phase 7
+   - `list`, `detail`, `create`, `update`, `approve`, `reject`, `history`, `export`
+9. Phase 8
+   - `list`, `detail`, `create`, `update`, `close`, `export`, `history`
+10. Phase 9
+   - `list`, `detail`, `create`, `update`, `evaluate`, `override`, `history`
+11. Phase 10
+   - `list`, `detail`, `create`, `update`, `submit`, `approve`, `reject`, `history`
+12. Phase 11
+   - `list`, `detail`, `create`, `update`, `archive`, `history`
+13. Phase 12
+   - `list`, `detail`, `create`, `update`, `approve`, `history`
+14. Phase 13
+   - `list`, `detail`, `create`, `update`, `history`
+15. Phase 14
+   - `list`, `detail`, `create`, `update`, `approve`, `release`, `publish`, `history`
+16. Phase 15
+   - `list`, `detail`, `create`, `update`, `close`, `history`
+17. Phase 16
+   - `list`, `detail`, `create`, `update`, `approve`, `archive`, `history`
+18. Phase 17
+   - `list`, `detail`, `create`, `update`, `approve`, `close`, `history`
+19. Phase 18
+   - `list`, `detail`, `create`, `update`, `publish`, `archive`, `history`
+20. Phase 19
+   - `list`, `detail`, `create`, `update`, `complete`, `history`
+21. Phase 20
+   - `list`, `detail`, `create`, `update`, `approve`, `reject`, `history`
+22. Phase 21
+   - `list`, `detail`, `create`, `update`, `close`, `history`
+23. Phase 22
+   - `list`, `detail`, `create`, `update`, `evaluate`, `override`, `history`
+24. Phase 23
+   - `list`, `detail`, `create`, `update`, `release`, `history`
+25. Phase 24
+   - `list`, `detail`, `create`, `update`, `verify`, `close`, `retry`, `history`
+
+## 2.50 Final Implementation Readiness Position
+
+This file is now intended to serve as the controlling implementation spec for phased delivery.
+
+Use it this way:
+
+1. Select a phase.
+2. Implement all screens, APIs, workflow transitions, security rules, audit rules, and performance safeguards defined for that phase.
+3. Apply the default standards from sections `2.16` to `2.49` where a phase does not define a narrower rule.
+4. Update the file only when implementation introduces a deliberate refinement.
+
+What still depends on real implementation:
+
+1. Final physical index tuning from observed query plans.
+2. Final timeout and async thresholds from measured workloads.
+3. Optional endpoint expansion if a phase grows beyond its current scope.
+
 ## 2.1 Recommended Delivery Order
 
 The full phase list is broad. For practical implementation, start in this order:
