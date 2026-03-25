@@ -9,6 +9,8 @@ import { useRefreshWorkflowDefinitionsCache } from "../hooks/useRefreshWorkflowD
 import { useRefreshDocumentTemplateCache } from "../hooks/useRefreshDocumentTemplateCache";
 import { useRefreshDepartmentsCache } from "../hooks/useRefreshDepartmentsCache";
 import { useRefreshJobTitlesCache } from "../hooks/useRefreshJobTitlesCache";
+import { useRefreshDivisionsCache } from "../hooks/useRefreshDivisionsCache";
+import { useRefreshProjectRolesCache } from "../hooks/useRefreshProjectRolesCache";
 
 export function AdminSettingsPage() {
   const { t } = useTranslation();
@@ -30,6 +32,8 @@ export function AdminSettingsPage() {
   const refreshTemplateMutation = useRefreshDocumentTemplateCache();
   const refreshDepartmentsMutation = useRefreshDepartmentsCache();
   const refreshJobTitlesMutation = useRefreshJobTitlesCache();
+  const refreshDivisionsMutation = useRefreshDivisionsCache();
+  const refreshProjectRolesMutation = useRefreshProjectRolesCache();
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -156,6 +160,29 @@ export function AdminSettingsPage() {
             </Button>
             <Button
               icon={<ReloadOutlined />}
+              loading={refreshDivisionsMutation.isPending}
+              disabled={!canManageUsers}
+              onClick={() => {
+                refreshDivisionsMutation.mutate(undefined, {
+                  onSuccess: (result) => {
+                    void queryClient.invalidateQueries({ queryKey: ["admin", "divisions"] });
+                    void queryClient.invalidateQueries({ queryKey: ["division-options"] });
+                    notification.success({
+                      message: t("admin_settings.messages.refresh_divisions_success", {
+                        total: result.total,
+                      }),
+                    });
+                  },
+                  onError: () => {
+                    notification.error({ message: t("admin_settings.messages.refresh_divisions_failed") });
+                  },
+                });
+              }}
+            >
+              {t("admin_settings.actions.refresh_divisions_cache")}
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
               loading={refreshJobTitlesMutation.isPending}
               disabled={!canManageUsers}
               onClick={() => {
@@ -176,6 +203,29 @@ export function AdminSettingsPage() {
               }}
             >
               {t("admin_settings.actions.refresh_job_titles_cache")}
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={refreshProjectRolesMutation.isPending}
+              disabled={!canManageUsers}
+              onClick={() => {
+                refreshProjectRolesMutation.mutate(undefined, {
+                  onSuccess: (result) => {
+                    void queryClient.invalidateQueries({ queryKey: ["admin", "project-roles"] });
+                    void queryClient.invalidateQueries({ queryKey: ["project-role-options"] });
+                    notification.success({
+                      message: t("admin_settings.messages.refresh_project_roles_success", {
+                        total: result.total,
+                      }),
+                    });
+                  },
+                  onError: () => {
+                    notification.error({ message: t("admin_settings.messages.refresh_project_roles_failed") });
+                  },
+                });
+              }}
+            >
+              {t("admin_settings.actions.refresh_project_roles_cache")}
             </Button>
           </Flex>
         )}

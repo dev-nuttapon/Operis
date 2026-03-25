@@ -122,8 +122,20 @@ export function refreshDepartmentsCache() {
   });
 }
 
+export function refreshDivisionsCache() {
+  return apiRequest<{ total: number }>("/api/v1/users/divisions/cache/refresh", {
+    method: "POST",
+  });
+}
+
 export function refreshJobTitlesCache() {
   return apiRequest<{ total: number }>("/api/v1/users/job-titles/cache/refresh", {
+    method: "POST",
+  });
+}
+
+export function refreshProjectRolesCache() {
+  return apiRequest<{ total: number }>("/api/v1/users/project-roles/cache/refresh", {
     method: "POST",
   });
 }

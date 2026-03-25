@@ -1829,7 +1829,9 @@
       "refresh_workflows_cache": "Reload workflows",
       "refresh_templates_cache": "Reload templates",
       "refresh_departments_cache": "Reload departments",
-      "refresh_job_titles_cache": "Reload job titles"
+      "refresh_job_titles_cache": "Reload job titles",
+      "refresh_divisions_cache": "Reload divisions",
+      "refresh_project_roles_cache": "Reload project roles"
     },
     "messages": {
       "refresh_success": "Reloaded {{refreshed}} users (missing {{missing}}).",
@@ -1841,7 +1843,11 @@
       "refresh_departments_success": "Department cache reloaded ({{total}} items).",
       "refresh_departments_failed": "Unable to reload department cache.",
       "refresh_job_titles_success": "Job title cache reloaded ({{total}} items).",
-      "refresh_job_titles_failed": "Unable to reload job title cache."
+      "refresh_job_titles_failed": "Unable to reload job title cache.",
+      "refresh_divisions_success": "Division cache reloaded ({{total}} items).",
+      "refresh_divisions_failed": "Unable to reload division cache.",
+      "refresh_project_roles_success": "Project role cache reloaded ({{total}} items).",
+      "refresh_project_roles_failed": "Unable to reload project role cache."
     }
   },
   "audit_logs": {

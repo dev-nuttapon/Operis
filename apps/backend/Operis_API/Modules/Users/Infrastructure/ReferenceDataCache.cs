@@ -55,10 +55,24 @@ public sealed class ReferenceDataCache(IDistributedCache cache) : IReferenceData
         return items.Count;
     }
 
+    public async Task<int> RefreshDivisionsAsync(OperisDbContext dbContext, CancellationToken cancellationToken)
+    {
+        var items = await LoadDivisionsAsync(dbContext, cancellationToken);
+        await cache.SetStringAsync(DivisionsKey, JsonSerializer.Serialize(items), CacheOptions, cancellationToken);
+        return items.Count;
+    }
+
     public async Task<int> RefreshJobTitlesAsync(OperisDbContext dbContext, CancellationToken cancellationToken)
     {
         var items = await LoadJobTitlesAsync(dbContext, cancellationToken);
         await cache.SetStringAsync(JobTitlesKey, JsonSerializer.Serialize(items), CacheOptions, cancellationToken);
+        return items.Count;
+    }
+
+    public async Task<int> RefreshProjectRolesAsync(OperisDbContext dbContext, CancellationToken cancellationToken)
+    {
+        var items = await LoadProjectRolesAsync(dbContext, cancellationToken);
+        await cache.SetStringAsync(ProjectRolesKey, JsonSerializer.Serialize(items), CacheOptions, cancellationToken);
         return items.Count;
     }
 

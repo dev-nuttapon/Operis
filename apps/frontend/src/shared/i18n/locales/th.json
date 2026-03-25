@@ -1829,7 +1829,9 @@
       "refresh_workflows_cache": "รีโหลดเวิร์กโฟลว์",
       "refresh_templates_cache": "รีโหลดเทมเพลต",
       "refresh_departments_cache": "รีโหลดแผนก",
-      "refresh_job_titles_cache": "รีโหลดตำแหน่ง"
+      "refresh_job_titles_cache": "รีโหลดตำแหน่ง",
+      "refresh_divisions_cache": "รีโหลดฝ่าย",
+      "refresh_project_roles_cache": "รีโหลดบทบาทโครงการ"
     },
     "messages": {
       "refresh_success": "รีโหลดผู้ใช้สำเร็จ {{refreshed}} รายการ (ไม่พบ {{missing}} รายการ)",
@@ -1841,7 +1843,11 @@
       "refresh_departments_success": "รีโหลดแคชแผนกเรียบร้อยแล้ว ({{total}} รายการ)",
       "refresh_departments_failed": "ไม่สามารถรีโหลดแคชแผนกได้",
       "refresh_job_titles_success": "รีโหลดแคชตำแหน่งเรียบร้อยแล้ว ({{total}} รายการ)",
-      "refresh_job_titles_failed": "ไม่สามารถรีโหลดแคชตำแหน่งได้"
+      "refresh_job_titles_failed": "ไม่สามารถรีโหลดแคชตำแหน่งได้",
+      "refresh_divisions_success": "รีโหลดแคชฝ่ายเรียบร้อยแล้ว ({{total}} รายการ)",
+      "refresh_divisions_failed": "ไม่สามารถรีโหลดแคชฝ่ายได้",
+      "refresh_project_roles_success": "รีโหลดแคชบทบาทโครงการเรียบร้อยแล้ว ({{total}} รายการ)",
+      "refresh_project_roles_failed": "ไม่สามารถรีโหลดแคชบทบาทโครงการได้"
     }
   },
   "audit_logs": {
