@@ -1827,7 +1827,9 @@
     "actions": {
       "refresh_keycloak_cache": "Reload users",
       "refresh_workflows_cache": "Reload workflows",
-      "refresh_templates_cache": "Reload templates"
+      "refresh_templates_cache": "Reload templates",
+      "refresh_departments_cache": "Reload departments",
+      "refresh_job_titles_cache": "Reload job titles"
     },
     "messages": {
       "refresh_success": "Reloaded {{refreshed}} users (missing {{missing}}).",
@@ -1835,7 +1837,11 @@
       "refresh_workflows_success": "Workflow list cache reloaded ({{total}} items).",
       "refresh_workflows_failed": "Unable to reload workflow list cache.",
       "refresh_templates_success": "Document template cache reloaded ({{total}} items).",
-      "refresh_templates_failed": "Unable to reload document template cache."
+      "refresh_templates_failed": "Unable to reload document template cache.",
+      "refresh_departments_success": "Department cache reloaded ({{total}} items).",
+      "refresh_departments_failed": "Unable to reload department cache.",
+      "refresh_job_titles_success": "Job title cache reloaded ({{total}} items).",
+      "refresh_job_titles_failed": "Unable to reload job title cache."
     }
   },
   "audit_logs": {

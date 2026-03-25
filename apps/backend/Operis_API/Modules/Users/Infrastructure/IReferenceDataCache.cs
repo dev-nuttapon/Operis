@@ -9,6 +9,8 @@ public interface IReferenceDataCache
     Task<IReadOnlyList<CachedJobTitleItem>> GetJobTitlesAsync(OperisDbContext dbContext, CancellationToken cancellationToken);
     Task<IReadOnlyList<CachedProjectRoleItem>> GetProjectRolesAsync(OperisDbContext dbContext, CancellationToken cancellationToken);
     Task<IReadOnlyList<CachedAppRoleItem>> GetAppRolesAsync(OperisDbContext dbContext, CancellationToken cancellationToken);
+    Task<int> RefreshDepartmentsAsync(OperisDbContext dbContext, CancellationToken cancellationToken);
+    Task<int> RefreshJobTitlesAsync(OperisDbContext dbContext, CancellationToken cancellationToken);
     Task InvalidateDivisionsAsync(CancellationToken cancellationToken);
     Task InvalidateDepartmentsAsync(CancellationToken cancellationToken);
     Task InvalidateJobTitlesAsync(CancellationToken cancellationToken);

@@ -21,127 +21,46 @@ public sealed class ReferenceDataCache(IDistributedCache cache) : IReferenceData
     public Task<IReadOnlyList<CachedDivisionItem>> GetDivisionsAsync(OperisDbContext dbContext, CancellationToken cancellationToken) =>
         GetOrCreateAsync(
             DivisionsKey,
-            async () =>
-            {
-                var items = await dbContext.Divisions
-                    .AsNoTracking()
-                    .Where(x => x.DeletedAt == null)
-                    .OrderBy(x => x.DisplayOrder)
-                    .ThenBy(x => x.Name)
-                    .Select(x => new CachedDivisionItem(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
-                    .ToListAsync(cancellationToken);
-                return (IReadOnlyList<CachedDivisionItem>)items;
-            },
+            () => LoadDivisionsAsync(dbContext, cancellationToken),
             cancellationToken);
 
     public Task<IReadOnlyList<CachedDepartmentItem>> GetDepartmentsAsync(OperisDbContext dbContext, CancellationToken cancellationToken) =>
         GetOrCreateAsync(
             DepartmentsKey,
-            async () =>
-            {
-                var items = await dbContext.Departments
-                    .AsNoTracking()
-                    .Where(x => x.DeletedAt == null)
-                    .OrderBy(x => x.DisplayOrder)
-                    .ThenBy(x => x.Name)
-                    .Select(x => new CachedDepartmentItem(
-                        x.Id,
-                        x.Name,
-                        x.DisplayOrder,
-                        x.DivisionId,
-                        x.DivisionId.HasValue
-                            ? dbContext.Divisions
-                                .Where(division => division.Id == x.DivisionId.Value)
-                                .Select(division => division.Name)
-                                .FirstOrDefault()
-                            : null,
-                        x.CreatedAt,
-                        x.UpdatedAt,
-                        x.DeletedReason,
-                        x.DeletedBy,
-                        x.DeletedAt))
-                    .ToListAsync(cancellationToken);
-                return (IReadOnlyList<CachedDepartmentItem>)items;
-            },
+            () => LoadDepartmentsAsync(dbContext, cancellationToken),
             cancellationToken);
 
     public Task<IReadOnlyList<CachedJobTitleItem>> GetJobTitlesAsync(OperisDbContext dbContext, CancellationToken cancellationToken) =>
         GetOrCreateAsync(
             JobTitlesKey,
-            async () =>
-            {
-                var items = await dbContext.JobTitles
-                    .AsNoTracking()
-                    .Where(x => x.DeletedAt == null)
-                    .OrderBy(x => x.DisplayOrder)
-                    .ThenBy(x => x.Name)
-                    .Select(x => new CachedJobTitleItem(
-                        x.Id,
-                        x.Name,
-                        x.DisplayOrder,
-                        x.DepartmentId.HasValue
-                            ? dbContext.Departments
-                                .Where(department => department.Id == x.DepartmentId.Value)
-                                .Select(department => department.DivisionId)
-                                .FirstOrDefault()
-                            : null,
-                        x.DepartmentId.HasValue
-                            ? dbContext.Departments
-                                .Where(department => department.Id == x.DepartmentId.Value && department.DivisionId.HasValue)
-                                .Select(department => dbContext.Divisions
-                                    .Where(division => division.Id == department.DivisionId!.Value)
-                                    .Select(division => division.Name)
-                                    .FirstOrDefault())
-                                .FirstOrDefault()
-                            : null,
-                        x.DepartmentId,
-                        x.DepartmentId.HasValue
-                            ? dbContext.Departments
-                                .Where(department => department.Id == x.DepartmentId.Value)
-                                .Select(department => department.Name)
-                                .FirstOrDefault()
-                            : null,
-                        x.CreatedAt,
-                        x.UpdatedAt,
-                        x.DeletedReason,
-                        x.DeletedBy,
-                        x.DeletedAt))
-                    .ToListAsync(cancellationToken);
-                return (IReadOnlyList<CachedJobTitleItem>)items;
-            },
+            () => LoadJobTitlesAsync(dbContext, cancellationToken),
             cancellationToken);
 
     public Task<IReadOnlyList<CachedProjectRoleItem>> GetProjectRolesAsync(OperisDbContext dbContext, CancellationToken cancellationToken) =>
         GetOrCreateAsync(
             ProjectRolesKey,
-            async () =>
-            {
-                var items = await dbContext.ProjectRoles
-                    .AsNoTracking()
-                    .Where(x => x.DeletedAt == null)
-                    .OrderBy(x => x.DisplayOrder)
-                    .ThenBy(x => x.Name)
-                    .Select(x => new CachedProjectRoleItem(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
-                    .ToListAsync(cancellationToken);
-                return (IReadOnlyList<CachedProjectRoleItem>)items;
-            },
+            () => LoadProjectRolesAsync(dbContext, cancellationToken),
             cancellationToken);
 
     public Task<IReadOnlyList<CachedAppRoleItem>> GetAppRolesAsync(OperisDbContext dbContext, CancellationToken cancellationToken) =>
         GetOrCreateAsync(
             AppRolesKey,
-            async () =>
-            {
-                var items = await dbContext.AppRoles
-                    .AsNoTracking()
-                    .Where(x => x.DeletedAt == null)
-                    .OrderBy(x => x.DisplayOrder)
-                    .ThenBy(x => x.Name)
-                    .Select(x => new CachedAppRoleItem(x.Id, x.Name, x.KeycloakRoleName, x.Description, x.DisplayOrder))
-                    .ToListAsync(cancellationToken);
-                return (IReadOnlyList<CachedAppRoleItem>)items;
-            },
+            () => LoadAppRolesAsync(dbContext, cancellationToken),
             cancellationToken);
+
+    public async Task<int> RefreshDepartmentsAsync(OperisDbContext dbContext, CancellationToken cancellationToken)
+    {
+        var items = await LoadDepartmentsAsync(dbContext, cancellationToken);
+        await cache.SetStringAsync(DepartmentsKey, JsonSerializer.Serialize(items), CacheOptions, cancellationToken);
+        return items.Count;
+    }
+
+    public async Task<int> RefreshJobTitlesAsync(OperisDbContext dbContext, CancellationToken cancellationToken)
+    {
+        var items = await LoadJobTitlesAsync(dbContext, cancellationToken);
+        await cache.SetStringAsync(JobTitlesKey, JsonSerializer.Serialize(items), CacheOptions, cancellationToken);
+        return items.Count;
+    }
 
     public Task InvalidateDepartmentsAsync(CancellationToken cancellationToken) =>
         cache.RemoveAsync(DepartmentsKey, cancellationToken);
@@ -157,6 +76,121 @@ public sealed class ReferenceDataCache(IDistributedCache cache) : IReferenceData
 
     public Task InvalidateAppRolesAsync(CancellationToken cancellationToken) =>
         cache.RemoveAsync(AppRolesKey, cancellationToken);
+
+    private static async Task<IReadOnlyList<CachedDivisionItem>> LoadDivisionsAsync(
+        OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var items = await dbContext.Divisions
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new CachedDivisionItem(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
+            .ToListAsync(cancellationToken);
+        return items;
+    }
+
+    private static async Task<IReadOnlyList<CachedDepartmentItem>> LoadDepartmentsAsync(
+        OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var items = await dbContext.Departments
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new CachedDepartmentItem(
+                x.Id,
+                x.Name,
+                x.DisplayOrder,
+                x.DivisionId,
+                x.DivisionId.HasValue
+                    ? dbContext.Divisions
+                        .Where(division => division.Id == x.DivisionId.Value)
+                        .Select(division => division.Name)
+                        .FirstOrDefault()
+                    : null,
+                x.CreatedAt,
+                x.UpdatedAt,
+                x.DeletedReason,
+                x.DeletedBy,
+                x.DeletedAt))
+            .ToListAsync(cancellationToken);
+        return items;
+    }
+
+    private static async Task<IReadOnlyList<CachedJobTitleItem>> LoadJobTitlesAsync(
+        OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var items = await dbContext.JobTitles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new CachedJobTitleItem(
+                x.Id,
+                x.Name,
+                x.DisplayOrder,
+                x.DepartmentId.HasValue
+                    ? dbContext.Departments
+                        .Where(department => department.Id == x.DepartmentId.Value)
+                        .Select(department => department.DivisionId)
+                        .FirstOrDefault()
+                    : null,
+                x.DepartmentId.HasValue
+                    ? dbContext.Departments
+                        .Where(department => department.Id == x.DepartmentId.Value && department.DivisionId.HasValue)
+                        .Select(department => dbContext.Divisions
+                            .Where(division => division.Id == department.DivisionId!.Value)
+                            .Select(division => division.Name)
+                            .FirstOrDefault())
+                        .FirstOrDefault()
+                    : null,
+                x.DepartmentId,
+                x.DepartmentId.HasValue
+                    ? dbContext.Departments
+                        .Where(department => department.Id == x.DepartmentId.Value)
+                        .Select(department => department.Name)
+                        .FirstOrDefault()
+                    : null,
+                x.CreatedAt,
+                x.UpdatedAt,
+                x.DeletedReason,
+                x.DeletedBy,
+                x.DeletedAt))
+            .ToListAsync(cancellationToken);
+        return items;
+    }
+
+    private static async Task<IReadOnlyList<CachedProjectRoleItem>> LoadProjectRolesAsync(
+        OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var items = await dbContext.ProjectRoles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new CachedProjectRoleItem(x.Id, x.Name, x.DisplayOrder, x.CreatedAt, x.UpdatedAt, x.DeletedReason, x.DeletedBy, x.DeletedAt))
+            .ToListAsync(cancellationToken);
+        return items;
+    }
+
+    private static async Task<IReadOnlyList<CachedAppRoleItem>> LoadAppRolesAsync(
+        OperisDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var items = await dbContext.AppRoles
+            .AsNoTracking()
+            .Where(x => x.DeletedAt == null)
+            .OrderBy(x => x.DisplayOrder)
+            .ThenBy(x => x.Name)
+            .Select(x => new CachedAppRoleItem(x.Id, x.Name, x.KeycloakRoleName, x.Description, x.DisplayOrder))
+            .ToListAsync(cancellationToken);
+        return items;
+    }
 
     private async Task<IReadOnlyList<TItem>> GetOrCreateAsync<TItem>(
         string cacheKey,

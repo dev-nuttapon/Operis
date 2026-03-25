@@ -63,6 +63,12 @@ public sealed class UsersModule : IModule
         group.MapPost("/keycloak/refresh-cache", RefreshKeycloakUsersCacheAsync)
             .WithName("Users_RefreshKeycloakCache");
 
+        group.MapPost("/departments/cache/refresh", RefreshDepartmentsCacheAsync)
+            .WithName("Users_RefreshDepartmentsCache");
+
+        group.MapPost("/job-titles/cache/refresh", RefreshJobTitlesCacheAsync)
+            .WithName("Users_RefreshJobTitlesCache");
+
         group.MapGet("/{userId}", GetUserAsync)
             .WithName("Users_Get");
 
@@ -374,6 +380,38 @@ public sealed class UsersModule : IModule
             UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.Ok(new { result.Refreshed, result.Missing })
         };
+    }
+
+    private static async Task<IResult> RefreshDepartmentsCacheAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        OperisDbContext dbContext,
+        IReferenceDataCache referenceDataCache,
+        CancellationToken cancellationToken = default)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
+        {
+            return Results.Forbid();
+        }
+
+        var total = await referenceDataCache.RefreshDepartmentsAsync(dbContext, cancellationToken);
+        return Results.Ok(new { Total = total });
+    }
+
+    private static async Task<IResult> RefreshJobTitlesCacheAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        OperisDbContext dbContext,
+        IReferenceDataCache referenceDataCache,
+        CancellationToken cancellationToken = default)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
+        {
+            return Results.Forbid();
+        }
+
+        var total = await referenceDataCache.RefreshJobTitlesAsync(dbContext, cancellationToken);
+        return Results.Ok(new { Total = total });
     }
 
     private static async Task<IResult> ListRolesAsync(

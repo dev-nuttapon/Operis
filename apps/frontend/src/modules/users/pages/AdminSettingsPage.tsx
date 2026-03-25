@@ -7,6 +7,8 @@ import { permissions } from "../../../shared/authz/permissions";
 import { useRefreshKeycloakUsersCache } from "../hooks/useRefreshKeycloakUsersCache";
 import { useRefreshWorkflowDefinitionsCache } from "../hooks/useRefreshWorkflowDefinitionsCache";
 import { useRefreshDocumentTemplateCache } from "../hooks/useRefreshDocumentTemplateCache";
+import { useRefreshDepartmentsCache } from "../hooks/useRefreshDepartmentsCache";
+import { useRefreshJobTitlesCache } from "../hooks/useRefreshJobTitlesCache";
 
 export function AdminSettingsPage() {
   const { t } = useTranslation();
@@ -26,6 +28,8 @@ export function AdminSettingsPage() {
   const refreshMutation = useRefreshKeycloakUsersCache();
   const refreshWorkflowMutation = useRefreshWorkflowDefinitionsCache();
   const refreshTemplateMutation = useRefreshDocumentTemplateCache();
+  const refreshDepartmentsMutation = useRefreshDepartmentsCache();
+  const refreshJobTitlesMutation = useRefreshJobTitlesCache();
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -126,6 +130,52 @@ export function AdminSettingsPage() {
               }}
             >
               {t("admin_settings.actions.refresh_templates_cache")}
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={refreshDepartmentsMutation.isPending}
+              disabled={!canManageUsers}
+              onClick={() => {
+                refreshDepartmentsMutation.mutate(undefined, {
+                  onSuccess: (result) => {
+                    void queryClient.invalidateQueries({ queryKey: ["admin", "departments"] });
+                    void queryClient.invalidateQueries({ queryKey: ["department-options"] });
+                    notification.success({
+                      message: t("admin_settings.messages.refresh_departments_success", {
+                        total: result.total,
+                      }),
+                    });
+                  },
+                  onError: () => {
+                    notification.error({ message: t("admin_settings.messages.refresh_departments_failed") });
+                  },
+                });
+              }}
+            >
+              {t("admin_settings.actions.refresh_departments_cache")}
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={refreshJobTitlesMutation.isPending}
+              disabled={!canManageUsers}
+              onClick={() => {
+                refreshJobTitlesMutation.mutate(undefined, {
+                  onSuccess: (result) => {
+                    void queryClient.invalidateQueries({ queryKey: ["admin", "job-titles"] });
+                    void queryClient.invalidateQueries({ queryKey: ["job-title-options"] });
+                    notification.success({
+                      message: t("admin_settings.messages.refresh_job_titles_success", {
+                        total: result.total,
+                      }),
+                    });
+                  },
+                  onError: () => {
+                    notification.error({ message: t("admin_settings.messages.refresh_job_titles_failed") });
+                  },
+                });
+              }}
+            >
+              {t("admin_settings.actions.refresh_job_titles_cache")}
             </Button>
           </Flex>
         )}

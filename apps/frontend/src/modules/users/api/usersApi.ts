@@ -116,6 +116,18 @@ export function refreshKeycloakUsersCache() {
   });
 }
 
+export function refreshDepartmentsCache() {
+  return apiRequest<{ total: number }>("/api/v1/users/departments/cache/refresh", {
+    method: "POST",
+  });
+}
+
+export function refreshJobTitlesCache() {
+  return apiRequest<{ total: number }>("/api/v1/users/job-titles/cache/refresh", {
+    method: "POST",
+  });
+}
+
 export function refreshWorkflowDefinitionsCache() {
   return apiRequest<{ total: number }>("/api/v1/steps/definitions/cache/refresh", {
     method: "POST",
