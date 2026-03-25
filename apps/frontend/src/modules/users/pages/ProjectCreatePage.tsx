@@ -1,6 +1,6 @@
 import { App, Button, Card, Form, Space, Typography, Alert, Flex, Grid, Divider, Table, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, CloseOutlined, DeleteOutlined, FolderOpenOutlined, SaveOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DeleteOutlined, ExclamationCircleOutlined, FolderOpenOutlined, SaveOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -28,7 +28,7 @@ function toUserLabel(user: User) {
 
 export function ProjectCreatePage() {
   const { t } = useTranslation();
-  const { notification } = App.useApp();
+  const { notification, modal } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const screens = Grid.useBreakpoint();
@@ -150,19 +150,14 @@ export function ProjectCreatePage() {
       {
         title: t("projects.members.columns.name"),
         dataIndex: "name",
-        width: 220,
-        ellipsis: true,
       },
       {
         title: t("projects.members.columns.email"),
         dataIndex: "email",
-        width: 240,
-        ellipsis: true,
       },
       {
         title: t("projects.members.columns.role"),
         dataIndex: "roleId",
-        width: 260,
         render: (_value, record) => (
           <Select
             disabled={!canEditMembers}
@@ -177,14 +172,24 @@ export function ProjectCreatePage() {
                 [record.id]: value ?? "",
               }))
             }
-            style={{ minWidth: 200 }}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                {projectRoleOptionsState.hasMore ? (
+                  <div style={{ padding: 8 }}>
+                    <Button type="link" onClick={() => projectRoleOptionsState.onLoadMore?.()}>
+                      {t("projects.load_more_roles")}
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            )}
           />
         ),
       },
       {
         title: t("admin_users.columns.actions"),
         key: "actions",
-        width: 140,
         align: "center",
         render: (_, record) => (
           <Button
@@ -192,11 +197,21 @@ export function ProjectCreatePage() {
             danger
             icon={<DeleteOutlined />}
             onClick={() => {
-              setMemberTargetKeys((current) => current.filter((key) => key !== record.id));
-              setMemberRoleByUserId((current) => {
-                const next = { ...current };
-                delete next[record.id];
-                return next;
+              modal.confirm({
+                title: t("projects.members.actions.remove_confirm_title"),
+                content: t("projects.members.actions.remove_confirm_description", { name: record.name }),
+                icon: <ExclamationCircleOutlined />,
+                okText: t("common.actions.confirm_delete"),
+                cancelText: t("common.actions.cancel"),
+                okButtonProps: { danger: true },
+                onOk: () => {
+                  setMemberTargetKeys((current) => current.filter((key) => key !== record.id));
+                  setMemberRoleByUserId((current) => {
+                    const next = { ...current };
+                    delete next[record.id];
+                    return next;
+                  });
+                },
               });
             }}
           >
@@ -320,7 +335,6 @@ export function ProjectCreatePage() {
               columns={memberColumns}
               locale={{ emptyText: t("projects.members.empty") }}
               scroll={{ x: "max-content" }}
-              size={isMobile ? "small" : "middle"}
             />
             <Divider style={{ margin: "16px 0" }} />
             <Typography.Title level={5} style={{ marginBottom: 12 }}>
@@ -330,7 +344,7 @@ export function ProjectCreatePage() {
               {t("projects.documents_section.create_hint")}
             </Typography.Paragraph>
             <Form layout="vertical">
-              <Form.Item label={t("projects.documents_section.workflow_label")}>
+              <Form.Item>
                 <Select
                   allowClear
                   showSearch
@@ -361,7 +375,6 @@ export function ProjectCreatePage() {
                 {t("projects.create_page_submit")}
               </Button>
               <Button
-                icon={<CloseOutlined />}
                 onClick={() => navigate(locationState?.from ?? "/app/projects")}
                 block={isMobile}
               >

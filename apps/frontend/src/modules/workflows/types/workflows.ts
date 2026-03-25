@@ -28,6 +28,7 @@ export interface WorkflowStep {
 }
 
 export interface WorkflowDefinitionDetail extends WorkflowDefinitionSummary {
+  hasInstances: boolean;
   steps: WorkflowStep[];
 }
 

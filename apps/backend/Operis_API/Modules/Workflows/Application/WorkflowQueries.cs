@@ -124,6 +124,10 @@ public sealed class WorkflowQueries(
                 stepRoutes.TryGetValue(step.Id, out var routes) ? routes : []))
             .ToList();
 
+        var hasInstances = await dbContext.WorkflowInstances
+            .AsNoTracking()
+            .AnyAsync(x => x.WorkflowDefinitionId == workflowDefinitionId, cancellationToken);
+
         auditLogWriter.Append(new AuditLogEntry(
             Module: "workflows",
             Action: "get",
@@ -138,6 +142,7 @@ public sealed class WorkflowQueries(
             definition.Name,
             definition.Status,
             definition.DocumentTemplateId,
+            hasInstances,
             stepContracts);
     }
 

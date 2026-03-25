@@ -138,7 +138,7 @@ public sealed class WorkflowCommands(
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
-            Response: BuildDetailContract(entity, steps, stepRoles, stepRoutes));
+            Response: BuildDetailContract(entity, steps, stepRoles, stepRoutes, false));
     }
 
     public async Task<WorkflowCommandResult> UpdateDefinitionAsync(Guid workflowDefinitionId, UpdateWorkflowDefinitionRequest request, CancellationToken cancellationToken)
@@ -287,7 +287,7 @@ public sealed class WorkflowCommands(
                 EntityId: entity.Id.ToString(),
                 StatusCode: StatusCodes.Status200OK,
                 Before: before,
-                After: BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes),
+                After: BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes, true),
                 Changes: new
                 {
                     entity.Name,
@@ -311,12 +311,12 @@ public sealed class WorkflowCommands(
                 entity.Id.ToString(),
                 "Updated workflow definition",
                 null,
-                new { before, after = BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes) },
+            new { before, after = BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes, true) },
                 cancellationToken);
 
             return new WorkflowCommandResult(
                 WorkflowCommandStatus.Success,
-                Response: BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes));
+            Response: BuildDetailContract(entity, allSteps, updatedStepRoles, updatedStepRoutes, true));
         }
 
         entity.DocumentTemplateId = request.DocumentTemplateId;
@@ -372,7 +372,7 @@ public sealed class WorkflowCommands(
             EntityId: entity.Id.ToString(),
             StatusCode: StatusCodes.Status200OK,
             Before: before,
-            After: BuildDetailContract(entity, steps, stepRoles, stepRoutes),
+            After: BuildDetailContract(entity, steps, stepRoles, stepRoutes, false),
             Changes: new
             {
                 entity.Name,
@@ -396,12 +396,12 @@ public sealed class WorkflowCommands(
             entity.Id.ToString(),
             "Updated workflow definition",
             null,
-            new { before, after = BuildDetailContract(entity, steps, stepRoles, stepRoutes) },
+            new { before, after = BuildDetailContract(entity, steps, stepRoles, stepRoutes, false) },
             cancellationToken);
 
         return new WorkflowCommandResult(
             WorkflowCommandStatus.Success,
-            Response: BuildDetailContract(entity, steps, stepRoles, stepRoutes));
+            Response: BuildDetailContract(entity, steps, stepRoles, stepRoutes, false));
     }
 
 
@@ -482,7 +482,8 @@ public sealed class WorkflowCommands(
         WorkflowDefinitionEntity entity,
         IReadOnlyList<WorkflowStepEntity> steps,
         IReadOnlyList<WorkflowStepRoleEntity> stepRoles,
-        IReadOnlyList<WorkflowStepRouteEntity> stepRoutes)
+        IReadOnlyList<WorkflowStepRouteEntity> stepRoutes,
+        bool hasInstances)
     {
         var roleLookup = stepRoles
             .GroupBy(role => role.WorkflowStepId)
@@ -517,6 +518,7 @@ public sealed class WorkflowCommands(
             entity.Name,
             entity.Status,
             entity.DocumentTemplateId,
+            hasInstances,
             stepContracts);
     }
 
@@ -536,9 +538,13 @@ public sealed class WorkflowCommands(
             .OrderBy(x => x.DisplayOrder)
             .ToListAsync(cancellationToken);
 
+        var hasInstances = await dbContext.WorkflowInstances
+            .AsNoTracking()
+            .AnyAsync(x => x.WorkflowDefinitionId == workflowDefinitionId, cancellationToken);
+
         if (steps.Count == 0)
         {
-            return new WorkflowDefinitionDetailContract(entity.Id, entity.Code, entity.Name, entity.Status, entity.DocumentTemplateId, []);
+            return new WorkflowDefinitionDetailContract(entity.Id, entity.Code, entity.Name, entity.Status, entity.DocumentTemplateId, hasInstances, []);
         }
 
         var stepIds = steps.Select(x => x.Id).ToList();
@@ -552,7 +558,7 @@ public sealed class WorkflowCommands(
             .Where(x => stepIds.Contains(x.WorkflowStepId))
             .ToListAsync(cancellationToken);
 
-        return BuildDetailContract(entity, steps, stepRoles, stepRoutes);
+        return BuildDetailContract(entity, steps, stepRoles, stepRoutes, hasInstances);
     }
 
     private static IReadOnlyList<WorkflowStepRouteEntity> BuildStepRoutes(
@@ -648,9 +654,12 @@ public sealed class WorkflowCommands(
                 .AsNoTracking()
                 .Where(x => stepIds.Contains(x.WorkflowStepId))
                 .ToListAsync(cancellationToken);
+        var hasInstances = await dbContext.WorkflowInstances
+            .AsNoTracking()
+            .AnyAsync(x => x.WorkflowDefinitionId == entity.Id, cancellationToken);
         entity.Status = status;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
-        var after = BuildDetailContract(entity, steps, stepRoles, stepRoutes);
+        var after = BuildDetailContract(entity, steps, stepRoles, stepRoutes, hasInstances);
         auditLogWriter.Append(new AuditLogEntry(
             Module: "workflows",
             Action: action,

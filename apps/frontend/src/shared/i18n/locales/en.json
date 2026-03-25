@@ -217,6 +217,8 @@
         "roles_required": "Please select at least one role.",
         "document_required": "Please select a document.",
         "document_not_in_template": "Selected documents must belong to the template.",
+        "instances_warning": "This workflow already has instances. Existing steps cannot be removed, and the document template cannot be changed.",
+        "locked_with_instances": "This workflow already has instances. Existing steps cannot be removed.",
         "min_approvals_required": "Please set minimum reviewers."
       },
       "empty": "No steps yet.",
@@ -828,11 +830,10 @@
       "create_hint": "Save the project first to assign project members and roles."
     },
     "documents_section": {
-      "title": "Project documents",
-      "description": "Select the documents required for this project.",
-      "create_hint": "Choose a document template to preview the required documents.",
-      "workflow_label": "Step",
-      "workflow_placeholder": "Select a step",
+      "title": "Steps",
+      "description": "Select the steps used for this project.",
+      "create_hint": "Choose the steps to apply to this project.",
+      "workflow_placeholder": "Select steps",
       "no_workflows": "No steps available.",
       "template_label": "Document template",
       "template_placeholder": "Select a document template",

@@ -400,7 +400,7 @@ export function ProjectEditPage() {
               {t("projects.documents_section.description")}
             </Typography.Paragraph>
             <Form layout="vertical">
-              <Form.Item label={t("projects.documents_section.workflow_label")}>
+              <Form.Item>
                 <Select
                   allowClear
                   showSearch

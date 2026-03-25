@@ -43,6 +43,7 @@ export function WorkflowDefinitionEditPage() {
   const debouncedTemplateSearch = useDebouncedValue(templateSearch, 300);
   const templateInitializedRef = useRef(false);
   const previousTemplateIdRef = useRef<string | null>(null);
+  const hasInstances = definitionQuery.data?.hasInstances ?? false;
 
   const roleOptionsState = useProjectRoleOptions({ enabled: canReadRoles });
   const roleLabelById = useMemo(
@@ -197,6 +198,10 @@ export function WorkflowDefinitionEditPage() {
   };
 
   const handleRemoveStep = (index: number) => {
+    if (hasInstances) {
+      notification.error({ message: t("workflow_definitions.steps.validation.locked_with_instances") });
+      return;
+    }
     setSteps((current) => {
       const remaining = current.filter((_, idx) => idx !== index);
       const orderMap = new Map<number, number>();
@@ -314,12 +319,22 @@ export function WorkflowDefinitionEditPage() {
                   options={(templateListState.data?.items ?? []).map((item) => ({ label: item.name, value: item.id }))}
                   value={selectedTemplateId}
                   loading={templateListState.isLoading}
+                  disabled={hasInstances}
                   onSearch={setTemplateSearch}
                   onChange={(value) => setSelectedTemplateId(value ?? null)}
                   notFoundContent={<Typography.Text type="secondary">{t("workflow_definitions.form.no_templates")}</Typography.Text>}
                 />
               </Form.Item>
             </Form>
+
+            {hasInstances ? (
+              <Alert
+                type="warning"
+                showIcon
+                message={t("workflow_definitions.steps.validation.instances_warning")}
+                style={{ marginBottom: 16 }}
+              />
+            ) : null}
 
             <Typography.Title level={5} style={{ marginBottom: 12 }}>
               {t("workflow_definitions.steps.title")}
@@ -544,6 +559,7 @@ export function WorkflowDefinitionEditPage() {
                         type="text"
                         danger
                         icon={<DeleteOutlined />}
+                        disabled={hasInstances}
                         onClick={() => {
                           modal.confirm({
                             title: t("common.actions.delete"),

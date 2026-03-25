@@ -29,6 +29,7 @@ public sealed record WorkflowDefinitionDetailContract(
     string Name,
     string Status,
     Guid? DocumentTemplateId,
+    bool HasInstances,
     IReadOnlyList<WorkflowStepContract> Steps);
 
 public sealed record WorkflowTaskListItem(
