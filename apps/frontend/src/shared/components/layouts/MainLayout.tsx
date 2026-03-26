@@ -9,6 +9,8 @@ import {
   BulbFilled,
   LogoutOutlined,
   BellOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
   LeftOutlined,
   RightOutlined,
   GlobalOutlined,
@@ -101,6 +103,25 @@ export function MainLayout() {
     permissions.risks.read,
     permissions.risks.manage,
     permissions.risks.readSensitive,
+  );
+  const hasMeetingsAccess = permissionState.hasAnyPermission(
+    permissions.meetings.read,
+    permissions.meetings.manage,
+    permissions.meetings.approve,
+    permissions.meetings.readRestricted,
+  );
+  const hasVerificationAccess = permissionState.hasAnyPermission(
+    permissions.verification.read,
+    permissions.verification.manage,
+    permissions.verification.approve,
+    permissions.verification.submitUat,
+    permissions.verification.export,
+    permissions.verification.readSensitiveEvidence,
+  );
+  const hasAuditAccess = permissionState.hasAnyPermission(
+    permissions.auditLogs.read,
+    permissions.auditLogs.export,
+    permissions.auditLogs.manage,
   );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
@@ -254,6 +275,41 @@ export function MainLayout() {
           children: [
             { key: '/app/risks', label: 'Risk Register' },
             { key: '/app/issues', label: 'Issue Log' },
+          ],
+        }]
+      : []),
+    ...(hasMeetingsAccess
+      ? [{
+          key: '/app/meetings-group',
+          icon: <CalendarOutlined />,
+          label: 'Meetings',
+          children: [
+            { key: '/app/meetings', label: 'MOM Register' },
+            { key: '/app/decisions', label: 'Decision Log' },
+          ],
+        }]
+      : []),
+    ...(hasVerificationAccess
+      ? [{
+          key: '/app/verification-group',
+          icon: <CheckCircleOutlined />,
+          label: 'Test & Validation',
+          children: [
+            { key: '/app/test-plans', label: 'Test Plan' },
+            { key: '/app/test-cases', label: 'Test Case & Execution' },
+            { key: '/app/uat-signoffs', label: 'UAT Sign-off' },
+          ],
+        }]
+      : []),
+    ...(hasAuditAccess
+      ? [{
+          key: '/app/audits-group',
+          icon: <AlertOutlined />,
+          label: 'Audits & Evidence',
+          children: [
+            { key: '/app/audit-logs', label: 'Audit Log' },
+            { key: '/app/evidence-exports', label: 'Evidence Export' },
+            { key: '/app/audit-plans', label: 'Process Audit Plan & Findings' },
           ],
         }]
       : []),
@@ -415,6 +471,9 @@ export function MainLayout() {
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
     if (path.includes('admin/registrations')) return tr('common.registration_approvals');
     if (path.includes('admin/activity-logs')) return tr('common.activity_logs');
+    if (path.includes('/app/audit-plans')) return 'Process Audit Plan & Findings';
+    if (path.includes('/app/evidence-exports')) return 'Evidence Export';
+    if (path.includes('/app/audit-logs')) return 'Audit Log';
     return tr('common.dashboard');
   };
 
@@ -760,6 +819,30 @@ function getOpenKeys(path: string) {
     return ['/app/documents-group'];
   }
 
+  if (path.startsWith('/app/requirements')) {
+    return ['/app/requirements-group'];
+  }
+
+  if (path.startsWith('/app/change-control')) {
+    return ['/app/change-control-group'];
+  }
+
+  if (path.startsWith('/app/risks') || path.startsWith('/app/issues')) {
+    return ['/app/risks-group'];
+  }
+
+  if (path.startsWith('/app/meetings') || path.startsWith('/app/decisions')) {
+    return ['/app/meetings-group'];
+  }
+
+  if (path.startsWith('/app/test-plans') || path.startsWith('/app/test-cases') || path.startsWith('/app/uat-signoffs')) {
+    return ['/app/verification-group'];
+  }
+
+  if (path.startsWith('/app/audit-logs') || path.startsWith('/app/evidence-exports') || path.startsWith('/app/audit-plans')) {
+    return ['/app/audits-group'];
+  }
+
   if (path.startsWith('/app/admin/master/')) {
     return ['/app/admin', '/app/admin/master'];
   }
@@ -810,6 +893,70 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/notifications')) {
     return '/app/notifications';
+  }
+
+  if (path.startsWith('/app/requirements/baselines')) {
+    return '/app/requirements/baselines';
+  }
+
+  if (path.startsWith('/app/requirements/traceability')) {
+    return '/app/requirements/traceability';
+  }
+
+  if (path.startsWith('/app/requirements')) {
+    return '/app/requirements';
+  }
+
+  if (path.startsWith('/app/change-control/configuration-items')) {
+    return '/app/change-control/configuration-items';
+  }
+
+  if (path.startsWith('/app/change-control/baseline-registry')) {
+    return '/app/change-control/baseline-registry';
+  }
+
+  if (path.startsWith('/app/change-control')) {
+    return '/app/change-control/change-requests';
+  }
+
+  if (path.startsWith('/app/issues')) {
+    return '/app/issues';
+  }
+
+  if (path.startsWith('/app/risks')) {
+    return '/app/risks';
+  }
+
+  if (path.startsWith('/app/decisions')) {
+    return '/app/decisions';
+  }
+
+  if (path.startsWith('/app/meetings')) {
+    return '/app/meetings';
+  }
+
+  if (path.startsWith('/app/test-cases')) {
+    return '/app/test-cases';
+  }
+
+  if (path.startsWith('/app/uat-signoffs')) {
+    return '/app/uat-signoffs';
+  }
+
+  if (path.startsWith('/app/test-plans')) {
+    return '/app/test-plans';
+  }
+
+  if (path.startsWith('/app/audit-plans')) {
+    return '/app/audit-plans';
+  }
+
+  if (path.startsWith('/app/evidence-exports')) {
+    return '/app/evidence-exports';
+  }
+
+  if (path.startsWith('/app/audit-logs')) {
+    return '/app/audit-logs';
   }
 
   if (path.startsWith('/app/admin/users')) {

@@ -106,6 +106,36 @@ const IssueLogPage = lazy(() =>
 const IssueDetailPage = lazy(() =>
   import("../modules/risks/pages/IssueDetailPage").then((module) => ({ default: module.IssueDetailPage }))
 );
+const MeetingRegisterPage = lazy(() =>
+  import("../modules/meetings/pages/MeetingRegisterPage").then((module) => ({ default: module.MeetingRegisterPage }))
+);
+const MeetingDetailPage = lazy(() =>
+  import("../modules/meetings/pages/MeetingDetailPage").then((module) => ({ default: module.MeetingDetailPage }))
+);
+const DecisionLogPage = lazy(() =>
+  import("../modules/meetings/pages/DecisionLogPage").then((module) => ({ default: module.DecisionLogPage }))
+);
+const DecisionDetailPage = lazy(() =>
+  import("../modules/meetings/pages/DecisionDetailPage").then((module) => ({ default: module.DecisionDetailPage }))
+);
+const TestPlanPage = lazy(() =>
+  import("../modules/verification/pages/TestPlanPage").then((module) => ({ default: module.TestPlanPage }))
+);
+const TestCaseExecutionPage = lazy(() =>
+  import("../modules/verification/pages/TestCaseExecutionPage").then((module) => ({ default: module.TestCaseExecutionPage }))
+);
+const UatSignoffPage = lazy(() =>
+  import("../modules/verification/pages/UatSignoffPage").then((module) => ({ default: module.UatSignoffPage }))
+);
+const AuditLogsPage = lazy(() =>
+  import("../modules/audits/pages/AuditLogsPage").then((module) => ({ default: module.AuditLogsPage }))
+);
+const EvidenceExportsPage = lazy(() =>
+  import("../modules/audits/pages/EvidenceExportsPage").then((module) => ({ default: module.EvidenceExportsPage }))
+);
+const AuditPlansPage = lazy(() =>
+  import("../modules/audits/pages/AuditPlansPage").then((module) => ({ default: module.AuditPlansPage }))
+);
 const InvitationAcceptPage = lazy(() =>
   import("../modules/users/pages/InvitationAcceptPage").then((module) => ({ default: module.InvitationAcceptPage }))
 );
@@ -259,6 +289,16 @@ export function AppRouter() {
               <Route path="risks/:riskId" element={<AuthorizedRoute anyOf={[permissions.risks.read, permissions.risks.manage]}><RiskDetailPage /></AuthorizedRoute>} />
               <Route path="issues" element={<AuthorizedRoute anyOf={[permissions.risks.read, permissions.risks.manage]}><IssueLogPage /></AuthorizedRoute>} />
               <Route path="issues/:issueId" element={<AuthorizedRoute anyOf={[permissions.risks.read, permissions.risks.manage]}><IssueDetailPage /></AuthorizedRoute>} />
+              <Route path="meetings" element={<AuthorizedRoute anyOf={[permissions.meetings.read, permissions.meetings.manage, permissions.meetings.approve]}><MeetingRegisterPage /></AuthorizedRoute>} />
+              <Route path="meetings/:meetingId" element={<AuthorizedRoute anyOf={[permissions.meetings.read, permissions.meetings.manage, permissions.meetings.approve]}><MeetingDetailPage /></AuthorizedRoute>} />
+              <Route path="decisions" element={<AuthorizedRoute anyOf={[permissions.meetings.read, permissions.meetings.manage, permissions.meetings.approve]}><DecisionLogPage /></AuthorizedRoute>} />
+              <Route path="decisions/:decisionId" element={<AuthorizedRoute anyOf={[permissions.meetings.read, permissions.meetings.manage, permissions.meetings.approve]}><DecisionDetailPage /></AuthorizedRoute>} />
+              <Route path="test-plans" element={<AuthorizedRoute anyOf={[permissions.verification.read, permissions.verification.manage, permissions.verification.approve]}><TestPlanPage /></AuthorizedRoute>} />
+              <Route path="test-cases" element={<AuthorizedRoute anyOf={[permissions.verification.read, permissions.verification.manage]}><TestCaseExecutionPage /></AuthorizedRoute>} />
+              <Route path="uat-signoffs" element={<AuthorizedRoute anyOf={[permissions.verification.read, permissions.verification.submitUat, permissions.verification.approve]}><UatSignoffPage /></AuthorizedRoute>} />
+              <Route path="audit-logs" element={<AuthorizedRoute permission={permissions.auditLogs.read}><AuditLogsPage /></AuthorizedRoute>} />
+              <Route path="evidence-exports" element={<AuthorizedRoute anyOf={[permissions.auditLogs.read, permissions.auditLogs.export]}><EvidenceExportsPage /></AuthorizedRoute>} />
+              <Route path="audit-plans" element={<AuthorizedRoute anyOf={[permissions.auditLogs.read, permissions.auditLogs.manage]}><AuditPlansPage /></AuthorizedRoute>} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
                 <Route path="admin/master/divisions" element={<AdminUsersPage />} />
                 <Route path="admin/master/departments" element={<AdminUsersPage />} />

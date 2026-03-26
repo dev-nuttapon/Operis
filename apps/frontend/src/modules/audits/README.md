@@ -2,7 +2,7 @@
 
 Purpose:
 
-* owns audit log viewing and filtering UI
+* owns audit log viewing, evidence export, and process audit planning/finding UI
 
 Public surface:
 
@@ -10,7 +10,7 @@ Public surface:
 
 Internal only:
 
-* audit table presentation details and filter form composition
+* audit table presentation details and modal/form composition
 
 Dependencies:
 
@@ -18,4 +18,5 @@ Dependencies:
 
 Notes:
 
-* keep filtering and data retrieval behind module hooks and API functions
+* keep screens thin and follow `Page -> Hook -> API -> HTTP client`
+* route-level consumers should stay on the module public surface

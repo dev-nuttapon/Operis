@@ -1234,6 +1234,11 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Decision Log
   - List fields: `code`, `title`, `decision type`, `approved by`, `status`, `linked meeting`
   - Detail fields: `rationale`, `alternatives considered`, `impacted artifacts`
+- Implementation decisions
+  - `meeting_records` keep optional `agenda` and `discussion_summary` on the record itself so MOM detail can load without forcing separate document storage for first-version delivery.
+  - `meeting_minutes` are auto-created with each meeting record and stay as the approval gate for summary/decision/action narrative.
+  - Restricted meetings and decisions use `is_restricted` + `classification`; list/detail queries hide them from users who do not hold the restricted-read permission.
+  - `decisions` keep optional `alternatives_considered` and `impacted_artifacts[]` so downstream traceability can be shown from the detail screen in first-version delivery.
 
 #### Phase 6 API Contract
 - `GET /meetings`
@@ -1386,6 +1391,10 @@ These packages extend the minimum build spec and should be treated as the defaul
 - `POST /evidence-exports`
 - `GET /evidence-exports`
 - `GET /evidence-exports/{id}`
+
+Implementation note:
+- current implementation serves `GET /audit-events` from the immutable `audit_logs` store instead of duplicating a second audit-event write table
+- evidence export requests above the configured synchronous threshold are persisted with status `requested` for asynchronous generation
 
 #### Phase 8 Validation and Error Contract
 - Evidence export requires valid scope and date range
@@ -3115,8 +3124,28 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
   - `meeting_at`: datetime, required, indexed
   - `facilitator_user_id`: string, required
   - `status`: enum(`draft`,`approved`,`archived`), required, indexed
+  - `agenda`: string, optional, max 4000
+  - `discussion_summary`: string, optional, max 4000
+  - `is_restricted`: boolean, required, default `false`, indexed
+  - `classification`: string, optional, max 64
 - Indexes
   - index(`project_id`,`meeting_type`,`meeting_at`)
+
+### Table: `meeting_minutes`
+- Columns
+  - `id`: string, required, PK
+  - `meeting_record_id`: string, required, unique FK
+  - `summary`: string, optional, max 4000
+  - `decisions_summary`: string, optional, max 4000
+  - `actions_summary`: string, optional, max 4000
+  - `status`: enum(`draft`,`reviewed`,`approved`,`archived`), required
+
+### Table: `meeting_attendees`
+- Columns
+  - `id`: string, required, PK
+  - `meeting_record_id`: string, required, indexed
+  - `user_id`: string, required, max 128
+  - `attendance_status`: string, required, max 32
 
 ### Table: `decisions`
 - Columns
@@ -3126,8 +3155,13 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
   - `title`: string, required, max 512
   - `decision_type`: string, required, max 128
   - `rationale`: string, required, max 4000
+  - `alternatives_considered`: string, optional, max 4000
+  - `impacted_artifacts_json`: json, required
   - `approved_by`: string, optional
   - `status`: enum(`proposed`,`approved`,`applied`,`archived`), required, indexed
+  - `meeting_id`: string, optional, indexed
+  - `is_restricted`: boolean, required, default `false`, indexed
+  - `classification`: string, optional, max 64
 - Indexes
   - unique(`project_id`,`code`)
   - index(`project_id`,`status`,`decision_type`)
@@ -4274,6 +4308,9 @@ The full phase list is broad. For practical implementation, start in this order:
 - Done criteria
   - Test evidence is attached to requirements and releases
   - UAT sign-off is traceable and approval-based
+ - Implementation notes
+   - Requirement-to-test coverage is implemented through `test_cases.requirement_id` plus synchronized `traceability_links` with target type `test`
+   - Execution evidence supports optional sensitive classification and export queues above the synchronous threshold
 
 ### Phase 8 Backlog
 - Backend

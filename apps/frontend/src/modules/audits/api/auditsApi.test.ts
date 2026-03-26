@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { listAuditLogs } from "./auditsApi";
+import { listAuditEvents } from "./auditsApi";
 import { apiRequest } from "../../../shared/lib/apiClient";
 
 vi.mock("../../../shared/lib/apiClient", () => ({
   apiRequest: vi.fn(),
 }));
 
-describe("listAuditLogs", () => {
+describe("listAuditEvents", () => {
   it("builds the query string from defined filters only", async () => {
     vi.mocked(apiRequest).mockResolvedValueOnce({
       items: [],
@@ -15,16 +15,16 @@ describe("listAuditLogs", () => {
       pageSize: 10,
     });
 
-    await listAuditLogs({
-      module: "users",
-      actor: "admin@example.com",
-      eventType: "created",
+    await listAuditEvents({
+      entityType: "user",
+      actorUserId: "admin@example.com",
+      action: "create",
       page: 2,
       pageSize: 25,
     });
 
     expect(apiRequest).toHaveBeenCalledWith(
-      "/api/v1/audit-events?module=users&eventType=created&actor=admin%40example.com&page=2&pageSize=25",
+      "/api/v1/audit-events?entityType=user&action=create&actorUserId=admin%40example.com&page=2&pageSize=25",
       { signal: undefined },
     );
   });

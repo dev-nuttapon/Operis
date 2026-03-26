@@ -1,198 +1,137 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, App, Card, Divider, Flex, Space, Table, Tag, Typography, Skeleton, theme } from "antd";
+import { useMemo, useState } from "react";
+import { Alert, Card, DatePicker, Flex, Input, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import dayjs from "dayjs";
 import { SafetyCertificateOutlined } from "@ant-design/icons";
-import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
-import { ApiError, getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
-import { useAuditLogs } from "../hooks/useAuditLogs";
-import type { BusinessAuditEventItem, ListAuditLogsInput } from "../types/audits";
+import { useAuditEvents } from "../hooks/useAuditLogs";
+import type { AuditEventItem } from "../types/audits";
 
-const { Text, Paragraph, Title } = Typography;
-
-function formatDate(value: string, language: string) {
-  return new Intl.DateTimeFormat(language.startsWith("th") ? "th-TH" : "en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
+const { RangePicker } = DatePicker;
+const { Title, Paragraph, Text } = Typography;
 
 export function AuditLogsPage() {
-  const { t, i18n } = useTranslation();
-  const { token } = theme.useToken();
-  const { notification } = App.useApp();
-  const [searchParams] = useSearchParams();
-  const initializedRef = useRef(false);
   const permissionState = usePermissions();
-  const canReadAuditLogs = permissionState.hasPermission(permissions.auditLogs.read);
-  const [filters, setFilters] = useState<ListAuditLogsInput>({ page: 1, pageSize: 10, sortBy: "occurredAt", sortOrder: "desc" });
-  const auditLogsQuery = useAuditLogs(filters);
+  const canRead = permissionState.hasPermission(permissions.auditLogs.read);
+  const [filters, setFilters] = useState({
+    entityType: undefined as string | undefined,
+    action: undefined as string | undefined,
+    actorUserId: undefined as string | undefined,
+    outcome: undefined as string | undefined,
+    from: undefined as string | undefined,
+    to: undefined as string | undefined,
+    page: 1,
+    pageSize: 10,
+  });
+  const auditEventsQuery = useAuditEvents(filters, canRead);
 
-  useEffect(() => {
-    if (initializedRef.current) return;
-    const entityType = searchParams.get("entityType") ?? undefined;
-    const entityId = searchParams.get("entityId") ?? undefined;
-    if (entityType || entityId) {
-      setFilters((current) => ({
-        ...current,
-        entityType,
-        entityId,
-        page: 1,
-        pageSize: current.pageSize ?? 10,
-      }));
-    }
-    initializedRef.current = true;
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (auditLogsQuery.isError) {
-      handleError(auditLogsQuery.error);
-    }
-  }, [auditLogsQuery.error, auditLogsQuery.isError]);
-
-  const parseJson = (value: string | null) => {
-    if (!value) return null;
-    try {
-      return JSON.parse(value);
-    } catch {
-      return value;
-    }
-  };
-
-  const columns = useMemo<ColumnsType<BusinessAuditEventItem>>(
+  const columns = useMemo<ColumnsType<AuditEventItem>>(
     () => [
       {
-        title: t("audit_logs.columns.occurred_at"),
+        title: "Occurred At",
         dataIndex: "occurredAt",
-        render: (value: string) => formatDate(value, i18n.language),
+        key: "occurredAt",
+        render: (value: string) => dayjs(value).format("YYYY-MM-DD HH:mm"),
       },
       {
-        title: t("audit_logs.columns.module"),
-        dataIndex: "module",
+        title: "Action",
+        dataIndex: "action",
+        key: "action",
       },
       {
-        title: t("audit_logs.columns.event_type"),
-        dataIndex: "eventType",
-        render: (value: string) => <Tag>{value}</Tag>,
-      },
-      {
-        title: t("audit_logs.columns.entity"),
+        title: "Entity",
         key: "entity",
         render: (_, item) => (
           <Space direction="vertical" size={0}>
             <Text>{item.entityType}</Text>
-            <Text type="secondary">{item.entityId || "-"}</Text>
+            <Text type="secondary">{item.entityId ?? "-"}</Text>
           </Space>
         ),
       },
       {
-        title: t("audit_logs.columns.actor"),
+        title: "Actor",
         key: "actor",
-        render: (_, item) => item.actorEmail || item.actorDisplayName || item.actorUserId || "-",
+        render: (_, item) => item.actorEmail ?? item.actorDisplayName ?? item.actorUserId ?? "-",
       },
       {
-        title: t("audit_logs.columns.summary"),
-        dataIndex: "summary",
-        ellipsis: true,
-        render: (value: string | null) => value || "-",
+        title: "Outcome",
+        dataIndex: "outcome",
+        key: "outcome",
+        render: (value: string) => <Tag color={value === "success" ? "green" : value === "failed" ? "red" : "gold"}>{value}</Tag>,
       },
       {
-        title: t("audit_logs.columns.reason"),
+        title: "Reason",
         dataIndex: "reason",
-        ellipsis: true,
-        render: (value: string | null) => value || "-",
+        key: "reason",
+        render: (value: string | null) => value ?? "-",
       },
     ],
-    [i18n.language, t]
+    [],
   );
 
-  const handleError = (error: unknown) => {
-    const presentation =
-      error instanceof ApiError
-        ? getApiErrorPresentation(error, t("audit_logs.notifications.load_failed_title"))
-        : getApiErrorPresentation(error, t("audit_logs.notifications.load_failed_title"));
-
-    notification.error({
-      message: presentation.title,
-      description: presentation.description,
-    });
-  };
+  if (!canRead) {
+    return <Alert type="warning" showIcon message="Audit log access is not available for this account." />;
+  }
 
   return (
-    <Card bordered={false} style={{ borderRadius: 16 }}>
-      <Flex gap={16} align="flex-start" wrap="wrap" style={{ marginBottom: 12 }}>
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            display: "grid",
-            placeItems: "center",
-            background: `linear-gradient(135deg, ${token.colorPrimary}, ${token.colorPrimaryActive})`,
-            color: token.colorWhite,
-          }}
-        >
-          <SafetyCertificateOutlined />
-        </div>
-        <div>
-          <Title level={2} style={{ margin: 0 }}>
-            {t("audit_logs.title")}
-          </Title>
-          <Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
-            {t("audit_logs.description")}
-          </Paragraph>
-        </div>
-      </Flex>
+    <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Card variant="borderless">
+        <Flex gap={16} align="flex-start" wrap="wrap">
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg, #1d4ed8, #0f766e)",
+              color: "#fff",
+            }}
+          >
+            <SafetyCertificateOutlined />
+          </div>
+          <div>
+            <Title level={3} style={{ margin: 0 }}>Audit Log</Title>
+            <Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
+              Search immutable audit events across modules, actors, outcomes, and time ranges for compliance review.
+            </Paragraph>
+          </div>
+        </Flex>
+      </Card>
 
-      <Divider />
-
-      {!canReadAuditLogs ? (
-        <Alert type="warning" showIcon message={t("errors.title_forbidden")} style={{ marginBottom: 16 }} />
-      ) : null}
-
-      {auditLogsQuery.isPending && !auditLogsQuery.data ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : (
-        <Table<BusinessAuditEventItem>
-          rowKey="id"
-          columns={columns}
-          dataSource={canReadAuditLogs ? (auditLogsQuery.data?.items ?? []) : []}
-          loading={canReadAuditLogs ? auditLogsQuery.isFetching : false}
-          scroll={{ x: "max-content" }}
-          pagination={{
-            current: auditLogsQuery.data?.page ?? filters.page ?? 1,
-            pageSize: auditLogsQuery.data?.pageSize ?? filters.pageSize ?? 10,
-            total: auditLogsQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 25, 50, 100],
-            onChange: (page, pageSize) =>
+      <Card variant="borderless">
+        <Flex gap={12} wrap="wrap" style={{ marginBottom: 16 }}>
+          <Input allowClear placeholder="Entity Type" style={{ width: 180 }} value={filters.entityType} onChange={(event) => setFilters((current) => ({ ...current, entityType: event.target.value || undefined, page: 1 }))} />
+          <Input allowClear placeholder="Action" style={{ width: 180 }} value={filters.action} onChange={(event) => setFilters((current) => ({ ...current, action: event.target.value || undefined, page: 1 }))} />
+          <Input allowClear placeholder="Actor" style={{ width: 220 }} value={filters.actorUserId} onChange={(event) => setFilters((current) => ({ ...current, actorUserId: event.target.value || undefined, page: 1 }))} />
+          <Select allowClear placeholder="Outcome" style={{ width: 180 }} options={["success", "failed", "denied"].map((value) => ({ label: value, value }))} value={filters.outcome} onChange={(value) => setFilters((current) => ({ ...current, outcome: value, page: 1 }))} />
+          <RangePicker
+            onChange={(value) =>
               setFilters((current) => ({
                 ...current,
-                page,
-                pageSize,
-              })),
-          }}
-          locale={{
-            emptyText: auditLogsQuery.isError ? t("audit_logs.empty_error") : t("audit_logs.empty"),
-          }}
-          expandable={{
-            expandedRowRender: (record) => {
-              const metadata = parseJson(record.metadataJson);
-              return (
-                <Space direction="vertical" size={8} style={{ width: "100%" }}>
-                  <Text strong>{t("audit_logs.columns.metadata")}</Text>
-                  <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                    {metadata ? JSON.stringify(metadata, null, 2) : "-"}
-                  </pre>
-                </Space>
-              );
-            },
-            rowExpandable: (record) => Boolean(record.metadataJson),
+                from: value?.[0]?.startOf("day").toISOString(),
+                to: value?.[1]?.endOf("day").toISOString(),
+                page: 1,
+              }))
+            }
+          />
+        </Flex>
+
+        <Table
+          rowKey="id"
+          loading={auditEventsQuery.isLoading}
+          columns={columns}
+          dataSource={auditEventsQuery.data?.items ?? []}
+          pagination={{
+            current: auditEventsQuery.data?.page ?? filters.page,
+            pageSize: auditEventsQuery.data?.pageSize ?? filters.pageSize,
+            total: auditEventsQuery.data?.total ?? 0,
+            showSizeChanger: true,
+            onChange: (page, pageSize) => setFilters((current) => ({ ...current, page, pageSize })),
           }}
         />
-      )}
-    </Card>
+      </Card>
+    </Space>
   );
 }

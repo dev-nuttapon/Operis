@@ -96,6 +96,20 @@ Public entry:
 * [apps/frontend/src/modules/risks/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/risks/index.ts)
 * [apps/frontend/src/modules/risks/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/risks/README.md)
 
+## meetings
+
+Public entry:
+
+* [apps/frontend/src/modules/meetings/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/meetings/index.ts)
+* [apps/frontend/src/modules/meetings/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/meetings/README.md)
+
+## verification
+
+Public entry:
+
+* [apps/frontend/src/modules/verification/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/verification/index.ts)
+* [apps/frontend/src/modules/verification/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/verification/README.md)
+
 ---
 
 # Backend Public Surfaces
@@ -128,6 +142,13 @@ Module entry:
 Application surfaces:
 
 * audit log queries
+* audit compliance queries
+* audit compliance commands
+
+Notes:
+
+* `GET /audit-events` projects from immutable `audit_logs`
+* audit plans, findings, and evidence export workflows remain owned by the `Audits` module
 
 ## activities
 
@@ -221,6 +242,30 @@ Application surfaces:
 
 * risk queries
 * risk commands
+
+## meetings
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Meetings/MeetingsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Meetings/MeetingsModule.cs)
+* [apps/backend/Operis_API/Modules/Meetings/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Meetings/README.md)
+
+Application surfaces:
+
+* meeting queries
+* meeting commands
+
+## verification
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Verification/VerificationModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Verification/VerificationModule.cs)
+* [apps/backend/Operis_API/Modules/Verification/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Verification/README.md)
+
+Application surfaces:
+
+* verification queries
+* verification commands
 
 ---
 

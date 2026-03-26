@@ -43,6 +43,7 @@ public static class Permissions
     {
         public const string Read = "audit_logs.read";
         public const string Export = "audit_logs.export";
+        public const string Manage = "audit_logs.manage";
     }
 
     public static class ActivityLogs
@@ -111,6 +112,24 @@ public static class Permissions
         public const string ReadSensitive = "risks.sensitive.read";
     }
 
+    public static class Meetings
+    {
+        public const string Read = "meetings.read";
+        public const string Manage = "meetings.manage";
+        public const string Approve = "meetings.approve";
+        public const string ReadRestricted = "meetings.restricted.read";
+    }
+
+    public static class Verification
+    {
+        public const string Read = "verification.read";
+        public const string Manage = "verification.manage";
+        public const string Approve = "verification.approve";
+        public const string SubmitUat = "verification.uat.submit";
+        public const string Export = "verification.export";
+        public const string ReadSensitiveEvidence = "verification.evidence_sensitive.read";
+    }
+
     public static class Notifications
     {
         public const string Read = "notifications.read";
@@ -143,6 +162,7 @@ public static class Permissions
         ActivityLogs.Export,
         AuditLogs.Read,
         AuditLogs.Export,
+        AuditLogs.Manage,
         Documents.Read,
         Documents.Upload,
         Documents.ManageVersions,
@@ -179,6 +199,16 @@ public static class Permissions
         Risks.Read,
         Risks.Manage,
         Risks.ReadSensitive,
+        Meetings.Read,
+        Meetings.Manage,
+        Meetings.Approve,
+        Meetings.ReadRestricted,
+        Verification.Read,
+        Verification.Manage,
+        Verification.Approve,
+        Verification.SubmitUat,
+        Verification.Export,
+        Verification.ReadSensitiveEvidence,
         Notifications.Read
     ];
 
@@ -210,6 +240,7 @@ public static class Permissions
             ActivityLogs.Export => "Export Activity Logs",
             AuditLogs.Read => "Read Audit Logs",
             AuditLogs.Export => "Export Audit Logs",
+            AuditLogs.Manage => "Manage Audit Plans and Findings",
             Documents.Read => "Read Documents",
             Documents.Upload => "Upload Documents",
             Documents.ManageVersions => "Manage Document Versions",
@@ -246,6 +277,16 @@ public static class Permissions
             Risks.Read => "Read Risks and Issues",
             Risks.Manage => "Manage Risks and Issues",
             Risks.ReadSensitive => "Read Sensitive Issues",
+            Meetings.Read => "Read Meetings and Decisions",
+            Meetings.Manage => "Manage Meetings and Decisions",
+            Meetings.Approve => "Approve Meetings and Decisions",
+            Meetings.ReadRestricted => "Read Restricted Meetings and Decisions",
+            Verification.Read => "Read Verification and Validation",
+            Verification.Manage => "Manage Test Plans, Cases, and Executions",
+            Verification.Approve => "Approve Verification Workflow",
+            Verification.SubmitUat => "Submit UAT Sign-off",
+            Verification.Export => "Export Verification Evidence",
+            Verification.ReadSensitiveEvidence => "Read Sensitive Test Evidence",
             Notifications.Read => "Read Notifications",
             _ => permission
         };
