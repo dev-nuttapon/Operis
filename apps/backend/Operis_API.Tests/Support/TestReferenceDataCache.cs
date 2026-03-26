@@ -61,4 +61,9 @@ internal sealed class TestReferenceDataCache : IReferenceDataCache
         InvalidateAppRolesCalls++;
         return Task.CompletedTask;
     }
+
+    public Task<int> RefreshDepartmentsAsync(OperisDbContext dbContext, CancellationToken cancellationToken) => Task.FromResult(0);
+    public Task<int> RefreshDivisionsAsync(OperisDbContext dbContext, CancellationToken cancellationToken) => Task.FromResult(0);
+    public Task<int> RefreshJobTitlesAsync(OperisDbContext dbContext, CancellationToken cancellationToken) => Task.FromResult(0);
+    public Task<int> RefreshProjectRolesAsync(OperisDbContext dbContext, CancellationToken cancellationToken) => Task.FromResult(0);
 }

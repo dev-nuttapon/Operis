@@ -33,7 +33,7 @@ public sealed class UserQueriesTests
         var auditLogWriter = new FakeAuditLogWriter();
         var keycloakAdminClient = new FakeKeycloakAdminClient();
         var referenceDataCache = new TestReferenceDataCache();
-        var sut = new UserQueries(dbContext, auditLogWriter, keycloakAdminClient, referenceDataCache);
+        var sut = new UserQueries(dbContext, auditLogWriter, keycloakAdminClient, referenceDataCache, new FakeKeycloakUserCache());
 
         var result = await sut.ListUsersAsync(
             new UserListQuery(IncludeIdentity: false, SortBy: "createdAt", SortOrder: "desc", Page: 1, PageSize: 10),

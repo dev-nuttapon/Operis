@@ -1,53 +1,34 @@
-using System.Security.Claims;
-using System.IO;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Operis_API.Tests.Support;
 
-internal static class TestHttpContextFactory
+internal sealed class TestHttpContextFactory
 {
     public static HttpContext Create()
     {
-        var services = new ServiceCollection()
-            .AddLogging()
-            .AddProblemDetails()
-            .AddSingleton<IAuthenticationService, TestAuthenticationService>()
-            .ConfigureHttpJsonOptions(_ => { })
-            .BuildServiceProvider();
-
-        return new DefaultHttpContext
+        var context = new DefaultHttpContext();
+        var services = new ServiceCollection();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
+        services.AddAuthentication(options =>
         {
-            RequestServices = services,
-            Response =
-            {
-                Body = new MemoryStream()
-            }
-        };
+            options.DefaultAuthenticateScheme = "TestAuth";
+            options.DefaultChallengeScheme = "TestAuth";
+        }).AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, FakeAuthHandler>("TestAuth", _ => { });
+        context.RequestServices = services.BuildServiceProvider();
+        return context;
     }
-}
 
-internal sealed class TestAuthenticationService : IAuthenticationService
-{
-    public Task<AuthenticateResult> AuthenticateAsync(HttpContext context, string? scheme) =>
-        Task.FromResult(AuthenticateResult.NoResult());
-
-    public Task ChallengeAsync(HttpContext context, string? scheme, AuthenticationProperties? properties)
+    public static IHttpContextAccessor CreateAccessor()
     {
-        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        return Task.CompletedTask;
+        return new HttpContextAccessor { HttpContext = Create() };
     }
 
-    public Task ForbidAsync(HttpContext context, string? scheme, AuthenticationProperties? properties)
+    private class FakeAuthHandler : Microsoft.AspNetCore.Authentication.AuthenticationHandler<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions>
     {
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        return Task.CompletedTask;
+        public FakeAuthHandler(Microsoft.Extensions.Options.IOptionsMonitor<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions> options, ILoggerFactory logger, System.Text.Encodings.Web.UrlEncoder encoder) : base(options, logger, encoder) { }
+        protected override Task<Microsoft.AspNetCore.Authentication.AuthenticateResult> HandleAuthenticateAsync() => Task.FromResult(Microsoft.AspNetCore.Authentication.AuthenticateResult.NoResult());
     }
-
-    public Task SignInAsync(HttpContext context, string? scheme, ClaimsPrincipal principal, AuthenticationProperties? properties) =>
-        Task.CompletedTask;
-
-    public Task SignOutAsync(HttpContext context, string? scheme, AuthenticationProperties? properties) =>
-        Task.CompletedTask;
 }

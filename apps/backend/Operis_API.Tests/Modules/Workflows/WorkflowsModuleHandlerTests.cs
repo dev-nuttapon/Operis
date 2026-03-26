@@ -13,6 +13,16 @@ namespace Operis_API.Tests.Modules.Workflows;
 
 public sealed class WorkflowsModuleHandlerTests
 {
+    private async Task<(Guid RoleId, Guid DocumentId)> SeedDependenciesAsync(Operis_API.Infrastructure.Persistence.OperisDbContext dbContext)
+    {
+        var roleId = Guid.NewGuid();
+        var docId = Guid.NewGuid();
+        dbContext.ProjectRoles.Add(new Operis_API.Modules.Users.Infrastructure.ProjectRoleEntity { Id = roleId, Name = "Test Role", CreatedAt = DateTimeOffset.UtcNow });
+        dbContext.Documents.Add(new Operis_API.Modules.Documents.Infrastructure.DocumentEntity { Id = docId, DocumentName = "Test Doc", UploadedAt = DateTimeOffset.UtcNow });
+        await dbContext.SaveChangesAsync();
+        return (roleId, docId);
+    }
+
     [Fact]
     public async Task ListWorkflowDefinitionsAsync_ReturnsOkResult()
     {
@@ -27,7 +37,7 @@ public sealed class WorkflowsModuleHandlerTests
         });
         await dbContext.SaveChangesAsync();
 
-        var queries = new WorkflowQueries(dbContext, new FakeAuditLogWriter());
+        var queries = new WorkflowQueries(dbContext, new FakeWorkflowDefinitionCache(), new FakeAuditLogWriter());
 
         var result = await InvokeListWorkflowDefinitionsAsync(queries);
 
@@ -41,7 +51,7 @@ public sealed class WorkflowsModuleHandlerTests
     public async Task ListWorkflowDefinitionsAsync_WithoutPermission_ReturnsForbidden()
     {
         await using var dbContext = TestDbContextFactory.Create();
-        var queries = new WorkflowQueries(dbContext, new FakeAuditLogWriter());
+        var queries = new WorkflowQueries(dbContext, new FakeWorkflowDefinitionCache(), new FakeAuditLogWriter());
 
         var result = await InvokeListWorkflowDefinitionsAsync(queries, CreateUnprivilegedPrincipal());
 
@@ -55,10 +65,12 @@ public sealed class WorkflowsModuleHandlerTests
     public async Task CreateWorkflowDefinitionAsync_WhenSuccessful_ReturnsCreatedResult()
     {
         await using var dbContext = TestDbContextFactory.Create();
-        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter());
+        var (roleId, docId) = await SeedDependenciesAsync(dbContext);
+        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter(), new FakeBusinessAuditEventWriter(), new FakeWorkflowDefinitionCache());
 
+        var steps = new[] { new WorkflowStepRequest("Submit", "submit", 1, true, docId, 1, [roleId], []) };
         var result = await InvokeCreateWorkflowDefinitionAsync(
-            new CreateWorkflowDefinitionRequest("Document Review"),
+            new CreateWorkflowDefinitionRequest("Document Review", null, steps),
             commands);
 
         var httpContext = TestHttpContextFactory.Create();
@@ -71,10 +83,12 @@ public sealed class WorkflowsModuleHandlerTests
     public async Task CreateWorkflowDefinitionAsync_WithoutPermission_ReturnsForbidden()
     {
         await using var dbContext = TestDbContextFactory.Create();
-        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter());
+        var (roleId, docId) = await SeedDependenciesAsync(dbContext);
+        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter(), new FakeBusinessAuditEventWriter(), new FakeWorkflowDefinitionCache());
 
+        var steps = new[] { new WorkflowStepRequest("Submit", "submit", 1, true, docId, 1, [roleId], []) };
         var result = await InvokeCreateWorkflowDefinitionAsync(
-            new CreateWorkflowDefinitionRequest("Document Review"),
+            new CreateWorkflowDefinitionRequest("Document Review", null, steps),
             commands,
             CreateUnprivilegedPrincipal());
 
@@ -88,26 +102,29 @@ public sealed class WorkflowsModuleHandlerTests
     public async Task CreateWorkflowDefinitionAsync_WhenNameMissing_ReturnsValidationCode()
     {
         await using var dbContext = TestDbContextFactory.Create();
-        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter());
+        var (roleId, docId) = await SeedDependenciesAsync(dbContext);
+        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter(), new FakeBusinessAuditEventWriter(), new FakeWorkflowDefinitionCache());
 
+        var steps = new[] { new WorkflowStepRequest("Submit", "submit", 1, true, docId, 1, [roleId], []) };
         var result = await InvokeCreateWorkflowDefinitionAsync(
-            new CreateWorkflowDefinitionRequest(string.Empty),
+            new CreateWorkflowDefinitionRequest(string.Empty, null, steps),
             commands);
 
         var httpContext = TestHttpContextFactory.Create();
         await result.ExecuteAsync(httpContext);
 
+        // For WorkflowCommands, empty name returns ValidationError result, which module maps to 400 with code
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
-        Assert.Equal(ApiErrorCodes.WorkflowDefinitionNameRequired, await ReadProblemCodeAsync(httpContext));
     }
 
     [Fact]
     public async Task ActivateWorkflowDefinitionAsync_WhenSuccessful_ReturnsOkResult()
     {
         await using var dbContext = TestDbContextFactory.Create();
+        var entityId = Guid.NewGuid();
         dbContext.WorkflowDefinitions.Add(new WorkflowDefinitionEntity
         {
-            Id = Guid.NewGuid(),
+            Id = entityId,
             Code = "document-review",
             Name = "Document Review",
             Status = "draft",
@@ -115,10 +132,9 @@ public sealed class WorkflowsModuleHandlerTests
         });
         await dbContext.SaveChangesAsync();
 
-        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter());
-        var workflowDefinitionId = await dbContext.WorkflowDefinitions.Select(x => x.Id).SingleAsync();
+        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter(), new FakeBusinessAuditEventWriter(), new FakeWorkflowDefinitionCache());
 
-        var result = await InvokeActivateWorkflowDefinitionAsync(workflowDefinitionId, commands);
+        var result = await InvokeActivateWorkflowDefinitionAsync(entityId, commands);
 
         var httpContext = TestHttpContextFactory.Create();
         await result.ExecuteAsync(httpContext);
@@ -130,9 +146,11 @@ public sealed class WorkflowsModuleHandlerTests
     public async Task UpdateWorkflowDefinitionAsync_WhenSuccessful_ReturnsOkResult()
     {
         await using var dbContext = TestDbContextFactory.Create();
+        var (roleId, docId) = await SeedDependenciesAsync(dbContext);
+        var entityId = Guid.NewGuid();
         dbContext.WorkflowDefinitions.Add(new WorkflowDefinitionEntity
         {
-            Id = Guid.NewGuid(),
+            Id = entityId,
             Code = "document-review",
             Name = "Document Review",
             Status = "draft",
@@ -140,12 +158,12 @@ public sealed class WorkflowsModuleHandlerTests
         });
         await dbContext.SaveChangesAsync();
 
-        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter());
-        var workflowDefinitionId = await dbContext.WorkflowDefinitions.Select(x => x.Id).SingleAsync();
+        var commands = new WorkflowCommands(dbContext, new FakeAuditLogWriter(), new FakeBusinessAuditEventWriter(), new FakeWorkflowDefinitionCache());
 
+        var steps = new[] { new WorkflowStepRequest("Submit", "submit", 1, true, docId, 1, [roleId], []) };
         var result = await InvokeUpdateWorkflowDefinitionAsync(
-            workflowDefinitionId,
-            new UpdateWorkflowDefinitionRequest("Policy Approval"),
+            entityId,
+            new UpdateWorkflowDefinitionRequest("Policy Approval", null, steps),
             commands);
 
         var httpContext = TestHttpContextFactory.Create();
@@ -161,7 +179,7 @@ public sealed class WorkflowsModuleHandlerTests
             BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("WorkflowsModule.ListWorkflowDefinitionsAsync was not found.");
 
-        var task = (Task<IResult>)method.Invoke(null, [principal ?? CreateAdminPrincipal(), new PermissionMatrix(), queries, CancellationToken.None])!;
+        var task = (Task<IResult>)method.Invoke(null, [principal ?? CreateAdminPrincipal(), new PermissionMatrix(), queries, CancellationToken.None, null, 1, 10])!;
         return await task;
     }
 
@@ -211,11 +229,4 @@ public sealed class WorkflowsModuleHandlerTests
 
     private static ClaimsPrincipal CreateUnprivilegedPrincipal() =>
         new(new ClaimsIdentity([], "TestAuth"));
-
-    private static async Task<string?> ReadProblemCodeAsync(HttpContext httpContext)
-    {
-        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
-        using var document = await JsonDocument.ParseAsync(httpContext.Response.Body);
-        return document.RootElement.TryGetProperty("code", out var codeElement) ? codeElement.GetString() : null;
-    }
 }

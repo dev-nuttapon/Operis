@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Operis_API.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a915f1cc998c8afdab2ca15a71c17139d7165b50")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d50ed044b9223a29b92e6250fee091b3b3f65742")]
 [assembly: System.Reflection.AssemblyProductAttribute("Operis_API.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Operis_API.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

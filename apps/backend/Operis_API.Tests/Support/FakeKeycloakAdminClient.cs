@@ -33,6 +33,9 @@ internal sealed class FakeKeycloakAdminClient : IKeycloakAdminClient
         return Task.FromResult<KeycloakUserProfile?>(new KeycloakUserProfile(keycloakUserId, $"{keycloakUserId}@example.com", keycloakUserId, "Test", "User", true, true));
     }
 
+    public Task<IReadOnlyList<KeycloakUserProfile>> SearchUsersAsync(string search, int first, int max, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<KeycloakUserProfile>>([]);
+
     public Task<KeycloakCreateUserResult> CreateUserAsync(string email, string firstName, string lastName, string? password, CancellationToken cancellationToken)
     {
         CreateUserCalls++;
@@ -47,6 +50,9 @@ internal sealed class FakeKeycloakAdminClient : IKeycloakAdminClient
         UpdatePasswordCalls++;
         return Task.FromResult(UpdatePasswordResult);
     }
+
+    public Task<KeycloakPasswordValidationResult> ValidateUserPasswordAsync(string username, string password, CancellationToken cancellationToken) =>
+        Task.FromResult(new KeycloakPasswordValidationResult(true, false, null));
 
     public Task<KeycloakUpdateUserResult> DisableUserAsync(string keycloakUserId, CancellationToken cancellationToken)
     {

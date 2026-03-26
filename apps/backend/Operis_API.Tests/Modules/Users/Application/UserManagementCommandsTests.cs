@@ -23,7 +23,7 @@ public sealed class UserManagementCommandsTests
 
         var auditLogWriter = new FakeAuditLogWriter();
         var keycloakAdminClient = new FakeKeycloakAdminClient();
-        var sut = new UserManagementCommands(dbContext, auditLogWriter, keycloakAdminClient);
+        var sut = new UserManagementCommands(dbContext, auditLogWriter, keycloakAdminClient, new FakeKeycloakUserCache());
 
         var result = await sut.CreateUserAsync(
             new CreateUserRequest(
@@ -56,7 +56,7 @@ public sealed class UserManagementCommandsTests
         {
             CreateUserResult = new KeycloakCreateUserResult(true, false, "kc-user-1", null)
         };
-        var sut = new UserManagementCommands(dbContext, auditLogWriter, keycloakAdminClient);
+        var sut = new UserManagementCommands(dbContext, auditLogWriter, keycloakAdminClient, new FakeKeycloakUserCache());
 
         var result = await sut.CreateUserAsync(
             new CreateUserRequest(

@@ -17,7 +17,7 @@ public sealed class DocumentQueriesTests
             Enumerable.Range(1, 60).Select(index => new DocumentEntity
             {
                 Id = Guid.NewGuid(),
-                FileName = $"doc-{index:D2}.pdf",
+                DocumentName = $"doc-{index:D2}.pdf",
                 UploadedAt = now.AddMinutes(-index)
             }));
         await dbContext.SaveChangesAsync();
@@ -25,11 +25,11 @@ public sealed class DocumentQueriesTests
         var auditLogWriter = new FakeAuditLogWriter();
         var sut = new DocumentQueries(dbContext, auditLogWriter);
 
-        var result = await sut.ListDocumentsAsync(CancellationToken.None);
+        var result = await sut.ListDocumentsAsync(new DocumentListQuery(null, 1, 50), CancellationToken.None);
 
-        Assert.Equal(50, result.Count);
-        Assert.Equal("doc-01.pdf", result[0].FileName);
-        Assert.Equal("doc-50.pdf", result[^1].FileName);
+        Assert.Equal(50, result.Items.Count);
+        Assert.Equal("doc-01.pdf", result.Items[0].DocumentName);
+        Assert.Equal("doc-50.pdf", result.Items[^1].DocumentName);
         Assert.Single(auditLogWriter.Entries);
     }
 }

@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Workflows;
 using Operis_API.Modules.Workflows.Infrastructure;
 using Operis_API.Tests.Support;
@@ -30,13 +32,26 @@ public sealed class WorkflowQueriesTests
         await dbContext.SaveChangesAsync();
 
         var auditLogWriter = new FakeAuditLogWriter();
-        var sut = new WorkflowQueries(dbContext, auditLogWriter);
+        var sut = new WorkflowQueries(dbContext, new FakeWorkflowDefinitionCacheWithItems(), auditLogWriter);
 
-        var result = await sut.ListDefinitionsAsync(CancellationToken.None);
+        var result = await sut.ListDefinitionsAsync(new WorkflowDefinitionListQuery(null, 1, 10), CancellationToken.None);
 
-        Assert.Equal(2, result.Count);
-        Assert.Equal("document-review", result[0].Code);
-        Assert.Equal("active", result[0].Status);
+        Assert.Equal(2, result.Items.Count);
+        Assert.Equal("document-review", result.Items[0].Code);
+        Assert.Equal("active", result.Items[0].Status);
         Assert.Single(auditLogWriter.Entries);
+    }
+
+    private sealed class FakeWorkflowDefinitionCacheWithItems : IWorkflowDefinitionCache
+    {
+        public Task<IReadOnlyList<WorkflowDefinitionContract>> GetDefinitionsAsync(OperisDbContext db, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<WorkflowDefinitionContract>>(
+                db.WorkflowDefinitions
+                    .OrderByDescending(x => x.CreatedAt)
+                    .Select(x => new WorkflowDefinitionContract(x.Id, x.Code, x.Name, x.Status, null))
+                    .ToList());
+
+        public Task<int> RefreshAsync(OperisDbContext db, CancellationToken cancellationToken) => Task.FromResult(0);
+        public Task InvalidateAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

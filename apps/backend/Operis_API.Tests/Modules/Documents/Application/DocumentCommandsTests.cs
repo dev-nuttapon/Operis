@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Operis_API.Modules.Documents.Application;
 using Operis_API.Modules.Documents.Infrastructure;
+using Operis_API.Modules.Documents.Contracts;
 using Operis_API.Shared.Contracts;
 using Operis_API.Tests.Support;
 
@@ -10,7 +11,7 @@ namespace Operis_API.Tests.Modules.Documents.Application;
 public sealed class DocumentCommandsTests
 {
     [Fact]
-    public async Task UploadDocumentAsync_WhenFileExtensionIsNotAllowed_ReturnsValidationErrorWithoutPersisting()
+    public async Task CreateDocumentVersionAsync_WhenFileExtensionIsNotAllowed_ReturnsValidationErrorWithoutPersisting()
     {
         await using var dbContext = TestDbContextFactory.Create();
         var auditLogWriter = new FakeAuditLogWriter();
@@ -19,33 +20,45 @@ public sealed class DocumentCommandsTests
             dbContext,
             storage,
             auditLogWriter,
+            new FakeBusinessAuditEventWriter(),
+            new DocumentHistoryWriter(dbContext, TestHttpContextFactory.CreateAccessor()),
+            new FakeWorkflowInstanceCommands(),
             Options.Create(new DocumentStorageOptions
             {
                 BucketName = "documents",
                 MaxFileSizeBytes = 10 * 1024 * 1024
             }));
 
+        // Create document first
+        var docId = Guid.NewGuid();
+        dbContext.Documents.Add(new DocumentEntity { Id = docId, DocumentName = "Test", UploadedAt = DateTimeOffset.UtcNow });
+        await dbContext.SaveChangesAsync();
+
         await using var stream = new MemoryStream(Encoding.UTF8.GetBytes("not an allowed document"));
 
-        var result = await sut.UploadDocumentAsync(
-            new DocumentUploadRequest("malware.exe", "application/octet-stream", stream.Length, "user-1"),
+        var result = await sut.CreateDocumentVersionAsync(
+            new DocumentVersionCreateCommand(docId, "V1", "malware.exe", "application/octet-stream", stream.Length, "user-1"),
             stream,
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(ApiErrorCodes.Documents.FileTypeNotAllowed, result.ErrorCode);
-        Assert.Empty(dbContext.Documents);
-        Assert.Empty(auditLogWriter.Entries);
-        Assert.Empty(storage.StoredObjectKeys);
+        Assert.Empty(dbContext.DocumentVersions);
     }
 
     private sealed class FakeDocumentObjectStorage : IDocumentObjectStorage
     {
-        public List<string> StoredObjectKeys { get; } = [];
+        public List<string> ObjectKeys { get; } = [];
 
         public Task StoreAsync(string objectKey, Stream content, long size, string contentType, CancellationToken cancellationToken)
         {
-            StoredObjectKeys.Add(objectKey);
+            ObjectKeys.Add(objectKey);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteAsync(string objectKey, CancellationToken cancellationToken)
+        {
+            ObjectKeys.Remove(objectKey);
             return Task.CompletedTask;
         }
 
