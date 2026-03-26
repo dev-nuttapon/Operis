@@ -19,6 +19,9 @@ const DocumentVersionUploadPage = lazy(() =>
 const DocumentVersionsPage = lazy(() =>
   import("../modules/documents/pages/DocumentVersionsPage").then((module) => ({ default: module.DocumentVersionsPage }))
 );
+const DocumentTypeSetupPage = lazy(() =>
+  import("../modules/documents/pages/DocumentTypeSetupPage").then((module) => ({ default: module.DocumentTypeSetupPage }))
+);
 const DocumentHistoryPage = lazy(() =>
   import("../modules/documents/pages/DocumentHistoryPage").then((module) => ({ default: module.DocumentHistoryPage }))
 );
@@ -51,6 +54,57 @@ const AdminSettingsPage = lazy(() =>
 );
 const PermissionMatrixPage = lazy(() =>
   import("../modules/users/pages/PermissionMatrixPage").then((module) => ({ default: module.PermissionMatrixPage }))
+);
+const ProcessLibraryPage = lazy(() =>
+  import("../modules/governance/pages/ProcessLibraryPage").then((module) => ({ default: module.ProcessLibraryPage }))
+);
+const QaReviewChecklistPage = lazy(() =>
+  import("../modules/governance/pages/QaReviewChecklistPage").then((module) => ({ default: module.QaReviewChecklistPage }))
+);
+const ProjectPlanPage = lazy(() =>
+  import("../modules/governance/pages/ProjectPlanPage").then((module) => ({ default: module.ProjectPlanPage }))
+);
+const StakeholderRegisterPage = lazy(() =>
+  import("../modules/governance/pages/StakeholderRegisterPage").then((module) => ({ default: module.StakeholderRegisterPage }))
+);
+const TailoringRecordPage = lazy(() =>
+  import("../modules/governance/pages/TailoringRecordPage").then((module) => ({ default: module.TailoringRecordPage }))
+);
+const RequirementRegisterPage = lazy(() =>
+  import("../modules/requirements/pages/RequirementRegisterPage").then((module) => ({ default: module.RequirementRegisterPage }))
+);
+const RequirementDetailPage = lazy(() =>
+  import("../modules/requirements/pages/RequirementDetailPage").then((module) => ({ default: module.RequirementDetailPage }))
+);
+const RequirementBaselinesPage = lazy(() =>
+  import("../modules/requirements/pages/RequirementBaselinesPage").then((module) => ({ default: module.RequirementBaselinesPage }))
+);
+const TraceabilityMatrixPage = lazy(() =>
+  import("../modules/requirements/pages/TraceabilityMatrixPage").then((module) => ({ default: module.TraceabilityMatrixPage }))
+);
+const ChangeRequestRegisterPage = lazy(() =>
+  import("../modules/change-control/pages/ChangeRequestRegisterPage").then((module) => ({ default: module.ChangeRequestRegisterPage }))
+);
+const ChangeRequestDetailPage = lazy(() =>
+  import("../modules/change-control/pages/ChangeRequestDetailPage").then((module) => ({ default: module.ChangeRequestDetailPage }))
+);
+const ConfigurationItemsPage = lazy(() =>
+  import("../modules/change-control/pages/ConfigurationItemsPage").then((module) => ({ default: module.ConfigurationItemsPage }))
+);
+const BaselineRegistryPage = lazy(() =>
+  import("../modules/change-control/pages/BaselineRegistryPage").then((module) => ({ default: module.BaselineRegistryPage }))
+);
+const RiskRegisterPage = lazy(() =>
+  import("../modules/risks/pages/RiskRegisterPage").then((module) => ({ default: module.RiskRegisterPage }))
+);
+const RiskDetailPage = lazy(() =>
+  import("../modules/risks/pages/RiskDetailPage").then((module) => ({ default: module.RiskDetailPage }))
+);
+const IssueLogPage = lazy(() =>
+  import("../modules/risks/pages/IssueLogPage").then((module) => ({ default: module.IssueLogPage }))
+);
+const IssueDetailPage = lazy(() =>
+  import("../modules/risks/pages/IssueDetailPage").then((module) => ({ default: module.IssueDetailPage }))
 );
 const InvitationAcceptPage = lazy(() =>
   import("../modules/users/pages/InvitationAcceptPage").then((module) => ({ default: module.InvitationAcceptPage }))
@@ -156,16 +210,18 @@ export function AppRouter() {
                 <Route index element={<Navigate to="documents" replace />} />
                 <Route path="profile" element={<UserProfilePage />} />
                 <Route path="change-password" element={<ChangePasswordPage />} />
-                <Route path="documents" element={<DocumentDashboardPage />} />
-                <Route path="documents/templates" element={<DocumentTemplatesPage />} />
+                <Route path="documents" element={<AuthorizedRoute anyOf={[permissions.documents.read, permissions.documents.upload, permissions.documents.manageVersions, permissions.documents.publish]}><DocumentDashboardPage /></AuthorizedRoute>} />
+                <Route path="documents/types" element={<AuthorizedRoute anyOf={[permissions.documents.read, permissions.documents.deactivate]}><DocumentTypeSetupPage /></AuthorizedRoute>} />
+                <Route path="documents/templates" element={<AuthorizedRoute anyOf={[permissions.documents.read, permissions.documents.upload]}><DocumentTemplatesPage /></AuthorizedRoute>} />
                 <Route path="document-templates" element={<DocumentTemplatesPage />} />
                 <Route path="document-templates/new" element={<DocumentTemplateCreatePage />} />
                 <Route path="document-templates/:templateId/edit" element={<DocumentTemplateEditPage />} />
                 <Route path="document-templates/:templateId/history" element={<DocumentTemplateHistoryPage />} />
-                <Route path="documents/upload" element={<DocumentUploadPage />} />
-                <Route path="documents/:documentId/versions" element={<DocumentVersionsPage />} />
-                <Route path="documents/:documentId/history" element={<DocumentHistoryPage />} />
-                <Route path="documents/:documentId/versions/new" element={<DocumentVersionUploadPage />} />
+                <Route path="documents/new" element={<AuthorizedRoute permission={permissions.documents.upload}><DocumentUploadPage /></AuthorizedRoute>} />
+                <Route path="documents/:documentId" element={<AuthorizedRoute anyOf={[permissions.documents.read, permissions.documents.manageVersions, permissions.documents.publish]}><DocumentVersionsPage /></AuthorizedRoute>} />
+                <Route path="documents/:documentId/versions" element={<AuthorizedRoute anyOf={[permissions.documents.read, permissions.documents.manageVersions, permissions.documents.publish]}><DocumentVersionsPage /></AuthorizedRoute>} />
+                <Route path="documents/:documentId/history" element={<AuthorizedRoute permission={permissions.activityLogs.read}><DocumentHistoryPage /></AuthorizedRoute>} />
+                <Route path="documents/:documentId/versions/new" element={<AuthorizedRoute permission={permissions.documents.manageVersions}><DocumentVersionUploadPage /></AuthorizedRoute>} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="projects/new" element={<ProjectCreatePage />} />
                 <Route path="projects/:projectId/edit" element={<ProjectEditPage />} />
@@ -186,6 +242,23 @@ export function AppRouter() {
               <Route path="admin/users/:userId/edit" element={<AuthorizedRoute permission={permissions.users.update}><AdminUserEditPage /></AuthorizedRoute>} />
               <Route path="admin/permissions" element={<AuthorizedRoute permission={permissions.admin.permissionMatrixRead}><PermissionMatrixPage /></AuthorizedRoute>} />
               <Route path="admin/settings" element={<AuthorizedRoute anyOf={[permissions.admin.settingsRead, permissions.admin.settingsManage]}><AdminSettingsPage /></AuthorizedRoute>} />
+              <Route path="process-library" element={<AuthorizedRoute anyOf={[permissions.governance.processLibraryRead, permissions.governance.processLibraryManage]}><ProcessLibraryPage /></AuthorizedRoute>} />
+              <Route path="qa-review-checklists" element={<AuthorizedRoute anyOf={[permissions.governance.qaChecklistRead, permissions.governance.qaChecklistManage]}><QaReviewChecklistPage /></AuthorizedRoute>} />
+              <Route path="project-plans" element={<AuthorizedRoute anyOf={[permissions.governance.projectPlanRead, permissions.governance.projectPlanManage, permissions.governance.projectPlanApprove]}><ProjectPlanPage /></AuthorizedRoute>} />
+              <Route path="stakeholders" element={<AuthorizedRoute anyOf={[permissions.governance.stakeholderRead, permissions.governance.stakeholderManage]}><StakeholderRegisterPage /></AuthorizedRoute>} />
+              <Route path="tailoring-records" element={<AuthorizedRoute anyOf={[permissions.governance.tailoringRead, permissions.governance.tailoringManage, permissions.governance.tailoringApprove]}><TailoringRecordPage /></AuthorizedRoute>} />
+              <Route path="requirements" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementRegisterPage /></AuthorizedRoute>} />
+              <Route path="requirements/:requirementId" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementDetailPage /></AuthorizedRoute>} />
+              <Route path="requirements/baselines" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.baseline]}><RequirementBaselinesPage /></AuthorizedRoute>} />
+              <Route path="requirements/traceability" element={<AuthorizedRoute permission={permissions.requirements.read}><TraceabilityMatrixPage /></AuthorizedRoute>} />
+              <Route path="change-control/change-requests" element={<AuthorizedRoute anyOf={[permissions.changeControl.read, permissions.changeControl.manage, permissions.changeControl.approve]}><ChangeRequestRegisterPage /></AuthorizedRoute>} />
+              <Route path="change-control/change-requests/:changeRequestId" element={<AuthorizedRoute anyOf={[permissions.changeControl.read, permissions.changeControl.manage, permissions.changeControl.approve]}><ChangeRequestDetailPage /></AuthorizedRoute>} />
+              <Route path="change-control/configuration-items" element={<AuthorizedRoute anyOf={[permissions.changeControl.readConfiguration, permissions.changeControl.manageConfiguration]}><ConfigurationItemsPage /></AuthorizedRoute>} />
+              <Route path="change-control/baseline-registry" element={<AuthorizedRoute anyOf={[permissions.changeControl.manageBaselines, permissions.changeControl.approveBaselines, permissions.changeControl.readConfiguration]}><BaselineRegistryPage /></AuthorizedRoute>} />
+              <Route path="risks" element={<AuthorizedRoute anyOf={[permissions.risks.read, permissions.risks.manage]}><RiskRegisterPage /></AuthorizedRoute>} />
+              <Route path="risks/:riskId" element={<AuthorizedRoute anyOf={[permissions.risks.read, permissions.risks.manage]}><RiskDetailPage /></AuthorizedRoute>} />
+              <Route path="issues" element={<AuthorizedRoute anyOf={[permissions.risks.read, permissions.risks.manage]}><IssueLogPage /></AuthorizedRoute>} />
+              <Route path="issues/:issueId" element={<AuthorizedRoute anyOf={[permissions.risks.read, permissions.risks.manage]}><IssueDetailPage /></AuthorizedRoute>} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
                 <Route path="admin/master/divisions" element={<AdminUsersPage />} />
                 <Route path="admin/master/departments" element={<AdminUsersPage />} />

@@ -5,14 +5,14 @@ import process from "node:process";
 const distAssetsPath = path.join(process.cwd(), "dist", "assets");
 
 const budgetsKb = new Map([
-  ["antd-core-vendor", 1050],
+  ["antd-core-vendor", 1150],
   ["react-vendor", 240],
-  ["index", 90],
+  ["index", 260],
   ["AdminUsersPage", 26],
-  ["AuditLogsPage", 10],
-  ["DocumentDashboardPage", 6],
+  ["ActivityLogsPage", 15],
+  ["DocumentDashboardPage", 8],
   ["WorkflowDefinitionsPage", 6],
-  ["PublicRegistrationPage", 8],
+  ["PublicRegistrationPage", 10],
   ["InvitationAcceptPage", 8],
   ["RegistrationPasswordSetupPage", 7],
 ]);

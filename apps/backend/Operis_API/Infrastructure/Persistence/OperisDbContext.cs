@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Modules.Audits.Infrastructure;
+using Operis_API.Modules.ChangeControl.Infrastructure;
 using Operis_API.Modules.Documents.Infrastructure;
+using Operis_API.Modules.Governance.Infrastructure;
 using Operis_API.Modules.Notifications.Infrastructure;
+using Operis_API.Modules.Requirements.Infrastructure;
+using Operis_API.Modules.Risks.Infrastructure;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Modules.Workflows.Infrastructure;
 using Operis_API.Shared.ActivityLogging;
@@ -13,6 +17,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
 {
     public DbSet<DocumentEntity> Documents => Set<DocumentEntity>();
     public DbSet<DocumentVersionEntity> DocumentVersions => Set<DocumentVersionEntity>();
+    public DbSet<DocumentTypeEntity> DocumentTypes => Set<DocumentTypeEntity>();
+    public DbSet<DocumentApprovalEntity> DocumentApprovals => Set<DocumentApprovalEntity>();
+    public DbSet<DocumentLinkEntity> DocumentLinks => Set<DocumentLinkEntity>();
     public DbSet<DocumentHistoryEntity> DocumentHistories => Set<DocumentHistoryEntity>();
     public DbSet<DocumentTemplateEntity> DocumentTemplates => Set<DocumentTemplateEntity>();
     public DbSet<DocumentTemplateItemEntity> DocumentTemplateItems => Set<DocumentTemplateItemEntity>();
@@ -45,6 +52,24 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<WorkflowInstanceEntity> WorkflowInstances => Set<WorkflowInstanceEntity>();
     public DbSet<WorkflowInstanceStepEntity> WorkflowInstanceSteps => Set<WorkflowInstanceStepEntity>();
     public DbSet<WorkflowInstanceActionEntity> WorkflowInstanceActions => Set<WorkflowInstanceActionEntity>();
+    public DbSet<ProcessAssetEntity> ProcessAssets => Set<ProcessAssetEntity>();
+    public DbSet<ProcessAssetVersionEntity> ProcessAssetVersions => Set<ProcessAssetVersionEntity>();
+    public DbSet<QaChecklistEntity> QaChecklists => Set<QaChecklistEntity>();
+    public DbSet<ProjectPlanEntity> ProjectPlans => Set<ProjectPlanEntity>();
+    public DbSet<StakeholderEntity> Stakeholders => Set<StakeholderEntity>();
+    public DbSet<TailoringRecordEntity> TailoringRecords => Set<TailoringRecordEntity>();
+    public DbSet<RequirementEntity> Requirements => Set<RequirementEntity>();
+    public DbSet<RequirementVersionEntity> RequirementVersions => Set<RequirementVersionEntity>();
+    public DbSet<RequirementBaselineEntity> RequirementBaselines => Set<RequirementBaselineEntity>();
+    public DbSet<TraceabilityLinkEntity> TraceabilityLinks => Set<TraceabilityLinkEntity>();
+    public DbSet<RiskEntity> Risks => Set<RiskEntity>();
+    public DbSet<RiskReviewEntity> RiskReviews => Set<RiskReviewEntity>();
+    public DbSet<IssueEntity> Issues => Set<IssueEntity>();
+    public DbSet<IssueActionEntity> IssueActions => Set<IssueActionEntity>();
+    public DbSet<ChangeRequestEntity> ChangeRequests => Set<ChangeRequestEntity>();
+    public DbSet<ChangeImpactEntity> ChangeImpacts => Set<ChangeImpactEntity>();
+    public DbSet<ConfigurationItemEntity> ConfigurationItems => Set<ConfigurationItemEntity>();
+    public DbSet<BaselineRegistryEntity> BaselineRegistry => Set<BaselineRegistryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -53,22 +78,34 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.ToTable("documents");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
-            entity.Property(x => x.DocumentName).HasColumnName("document_name").HasMaxLength(256);
-            entity.Property(x => x.PublishedVersionId).HasColumnName("published_version_id");
-            entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id").HasMaxLength(64);
-            entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at");
+            entity.Property(x => x.DocumentTypeId).HasColumnName("document_type_id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.PhaseCode).HasColumnName("phase_code").HasMaxLength(64);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.CurrentVersionId).HasColumnName("current_version_id");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.Classification).HasColumnName("classification").HasMaxLength(64);
+            entity.Property(x => x.RetentionClass).HasColumnName("retention_class").HasMaxLength(64);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.TagsJson).HasColumnName("tags_json").HasColumnType("jsonb");
             entity.Property(x => x.IsDeleted).HasColumnName("is_deleted");
             entity.Property(x => x.DeletedByUserId).HasColumnName("deleted_by_user_id").HasMaxLength(64);
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
             entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(512);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<DocumentTypeEntity>().WithMany().HasForeignKey(x => x.DocumentTypeId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<DocumentVersionEntity>()
                 .WithMany()
-                .HasForeignKey(x => x.PublishedVersionId)
+                .HasForeignKey(x => x.CurrentVersionId)
                 .OnDelete(DeleteBehavior.SetNull);
-            entity.HasIndex(x => x.UploadedAt);
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.PhaseCode });
+            entity.HasIndex(x => new { x.DocumentTypeId, x.Status });
+            entity.HasIndex(x => new { x.OwnerUserId, x.UpdatedAt });
             entity.HasIndex(x => x.IsDeleted);
-            entity.HasIndex(x => x.PublishedVersionId);
-            entity.HasIndex(x => new { x.IsDeleted, x.UploadedAt });
+            entity.HasIndex(x => x.CurrentVersionId);
+            entity.HasIndex(x => new { x.IsDeleted, x.UpdatedAt });
         });
 
         modelBuilder.Entity<DocumentVersionEntity>(entity =>
@@ -77,26 +114,73 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.DocumentId).HasColumnName("document_id");
-            entity.Property(x => x.Revision).HasColumnName("revision");
-            entity.Property(x => x.VersionCode).HasColumnName("version_code").HasMaxLength(64);
+            entity.Property(x => x.VersionNumber).HasColumnName("version_number");
+            entity.Property(x => x.StorageKey).HasColumnName("storage_key").HasMaxLength(512);
             entity.Property(x => x.FileName).HasColumnName("file_name").HasMaxLength(256);
-            entity.Property(x => x.ObjectKey).HasColumnName("object_key").HasMaxLength(512);
-            entity.Property(x => x.BucketName).HasColumnName("bucket_name").HasMaxLength(128);
-            entity.Property(x => x.ContentType).HasColumnName("content_type").HasMaxLength(256);
-            entity.Property(x => x.SizeBytes).HasColumnName("size_bytes");
-            entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id").HasMaxLength(64);
+            entity.Property(x => x.FileSize).HasColumnName("file_size");
+            entity.Property(x => x.MimeType).HasColumnName("mime_type").HasMaxLength(128);
+            entity.Property(x => x.UploadedBy).HasColumnName("uploaded_by").HasMaxLength(64);
             entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
             entity.Property(x => x.IsDeleted).HasColumnName("is_deleted");
             entity.Property(x => x.DeletedByUserId).HasColumnName("deleted_by_user_id").HasMaxLength(64);
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
             entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(512);
             entity.HasIndex(x => x.DocumentId);
-            entity.HasIndex(x => new { x.DocumentId, x.Revision }).IsUnique();
-            entity.HasIndex(x => new { x.DocumentId, x.VersionCode }).IsUnique();
-            entity.HasIndex(x => x.ObjectKey).IsUnique().HasFilter("\"object_key\" IS NOT NULL");
+            entity.HasIndex(x => new { x.DocumentId, x.VersionNumber }).IsUnique();
+            entity.HasIndex(x => x.StorageKey).IsUnique();
             entity.HasIndex(x => x.IsDeleted);
-            entity.HasIndex(x => new { x.DocumentId, x.IsDeleted, x.Revision });
+            entity.HasIndex(x => new { x.DocumentId, x.IsDeleted, x.VersionNumber });
             entity.HasIndex(x => new { x.DocumentId, x.IsDeleted, x.UploadedAt });
+            entity.HasIndex(x => x.UploadedAt);
+        });
+
+        modelBuilder.Entity<DocumentTypeEntity>(entity =>
+        {
+            entity.ToTable("document_types");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.ModuleOwner).HasColumnName("module_owner").HasMaxLength(128);
+            entity.Property(x => x.ClassificationDefault).HasColumnName("classification_default").HasMaxLength(64);
+            entity.Property(x => x.RetentionClassDefault).HasColumnName("retention_class_default").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ApprovalRequired).HasColumnName("approval_required");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => x.Status);
+        });
+
+        modelBuilder.Entity<DocumentApprovalEntity>(entity =>
+        {
+            entity.ToTable("document_approvals");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.DocumentVersionId).HasColumnName("document_version_id");
+            entity.Property(x => x.StepName).HasColumnName("step_name").HasMaxLength(128);
+            entity.Property(x => x.ReviewerUserId).HasColumnName("reviewer_user_id").HasMaxLength(64);
+            entity.Property(x => x.Decision).HasColumnName("decision").HasMaxLength(32);
+            entity.Property(x => x.DecisionReason).HasColumnName("decision_reason").HasMaxLength(2000);
+            entity.Property(x => x.DecidedAt).HasColumnName("decided_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<DocumentVersionEntity>().WithMany().HasForeignKey(x => x.DocumentVersionId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => x.DocumentVersionId);
+        });
+
+        modelBuilder.Entity<DocumentLinkEntity>(entity =>
+        {
+            entity.ToTable("document_links");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.SourceDocumentId).HasColumnName("source_document_id");
+            entity.Property(x => x.TargetEntityType).HasColumnName("target_entity_type").HasMaxLength(64);
+            entity.Property(x => x.TargetEntityId).HasColumnName("target_entity_id").HasMaxLength(64);
+            entity.Property(x => x.LinkType).HasColumnName("link_type").HasMaxLength(64);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<DocumentEntity>().WithMany().HasForeignKey(x => x.SourceDocumentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => x.SourceDocumentId);
         });
 
         modelBuilder.Entity<DocumentHistoryEntity>(entity =>
@@ -704,6 +788,379 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.RequestId);
             entity.HasIndex(x => new { x.Status, x.OccurredAt });
             entity.HasIndex(x => new { x.DepartmentId, x.OccurredAt });
+        });
+
+        modelBuilder.Entity<ProcessAssetEntity>(entity =>
+        {
+            entity.ToTable("process_assets");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.Category).HasColumnName("category").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(x => x.EffectiveTo).HasColumnName("effective_to");
+            entity.Property(x => x.CurrentVersionId).HasColumnName("current_version_id");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.Category, x.Status });
+            entity.HasIndex(x => x.OwnerUserId);
+        });
+
+        modelBuilder.Entity<ProcessAssetVersionEntity>(entity =>
+        {
+            entity.ToTable("process_asset_versions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProcessAssetId).HasColumnName("process_asset_id");
+            entity.Property(x => x.VersionNumber).HasColumnName("version_number");
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(256);
+            entity.Property(x => x.Summary).HasColumnName("summary").HasMaxLength(4000);
+            entity.Property(x => x.ContentRef).HasColumnName("content_ref").HasMaxLength(512);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ChangeSummary).HasColumnName("change_summary").HasMaxLength(2000);
+            entity.Property(x => x.ApprovedBy).HasColumnName("approved_by").HasMaxLength(128);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProcessAssetEntity>().WithMany().HasForeignKey(x => x.ProcessAssetId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProcessAssetId, x.VersionNumber }).IsUnique();
+            entity.HasIndex(x => new { x.ProcessAssetId, x.Status });
+        });
+
+        modelBuilder.Entity<QaChecklistEntity>(entity =>
+        {
+            entity.ToTable("qa_checklists");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.Scope).HasColumnName("scope").HasMaxLength(256);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.ItemsJson).HasColumnName("items_json").HasColumnType("jsonb");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.Scope, x.Status });
+        });
+
+        modelBuilder.Entity<ProjectPlanEntity>(entity =>
+        {
+            entity.ToTable("project_plans");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.ScopeSummary).HasColumnName("scope_summary").HasMaxLength(4000);
+            entity.Property(x => x.LifecycleModel).HasColumnName("lifecycle_model").HasMaxLength(128);
+            entity.Property(x => x.StartDate).HasColumnName("start_date");
+            entity.Property(x => x.TargetEndDate).HasColumnName("target_end_date");
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.MilestonesJson).HasColumnName("milestones_json").HasColumnType("jsonb");
+            entity.Property(x => x.RolesJson).HasColumnName("roles_json").HasColumnType("jsonb");
+            entity.Property(x => x.RiskApproach).HasColumnName("risk_approach").HasMaxLength(4000);
+            entity.Property(x => x.QualityApproach).HasColumnName("quality_approach").HasMaxLength(4000);
+            entity.Property(x => x.ApprovalReason).HasColumnName("approval_reason").HasMaxLength(2000);
+            entity.Property(x => x.ApprovedBy).HasColumnName("approved_by").HasMaxLength(128);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Status });
+            entity.HasIndex(x => new { x.Status, x.OwnerUserId });
+        });
+
+        modelBuilder.Entity<StakeholderEntity>(entity =>
+        {
+            entity.ToTable("stakeholders");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.RoleName).HasColumnName("role_name").HasMaxLength(128);
+            entity.Property(x => x.InfluenceLevel).HasColumnName("influence_level").HasMaxLength(64);
+            entity.Property(x => x.ContactChannel).HasColumnName("contact_channel").HasMaxLength(256);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Status });
+        });
+
+        modelBuilder.Entity<TailoringRecordEntity>(entity =>
+        {
+            entity.ToTable("tailoring_records");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.RequesterUserId).HasColumnName("requester_user_id").HasMaxLength(64);
+            entity.Property(x => x.RequestedChange).HasColumnName("requested_change").HasMaxLength(4000);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
+            entity.Property(x => x.ImpactSummary).HasColumnName("impact_summary").HasMaxLength(4000);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ApproverUserId).HasColumnName("approver_user_id").HasMaxLength(128);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.ImpactedProcessAssetId).HasColumnName("impacted_process_asset_id");
+            entity.Property(x => x.ApprovalRationale).HasColumnName("approval_rationale").HasMaxLength(2000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<ProcessAssetEntity>().WithMany().HasForeignKey(x => x.ImpactedProcessAssetId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => new { x.ProjectId, x.Status });
+            entity.HasIndex(x => new { x.RequesterUserId, x.Status });
+        });
+
+        modelBuilder.Entity<RequirementEntity>(entity =>
+        {
+            entity.ToTable("requirements");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(8000);
+            entity.Property(x => x.Priority).HasColumnName("priority").HasMaxLength(32);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CurrentVersionId).HasColumnName("current_version_id");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<RequirementVersionEntity>().WithMany().HasForeignKey(x => x.CurrentVersionId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique();
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.Priority });
+            entity.HasIndex(x => x.OwnerUserId);
+            entity.HasIndex(x => x.CurrentVersionId);
+        });
+
+        modelBuilder.Entity<RequirementVersionEntity>(entity =>
+        {
+            entity.ToTable("requirement_versions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.RequirementId).HasColumnName("requirement_id");
+            entity.Property(x => x.VersionNumber).HasColumnName("version_number");
+            entity.Property(x => x.BusinessReason).HasColumnName("business_reason").HasMaxLength(4000);
+            entity.Property(x => x.AcceptanceCriteria).HasColumnName("acceptance_criteria").HasMaxLength(8000);
+            entity.Property(x => x.SecurityImpact).HasColumnName("security_impact").HasMaxLength(4000);
+            entity.Property(x => x.PerformanceImpact).HasColumnName("performance_impact").HasMaxLength(4000);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<RequirementEntity>().WithMany().HasForeignKey(x => x.RequirementId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.RequirementId, x.VersionNumber }).IsUnique();
+        });
+
+        modelBuilder.Entity<RequirementBaselineEntity>(entity =>
+        {
+            entity.ToTable("requirement_baselines");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.BaselineName).HasColumnName("baseline_name").HasMaxLength(256);
+            entity.Property(x => x.RequirementIdsJson).HasColumnName("requirement_ids_json").HasColumnType("jsonb");
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
+            entity.Property(x => x.ApprovedBy).HasColumnName("approved_by").HasMaxLength(128);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Status });
+        });
+
+        modelBuilder.Entity<TraceabilityLinkEntity>(entity =>
+        {
+            entity.ToTable("traceability_links");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.SourceType).HasColumnName("source_type").HasMaxLength(64);
+            entity.Property(x => x.SourceId).HasColumnName("source_id").HasMaxLength(128);
+            entity.Property(x => x.TargetType).HasColumnName("target_type").HasMaxLength(64);
+            entity.Property(x => x.TargetId).HasColumnName("target_id").HasMaxLength(128);
+            entity.Property(x => x.LinkRule).HasColumnName("link_rule").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(128);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(x => new { x.SourceType, x.SourceId, x.TargetType, x.TargetId, x.LinkRule }).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.SourceType, x.TargetType });
+            entity.HasIndex(x => x.SourceId);
+            entity.HasIndex(x => x.TargetId);
+        });
+
+        modelBuilder.Entity<RiskEntity>(entity =>
+        {
+            entity.ToTable("risks");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(4000);
+            entity.Property(x => x.Probability).HasColumnName("probability");
+            entity.Property(x => x.Impact).HasColumnName("impact");
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.MitigationPlan).HasColumnName("mitigation_plan").HasMaxLength(4000);
+            entity.Property(x => x.Cause).HasColumnName("cause").HasMaxLength(2000);
+            entity.Property(x => x.Effect).HasColumnName("effect").HasMaxLength(2000);
+            entity.Property(x => x.ContingencyPlan).HasColumnName("contingency_plan").HasMaxLength(4000);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.NextReviewAt).HasColumnName("next_review_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique();
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.NextReviewAt });
+            entity.HasIndex(x => x.OwnerUserId);
+        });
+
+        modelBuilder.Entity<RiskReviewEntity>(entity =>
+        {
+            entity.ToTable("risk_reviews");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.RiskId).HasColumnName("risk_id");
+            entity.Property(x => x.ReviewedBy).HasColumnName("reviewed_by").HasMaxLength(128);
+            entity.Property(x => x.ReviewedAt).HasColumnName("reviewed_at");
+            entity.Property(x => x.Decision).HasColumnName("decision").HasMaxLength(64);
+            entity.Property(x => x.Notes).HasColumnName("notes").HasMaxLength(2000);
+            entity.HasOne<RiskEntity>().WithMany().HasForeignKey(x => x.RiskId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.RiskId, x.ReviewedAt });
+        });
+
+        modelBuilder.Entity<IssueEntity>(entity =>
+        {
+            entity.ToTable("issues");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(4000);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.DueDate).HasColumnName("due_date");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.Severity).HasColumnName("severity").HasMaxLength(32);
+            entity.Property(x => x.RootIssue).HasColumnName("root_issue").HasMaxLength(2000);
+            entity.Property(x => x.Dependencies).HasColumnName("dependencies").HasMaxLength(4000);
+            entity.Property(x => x.ResolutionSummary).HasColumnName("resolution_summary").HasMaxLength(4000);
+            entity.Property(x => x.IsSensitive).HasColumnName("is_sensitive");
+            entity.Property(x => x.SensitiveContext).HasColumnName("sensitive_context").HasMaxLength(256);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique();
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.Severity });
+            entity.HasIndex(x => x.OwnerUserId);
+            entity.HasIndex(x => x.DueDate);
+            entity.HasIndex(x => x.IsSensitive);
+        });
+
+        modelBuilder.Entity<IssueActionEntity>(entity =>
+        {
+            entity.ToTable("issue_actions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.IssueId).HasColumnName("issue_id");
+            entity.Property(x => x.ActionDescription).HasColumnName("action_description").HasMaxLength(4000);
+            entity.Property(x => x.AssignedTo).HasColumnName("assigned_to").HasMaxLength(128);
+            entity.Property(x => x.DueDate).HasColumnName("due_date");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.VerificationNote).HasColumnName("verification_note").HasMaxLength(2000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<IssueEntity>().WithMany().HasForeignKey(x => x.IssueId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.IssueId, x.Status });
+            entity.HasIndex(x => new { x.AssignedTo, x.Status });
+        });
+
+        modelBuilder.Entity<ChangeRequestEntity>(entity =>
+        {
+            entity.ToTable("change_requests");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.RequestedBy).HasColumnName("requested_by").HasMaxLength(128);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(4000);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.Priority).HasColumnName("priority").HasMaxLength(32);
+            entity.Property(x => x.TargetBaselineId).HasColumnName("target_baseline_id");
+            entity.Property(x => x.LinkedRequirementIdsJson).HasColumnName("linked_requirement_ids_json").HasColumnType("jsonb");
+            entity.Property(x => x.LinkedConfigurationItemIdsJson).HasColumnName("linked_configuration_item_ids_json").HasColumnType("jsonb");
+            entity.Property(x => x.DecisionRationale).HasColumnName("decision_rationale").HasMaxLength(2000);
+            entity.Property(x => x.ImplementationSummary).HasColumnName("implementation_summary").HasMaxLength(2000);
+            entity.Property(x => x.ApprovedBy).HasColumnName("approved_by").HasMaxLength(128);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<BaselineRegistryEntity>().WithMany().HasForeignKey(x => x.TargetBaselineId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique();
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.Priority });
+            entity.HasIndex(x => x.TargetBaselineId);
+        });
+
+        modelBuilder.Entity<ChangeImpactEntity>(entity =>
+        {
+            entity.ToTable("change_impacts");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ChangeRequestId).HasColumnName("change_request_id");
+            entity.Property(x => x.ScopeImpact).HasColumnName("scope_impact").HasMaxLength(4000);
+            entity.Property(x => x.ScheduleImpact).HasColumnName("schedule_impact").HasMaxLength(4000);
+            entity.Property(x => x.QualityImpact).HasColumnName("quality_impact").HasMaxLength(4000);
+            entity.Property(x => x.SecurityImpact).HasColumnName("security_impact").HasMaxLength(4000);
+            entity.Property(x => x.PerformanceImpact).HasColumnName("performance_impact").HasMaxLength(4000);
+            entity.Property(x => x.RiskImpact).HasColumnName("risk_impact").HasMaxLength(4000);
+            entity.HasOne<ChangeRequestEntity>().WithMany().HasForeignKey(x => x.ChangeRequestId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => x.ChangeRequestId).IsUnique();
+        });
+
+        modelBuilder.Entity<ConfigurationItemEntity>(entity =>
+        {
+            entity.ToTable("configuration_items");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.ItemType).HasColumnName("item_type").HasMaxLength(128);
+            entity.Property(x => x.OwnerModule).HasColumnName("owner_module").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.BaselineRef).HasColumnName("baseline_ref").HasMaxLength(256);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique();
+            entity.HasIndex(x => new { x.ProjectId, x.ItemType, x.Status });
+        });
+
+        modelBuilder.Entity<BaselineRegistryEntity>(entity =>
+        {
+            entity.ToTable("baseline_registry");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.BaselineName).HasColumnName("baseline_name").HasMaxLength(256);
+            entity.Property(x => x.BaselineType).HasColumnName("baseline_type").HasMaxLength(64);
+            entity.Property(x => x.SourceEntityType).HasColumnName("source_entity_type").HasMaxLength(64);
+            entity.Property(x => x.SourceEntityId).HasColumnName("source_entity_id").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ApprovedBy).HasColumnName("approved_by").HasMaxLength(128);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.ChangeRequestId).HasColumnName("change_request_id");
+            entity.Property(x => x.SupersededByBaselineId).HasColumnName("superseded_by_baseline_id");
+            entity.Property(x => x.OverrideReason).HasColumnName("override_reason").HasMaxLength(2000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<ChangeRequestEntity>().WithMany().HasForeignKey(x => x.ChangeRequestId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<BaselineRegistryEntity>().WithMany().HasForeignKey(x => x.SupersededByBaselineId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => new { x.ProjectId, x.BaselineType, x.Status });
         });
 
         modelBuilder.Entity<WorkflowDefinitionEntity>(entity =>

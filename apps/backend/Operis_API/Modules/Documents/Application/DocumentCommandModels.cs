@@ -3,7 +3,14 @@ using Operis_API.Modules.Documents.Contracts;
 namespace Operis_API.Modules.Documents.Application;
 
 public sealed record DocumentCreateCommand(
-    string DocumentName,
+    Guid DocumentTypeId,
+    Guid ProjectId,
+    string PhaseCode,
+    string OwnerUserId,
+    string Classification,
+    string RetentionClass,
+    string Title,
+    IReadOnlyList<string> Tags,
     string? CreatedByUserId);
 
 public sealed record DocumentUploadResult(
@@ -19,7 +26,6 @@ public sealed record DocumentUploadResult(
 
 public sealed record DocumentVersionCreateCommand(
     Guid DocumentId,
-    string VersionCode,
     string FileName,
     string ContentType,
     long Size,
@@ -51,38 +57,23 @@ public sealed record DocumentVersionDeleteResult(
     public static DocumentVersionDeleteResult Fail(string errorCode, string errorMessage) => new(false, errorCode, errorMessage);
 }
 
-public sealed record DocumentVersionPublishCommand(
+public sealed record DocumentWorkflowCommand(
     Guid DocumentId,
-    Guid VersionId,
-    string? PublishedByUserId);
-
-public sealed record DocumentVersionPublishResult(
-    bool Succeeded,
-    string? ErrorCode,
-    string? ErrorMessage)
-{
-    public static DocumentVersionPublishResult Success() => new(true, null, null);
-
-    public static DocumentVersionPublishResult Fail(string errorCode, string errorMessage) => new(false, errorCode, errorMessage);
-}
-
-public sealed record DocumentVersionUnpublishCommand(
-    Guid DocumentId,
-    string? UnpublishedByUserId);
-
-public sealed record DocumentVersionUnpublishResult(
-    bool Succeeded,
-    string? ErrorCode,
-    string? ErrorMessage)
-{
-    public static DocumentVersionUnpublishResult Success() => new(true, null, null);
-
-    public static DocumentVersionUnpublishResult Fail(string errorCode, string errorMessage) => new(false, errorCode, errorMessage);
-}
+    string? ActorUserId,
+    string? StepName = null,
+    string? ReviewerUserId = null,
+    string? Reason = null);
 
 public sealed record DocumentUpdateCommand(
     Guid DocumentId,
-    string DocumentName,
+    Guid DocumentTypeId,
+    Guid ProjectId,
+    string PhaseCode,
+    string OwnerUserId,
+    string Classification,
+    string RetentionClass,
+    string Title,
+    IReadOnlyList<string> Tags,
     string? UpdatedByUserId);
 
 public sealed record DocumentUpdateResult(
@@ -109,4 +100,62 @@ public sealed record DocumentDeleteResult(
     public static DocumentDeleteResult Success() => new(true, null, null);
 
     public static DocumentDeleteResult Fail(string errorCode, string errorMessage) => new(false, errorCode, errorMessage);
+}
+
+public sealed record DocumentTypeCreateCommand(
+    string Code,
+    string Name,
+    string ModuleOwner,
+    string ClassificationDefault,
+    string RetentionClassDefault,
+    bool ApprovalRequired);
+
+public sealed record DocumentTypeUpdateCommand(
+    Guid DocumentTypeId,
+    string Code,
+    string Name,
+    string ModuleOwner,
+    string ClassificationDefault,
+    string RetentionClassDefault,
+    bool ApprovalRequired,
+    string Status);
+
+public sealed record DocumentLinkCreateCommand(
+    Guid DocumentId,
+    string TargetEntityType,
+    string TargetEntityId,
+    string LinkType,
+    string? CreatedByUserId);
+
+public sealed record DocumentTypeCommandResult(
+    bool Succeeded,
+    DocumentTypeResponse? DocumentType,
+    string? ErrorCode,
+    string? ErrorMessage)
+{
+    public static DocumentTypeCommandResult Success(DocumentTypeResponse documentType) => new(true, documentType, null, null);
+
+    public static DocumentTypeCommandResult Fail(string errorCode, string errorMessage) => new(false, null, errorCode, errorMessage);
+}
+
+public sealed record DocumentLinkCommandResult(
+    bool Succeeded,
+    DocumentLinkItem? Link,
+    string? ErrorCode,
+    string? ErrorMessage)
+{
+    public static DocumentLinkCommandResult Success(DocumentLinkItem link) => new(true, link, null, null);
+
+    public static DocumentLinkCommandResult Fail(string errorCode, string errorMessage) => new(false, null, errorCode, errorMessage);
+}
+
+public sealed record DocumentWorkflowResult(
+    bool Succeeded,
+    DocumentDetailResponse? Document,
+    string? ErrorCode,
+    string? ErrorMessage)
+{
+    public static DocumentWorkflowResult Success(DocumentDetailResponse document) => new(true, document, null, null);
+
+    public static DocumentWorkflowResult Fail(string errorCode, string errorMessage) => new(false, null, errorCode, errorMessage);
 }

@@ -49,6 +49,22 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Documents.Deactivate,
                 Permissions.Workflows.Read,
                 Permissions.Workflows.ManageDefinitions,
+                Permissions.Requirements.Read,
+                Permissions.Requirements.Manage,
+                Permissions.Requirements.Approve,
+                Permissions.Requirements.Baseline,
+                Permissions.Requirements.ManageTraceability,
+                Permissions.ChangeControl.Read,
+                Permissions.ChangeControl.Manage,
+                Permissions.ChangeControl.Approve,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.ChangeControl.ManageConfiguration,
+                Permissions.ChangeControl.ManageBaselines,
+                Permissions.ChangeControl.ApproveBaselines,
+                Permissions.ChangeControl.EmergencyOverride,
+                Permissions.Risks.Read,
+                Permissions.Risks.Manage,
+                Permissions.Risks.ReadSensitive,
                 Permissions.Notifications.Read
             ],
             ["operis_system_admin"] =
@@ -81,6 +97,11 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Documents.Read,
                 Permissions.Workflows.Read,
                 Permissions.Workflows.ManageDefinitions,
+                Permissions.Requirements.Read,
+                Permissions.ChangeControl.Read,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.Risks.Read,
+                Permissions.Risks.ReadSensitive,
                 Permissions.Notifications.Read
             ],
             ["operis:audit_auditor"] =
@@ -93,6 +114,11 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Projects.ReadCompliance,
                 Permissions.Documents.Read,
                 Permissions.Workflows.Read,
+                Permissions.Requirements.Read,
+                Permissions.ChangeControl.Read,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.Risks.Read,
+                Permissions.Risks.ReadSensitive,
                 Permissions.Notifications.Read
             ],
             ["operis:documents_owner"] =
@@ -103,13 +129,135 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Documents.Publish,
                 Permissions.Documents.DeleteDraft,
                 Permissions.Documents.Deactivate,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.ChangeControl.ManageConfiguration,
+                Permissions.Risks.Read,
                 Permissions.Notifications.Read
             ],
             ["operis:documents_reviewer"] = [Permissions.Documents.Read, Permissions.Notifications.Read],
             ["operis:workflows_approver"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
             ["operis:workflows_department_manager"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
             ["operis:employee_viewer"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
-            ["operis:ops_support"] = [Permissions.Admin.SettingsRead, Permissions.Notifications.Read, Permissions.ActivityLogs.Read]
+            ["operis:ops_support"] = [Permissions.Admin.SettingsRead, Permissions.Notifications.Read, Permissions.ActivityLogs.Read],
+            ["operis:compliance_admin"] =
+            [
+                Permissions.Governance.ProcessLibraryRead,
+                Permissions.Governance.ProcessLibraryManage,
+                Permissions.Governance.QaChecklistRead,
+                Permissions.Governance.QaChecklistManage,
+                Permissions.Governance.ProjectPlanRead,
+                Permissions.Governance.ProjectPlanApprove,
+                Permissions.Governance.StakeholderRead,
+                Permissions.Governance.TailoringRead,
+                Permissions.Governance.TailoringApprove,
+                Permissions.Requirements.Read,
+                Permissions.Requirements.Approve,
+                Permissions.Requirements.Baseline,
+                Permissions.ChangeControl.Read,
+                Permissions.ChangeControl.Approve,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.ChangeControl.ApproveBaselines,
+                Permissions.ChangeControl.EmergencyOverride,
+                Permissions.Risks.Read,
+                Permissions.Risks.Manage,
+                Permissions.Risks.ReadSensitive
+            ],
+            ["operis:pm"] =
+            [
+                Permissions.Governance.ProcessLibraryRead,
+                Permissions.Governance.QaChecklistRead,
+                Permissions.Governance.ProjectPlanRead,
+                Permissions.Governance.ProjectPlanManage,
+                Permissions.Governance.StakeholderRead,
+                Permissions.Governance.StakeholderManage,
+                Permissions.Governance.TailoringRead,
+                Permissions.Governance.TailoringManage,
+                Permissions.Requirements.Read,
+                Permissions.Requirements.Manage,
+                Permissions.Requirements.Baseline,
+                Permissions.Requirements.ManageTraceability,
+                Permissions.ChangeControl.Read,
+                Permissions.ChangeControl.Manage,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.ChangeControl.ManageBaselines,
+                Permissions.Risks.Read,
+                Permissions.Risks.Manage,
+                Permissions.Risks.ReadSensitive
+            ],
+            ["operis:ba"] =
+            [
+                Permissions.Governance.ProcessLibraryRead,
+                Permissions.Governance.QaChecklistRead,
+                Permissions.Governance.StakeholderRead,
+                Permissions.Requirements.Read,
+                Permissions.Requirements.Manage,
+                Permissions.Requirements.ManageTraceability,
+                Permissions.ChangeControl.Read,
+                Permissions.ChangeControl.Manage,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.Risks.Read,
+                Permissions.Risks.Manage
+            ],
+            ["operis:qa"] =
+            [
+                Permissions.Governance.QaChecklistRead,
+                Permissions.Governance.ProjectPlanRead,
+                Permissions.Requirements.Read,
+                Permissions.ChangeControl.Read,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.Risks.Read
+            ],
+            ["operis:approver"] =
+            [
+                Permissions.Governance.QaChecklistRead,
+                Permissions.Governance.ProjectPlanRead,
+                Permissions.Governance.ProjectPlanApprove,
+                Permissions.Governance.TailoringRead,
+                Permissions.Governance.TailoringApprove,
+                Permissions.Requirements.Read,
+                Permissions.Requirements.Approve,
+                Permissions.Requirements.Baseline,
+                Permissions.ChangeControl.Read,
+                Permissions.ChangeControl.Approve,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.ChangeControl.ApproveBaselines,
+                Permissions.Risks.Read,
+                Permissions.Risks.ReadSensitive
+            ],
+            ["operis:requirements_manager"] =
+            [
+                Permissions.Requirements.Read,
+                Permissions.Requirements.Manage,
+                Permissions.Requirements.ManageTraceability
+            ],
+            ["operis:requirements_approver"] =
+            [
+                Permissions.Requirements.Read,
+                Permissions.Requirements.Approve,
+                Permissions.Requirements.Baseline
+            ],
+            ["operis:change_manager"] =
+            [
+                Permissions.ChangeControl.Read,
+                Permissions.ChangeControl.Manage,
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.ChangeControl.ManageBaselines
+            ],
+            ["operis:risk_manager"] =
+            [
+                Permissions.Risks.Read,
+                Permissions.Risks.Manage,
+                Permissions.Risks.ReadSensitive
+            ],
+            ["operis:risk_viewer"] =
+            [
+                Permissions.Risks.Read
+            ],
+            ["operis:configuration_controller"] =
+            [
+                Permissions.ChangeControl.ReadConfiguration,
+                Permissions.ChangeControl.ManageConfiguration
+            ]
         };
 
     public IReadOnlyList<string> GetPermissions(IEnumerable<string> roles)

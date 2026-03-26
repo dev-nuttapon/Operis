@@ -33,7 +33,7 @@ public sealed class WorkflowTaskQueries(OperisDbContext dbContext) : IWorkflowTa
                 instance.ProjectId,
                 ProjectName = project.Name,
                 instance.DocumentId,
-                DocumentName = document.DocumentName,
+                DocumentName = document.Title,
                 InstanceStatus = instance.Status,
                 InstanceStartedAt = instance.StartedAt,
                 InstanceStepId = instanceStep.Id,

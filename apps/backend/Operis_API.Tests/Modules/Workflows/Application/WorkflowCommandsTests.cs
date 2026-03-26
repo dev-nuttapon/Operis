@@ -13,7 +13,17 @@ public sealed class WorkflowCommandsTests
         var roleId = Guid.NewGuid();
         var docId = Guid.NewGuid();
         dbContext.ProjectRoles.Add(new Operis_API.Modules.Users.Infrastructure.ProjectRoleEntity { Id = roleId, Name = "Test Role", CreatedAt = DateTimeOffset.UtcNow });
-        dbContext.Documents.Add(new Operis_API.Modules.Documents.Infrastructure.DocumentEntity { Id = docId, DocumentName = "Test Doc", UploadedAt = DateTimeOffset.UtcNow });
+        dbContext.Documents.Add(new Operis_API.Modules.Documents.Infrastructure.DocumentEntity
+        {
+            Id = docId,
+            Title = "Test Doc",
+            PhaseCode = "DEV",
+            OwnerUserId = "user-1",
+            Classification = "internal",
+            RetentionClass = "standard",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
         await dbContext.SaveChangesAsync();
         return (roleId, docId);
     }

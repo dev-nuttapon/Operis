@@ -54,9 +54,9 @@ public sealed class DocumentTemplateQueries(
                     select new DocumentTemplateItemResponse(
                         item.DocumentId,
                         item.DocumentVersionId,
-                        doc.DocumentName,
-                        version != null ? version.VersionCode : null,
-                        version != null ? (int?)version.Revision : null))
+                        doc.Title,
+                        version != null ? $"v{version.VersionNumber}" : null,
+                        version != null ? (int?)version.VersionNumber : null))
                     .ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -88,7 +88,7 @@ public sealed class DocumentTemplateQueries(
         var documents = await dbContext.Documents
             .AsNoTracking()
             .Where(x => normalized.Contains(x.Id) && !x.IsDeleted)
-            .Select(x => new { x.Id, x.PublishedVersionId })
+            .Select(x => new { x.Id, x.CurrentVersionId })
             .ToListAsync(cancellationToken);
 
         if (documents.Count != normalized.Count)
@@ -96,9 +96,9 @@ public sealed class DocumentTemplateQueries(
             return new DocumentTemplateDocumentValidationResult(false, "Document does not exist.");
         }
 
-        if (documents.Any(x => x.PublishedVersionId is null))
+        if (documents.Any(x => x.CurrentVersionId is null))
         {
-            return new DocumentTemplateDocumentValidationResult(false, "Document must have a published version.");
+            return new DocumentTemplateDocumentValidationResult(false, "Document must have a current approved version.");
         }
 
         return new DocumentTemplateDocumentValidationResult(true, null);

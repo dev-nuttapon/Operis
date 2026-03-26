@@ -70,7 +70,6 @@ export function WorkflowTaskUploadPage() {
     }
 
     try {
-      const values = await form.validateFields();
       if (!selectedFile) {
         notification.error({
           message: t("documents.version_page.fields.file_required"),
@@ -81,7 +80,6 @@ export function WorkflowTaskUploadPage() {
 
       await createVersionMutation.mutateAsync({
         documentId: task.documentId,
-        versionCode: values.versionCode,
         file: selectedFile,
       });
 
@@ -151,14 +149,6 @@ export function WorkflowTaskUploadPage() {
           <Form form={form} layout="vertical" disabled={!canUpload}>
             <Form.Item label={t("documents.version_page.fields.document_name")}>
               <Input value={documentLabel} disabled />
-            </Form.Item>
-
-            <Form.Item
-              name="versionCode"
-              label={t("documents.version_page.fields.version_code")}
-              rules={[{ required: true, message: t("documents.version_page.fields.version_code_required") }]}
-            >
-              <Input placeholder={t("documents.version_page.fields.version_code_placeholder")} />
             </Form.Item>
 
             <Form.Item label={t("documents.version_page.fields.file")}>

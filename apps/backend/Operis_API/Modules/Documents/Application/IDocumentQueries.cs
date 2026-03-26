@@ -7,5 +7,8 @@ public interface IDocumentQueries
 {
     Task<PagedResult<DocumentListItem>> ListDocumentsAsync(DocumentListQuery query, CancellationToken cancellationToken);
     Task<IReadOnlyList<DocumentListItem>> GetDocumentsByIdsAsync(IReadOnlyList<Guid> documentIds, CancellationToken cancellationToken);
+    Task<DocumentDetailResponse?> GetDocumentAsync(Guid documentId, CancellationToken cancellationToken);
     Task<PagedResult<DocumentVersionListItem>> ListDocumentVersionsAsync(DocumentVersionListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<DocumentTypeListItem>> ListDocumentTypesAsync(DocumentTypeListQuery query, CancellationToken cancellationToken);
+    Task<DocumentTypeResponse?> GetDocumentTypeAsync(Guid documentTypeId, CancellationToken cancellationToken);
 }

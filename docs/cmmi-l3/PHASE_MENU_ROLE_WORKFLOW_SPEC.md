@@ -1160,6 +1160,10 @@ These packages extend the minimum build spec and should be treated as the defaul
 - Issue / Action Log
   - List fields: `code`, `title`, `severity`, `owner`, `due date`, `status`, `open actions`
   - Detail fields: `root issue`, `actions[]`, `dependencies`, `resolution summary`
+- Implementation decisions
+  - `risks` keep optional `cause`, `effect`, and `contingency_plan` fields in first-version delivery so the detail screen matches the required UI field group without deferring those values to attachments.
+  - `issues` keep optional `root_issue`, `dependencies`, and `resolution_summary` fields in first-version delivery for closed-loop action tracking.
+  - Sensitive issue handling is implemented with `is_sensitive` + `sensitive_context`; list/detail queries hide those records from users who do not hold the sensitive-read permission.
 
 #### Phase 5 API Contract
 - `GET /risks`
@@ -1174,6 +1178,7 @@ These packages extend the minimum build spec and should be treated as the defaul
 - `GET /issues/{id}`
 - `PUT /issues/{id}`
 - `POST /issues/{id}/actions`
+- `PUT /issues/{id}/actions/{actionId}`
 - `PUT /issues/{id}/resolve`
 - `PUT /issues/{id}/close`
 
@@ -3049,6 +3054,9 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
   - `impact`: integer, required, range `1..5`
   - `owner_user_id`: string, required, indexed
   - `mitigation_plan`: string, optional, max 4000
+  - `cause`: string, optional, max 2000
+  - `effect`: string, optional, max 2000
+  - `contingency_plan`: string, optional, max 4000
   - `status`: enum(`draft`,`assessed`,`mitigated`,`closed`), required, indexed
   - `next_review_at`: datetime, optional, indexed
 - Indexes
@@ -3066,6 +3074,11 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
   - `due_date`: date, optional, indexed
   - `status`: enum(`open`,`in_progress`,`resolved`,`closed`), required, indexed
   - `severity`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+  - `root_issue`: string, optional, max 2000
+  - `dependencies`: string, optional, max 4000
+  - `resolution_summary`: string, optional, max 4000
+  - `is_sensitive`: boolean, required, default `false`, indexed
+  - `sensitive_context`: string, optional, max 256
 - Indexes
   - unique(`project_id`,`code`)
   - index(`project_id`,`status`,`severity`)

@@ -104,11 +104,19 @@ export function useDocumentOptions(enabled: boolean) {
 
   const options = useMemo<DocumentOption[]>(() => {
     const items = documentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  return items.map((item: DocumentListItemView) => ({
-    label: item.documentName,
-    value: item.id,
-    meta: item,
-  }));
+    return items.map((item: DocumentListItemView) => ({
+      label: item.title,
+      value: item.id,
+      meta: {
+        ...item,
+        documentName: item.title,
+        fileName: item.currentFileName,
+        contentType: null,
+        sizeBytes: item.currentFileSize,
+        publishedRevision: item.currentVersionNumber,
+        publishedVersionCode: item.currentVersionNumber ? `v${item.currentVersionNumber}` : null,
+      },
+    }));
   }, [documentsQuery.data]);
 
   const handleSearch = (value: string) => {

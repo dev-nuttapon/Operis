@@ -649,7 +649,7 @@ public sealed class ProjectCommands(
 
         var publishedDocumentIds = await dbContext.Documents
             .AsNoTracking()
-            .Where(doc => documentIds.Contains(doc.Id) && !doc.IsDeleted && doc.PublishedVersionId != null)
+            .Where(doc => documentIds.Contains(doc.Id) && !doc.IsDeleted && doc.CurrentVersionId != null)
             .Select(doc => doc.Id)
             .ToListAsync(cancellationToken);
 

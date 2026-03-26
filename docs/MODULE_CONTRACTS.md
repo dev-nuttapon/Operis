@@ -68,6 +68,34 @@ Public entry:
 * [apps/frontend/src/modules/notifications/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/notifications/index.ts)
 * [apps/frontend/src/modules/notifications/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/notifications/README.md)
 
+## governance
+
+Public entry:
+
+* [apps/frontend/src/modules/governance/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/governance/index.ts)
+* [apps/frontend/src/modules/governance/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/governance/README.md)
+
+## requirements
+
+Public entry:
+
+* [apps/frontend/src/modules/requirements/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/requirements/index.ts)
+* [apps/frontend/src/modules/requirements/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/requirements/README.md)
+
+## change-control
+
+Public entry:
+
+* [apps/frontend/src/modules/change-control/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/change-control/index.ts)
+* [apps/frontend/src/modules/change-control/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/change-control/README.md)
+
+## risks
+
+Public entry:
+
+* [apps/frontend/src/modules/risks/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/risks/index.ts)
+* [apps/frontend/src/modules/risks/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/risks/README.md)
+
 ---
 
 # Backend Public Surfaces
@@ -134,6 +162,65 @@ Application surfaces:
 
 * workflow definition queries
 * workflow definition commands
+
+## notifications
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Notifications/NotificationsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Notifications/NotificationsModule.cs)
+* [apps/backend/Operis_API/Modules/Notifications/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Notifications/README.md)
+
+Application surfaces:
+
+* notification queries
+
+## governance
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Governance/GovernanceModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Governance/GovernanceModule.cs)
+* [apps/backend/Operis_API/Modules/Governance/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Governance/README.md)
+
+Application surfaces:
+
+* governance queries
+* governance commands
+
+## requirements
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Requirements/RequirementsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Requirements/RequirementsModule.cs)
+* [apps/backend/Operis_API/Modules/Requirements/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Requirements/README.md)
+
+Application surfaces:
+
+* requirement queries
+* requirement commands
+
+## changecontrol
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/ChangeControl/ChangeControlModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/ChangeControl/ChangeControlModule.cs)
+* [apps/backend/Operis_API/Modules/ChangeControl/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/ChangeControl/README.md)
+
+Application surfaces:
+
+* change control queries
+* change control commands
+
+## risks
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Risks/RisksModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Risks/RisksModule.cs)
+* [apps/backend/Operis_API/Modules/Risks/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Risks/README.md)
+
+Application surfaces:
+
+* risk queries
+* risk commands
 
 ---
 

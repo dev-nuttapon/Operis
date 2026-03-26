@@ -1,7 +1,5 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Users.Application;
 using Operis_API.Modules.Users.Contracts;
 using Operis_API.Modules.Users.Domain;
@@ -36,6 +34,7 @@ public sealed class UsersModule : IModule
         services.AddScoped<IProjectTemplateCommands, ProjectTemplateCommands>();
         services.AddScoped<IProjectTemplateQueries, ProjectTemplateQueries>();
         services.AddScoped<IProjectHistoryQueries, ProjectHistoryQueries>();
+        services.AddScoped<IUserCacheRefreshCommands, UserCacheRefreshCommands>();
         services.AddScoped<ProjectHistoryWriter>();
         services.AddSingleton<IReferenceDataCache, ReferenceDataCache>();
         services.AddSingleton<IKeycloakUserCache, KeycloakUserCache>();
@@ -408,8 +407,7 @@ public sealed class UsersModule : IModule
     private static async Task<IResult> RefreshDepartmentsCacheAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
-        OperisDbContext dbContext,
-        IReferenceDataCache referenceDataCache,
+        IUserCacheRefreshCommands commands,
         CancellationToken cancellationToken = default)
     {
         if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
@@ -417,15 +415,14 @@ public sealed class UsersModule : IModule
             return Results.Forbid();
         }
 
-        var total = await referenceDataCache.RefreshDepartmentsAsync(dbContext, cancellationToken);
+        var total = await commands.RefreshDepartmentsAsync(cancellationToken);
         return Results.Ok(new { Total = total });
     }
 
     private static async Task<IResult> RefreshDivisionsCacheAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
-        OperisDbContext dbContext,
-        IReferenceDataCache referenceDataCache,
+        IUserCacheRefreshCommands commands,
         CancellationToken cancellationToken = default)
     {
         if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
@@ -433,15 +430,14 @@ public sealed class UsersModule : IModule
             return Results.Forbid();
         }
 
-        var total = await referenceDataCache.RefreshDivisionsAsync(dbContext, cancellationToken);
+        var total = await commands.RefreshDivisionsAsync(cancellationToken);
         return Results.Ok(new { Total = total });
     }
 
     private static async Task<IResult> RefreshJobTitlesCacheAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
-        OperisDbContext dbContext,
-        IReferenceDataCache referenceDataCache,
+        IUserCacheRefreshCommands commands,
         CancellationToken cancellationToken = default)
     {
         if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
@@ -449,15 +445,14 @@ public sealed class UsersModule : IModule
             return Results.Forbid();
         }
 
-        var total = await referenceDataCache.RefreshJobTitlesAsync(dbContext, cancellationToken);
+        var total = await commands.RefreshJobTitlesAsync(cancellationToken);
         return Results.Ok(new { Total = total });
     }
 
     private static async Task<IResult> RefreshProjectRolesCacheAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
-        OperisDbContext dbContext,
-        IReferenceDataCache referenceDataCache,
+        IUserCacheRefreshCommands commands,
         CancellationToken cancellationToken = default)
     {
         if (LacksPermission(principal, permissionMatrix, Permissions.Users.Update))
@@ -465,7 +460,7 @@ public sealed class UsersModule : IModule
             return Results.Forbid();
         }
 
-        var total = await referenceDataCache.RefreshProjectRolesAsync(dbContext, cancellationToken);
+        var total = await commands.RefreshProjectRolesAsync(cancellationToken);
         return Results.Ok(new { Total = total });
     }
 

@@ -1,13 +1,10 @@
-using Microsoft.EntityFrameworkCore;
-using Operis_API.Infrastructure.Persistence;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using Operis_API.Modules.Documents.Application;
 using Operis_API.Modules.Documents.Contracts;
-using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
 using Operis_API.Shared.Modules;
 using Operis_API.Shared.Security;
-using System.Text.Json;
-using System.Security.Claims;
 
 namespace Operis_API.Modules.Documents;
 
@@ -24,6 +21,7 @@ public sealed class DocumentsModule : IModule
         services.AddScoped<DocumentHistoryWriter>();
         services.AddScoped<IDocumentTemplateQueries, DocumentTemplateQueries>();
         services.AddScoped<IDocumentTemplateCommands, DocumentTemplateCommands>();
+        services.AddScoped<IDocumentTemplateCacheCommands, DocumentTemplateCacheCommands>();
         services.AddScoped<IDocumentTemplateHistoryQueries, DocumentTemplateHistoryQueries>();
         services.AddScoped<DocumentTemplateHistoryWriter>();
         services.AddSingleton<Infrastructure.IDocumentTemplateCache, Infrastructure.DocumentTemplateCache>();
@@ -36,45 +34,36 @@ public sealed class DocumentsModule : IModule
             .WithTags("Documents")
             .RequireAuthorization();
 
-        group.MapGet("/", ListDocumentsAsync)
-            .WithName("Documents_List");
-        group.MapPost("/lookup", LookupDocumentsAsync)
-            .WithName("Documents_Lookup");
-        group.MapPost("/", CreateDocumentAsync)
-            .WithName("Documents_Upload");
-        group.MapGet("/{documentId:guid}/versions", ListDocumentVersionsAsync)
-            .WithName("Documents_ListVersions");
-        group.MapPost("/{documentId:guid}/versions", CreateDocumentVersionAsync)
-            .DisableAntiforgery()
-            .WithName("Documents_CreateVersion");
-        group.MapDelete("/{documentId:guid}/versions/{versionId:guid}", DeleteDocumentVersionAsync)
-            .WithName("Documents_DeleteVersion");
-        group.MapPost("/{documentId:guid}/versions/{versionId:guid}/publish", PublishDocumentVersionAsync)
-            .WithName("Documents_PublishVersion");
-        group.MapPost("/{documentId:guid}/versions/unpublish", UnpublishDocumentVersionAsync)
-            .WithName("Documents_UnpublishVersion");
-        group.MapPut("/{documentId:guid}", UpdateDocumentAsync)
-            .WithName("Documents_Update");
-        group.MapDelete("/{documentId:guid}", DeleteDocumentAsync)
-            .WithName("Documents_Delete");
-        group.MapGet("/{documentId:guid}/download", DownloadDocumentAsync)
-            .WithName("Documents_Download");
-        group.MapGet("/{documentId:guid}/history", ListDocumentHistoryAsync)
-            .WithName("Documents_History");
-        group.MapGet("/templates", ListDocumentTemplatesAsync)
-            .WithName("Documents_ListTemplates");
-        group.MapPost("/templates/cache/refresh", RefreshDocumentTemplateCacheAsync)
-            .WithName("Documents_RefreshTemplateCache");
-        group.MapPost("/templates", CreateDocumentTemplateAsync)
-            .WithName("Documents_CreateTemplate");
-        group.MapGet("/templates/{templateId:guid}", GetDocumentTemplateAsync)
-            .WithName("Documents_GetTemplate");
-        group.MapPut("/templates/{templateId:guid}", UpdateDocumentTemplateAsync)
-            .WithName("Documents_UpdateTemplate");
-        group.MapPost("/templates/{templateId:guid}/items/{documentId:guid}/refresh-version", RefreshDocumentTemplateItemVersionAsync)
-            .WithName("Documents_TemplateRefreshItemVersion");
-        group.MapGet("/templates/{templateId:guid}/history", ListDocumentTemplateHistoryAsync)
-            .WithName("Documents_TemplateHistory");
+        group.MapGet("/", ListDocumentsAsync).WithName("Documents_List");
+        group.MapPost("/lookup", LookupDocumentsAsync).WithName("Documents_Lookup");
+        group.MapPost("/", CreateDocumentAsync).WithName("Documents_Create");
+        group.MapGet("/{documentId:guid}", GetDocumentAsync).WithName("Documents_Get");
+        group.MapPut("/{documentId:guid}", UpdateDocumentAsync).WithName("Documents_Update");
+        group.MapDelete("/{documentId:guid}", DeleteDocumentAsync).WithName("Documents_Delete");
+        group.MapGet("/{documentId:guid}/versions", ListDocumentVersionsAsync).WithName("Documents_ListVersions");
+        group.MapPost("/{documentId:guid}/versions", CreateDocumentVersionAsync).DisableAntiforgery().WithName("Documents_CreateVersion");
+        group.MapDelete("/{documentId:guid}/versions/{versionId:guid}", DeleteDocumentVersionAsync).WithName("Documents_DeleteVersion");
+        group.MapPut("/{documentId:guid}/submit", SubmitDocumentAsync).WithName("Documents_Submit");
+        group.MapPut("/{documentId:guid}/approve", ApproveDocumentAsync).WithName("Documents_Approve");
+        group.MapPut("/{documentId:guid}/reject", RejectDocumentAsync).WithName("Documents_Reject");
+        group.MapPut("/{documentId:guid}/baseline", BaselineDocumentAsync).WithName("Documents_Baseline");
+        group.MapPut("/{documentId:guid}/archive", ArchiveDocumentAsync).WithName("Documents_Archive");
+        group.MapPost("/{documentId:guid}/links", CreateDocumentLinkAsync).WithName("Documents_CreateLink");
+        group.MapGet("/{documentId:guid}/download", DownloadDocumentAsync).WithName("Documents_Download");
+        group.MapGet("/{documentId:guid}/history", ListDocumentHistoryAsync).WithName("Documents_History");
+
+        group.MapGet("/types", ListDocumentTypesAsync).WithName("Documents_ListTypes");
+        group.MapPost("/types", CreateDocumentTypeAsync).WithName("Documents_CreateType");
+        group.MapGet("/types/{documentTypeId:guid}", GetDocumentTypeAsync).WithName("Documents_GetType");
+        group.MapPut("/types/{documentTypeId:guid}", UpdateDocumentTypeAsync).WithName("Documents_UpdateType");
+
+        group.MapGet("/templates", ListDocumentTemplatesAsync).WithName("Documents_ListTemplates");
+        group.MapPost("/templates/cache/refresh", RefreshDocumentTemplateCacheAsync).WithName("Documents_RefreshTemplateCache");
+        group.MapPost("/templates", CreateDocumentTemplateAsync).WithName("Documents_CreateTemplate");
+        group.MapGet("/templates/{templateId:guid}", GetDocumentTemplateAsync).WithName("Documents_GetTemplate");
+        group.MapPut("/templates/{templateId:guid}", UpdateDocumentTemplateAsync).WithName("Documents_UpdateTemplate");
+        group.MapPost("/templates/{templateId:guid}/items/{documentId:guid}/refresh-version", RefreshDocumentTemplateItemVersionAsync).WithName("Documents_TemplateRefreshItemVersion");
+        group.MapGet("/templates/{templateId:guid}/history", ListDocumentTemplateHistoryAsync).WithName("Documents_TemplateHistory");
 
         return endpoints;
     }
@@ -85,6 +74,13 @@ public sealed class DocumentsModule : IModule
         IDocumentQueries queries,
         CancellationToken cancellationToken,
         string? search = null,
+        Guid? documentTypeId = null,
+        Guid? projectId = null,
+        string? phaseCode = null,
+        string? status = null,
+        string? ownerUserId = null,
+        string? classification = null,
+        DateTimeOffset? updatedAfter = null,
         int page = 1,
         int pageSize = 10)
     {
@@ -93,7 +89,7 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var items = await queries.ListDocumentsAsync(new DocumentListQuery(search, page, pageSize), cancellationToken);
+        var items = await queries.ListDocumentsAsync(new DocumentListQuery(search, documentTypeId, projectId, phaseCode, status, ownerUserId, classification, updatedAfter, page, pageSize), cancellationToken);
         return Results.Ok(items);
     }
 
@@ -109,96 +105,20 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var documentIds = request.DocumentIds ?? Array.Empty<Guid>();
+        var documentIds = request.DocumentIds ?? [];
         if (documentIds.Count == 0)
         {
             return Results.Ok(Array.Empty<DocumentListItem>());
         }
 
-        var items = await queries.GetDocumentsByIdsAsync(documentIds, cancellationToken);
-        return Results.Ok(items);
+        return Results.Ok(await queries.GetDocumentsByIdsAsync(documentIds, cancellationToken));
     }
 
     private static async Task<IResult> CreateDocumentAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
         IDocumentCommands commands,
-        HttpRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload)
-            && !permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
-        {
-            return Results.Forbid();
-        }
-
-        var documentName = await ExtractDocumentNameAsync(request, cancellationToken);
-        if (string.IsNullOrWhiteSpace(documentName))
-        {
-            return BadRequestWithCode("A document name is required.", ApiErrorCodes.Documents.NameRequired);
-        }
-
-        var result = await commands.CreateDocumentAsync(
-            new DocumentCreateCommand(
-                documentName,
-                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
-            cancellationToken);
-
-        return result.Succeeded
-            ? Results.Created($"/api/v1/documents/{result.Document!.Id}", result.Document)
-            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
-    }
-
-    private static async Task<IResult> CreateDocumentVersionAsync(
-        ClaimsPrincipal principal,
-        IPermissionMatrix permissionMatrix,
-        IDocumentCommands commands,
-        Guid documentId,
-        HttpRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
-        {
-            return Results.Forbid();
-        }
-
-        if (!request.HasFormContentType)
-        {
-            return BadRequestWithCode("Request must be multipart/form-data.", ApiErrorCodes.RequestValidationFailed);
-        }
-
-        var form = await request.ReadFormAsync(cancellationToken);
-        var file = form.Files.GetFile("file");
-        var versionCode = form.TryGetValue("versionCode", out var codeValues) ? codeValues.ToString() : null;
-
-        if (file is null)
-        {
-            return BadRequestWithCode("A file is required.", ApiErrorCodes.Documents.FileRequired);
-        }
-
-        await using var stream = file.OpenReadStream();
-        var result = await commands.CreateDocumentVersionAsync(
-            new DocumentVersionCreateCommand(
-                documentId,
-                versionCode ?? string.Empty,
-                file.FileName,
-                file.ContentType,
-                file.Length,
-                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
-            stream,
-            cancellationToken);
-
-        return result.Succeeded
-            ? Results.Created($"/api/v1/documents/{documentId}/versions/{result.Version!.Id}", result.Version)
-            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
-    }
-
-    private static async Task<IResult> UpdateDocumentAsync(
-        ClaimsPrincipal principal,
-        IPermissionMatrix permissionMatrix,
-        IDocumentCommands commands,
-        Guid documentId,
-        HttpRequest request,
+        DocumentCreateRequest request,
         CancellationToken cancellationToken)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload))
@@ -206,22 +126,68 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var documentName = await ExtractDocumentNameAsync(request, cancellationToken);
-        if (string.IsNullOrWhiteSpace(documentName))
+        var result = await commands.CreateDocumentAsync(
+            new DocumentCreateCommand(
+                request.DocumentTypeId,
+                request.ProjectId,
+                request.PhaseCode,
+                request.OwnerUserId,
+                request.Classification,
+                request.RetentionClass,
+                request.Title,
+                request.Tags ?? [],
+                GetActorUserId(principal)),
+            cancellationToken);
+
+        return result.Succeeded
+            ? Results.Created($"/api/v1/documents/{result.Document!.Id}", result.Document)
+            : ToProblemResult(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> GetDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentQueries queries,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
         {
-            return BadRequestWithCode("A document name is required.", ApiErrorCodes.Documents.NameRequired);
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetDocumentAsync(documentId, cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> UpdateDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        DocumentUpdateRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload))
+        {
+            return Results.Forbid();
         }
 
         var result = await commands.UpdateDocumentAsync(
             new DocumentUpdateCommand(
                 documentId,
-                documentName,
-                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
+                request.DocumentTypeId,
+                request.ProjectId,
+                request.PhaseCode,
+                request.OwnerUserId,
+                request.Classification,
+                request.RetentionClass,
+                request.Title,
+                request.Tags ?? [],
+                GetActorUserId(principal)),
             cancellationToken);
 
-        return result.Succeeded
-            ? Results.Ok(result.Document)
-            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
+        return result.Succeeded ? Results.Ok(result.Document) : ToProblemResult(result.ErrorMessage, result.ErrorCode);
     }
 
     private static async Task<IResult> DeleteDocumentAsync(
@@ -229,7 +195,7 @@ public sealed class DocumentsModule : IModule
         IPermissionMatrix permissionMatrix,
         IDocumentCommands commands,
         Guid documentId,
-        HttpRequest request,
+        [FromBody] DocumentDeleteRequest request,
         CancellationToken cancellationToken)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Documents.DeleteDraft))
@@ -237,95 +203,8 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var reason = await ExtractDeleteReasonAsync(request, cancellationToken);
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            return BadRequestWithCode("A delete reason is required.", ApiErrorCodes.Documents.DeleteReasonRequired);
-        }
-
-        var result = await commands.DeleteDocumentAsync(
-            new DocumentDeleteCommand(
-                documentId,
-                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier),
-                reason),
-            cancellationToken);
-
-        return result.Succeeded
-            ? Results.NoContent()
-            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
-    }
-
-    private static async Task<IResult> DeleteDocumentVersionAsync(
-        ClaimsPrincipal principal,
-        IPermissionMatrix permissionMatrix,
-        IDocumentCommands commands,
-        Guid documentId,
-        Guid versionId,
-        CancellationToken cancellationToken)
-    {
-        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
-        {
-            return Results.Forbid();
-        }
-
-        var result = await commands.DeleteDocumentVersionAsync(
-            new DocumentVersionDeleteCommand(
-                documentId,
-                versionId,
-                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
-            cancellationToken);
-
-        return result.Succeeded
-            ? Results.NoContent()
-            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
-    }
-
-    private static async Task<IResult> PublishDocumentVersionAsync(
-        ClaimsPrincipal principal,
-        IPermissionMatrix permissionMatrix,
-        IDocumentCommands commands,
-        Guid documentId,
-        Guid versionId,
-        CancellationToken cancellationToken)
-    {
-        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Publish))
-        {
-            return Results.Forbid();
-        }
-
-        var result = await commands.PublishDocumentVersionAsync(
-            new DocumentVersionPublishCommand(
-                documentId,
-                versionId,
-                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
-            cancellationToken);
-
-        return result.Succeeded
-            ? Results.NoContent()
-            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
-    }
-
-    private static async Task<IResult> UnpublishDocumentVersionAsync(
-        ClaimsPrincipal principal,
-        IPermissionMatrix permissionMatrix,
-        IDocumentCommands commands,
-        Guid documentId,
-        CancellationToken cancellationToken)
-    {
-        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Publish))
-        {
-            return Results.Forbid();
-        }
-
-        var result = await commands.UnpublishDocumentVersionAsync(
-            new DocumentVersionUnpublishCommand(
-                documentId,
-                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
-            cancellationToken);
-
-        return result.Succeeded
-            ? Results.NoContent()
-            : BadRequestWithCode(result.ErrorMessage, result.ErrorCode);
+        var result = await commands.DeleteDocumentAsync(new DocumentDeleteCommand(documentId, GetActorUserId(principal), request.Reason), cancellationToken);
+        return result.Succeeded ? Results.NoContent() : ToProblemResult(result.ErrorMessage, result.ErrorCode);
     }
 
     private static async Task<IResult> ListDocumentVersionsAsync(
@@ -343,8 +222,170 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var versions = await queries.ListDocumentVersionsAsync(new DocumentVersionListQuery(documentId, search, page, pageSize), cancellationToken);
-        return Results.Ok(versions);
+        return Results.Ok(await queries.ListDocumentVersionsAsync(new DocumentVersionListQuery(documentId, search, page, pageSize), cancellationToken));
+    }
+
+    private static async Task<IResult> CreateDocumentVersionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        HttpRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
+        {
+            return Results.Forbid();
+        }
+
+        if (!request.HasFormContentType)
+        {
+            return BadRequestWithCode("Request must be multipart/form-data.");
+        }
+
+        var form = await request.ReadFormAsync(cancellationToken);
+        var file = form.Files.GetFile("file");
+        if (file is null)
+        {
+            return BadRequestWithCode("A file is required.", ApiErrorCodes.Documents.FileRequired);
+        }
+
+        var fileName = form.TryGetValue("fileName", out var fileNameValues) && !string.IsNullOrWhiteSpace(fileNameValues)
+            ? fileNameValues.ToString()
+            : file.FileName;
+        var mimeType = form.TryGetValue("mimeType", out var mimeTypeValues) && !string.IsNullOrWhiteSpace(mimeTypeValues)
+            ? mimeTypeValues.ToString()
+            : file.ContentType;
+
+        await using var stream = file.OpenReadStream();
+        var result = await commands.CreateDocumentVersionAsync(
+            new DocumentVersionCreateCommand(documentId, fileName, mimeType, file.Length, GetActorUserId(principal)),
+            stream,
+            cancellationToken);
+
+        return result.Succeeded
+            ? Results.Created($"/api/v1/documents/{documentId}/versions/{result.Version!.Id}", result.Version)
+            : ToProblemResult(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> DeleteDocumentVersionAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        Guid versionId,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.DeleteDocumentVersionAsync(new DocumentVersionDeleteCommand(documentId, versionId, GetActorUserId(principal)), cancellationToken);
+        return result.Succeeded ? Results.NoContent() : ToProblemResult(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> SubmitDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        DocumentApprovalDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.SubmitDocumentAsync(new DocumentWorkflowCommand(documentId, GetActorUserId(principal), request.StepName, request.ReviewerUserId, request.DecisionReason), cancellationToken);
+        return result.Succeeded ? Results.Ok(result.Document) : ToProblemResult(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> ApproveDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        DocumentApprovalDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Publish))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.ApproveDocumentAsync(new DocumentWorkflowCommand(documentId, GetActorUserId(principal), request.StepName, request.ReviewerUserId, request.DecisionReason), cancellationToken);
+        return result.Succeeded ? Results.Ok(result.Document) : ToProblemResult(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> RejectDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        DocumentApprovalDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Publish))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.RejectDocumentAsync(new DocumentWorkflowCommand(documentId, GetActorUserId(principal), request.StepName, request.ReviewerUserId, request.DecisionReason), cancellationToken);
+        return result.Succeeded ? Results.Ok(result.Document) : ToProblemResult(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> BaselineDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Publish))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.BaselineDocumentAsync(new DocumentWorkflowCommand(documentId, GetActorUserId(principal)), cancellationToken);
+        return result.Succeeded ? Results.Ok(result.Document) : ToProblemResult(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> ArchiveDocumentAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        [FromBody] DocumentDeleteRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Deactivate))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.ArchiveDocumentAsync(new DocumentWorkflowCommand(documentId, GetActorUserId(principal), Reason: request.Reason), cancellationToken);
+        return result.Succeeded ? Results.Ok(result.Document) : ToProblemResult(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> CreateDocumentLinkAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentId,
+        DocumentLinkRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.CreateDocumentLinkAsync(new DocumentLinkCreateCommand(documentId, request.TargetEntityType, request.TargetEntityId, request.LinkType, GetActorUserId(principal)), cancellationToken);
+        return result.Succeeded
+            ? Results.Created($"/api/v1/documents/{documentId}/links/{result.Link!.Id}", result.Link)
+            : ToProblemResult(result.ErrorMessage, result.ErrorCode);
     }
 
     private static async Task<IResult> DownloadDocumentAsync(
@@ -360,12 +401,7 @@ public sealed class DocumentsModule : IModule
         }
 
         var result = await downloads.GetDownloadAsync(documentId, cancellationToken);
-        if (result is null)
-        {
-            return NotFoundWithCode();
-        }
-
-        return Results.File(result.Content, result.ContentType, result.FileName);
+        return result is null ? NotFoundWithCode() : Results.File(result.Content, result.ContentType, result.FileName);
     }
 
     private static async Task<IResult> ListDocumentHistoryAsync(
@@ -383,8 +419,76 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var items = await queries.ListAsync(new DocumentHistoryListQuery(documentId, search, page, pageSize), cancellationToken);
-        return Results.Ok(items);
+        return Results.Ok(await queries.ListAsync(new DocumentHistoryListQuery(documentId, search, page, pageSize), cancellationToken));
+    }
+
+    private static async Task<IResult> ListDocumentTypesAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentQueries queries,
+        CancellationToken cancellationToken,
+        string? search = null,
+        string? status = null,
+        int page = 1,
+        int pageSize = 10)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
+        {
+            return Results.Forbid();
+        }
+
+        return Results.Ok(await queries.ListDocumentTypesAsync(new DocumentTypeListQuery(search, status, page, pageSize), cancellationToken));
+    }
+
+    private static async Task<IResult> GetDocumentTypeAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentQueries queries,
+        Guid documentTypeId,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetDocumentTypeAsync(documentTypeId, cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> CreateDocumentTypeAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        DocumentTypeCreateRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Deactivate))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.CreateDocumentTypeAsync(new DocumentTypeCreateCommand(request.Code, request.Name, request.ModuleOwner, request.ClassificationDefault, request.RetentionClassDefault, request.ApprovalRequired), cancellationToken);
+        return result.Succeeded
+            ? Results.Created($"/api/v1/documents/types/{result.DocumentType!.Id}", result.DocumentType)
+            : ToProblemResult(result.ErrorMessage, result.ErrorCode);
+    }
+
+    private static async Task<IResult> UpdateDocumentTypeAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IDocumentCommands commands,
+        Guid documentTypeId,
+        DocumentTypeUpdateRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Deactivate))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.UpdateDocumentTypeAsync(new DocumentTypeUpdateCommand(documentTypeId, request.Code, request.Name, request.ModuleOwner, request.ClassificationDefault, request.RetentionClassDefault, request.ApprovalRequired, request.Status), cancellationToken);
+        return result.Succeeded ? Results.Ok(result.DocumentType) : ToProblemResult(result.ErrorMessage, result.ErrorCode);
     }
 
     private static async Task<IResult> ListDocumentTemplatesAsync(
@@ -401,25 +505,21 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var result = await queries.ListTemplatesAsync(new DocumentTemplateListQuery(search, page, pageSize), cancellationToken);
-        return Results.Ok(result);
+        return Results.Ok(await queries.ListTemplatesAsync(new DocumentTemplateListQuery(search, page, pageSize), cancellationToken));
     }
 
     private static async Task<IResult> RefreshDocumentTemplateCacheAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
-        OperisDbContext dbContext,
-        Infrastructure.IDocumentTemplateCache cache,
+        IDocumentTemplateCacheCommands commands,
         CancellationToken cancellationToken)
     {
-        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload)
-            && !permissionMatrix.HasPermission(principal, Permissions.Users.Update))
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload) && !permissionMatrix.HasPermission(principal, Permissions.Users.Update))
         {
             return Results.Forbid();
         }
 
-        var total = await cache.RefreshAsync(dbContext, cancellationToken);
-        return Results.Ok(new { Total = total });
+        return Results.Ok(new { Total = await commands.RefreshAsync(cancellationToken) });
     }
 
     private static async Task<IResult> CreateDocumentTemplateAsync(
@@ -437,22 +537,16 @@ public sealed class DocumentsModule : IModule
 
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequestWithCode("A template name is required.", ApiErrorCodes.RequestValidationFailed);
+            return BadRequestWithCode("A template name is required.");
         }
 
         var validation = await queries.ValidateTemplateDocumentsAsync(request.DocumentIds, cancellationToken);
         if (!validation.IsValid)
         {
-            return BadRequestWithCode(validation.ErrorMessage, ApiErrorCodes.RequestValidationFailed);
+            return BadRequestWithCode(validation.ErrorMessage);
         }
 
-        var result = await commands.CreateTemplateAsync(
-            new DocumentTemplateCreateCommand(
-                request.Name,
-                request.DocumentIds,
-                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
-            cancellationToken);
-
+        var result = await commands.CreateTemplateAsync(new DocumentTemplateCreateCommand(request.Name, request.DocumentIds, GetActorUserId(principal)), cancellationToken);
         return Results.Created($"/api/v1/documents/templates/{result.Id}", result);
     }
 
@@ -486,11 +580,6 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequestWithCode("A template name is required.", ApiErrorCodes.RequestValidationFailed);
-        }
-
         var existing = await queries.GetTemplateAsync(templateId, cancellationToken);
         if (existing is null)
         {
@@ -500,18 +589,10 @@ public sealed class DocumentsModule : IModule
         var validation = await queries.ValidateTemplateDocumentsAsync(request.DocumentIds, cancellationToken);
         if (!validation.IsValid)
         {
-            return BadRequestWithCode(validation.ErrorMessage, ApiErrorCodes.RequestValidationFailed);
+            return BadRequestWithCode(validation.ErrorMessage);
         }
 
-        var result = await commands.UpdateTemplateAsync(
-            new DocumentTemplateUpdateCommand(
-                templateId,
-                request.Name,
-                request.DocumentIds,
-                principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
-            cancellationToken);
-
-        return Results.Ok(result);
+        return Results.Ok(await commands.UpdateTemplateAsync(new DocumentTemplateUpdateCommand(templateId, request.Name, request.DocumentIds, GetActorUserId(principal)), cancellationToken));
     }
 
     private static async Task<IResult> RefreshDocumentTemplateItemVersionAsync(
@@ -524,8 +605,7 @@ public sealed class DocumentsModule : IModule
         DocumentTemplateItemVersionUpdateRequest? request,
         CancellationToken cancellationToken)
     {
-        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload)
-            && !permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
+        if (!permissionMatrix.HasPermission(principal, Permissions.Documents.Upload) && !permissionMatrix.HasPermission(principal, Permissions.Documents.ManageVersions))
         {
             return Results.Forbid();
         }
@@ -538,14 +618,7 @@ public sealed class DocumentsModule : IModule
 
         try
         {
-            var result = await commands.RefreshTemplateItemVersionAsync(
-                new DocumentTemplateItemRefreshCommand(
-                    templateId,
-                    documentId,
-                    request?.DocumentVersionId,
-                    principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier)),
-                cancellationToken);
-            return Results.Ok(result);
+            return Results.Ok(await commands.RefreshTemplateItemVersionAsync(new DocumentTemplateItemRefreshCommand(templateId, documentId, request?.DocumentVersionId, GetActorUserId(principal)), cancellationToken));
         }
         catch (InvalidOperationException ex) when (string.Equals(ex.Message, "Template not found.", StringComparison.Ordinal))
         {
@@ -553,7 +626,7 @@ public sealed class DocumentsModule : IModule
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequestWithCode(ex.Message, ApiErrorCodes.RequestValidationFailed);
+            return BadRequestWithCode(ex.Message);
         }
     }
 
@@ -572,120 +645,24 @@ public sealed class DocumentsModule : IModule
             return Results.Forbid();
         }
 
-        var items = await queries.ListAsync(new DocumentTemplateHistoryListQuery(templateId, search, page, pageSize), cancellationToken);
-        return Results.Ok(items);
+        return Results.Ok(await queries.ListAsync(new DocumentTemplateHistoryListQuery(templateId, search, page, pageSize), cancellationToken));
+    }
+
+    private static string? GetActorUserId(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("sub") ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    private static IResult ToProblemResult(string? detail, string? code)
+    {
+        var isNotFound = string.Equals(code, ApiErrorCodes.Documents.DocumentNotFound, StringComparison.Ordinal)
+            || string.Equals(code, ApiErrorCodes.Documents.DocumentTypeNotFound, StringComparison.Ordinal)
+            || string.Equals(code, ApiErrorCodes.ProjectNotFound, StringComparison.Ordinal);
+
+        return isNotFound ? NotFoundWithCode(detail, code) : BadRequestWithCode(detail, code);
     }
 
     private static IResult BadRequestWithCode(string? detail, string? code = null) =>
-        Results.BadRequest(ApiProblemDetailsFactory.Create(
-            StatusCodes.Status400BadRequest,
-            code ?? ApiErrorCodes.RequestValidationFailed,
-            "Bad Request",
-            detail));
+        Results.BadRequest(ApiProblemDetailsFactory.Create(StatusCodes.Status400BadRequest, code ?? ApiErrorCodes.RequestValidationFailed, "Bad Request", detail));
 
-    private static IResult NotFoundWithCode(string? detail = null) =>
-        Results.NotFound(ApiProblemDetailsFactory.Create(
-            StatusCodes.Status404NotFound,
-            ApiErrorCodes.ResourceNotFound,
-            "Not Found",
-            detail));
-
-    private static async Task<string?> ExtractDocumentNameAsync(HttpRequest request, CancellationToken cancellationToken)
-    {
-        var rawBody = await ReadRawBodyAsync(request, cancellationToken);
-        return ExtractStringFromBody(rawBody, "documentName", "document_name");
-    }
-
-    private static async Task<string?> ExtractDeleteReasonAsync(HttpRequest request, CancellationToken cancellationToken)
-    {
-        var rawBody = await ReadRawBodyAsync(request, cancellationToken);
-        var reason = ExtractStringFromBody(rawBody, "reason");
-        if (!string.IsNullOrWhiteSpace(reason))
-        {
-            return reason;
-        }
-
-        if (request.Query.TryGetValue("reason", out var reasonValues))
-        {
-            return reasonValues.ToString();
-        }
-
-        return null;
-    }
-
-    private static async Task<string?> ReadRawBodyAsync(HttpRequest request, CancellationToken cancellationToken)
-    {
-        request.EnableBuffering();
-        request.Body.Position = 0;
-        using var reader = new StreamReader(request.Body, leaveOpen: true);
-        var rawBody = await reader.ReadToEndAsync(cancellationToken);
-        request.Body.Position = 0;
-        return rawBody;
-    }
-
-    private static string? ExtractStringFromBody(string? rawBody, params string[] propertyNames)
-    {
-        if (string.IsNullOrWhiteSpace(rawBody))
-        {
-            return null;
-        }
-
-        if (TryExtractStringFromJson(rawBody, propertyNames, out var value))
-        {
-            return value;
-        }
-
-        var trimmed = rawBody.Trim();
-        return trimmed.Length > 0 ? trimmed : null;
-    }
-
-    private static bool TryExtractStringFromJson(string rawBody, string[] propertyNames, out string? value)
-    {
-        value = null;
-        try
-        {
-            using var document = JsonDocument.Parse(rawBody);
-            var root = document.RootElement;
-            if (root.ValueKind == JsonValueKind.String)
-            {
-                var stringValue = root.GetString();
-                if (!string.IsNullOrWhiteSpace(stringValue) && LooksLikeJson(stringValue))
-                {
-                    return TryExtractStringFromJson(stringValue, propertyNames, out value);
-                }
-
-                value = stringValue;
-                return true;
-            }
-
-            if (root.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var propertyName in propertyNames)
-                {
-                    if (root.TryGetProperty(propertyName, out var propValue))
-                    {
-                        value = propValue.GetString();
-                        return true;
-                    }
-                }
-            }
-        }
-        catch (JsonException)
-        {
-            value = null;
-        }
-
-        return false;
-    }
-
-    private static bool LooksLikeJson(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        var trimmed = value.Trim();
-        return trimmed.StartsWith("{") && trimmed.EndsWith("}");
-    }
+    private static IResult NotFoundWithCode(string? detail = null, string? code = null) =>
+        Results.NotFound(ApiProblemDetailsFactory.Create(StatusCodes.Status404NotFound, code ?? ApiErrorCodes.ResourceNotFound, "Not Found", detail));
 }

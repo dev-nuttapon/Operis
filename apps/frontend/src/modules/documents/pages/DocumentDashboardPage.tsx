@@ -1,193 +1,116 @@
-import { useEffect, useState } from "react";
-import { Typography, Card, Button, Space, Table, Alert, Modal, Form, Input, Tag, Skeleton, Flex, Grid } from "antd";
-import { BranchesOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined } from "@ant-design/icons";
+import { useMemo, useState } from "react";
+import { Alert, Button, Card, Flex, Input, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { FileTextOutlined, PlusOutlined, SettingOutlined, UploadOutlined, EyeOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import i18n from "../../../shared/i18n/config";
-import { useI18nLanguage } from "../../../shared/i18n/hooks/useI18nLanguage";
-import { useDocumentDashboard } from "../hooks/useDocumentDashboard";
-import { useDeleteDocument, useUpdateDocument } from "../hooks/useDocuments";
-import { downloadDocument } from "../api/documentsApi";
+import { useDocuments, useDocumentTypes } from "../hooks/useDocuments";
+import { downloadDocument, type DocumentListItem } from "../api/documentsApi";
+import { useProjectOptions } from "../../users";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
-import type { DocumentListItemView } from "../types/documents";
 import { saveBlobAsFile } from "../utils/download";
-import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
-import { ActionMenu } from "../../../shared/components/ActionMenu";
 
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
+
+const statusColors: Record<string, string> = {
+  draft: "default",
+  review: "gold",
+  approved: "green",
+  rejected: "red",
+  baseline: "blue",
+  archived: "purple",
+};
+
 export function DocumentDashboardPage() {
-  const language = useI18nLanguage();
   const navigate = useNavigate();
-  const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md;
   const permissionState = usePermissions();
-  const canReadDocuments = permissionState.hasPermission(permissions.documents.read);
-  const [paging, setPaging] = useState({ page: 1, pageSize: 10, search: "" });
-  const [searchInput, setSearchInput] = useState("");
-  const debouncedSearchInput = useDebouncedValue(searchInput, 300);
-  const { documentsQuery } = useDocumentDashboard(canReadDocuments, paging.page, paging.pageSize, paging.search);
-  const tr = (key: string) => i18n.t(key, { lng: language });
-  const [editForm] = Form.useForm();
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteForm] = Form.useForm();
-  const [editingDocument, setEditingDocument] = useState<DocumentListItemView | null>(null);
-  const updateDocumentMutation = useUpdateDocument();
-  const deleteDocumentMutation = useDeleteDocument();
-  const canUploadDocuments = permissionState.hasPermission(permissions.documents.upload);
+  const canRead = permissionState.hasPermission(permissions.documents.read);
+  const canUpload = permissionState.hasPermission(permissions.documents.upload);
   const canManageVersions = permissionState.hasPermission(permissions.documents.manageVersions);
-  const canPublishDocuments = permissionState.hasPermission(permissions.documents.publish);
-  const canDeleteDrafts = permissionState.hasPermission(permissions.documents.deleteDraft);
-  const canOperateDocuments = canUploadDocuments || canManageVersions || canPublishDocuments || canDeleteDrafts;
+  const canManageTypes = permissionState.hasPermission(permissions.documents.deactivate);
+  const [filters, setFilters] = useState({
+    search: "",
+    documentTypeId: undefined as string | undefined,
+    projectId: undefined as string | undefined,
+    status: undefined as string | undefined,
+    classification: undefined as string | undefined,
+    page: 1,
+    pageSize: 10,
+  });
 
-  useEffect(() => {
-    setPaging((current) => ({ ...current, page: 1, search: debouncedSearchInput.trim() }));
-  }, [debouncedSearchInput]);
-  const resolveDocumentStatus = (item: DocumentListItemView) => {
-    const revisionCount = item.revision ?? 0;
-    if (revisionCount === 0) {
-      return { key: "empty", label: tr("documents.document_status.empty"), color: "default" as const };
-    }
-    if (item.publishedVersionCode) {
-      return { key: "published", label: tr("documents.document_status.published"), color: "green" as const };
-    }
-    return { key: "unpublished", label: tr("documents.document_status.unpublished"), color: "gold" as const };
-  };
-  const latestDocumentColumns: ColumnsType<DocumentListItemView> = [
-    {
-      title: tr("documents.columns.document_name"),
-      dataIndex: "documentName",
-      key: "documentName",
-      ellipsis: true,
-      render: (value: string) => <span title={value}>{value}</span>,
-    },
-    {
-      title: tr("documents.columns.created_at"),
-      dataIndex: "uploadedAt",
-      key: "createdAt",
-      render: (value: string) => new Date(value).toLocaleDateString(language.startsWith("th") ? "th-TH" : "en-US"),
-    },
-    {
-      title: tr("documents.columns.document_count"),
-      dataIndex: "revision",
-      key: "documentCount",
-      align: "center",
-      render: (value: number | null) => value ?? 0,
-    },
-    {
-      title: tr("documents.columns.published_version"),
-      dataIndex: "publishedVersionCode",
-      key: "publishedVersion",
-      align: "center",
-      render: (value: string | null) => value ?? "-",
-    },
-    {
-      title: tr("documents.columns.published_revision"),
-      dataIndex: "publishedRevision",
-      key: "publishedRevision",
-      align: "center",
-      render: (value: number | null) => (value ? `r${value}` : "-"),
-    },
-    {
-      title: tr("documents.columns.status"),
-      key: "status",
-      align: "center",
-      render: (_, item) => {
-        const status = resolveDocumentStatus(item);
-        return <Tag color={status.color}>{status.label}</Tag>;
+  const documentsQuery = useDocuments(filters, canRead);
+  const documentTypesQuery = useDocumentTypes({ page: 1, pageSize: 100 }, canRead);
+  const projectOptions = useProjectOptions({ enabled: canRead, assignedOnly: false, pageSize: 20 });
+  const documents = documentsQuery.data?.items ?? [];
+
+  const columns = useMemo<ColumnsType<DocumentListItem>>(
+    () => [
+      {
+        title: "Title",
+        dataIndex: "title",
+        key: "title",
+        render: (_, item) => (
+          <Space direction="vertical" size={0}>
+            <Text strong>{item.title}</Text>
+            <Text type="secondary">{item.documentTypeName ?? "Unclassified type"}</Text>
+          </Space>
+        ),
       },
-    },
-    {
-      title: tr("documents.columns.actions"),
-      key: "actions",
-      align: "center",
-      render: (_, item) => {
-        const hasFile = Boolean(item.fileName?.trim()) && item.sizeBytes > 0;
-        const hasPublished = Boolean(item.publishedVersionCode);
-        const menuItems = [
-          {
-            key: "edit",
-            label: tr("documents.actions.edit.label"),
-            icon: <UploadOutlined />,
-            disabled: !canUploadDocuments,
-            onClick: () => {
-              setEditingDocument(item);
-              editForm.setFieldsValue({ documentName: item.documentName });
-              setEditModalOpen(true);
-            },
-          },
-          {
-            key: "delete",
-            label: tr("documents.actions.delete.label"),
-            icon: <DeleteOutlined />,
-            disabled: !canDeleteDrafts,
-            onClick: () => {
-              setEditingDocument(item);
-              deleteForm.resetFields();
-              setDeleteModalOpen(true);
-            },
-          },
-          {
-            key: "download",
-            label: tr("documents.actions.download.label"),
-            icon: <DownloadOutlined />,
-            disabled: !hasFile || !hasPublished,
-            onClick: () => {
-              if (!hasFile || !hasPublished) {
-                return;
-              }
-              void downloadDocument(item.id)
-                .then(({ blob, fileName }) => saveBlobAsFile(blob, fileName ?? item.fileName ?? "document"))
-                .catch(() => null);
-            },
-          },
-          {
-            key: "upload",
-            label: tr("documents.actions.upload_file.label"),
-            icon: <UploadOutlined />,
-            disabled: !canManageVersions,
-            onClick: () => navigate(`/app/documents/${item.id}/versions/new`, { state: { documentName: item.documentName } }),
-          },
-          {
-            key: "publish",
-            label: tr("documents.actions.publish_list.label"),
-            icon: <BranchesOutlined />,
-            disabled: !canPublishDocuments,
-            onClick: () => navigate(`/app/documents/${item.id}/versions`, { state: { documentName: item.documentName } }),
-          },
-          {
-            key: "history",
-            label: tr("documents.actions.history.label"),
-            icon: <FileTextOutlined />,
-            disabled: !canReadDocuments,
-            onClick: () => navigate(`/app/documents/${item.id}/history`, { state: { documentName: item.documentName, from: "/app/documents" } }),
-          },
-        ];
-        return <ActionMenu items={menuItems} />;
+      { title: "Project", dataIndex: "projectName", key: "projectName", render: (value) => value ?? "-" },
+      { title: "Phase", dataIndex: "phaseCode", key: "phaseCode", render: (value) => value ?? "-" },
+      { title: "Owner", dataIndex: "ownerUserId", key: "ownerUserId", render: (value) => value ?? "-" },
+      {
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
+        render: (value: string) => <Tag color={statusColors[value] ?? "default"}>{value}</Tag>,
       },
-    },
-  ];
+      { title: "Version", dataIndex: "currentVersionNumber", key: "currentVersionNumber", render: (value) => (value ? `v${value}` : "-") },
+      { title: "Classification", dataIndex: "classification", key: "classification" },
+      {
+        title: "Updated",
+        dataIndex: "updatedAt",
+        key: "updatedAt",
+        render: (value: string) => new Date(value).toLocaleString(),
+      },
+      {
+        title: "Actions",
+        key: "actions",
+        render: (_, item) => (
+          <Flex gap={8} wrap>
+            <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/app/documents/${item.id}`)}>
+              View
+            </Button>
+            <Button
+              size="small"
+              icon={<DownloadOutlined />}
+              disabled={!item.currentFileName}
+              onClick={() => {
+                void downloadDocument(item.id)
+                  .then(({ blob, fileName }) => saveBlobAsFile(blob, fileName ?? item.currentFileName ?? "document"))
+                  .catch(() => null);
+              }}
+            >
+              Download
+            </Button>
+            <Button
+              size="small"
+              icon={<UploadOutlined />}
+              disabled={!canManageVersions}
+              onClick={() => navigate(`/app/documents/${item.id}/versions/new`, { state: { documentName: item.title, from: `/app/documents/${item.id}` } })}
+            >
+              Add version
+            </Button>
+          </Flex>
+        ),
+      },
+    ],
+    [canManageVersions, navigate],
+  );
 
-  const handleEditSubmit = async () => {
-    const values = await editForm.validateFields();
-    if (!editingDocument) {
-      return;
-    }
-    await updateDocumentMutation.mutateAsync({ documentId: editingDocument.id, documentName: values.documentName });
-    setEditModalOpen(false);
-    setEditingDocument(null);
-  };
-
-  const handleDeleteSubmit = async () => {
-    const values = await deleteForm.validateFields();
-    if (!editingDocument) {
-      return;
-    }
-    await deleteDocumentMutation.mutateAsync({ documentId: editingDocument.id, reason: values.reason });
-    setDeleteModalOpen(false);
-    setEditingDocument(null);
-  };
+  if (!canRead) {
+    return <Alert type="warning" showIcon message="Document access is not available for this account." />;
+  }
 
   return (
     <Space direction="vertical" size={20} style={{ width: "100%" }}>
@@ -200,7 +123,7 @@ export function DocumentDashboardPage() {
               borderRadius: 14,
               display: "grid",
               placeItems: "center",
-              background: "linear-gradient(135deg, #0ea5e9, #1d4ed8)",
+              background: "linear-gradient(135deg, #0f766e, #0f172a)",
               color: "#fff",
             }}
           >
@@ -208,126 +131,92 @@ export function DocumentDashboardPage() {
           </div>
           <div>
             <Title level={3} style={{ margin: 0 }}>
-              {tr("documents.page_title")}
+              Document Register
             </Title>
             <Paragraph type="secondary" style={{ margin: "4px 0 0" }}>
-              {tr("documents.welcome")}
+              Governed project documents, version state, and approval readiness in one register.
             </Paragraph>
           </div>
         </Space>
       </Card>
 
       <Card variant="borderless">
-        {!canReadDocuments ? (
-          <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
-        ) : (
-          <>
-            {!canOperateDocuments ? (
-              <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 16 }} />
-            ) : null}
+        <Flex justify="space-between" gap={12} wrap="wrap" style={{ marginBottom: 16 }}>
+          <Flex gap={12} wrap="wrap">
+            <Input.Search
+              placeholder="Search title, type, or project"
+              allowClear
+              style={{ width: 260 }}
+              value={filters.search}
+              onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value, page: 1 }))}
+              onSearch={(value) => setFilters((current) => ({ ...current, search: value, page: 1 }))}
+            />
+            <Select
+              allowClear
+              placeholder="Type"
+              style={{ width: 200 }}
+              options={(documentTypesQuery.data?.items ?? []).map((item) => ({ label: `${item.code} · ${item.name}`, value: item.id }))}
+              value={filters.documentTypeId}
+              onChange={(value) => setFilters((current) => ({ ...current, documentTypeId: value, page: 1 }))}
+            />
+            <Select
+              allowClear
+              showSearch
+              placeholder="Project"
+              style={{ width: 220 }}
+              options={projectOptions.options}
+              value={filters.projectId}
+              onSearch={projectOptions.onSearch}
+              onPopupScroll={(event) => {
+                const target = event.target as HTMLDivElement;
+                if (target.scrollTop + target.clientHeight >= target.scrollHeight - 24) {
+                  projectOptions.onLoadMore();
+                }
+              }}
+              onChange={(value) => setFilters((current) => ({ ...current, projectId: value, page: 1 }))}
+            />
+            <Select
+              allowClear
+              placeholder="Status"
+              style={{ width: 160 }}
+              options={["draft", "review", "approved", "rejected", "baseline", "archived"].map((item) => ({ label: item, value: item }))}
+              value={filters.status}
+              onChange={(value) => setFilters((current) => ({ ...current, status: value, page: 1 }))}
+            />
+            <Select
+              allowClear
+              placeholder="Classification"
+              style={{ width: 180 }}
+              options={["public", "internal", "confidential", "restricted"].map((item) => ({ label: item, value: item }))}
+              value={filters.classification}
+              onChange={(value) => setFilters((current) => ({ ...current, classification: value, page: 1 }))}
+            />
+          </Flex>
 
-            <Flex
-              gap={12}
-              wrap={!isMobile}
-              vertical={isMobile}
-              align={isMobile ? "stretch" : "center"}
-              justify="space-between"
-              style={{ width: "100%", marginBottom: 16 }}
-            >
-              <Input.Search
-                allowClear
-                placeholder={tr("documents.search_placeholder")}
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                onSearch={(value) => setSearchInput(value)}
-                style={{ width: isMobile ? "100%" : undefined, maxWidth: isMobile ? undefined : 360 }}
-              />
-              <Button
-                type="primary"
-                icon={<UploadOutlined />}
-                disabled={!canUploadDocuments}
-                onClick={() => navigate("/app/documents/upload")}
-                block={isMobile}
-              >
-                {tr("documents.upload.action")}
-              </Button>
-            </Flex>
-          </>
-        )}
+          <Flex gap={8} wrap="wrap">
+            <Button type="primary" icon={<PlusOutlined />} disabled={!canUpload} onClick={() => navigate("/app/documents/new")}>
+              New document
+            </Button>
+            <Button icon={<SettingOutlined />} disabled={!canManageTypes} onClick={() => navigate("/app/documents/types")}>
+              Document types
+            </Button>
+          </Flex>
+        </Flex>
 
-        <Title level={4} style={{ marginTop: 0 }}>
-          {tr("documents.list_title")}
-        </Title>
-        {documentsQuery.isPending && !documentsQuery.data ? (
-          <Skeleton active paragraph={{ rows: 6 }} />
-        ) : (
-          <Table<DocumentListItemView>
-            rowKey="id"
-            loading={documentsQuery.isFetching}
-            columns={latestDocumentColumns}
-            dataSource={canReadDocuments ? (documentsQuery.data?.items ?? []) : []}
-            pagination={{
-              current: documentsQuery.data?.page ?? paging.page,
-              pageSize: documentsQuery.data?.pageSize ?? paging.pageSize,
-              total: documentsQuery.data?.total ?? 0,
-              showSizeChanger: true,
-              pageSizeOptions: [10, 25, 50, 100],
-              onChange: (page, pageSize) => setPaging((current) => ({ ...current, page, pageSize })),
-            }}
-            scroll={{ x: "max-content" }}
-            locale={{ emptyText: !canReadDocuments ? tr("documents.read_only_title") : documentsQuery.isError ? tr("documents.load_failed") : tr("documents.empty") }}
-            style={{ marginBottom: 24 }}
-          />
-        )}
+        <Table<DocumentListItem>
+          rowKey="id"
+          loading={documentsQuery.isLoading}
+          columns={columns}
+          dataSource={documents}
+          pagination={{
+            current: documentsQuery.data?.page ?? filters.page,
+            pageSize: documentsQuery.data?.pageSize ?? filters.pageSize,
+            total: documentsQuery.data?.total ?? 0,
+            showSizeChanger: true,
+            onChange: (page, pageSize) => setFilters((current) => ({ ...current, page, pageSize })),
+          }}
+        />
       </Card>
-
-      <Modal
-        open={editModalOpen}
-        title={tr("documents.actions.edit.title")}
-        onCancel={() => {
-          setEditModalOpen(false);
-          setEditingDocument(null);
-        }}
-        onOk={() => void handleEditSubmit()}
-        okText={tr("documents.actions.edit.submit")}
-        cancelText={tr("documents.actions.edit.cancel")}
-        confirmLoading={updateDocumentMutation.isPending}
-      >
-        <Form form={editForm} layout="vertical">
-          <Form.Item
-            name="documentName"
-            label={tr("documents.actions.edit.field")}
-            rules={[{ required: true, message: tr("documents.actions.edit.required") }]}
-          >
-            <Input />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        open={deleteModalOpen}
-        title={tr("documents.actions.delete.confirm_title")}
-        onCancel={() => {
-          setDeleteModalOpen(false);
-          setEditingDocument(null);
-        }}
-        onOk={() => void handleDeleteSubmit()}
-        okText={tr("documents.actions.delete.confirm_ok")}
-        cancelText={tr("documents.actions.delete.confirm_cancel")}
-        okButtonProps={{ danger: true }}
-        confirmLoading={deleteDocumentMutation.isPending}
-      >
-        <Form form={deleteForm} layout="vertical">
-          <Form.Item
-            name="reason"
-            label={tr("documents.actions.delete.reason_label")}
-            rules={[{ required: true, message: tr("documents.actions.delete.reason_required") }]}
-          >
-            <Input.TextArea rows={3} />
-          </Form.Item>
-          <Alert type="warning" message={tr("documents.actions.delete.confirm_description")} showIcon />
-        </Form>
-      </Modal>
     </Space>
   );
 }

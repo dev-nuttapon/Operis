@@ -69,7 +69,6 @@ export function DocumentVersionUploadPage() {
     }
 
     try {
-      const values = await form.validateFields();
       if (!selectedFile) {
         notification.error({
           message: tr("documents.version_page.fields.file_required"),
@@ -80,7 +79,6 @@ export function DocumentVersionUploadPage() {
 
       await createVersionMutation.mutateAsync({
         documentId,
-        versionCode: values.versionCode,
         file: selectedFile,
       });
 
@@ -149,14 +147,6 @@ export function DocumentVersionUploadPage() {
         <Form form={form} layout="vertical" disabled={!canManageVersions}>
           <Form.Item label={tr("documents.version_page.fields.document_name")}>
             <Input value={documentLabel} disabled />
-          </Form.Item>
-
-          <Form.Item
-            name="versionCode"
-            label={tr("documents.version_page.fields.version_code")}
-            rules={[{ required: true, message: tr("documents.version_page.fields.version_code_required") }]}
-          >
-            <Input placeholder={tr("documents.version_page.fields.version_code_placeholder")} />
           </Form.Item>
 
           <Form.Item label={tr("documents.version_page.fields.file")}>

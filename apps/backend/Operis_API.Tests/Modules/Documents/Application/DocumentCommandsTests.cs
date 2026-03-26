@@ -1,8 +1,8 @@
 using System.Text;
 using Microsoft.Extensions.Options;
 using Operis_API.Modules.Documents.Application;
-using Operis_API.Modules.Documents.Infrastructure;
 using Operis_API.Modules.Documents.Contracts;
+using Operis_API.Modules.Documents.Infrastructure;
 using Operis_API.Shared.Contracts;
 using Operis_API.Tests.Support;
 
@@ -31,13 +31,25 @@ public sealed class DocumentCommandsTests
 
         // Create document first
         var docId = Guid.NewGuid();
-        dbContext.Documents.Add(new DocumentEntity { Id = docId, DocumentName = "Test", UploadedAt = DateTimeOffset.UtcNow });
+        dbContext.Documents.Add(new DocumentEntity
+        {
+            Id = docId,
+            Title = "Test",
+            DocumentTypeId = null,
+            ProjectId = null,
+            PhaseCode = "DEV",
+            OwnerUserId = "user-1",
+            Classification = "internal",
+            RetentionClass = "standard",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
         await dbContext.SaveChangesAsync();
 
         await using var stream = new MemoryStream(Encoding.UTF8.GetBytes("not an allowed document"));
 
         var result = await sut.CreateDocumentVersionAsync(
-            new DocumentVersionCreateCommand(docId, "V1", "malware.exe", "application/octet-stream", stream.Length, "user-1"),
+            new DocumentVersionCreateCommand(docId, "malware.exe", "application/octet-stream", stream.Length, "user-1"),
             stream,
             CancellationToken.None);
 

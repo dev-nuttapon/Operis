@@ -31,11 +31,11 @@ public sealed class DocumentTemplateCommands(
         var existingDocuments = await dbContext.Documents
             .AsNoTracking()
             .Where(x => !x.IsDeleted && documentIds.Contains(x.Id))
-            .Select(x => new { x.Id, x.PublishedVersionId })
+            .Select(x => new { x.Id, x.CurrentVersionId })
             .ToListAsync(cancellationToken);
         var existingDocumentIds = existingDocuments.Select(x => x.Id).ToList();
         var documentVersionById = existingDocuments
-            .ToDictionary(x => x.Id, x => x.PublishedVersionId);
+            .ToDictionary(x => x.Id, x => x.CurrentVersionId);
 
         var template = new DocumentTemplateEntity
         {
@@ -109,11 +109,11 @@ public sealed class DocumentTemplateCommands(
         var existingDocuments = await dbContext.Documents
             .AsNoTracking()
             .Where(x => !x.IsDeleted && documentIds.Contains(x.Id))
-            .Select(x => new { x.Id, x.PublishedVersionId })
+            .Select(x => new { x.Id, x.CurrentVersionId })
             .ToListAsync(cancellationToken);
         var existingDocumentIds = existingDocuments.Select(x => x.Id).ToList();
         var documentVersionById = existingDocuments
-            .ToDictionary(x => x.Id, x => x.PublishedVersionId);
+            .ToDictionary(x => x.Id, x => x.CurrentVersionId);
 
         var oldItems = await dbContext.DocumentTemplateItems
             .Where(x => x.TemplateId == command.TemplateId)
@@ -181,9 +181,9 @@ public sealed class DocumentTemplateCommands(
                 select new DocumentTemplateItemResponse(
                     item.DocumentId,
                     item.DocumentVersionId,
-                    doc.DocumentName,
-                    version != null ? version.VersionCode : null,
-                    version != null ? (int?)version.Revision : null))
+                    doc.Title,
+                    version != null ? $"v{version.VersionNumber}" : null,
+                    version != null ? (int?)version.VersionNumber : null))
             .ToListAsync(cancellationToken);
     }
 
@@ -229,12 +229,12 @@ public sealed class DocumentTemplateCommands(
         }
         else
         {
-            if (document.PublishedVersionId is null)
+            if (document.CurrentVersionId is null)
             {
-                throw new InvalidOperationException("Document must have a published version.");
+                throw new InvalidOperationException("Document must have a current version.");
             }
 
-            targetVersionId = document.PublishedVersionId;
+            targetVersionId = document.CurrentVersionId;
         }
 
         var item = await dbContext.DocumentTemplateItems
@@ -271,7 +271,7 @@ public sealed class DocumentTemplateCommands(
         return responseItem ?? new DocumentTemplateItemResponse(
             command.DocumentId,
             updated.DocumentVersionId,
-            document.DocumentName,
+            document.Title,
             null,
             null);
     }

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Workflows.Infrastructure;
 using Operis_API.Shared.Contracts;
 using Operis_API.Shared.Modules;
@@ -17,6 +16,7 @@ public sealed class WorkflowsModule : IModule
         services.AddScoped<IWorkflowInstanceQueries, WorkflowInstanceQueries>();
         services.AddScoped<IWorkflowInstanceCommands, WorkflowInstanceCommands>();
         services.AddScoped<IWorkflowTaskQueries, WorkflowTaskQueries>();
+        services.AddScoped<IWorkflowCacheCommands, WorkflowCacheCommands>();
         services.AddSingleton<IWorkflowDefinitionCache, WorkflowDefinitionCache>();
         return services;
     }
@@ -100,8 +100,7 @@ public sealed class WorkflowsModule : IModule
     private static async Task<IResult> RefreshWorkflowDefinitionCacheAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
-        OperisDbContext dbContext,
-        IWorkflowDefinitionCache cache,
+        IWorkflowCacheCommands commands,
         CancellationToken cancellationToken)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Workflows.ManageDefinitions)
@@ -110,7 +109,7 @@ public sealed class WorkflowsModule : IModule
             return Results.Forbid();
         }
 
-        var total = await cache.RefreshAsync(dbContext, cancellationToken);
+        var total = await commands.RefreshDefinitionsAsync(cancellationToken);
         return Results.Ok(new { Total = total });
     }
 

@@ -102,7 +102,7 @@ describe('AppRouter Integration Tests', () => {
       renderWithProviders(<AppRouter />);
     });
 
-    expect(await screen.findByText('Document Dashboard')).toBeInTheDocument();
+    expect((await screen.findAllByText('Documents')).length).toBeGreaterThan(0);
     expect(window.location.pathname).toBe('/app/documents');
   });
 

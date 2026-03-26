@@ -18,8 +18,13 @@ public sealed class DocumentsModuleHandlerTests
         dbContext.Documents.Add(new DocumentEntity
         {
             Id = Guid.NewGuid(),
-            DocumentName = "doc-01.pdf",
-            UploadedAt = DateTimeOffset.UtcNow
+            Title = "doc-01.pdf",
+            PhaseCode = "DEV",
+            OwnerUserId = "user-1",
+            Classification = "internal",
+            RetentionClass = "standard",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
         });
         await dbContext.SaveChangesAsync();
 
@@ -58,7 +63,7 @@ public sealed class DocumentsModuleHandlerTests
 
         var task = (Task<IResult>)method.Invoke(
             null,
-            [principal ?? CreateAdminPrincipal(), new PermissionMatrix(), queries, CancellationToken.None, null, 1, 10])!;
+            [principal ?? CreateAdminPrincipal(), new PermissionMatrix(), queries, CancellationToken.None, null, null, null, null, null, null, null, null, 1, 10])!;
 
         return await task;
     }

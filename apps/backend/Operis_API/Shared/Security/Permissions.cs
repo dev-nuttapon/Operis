@@ -67,6 +67,50 @@ public static class Permissions
         public const string ManageDefinitions = "workflows.definitions.manage";
     }
 
+    public static class Governance
+    {
+        public const string ProcessLibraryRead = "governance.process_library.read";
+        public const string ProcessLibraryManage = "governance.process_library.manage";
+        public const string QaChecklistRead = "governance.qa_checklist.read";
+        public const string QaChecklistManage = "governance.qa_checklist.manage";
+        public const string ProjectPlanRead = "governance.project_plan.read";
+        public const string ProjectPlanManage = "governance.project_plan.manage";
+        public const string ProjectPlanApprove = "governance.project_plan.approve";
+        public const string StakeholderRead = "governance.stakeholder.read";
+        public const string StakeholderManage = "governance.stakeholder.manage";
+        public const string TailoringRead = "governance.tailoring.read";
+        public const string TailoringManage = "governance.tailoring.manage";
+        public const string TailoringApprove = "governance.tailoring.approve";
+    }
+
+    public static class Requirements
+    {
+        public const string Read = "requirements.read";
+        public const string Manage = "requirements.manage";
+        public const string Approve = "requirements.approve";
+        public const string Baseline = "requirements.baseline";
+        public const string ManageTraceability = "requirements.traceability.manage";
+    }
+
+    public static class ChangeControl
+    {
+        public const string Read = "change_control.read";
+        public const string Manage = "change_control.manage";
+        public const string Approve = "change_control.approve";
+        public const string ManageConfiguration = "change_control.configuration.manage";
+        public const string ReadConfiguration = "change_control.configuration.read";
+        public const string ManageBaselines = "change_control.baselines.manage";
+        public const string ApproveBaselines = "change_control.baselines.approve";
+        public const string EmergencyOverride = "change_control.emergency_override";
+    }
+
+    public static class Risks
+    {
+        public const string Read = "risks.read";
+        public const string Manage = "risks.manage";
+        public const string ReadSensitive = "risks.sensitive.read";
+    }
+
     public static class Notifications
     {
         public const string Read = "notifications.read";
@@ -107,6 +151,34 @@ public static class Permissions
         Documents.Deactivate,
         Workflows.Read,
         Workflows.ManageDefinitions,
+        Governance.ProcessLibraryRead,
+        Governance.ProcessLibraryManage,
+        Governance.QaChecklistRead,
+        Governance.QaChecklistManage,
+        Governance.ProjectPlanRead,
+        Governance.ProjectPlanManage,
+        Governance.ProjectPlanApprove,
+        Governance.StakeholderRead,
+        Governance.StakeholderManage,
+        Governance.TailoringRead,
+        Governance.TailoringManage,
+        Governance.TailoringApprove,
+        Requirements.Read,
+        Requirements.Manage,
+        Requirements.Approve,
+        Requirements.Baseline,
+        Requirements.ManageTraceability,
+        ChangeControl.Read,
+        ChangeControl.Manage,
+        ChangeControl.Approve,
+        ChangeControl.ReadConfiguration,
+        ChangeControl.ManageConfiguration,
+        ChangeControl.ManageBaselines,
+        ChangeControl.ApproveBaselines,
+        ChangeControl.EmergencyOverride,
+        Risks.Read,
+        Risks.Manage,
+        Risks.ReadSensitive,
         Notifications.Read
     ];
 
@@ -146,6 +218,34 @@ public static class Permissions
             Documents.Deactivate => "Deactivate Documents",
             Workflows.Read => "Read Workflows",
             Workflows.ManageDefinitions => "Manage Workflow Definitions",
+            Governance.ProcessLibraryRead => "Read Process Library",
+            Governance.ProcessLibraryManage => "Manage Process Library",
+            Governance.QaChecklistRead => "Read QA Checklists",
+            Governance.QaChecklistManage => "Manage QA Checklists",
+            Governance.ProjectPlanRead => "Read Project Plans",
+            Governance.ProjectPlanManage => "Manage Project Plans",
+            Governance.ProjectPlanApprove => "Approve Project Plans",
+            Governance.StakeholderRead => "Read Stakeholders",
+            Governance.StakeholderManage => "Manage Stakeholders",
+            Governance.TailoringRead => "Read Tailoring Records",
+            Governance.TailoringManage => "Manage Tailoring Records",
+            Governance.TailoringApprove => "Approve Tailoring Records",
+            Requirements.Read => "Read Requirements",
+            Requirements.Manage => "Manage Requirements",
+            Requirements.Approve => "Approve Requirements",
+            Requirements.Baseline => "Baseline Requirements",
+            Requirements.ManageTraceability => "Manage Requirement Traceability",
+            ChangeControl.Read => "Read Change Requests",
+            ChangeControl.Manage => "Manage Change Requests",
+            ChangeControl.Approve => "Approve Change Requests",
+            ChangeControl.ReadConfiguration => "Read Configuration Items",
+            ChangeControl.ManageConfiguration => "Manage Configuration Items",
+            ChangeControl.ManageBaselines => "Manage Baselines",
+            ChangeControl.ApproveBaselines => "Approve Baselines",
+            ChangeControl.EmergencyOverride => "Emergency Override Change Control",
+            Risks.Read => "Read Risks and Issues",
+            Risks.Manage => "Manage Risks and Issues",
+            Risks.ReadSensitive => "Read Sensitive Issues",
             Notifications.Read => "Read Notifications",
             _ => permission
         };

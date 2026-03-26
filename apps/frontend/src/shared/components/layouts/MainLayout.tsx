@@ -3,6 +3,7 @@ import { Layout, Menu, Button, Typography, Flex, theme, Avatar, Dropdown, Grid, 
 import type { MenuProps } from 'antd';
 import {
   FileTextOutlined,
+  AlertOutlined,
   MenuOutlined,
   BulbOutlined,
   BulbFilled,
@@ -65,6 +66,41 @@ export function MainLayout() {
     permissions.documents.publish,
     permissions.documents.deleteDraft,
     permissions.documents.deactivate,
+  );
+  const hasGovernanceAccess = permissionState.hasAnyPermission(
+    permissions.governance.processLibraryRead,
+    permissions.governance.processLibraryManage,
+    permissions.governance.qaChecklistRead,
+    permissions.governance.qaChecklistManage,
+    permissions.governance.projectPlanRead,
+    permissions.governance.projectPlanManage,
+    permissions.governance.projectPlanApprove,
+    permissions.governance.stakeholderRead,
+    permissions.governance.stakeholderManage,
+    permissions.governance.tailoringRead,
+    permissions.governance.tailoringManage,
+    permissions.governance.tailoringApprove,
+  );
+  const hasRequirementsAccess = permissionState.hasAnyPermission(
+    permissions.requirements.read,
+    permissions.requirements.manage,
+    permissions.requirements.approve,
+    permissions.requirements.baseline,
+    permissions.requirements.manageTraceability,
+  );
+  const hasChangeControlAccess = permissionState.hasAnyPermission(
+    permissions.changeControl.read,
+    permissions.changeControl.manage,
+    permissions.changeControl.approve,
+    permissions.changeControl.readConfiguration,
+    permissions.changeControl.manageConfiguration,
+    permissions.changeControl.manageBaselines,
+    permissions.changeControl.approveBaselines,
+  );
+  const hasRisksAccess = permissionState.hasAnyPermission(
+    permissions.risks.read,
+    permissions.risks.manage,
+    permissions.risks.readSensitive,
   );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
@@ -133,11 +169,17 @@ export function MainLayout() {
           children: [
             {
               key: '/app/documents',
-              label: tr('common.document_list'),
+              label: 'Document Register',
             },
+            ...(permissionState.hasPermission(permissions.documents.deactivate)
+              ? [{
+                  key: '/app/documents/types',
+                  label: 'Document Type Setup',
+                }]
+              : []),
             {
-              key: '/app/document-templates',
-              label: tr('common.document_templates'),
+              key: '/app/documents/templates',
+              label: 'Document Templates',
             },
           ],
         }]
@@ -166,6 +208,55 @@ export function MainLayout() {
       ],
     },
     ...[],
+    ...(hasGovernanceAccess
+      ? [{
+          key: '/app/governance',
+          icon: <ProjectOutlined />,
+          label: 'Governance',
+          children: [
+            { key: '/app/process-library', label: 'Process Library' },
+            { key: '/app/qa-review-checklists', label: 'QA Review Checklist' },
+            { key: '/app/project-plans', label: 'Project Plan' },
+            { key: '/app/stakeholders', label: 'Stakeholder Register' },
+            { key: '/app/tailoring-records', label: 'Tailoring Record' },
+          ],
+        }]
+      : []),
+    ...(hasRequirementsAccess
+      ? [{
+          key: '/app/requirements-group',
+          icon: <FileTextOutlined />,
+          label: 'Requirements',
+          children: [
+            { key: '/app/requirements', label: 'Requirement Register' },
+            { key: '/app/requirements/baselines', label: 'Requirement Baselines' },
+            { key: '/app/requirements/traceability', label: 'Traceability Matrix' },
+          ],
+        }]
+      : []),
+    ...(hasChangeControlAccess
+      ? [{
+          key: '/app/change-control-group',
+          icon: <ProjectOutlined />,
+          label: 'Change Control',
+          children: [
+            { key: '/app/change-control/change-requests', label: 'Change Requests' },
+            { key: '/app/change-control/configuration-items', label: 'Configuration Items' },
+            { key: '/app/change-control/baseline-registry', label: 'Baseline Registry' },
+          ],
+        }]
+      : []),
+    ...(hasRisksAccess
+      ? [{
+          key: '/app/risks-group',
+          icon: <AlertOutlined />,
+          label: 'Risks & Issues',
+          children: [
+            { key: '/app/risks', label: 'Risk Register' },
+            { key: '/app/issues', label: 'Issue Log' },
+          ],
+        }]
+      : []),
     ...(hasAdminAccess
       ? [{
           key: '/app/admin',
