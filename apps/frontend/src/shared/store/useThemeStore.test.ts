@@ -1,8 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+const storage = {
+  getItem: vi.fn(() => null),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+
+vi.stubGlobal('localStorage', storage);
+
 import { useThemeStore } from './useThemeStore';
 
 describe('useThemeStore', () => {
   beforeEach(() => {
+    storage.clear();
     // Reset state before each test
     useThemeStore.setState({ theme: 'system' });
   });

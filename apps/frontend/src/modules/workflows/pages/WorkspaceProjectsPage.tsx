@@ -6,9 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
-import { useProjectList } from "../../users";
-import { formatDate } from "../../users/utils/adminUsersPresentation";
-import type { ProjectListItem } from "../../users/types/users";
+import { useProjectList, formatDate, type ProjectListItem } from "../../users/public";
 
 export function WorkspaceProjectsPage() {
   const { t, i18n } = useTranslation();

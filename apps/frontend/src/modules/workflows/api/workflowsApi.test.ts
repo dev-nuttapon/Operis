@@ -105,6 +105,7 @@ describe("updateWorkflowDefinition", () => {
     expect(apiRequest).toHaveBeenCalledWith("/api/v1/steps/definitions/1", {
       method: "PUT",
       body: {
+        documentTemplateId: null,
         name: "Policy Approval",
         steps: [
           {
