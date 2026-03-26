@@ -1,0 +1,1 @@
+import{u as o}from"./query-vendor-0tyVQe44.js";import{g as s}from"./workflowsApi-C8YMvTcb.js";function a(e,r=!0){return o({queryKey:["workflow-definition",e],enabled:r&&!!e,queryFn:({signal:u})=>e?s(e,u):Promise.resolve(null),staleTime:3e4})}export{a as u};

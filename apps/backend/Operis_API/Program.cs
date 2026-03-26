@@ -4,12 +4,18 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
-using Operis_API.Shared.Configuration;
-using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Users.Infrastructure;
+using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Configuration;
 using Operis_API.Shared.Modules;
+using Operis_API.Shared.Security;
 
 var builder = WebApplication.CreateBuilder(args);
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    _ = Phase0ConfigurationValidator.Validate(builder.Configuration);
+}
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -84,6 +90,13 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = options.DefaultPolicy;
 });
 
+builder.Services.Configure<Phase0SecurityOptions>(builder.Configuration.GetSection(Phase0SecurityOptions.SectionName));
+
+// Register core shared services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IPermissionMatrix, PermissionMatrix>();
+builder.Services.AddScoped<IAuditLogWriter, AuditLogWriter>();
+
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddDbContext<OperisDbContext>(options =>
@@ -100,7 +113,7 @@ if (!string.IsNullOrWhiteSpace(redisConnectionString))
     builder.Services.AddStackExchangeRedisCache(options =>
     {
         options.Configuration = redisConnectionString;
-        options.InstanceName = "Operis:";
+        options.InstanceName = "operis:";
     });
 }
 else
@@ -115,6 +128,7 @@ var app = builder.Build();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AuditFailureLoggingMiddleware>();
 
 app.MapModules();
 

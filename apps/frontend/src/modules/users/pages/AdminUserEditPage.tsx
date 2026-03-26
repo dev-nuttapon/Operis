@@ -25,6 +25,7 @@ type FormValues = {
   departmentId?: string;
   jobTitleId?: string;
   roles?: string[];
+  roleChangeReason?: string;
 };
 
 export function AdminUserEditPage() {
@@ -108,6 +109,7 @@ export function AdminUserEditPage() {
           departmentId: values.departmentId,
           jobTitleId: values.jobTitleId,
           roleIds: values.roles,
+          roleChangeReason: values.roleChangeReason,
         },
         {
           onSuccess: () => {
@@ -324,6 +326,9 @@ export function AdminUserEditPage() {
                       options={roleOptions}
                     />
                   </Form.Item>
+                  <Form.Item label="Role change reason" name="roleChangeReason">
+                    <Input.TextArea rows={3} placeholder="Why are these roles changing?" />
+                  </Form.Item>
                 </Card>
               </Space>
             </Form>
@@ -354,4 +359,3 @@ export function AdminUserEditPage() {
     </Space>
   );
 }
-

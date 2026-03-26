@@ -112,6 +112,12 @@ function flattenOrgChart(nodes: ProjectOrgChartNode[]): ProjectOrgChartNode[] {
   return result;
 }
 
+interface WorkflowStep {
+  roleCode: string;
+  action: string;
+  output: string;
+}
+
 export function ProjectWorkspacePrototypePage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -129,7 +135,6 @@ export function ProjectWorkspacePrototypePage() {
   const [auditPageSize, setAuditPageSize] = useState(10);
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
-  const canManageProjects = permissionState.hasPermission(permissions.projects.manage);
   const quickActions = useMemo(
     () => [
       { id: "role-gap", labelKey: "project_workspace.quick_actions.role_gap", targetSection: "roles" as const },
@@ -340,7 +345,7 @@ export function ProjectWorkspacePrototypePage() {
       })),
     [projectEvidenceAssignmentHistoryQuery.data?.items, i18n.language],
   );
-  const workflowSteps = useMemo(() => [], []);
+  const workflowSteps = useMemo<WorkflowStep[]>(() => [], []);
   const workflowPreviewSteps = useMemo(
     () =>
       workflowSteps.map((step, index) => ({
@@ -663,7 +668,9 @@ export function ProjectWorkspacePrototypePage() {
                         color: index === workflowSteps.length - 1 ? "green" : "blue",
                         children: (
                           <Space direction="vertical" size={2}>
-                            <Typography.Text strong={`${step.roleCode} · ${step.output}`} />
+                            <Typography.Text strong>
+                              {`${step.roleCode} · ${step.output}`}
+                            </Typography.Text>
                             <Typography.Text>{step.action}</Typography.Text>
                           </Space>
                         ),

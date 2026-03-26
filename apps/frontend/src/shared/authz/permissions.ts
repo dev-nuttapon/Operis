@@ -1,4 +1,8 @@
 const allPermissions = [
+  "admin.permission_matrix.read",
+  "admin.permission_matrix.apply",
+  "admin.settings.read",
+  "admin.settings.manage",
   "users.read",
   "users.create",
   "users.update",
@@ -32,6 +36,12 @@ const allPermissions = [
 ] as const;
 
 export const permissions = {
+  admin: {
+    permissionMatrixRead: "admin.permission_matrix.read",
+    permissionMatrixApply: "admin.permission_matrix.apply",
+    settingsRead: "admin.settings.read",
+    settingsManage: "admin.settings.manage",
+  },
   users: {
     read: "users.read",
     create: "users.create",
@@ -86,6 +96,10 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
   "operis:super_admin": allPermissions,
   operis_super_admin: allPermissions,
   "operis:system_admin": [
+    permissions.admin.permissionMatrixRead,
+    permissions.admin.permissionMatrixApply,
+    permissions.admin.settingsRead,
+    permissions.admin.settingsManage,
     permissions.users.read,
     permissions.users.create,
     permissions.users.update,
@@ -118,6 +132,10 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.notifications.read,
   ],
   operis_system_admin: [
+    permissions.admin.permissionMatrixRead,
+    permissions.admin.permissionMatrixApply,
+    permissions.admin.settingsRead,
+    permissions.admin.settingsManage,
     permissions.users.read,
     permissions.users.create,
     permissions.users.update,
@@ -168,8 +186,47 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
   "operis:workflows_approver": [permissions.workflows.read, permissions.notifications.read],
   "operis:workflows_department_manager": [permissions.workflows.read, permissions.notifications.read],
   "operis:employee_viewer": [permissions.workflows.read, permissions.notifications.read],
-  "operis:ops_support": [permissions.activityLogs.read, permissions.notifications.read],
+  "operis:ops_support": [permissions.admin.settingsRead, permissions.activityLogs.read, permissions.notifications.read],
 };
+
+export function getPermissionLabel(permission: Permission) {
+  return {
+    [permissions.admin.permissionMatrixRead]: "Read Permission Matrix",
+    [permissions.admin.permissionMatrixApply]: "Apply Permission Matrix",
+    [permissions.admin.settingsRead]: "Read System Settings",
+    [permissions.admin.settingsManage]: "Manage System Settings",
+    [permissions.users.read]: "Read Users",
+    [permissions.users.create]: "Create Users",
+    [permissions.users.update]: "Update Users",
+    [permissions.users.delete]: "Delete Users",
+    [permissions.users.invite]: "Invite Users",
+    [permissions.users.reviewRegistrations]: "Review Registrations",
+    [permissions.masterData.read]: "Read Master Data",
+    [permissions.masterData.managePermanentOrg]: "Manage Permanent Org",
+    [permissions.masterData.manageProjectStructures]: "Manage Project Structures",
+    [permissions.projects.read]: "Read Projects",
+    [permissions.projects.manage]: "Manage Projects",
+    [permissions.projects.manageRoles]: "Manage Project Roles",
+    [permissions.projects.manageMembers]: "Manage Project Members",
+    [permissions.projects.readEvidence]: "Read Project Evidence",
+    [permissions.projects.exportEvidence]: "Export Project Evidence",
+    [permissions.projects.readCompliance]: "Read Project Compliance",
+    [permissions.projects.manageTemplates]: "Manage Project Templates",
+    [permissions.activityLogs.read]: "Read Activity Logs",
+    [permissions.activityLogs.export]: "Export Activity Logs",
+    [permissions.auditLogs.read]: "Read Audit Logs",
+    [permissions.auditLogs.export]: "Export Audit Logs",
+    [permissions.documents.read]: "Read Documents",
+    [permissions.documents.upload]: "Upload Documents",
+    [permissions.documents.manageVersions]: "Manage Document Versions",
+    [permissions.documents.publish]: "Publish Documents",
+    [permissions.documents.deleteDraft]: "Delete Draft Documents",
+    [permissions.documents.deactivate]: "Deactivate Documents",
+    [permissions.workflows.read]: "Read Workflows",
+    [permissions.workflows.manageDefinitions]: "Manage Workflow Definitions",
+    [permissions.notifications.read]: "Read Notifications",
+  }[permission];
+}
 
 export function getPermissionsForRoles(roles: string[]): Permission[] {
   const resolved = new Set<Permission>();

@@ -13,8 +13,6 @@ import {
   GlobalOutlined,
   ProjectOutlined,
   TeamOutlined,
-  ApartmentOutlined,
-  FolderOpenOutlined,
   UserOutlined,
   DownOutlined,
 } from '@ant-design/icons';
@@ -51,12 +49,15 @@ export function MainLayout() {
   const permissionState = usePermissions();
   const { theme: currentTheme, setTheme } = useThemeStore();
   const hasAdminAccess = permissionState.hasAnyPermission(
+    permissions.admin.permissionMatrixRead,
+    permissions.admin.settingsRead,
     permissions.users.read,
     permissions.masterData.read,
     permissions.projects.read,
     permissions.activityLogs.read,
   );
-  const hasNotificationsAccess = permissionState.hasPermission(permissions.notifications.read);
+  const canReadPermissionMatrix = permissionState.hasPermission(permissions.admin.permissionMatrixRead);
+  const canReadSettings = permissionState.hasAnyPermission(permissions.admin.settingsRead, permissions.admin.settingsManage);
   const hasDocumentAccess = permissionState.hasAnyPermission(
     permissions.documents.read,
     permissions.documents.upload,
@@ -70,9 +71,6 @@ export function MainLayout() {
   const jobTitleLabel =
     currentUserQuery.data?.jobTitleName ??
     (typeof user?.jobTitleName === "string" ? user.jobTitleName : undefined);
-  const departmentLabel =
-    currentUserQuery.data?.departmentName ??
-    (typeof user?.departmentName === "string" ? user.departmentName : undefined);
   const positionFallback = tr('common.position_empty');
   const jobTitleText = jobTitleLabel ?? positionFallback;
   const isDarkMode = token.colorBgBase.toLowerCase() === '#020617';
@@ -220,10 +218,18 @@ export function MainLayout() {
               key: '/app/admin/activity-logs',
               label: tr('common.activity_logs'),
             },
-            {
-              key: '/app/admin/settings',
-              label: tr('common.admin_settings'),
-            },
+            ...(canReadPermissionMatrix
+              ? [{
+                  key: '/app/admin/permissions',
+                  label: 'Permission Matrix',
+                }]
+              : []),
+            ...(canReadSettings
+              ? [{
+                  key: '/app/admin/settings',
+                  label: tr('common.admin_settings'),
+                }]
+              : []),
           ],
         }]
       : []),

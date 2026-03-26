@@ -59,6 +59,7 @@ export function ProjectMembersPage() {
     projectRoles: { page: 1, pageSize: 1 },
     projectAssignments: selectedProjectId ? { projectId: selectedProjectId, ...paging, search: debouncedSearch } : null,
   });
+  const assignmentsData = projectAssignmentsQuery.data as { items?: ProjectAssignment[]; page?: number; pageSize?: number; total?: number } | undefined;
   const projectOptionsState = useProjectOptions({ enabled: canReadProjects });
   const handleError = (fallbackTitle: string, error: unknown) => {
     const presentation = getApiErrorPresentation(error, fallbackTitle);
@@ -243,19 +244,19 @@ export function ProjectMembersPage() {
                 </Flex>
               </Flex>
 
-              {canReadProjects && projectAssignmentsQuery.isLoading && (projectAssignmentsQuery.data?.items?.length ?? 0) === 0 ? (
+              {canReadProjects && projectAssignmentsQuery.isLoading && (Array.isArray(assignmentsData?.items) ? assignmentsData.items.length : 0) === 0 ? (
                 <Skeleton active paragraph={{ rows: 6 }} />
               ) : (
                 <Table
                   rowKey="id"
                   columns={columns}
-                  dataSource={canReadProjects ? (projectAssignmentsQuery.data?.items ?? []) : []}
+                  dataSource={canReadProjects && Array.isArray(assignmentsData?.items) ? assignmentsData.items : []}
                   loading={canReadProjects ? projectAssignmentsQuery.isLoading : false}
                   scroll={{ x: "max-content" }}
                   pagination={{
-                    current: projectAssignmentsQuery.data?.page ?? paging.page,
-                    pageSize: projectAssignmentsQuery.data?.pageSize ?? paging.pageSize,
-                    total: projectAssignmentsQuery.data?.total ?? 0,
+                    current: assignmentsData?.page ?? paging.page,
+                    pageSize: assignmentsData?.pageSize ?? paging.pageSize,
+                    total: assignmentsData?.total ?? 0,
                     showSizeChanger: true,
                     pageSizeOptions: [10, 25, 50, 100],
                   }}

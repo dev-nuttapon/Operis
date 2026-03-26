@@ -26,7 +26,7 @@ export function useJobTitleOptions({
         pageSize,
         search: debouncedSearch,
         sortBy: "displayOrder",
-        sortOrder: "asc",
+        sortOrder: "asc" as "asc",
         departmentId,
       };
 

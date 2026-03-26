@@ -46,6 +46,7 @@ export function ProjectRolesPage() {
     projectRoles: { ...paging, search: debouncedSearch },
     projectAssignments: null,
   });
+  const projectRoleData = projectRolesQuery.data as { items?: ProjectRole[]; page?: number; pageSize?: number; total?: number } | undefined;
 
   const handleError = (fallbackTitle: string, error: unknown) => {
     const presentation = getApiErrorPresentation(error, fallbackTitle);
@@ -162,19 +163,19 @@ export function ProjectRolesPage() {
                 </Flex>
               </Flex>
 
-              {projectRolesQuery.isLoading && (projectRolesQuery.data?.items?.length ?? 0) === 0 ? (
+              {projectRolesQuery.isLoading && (Array.isArray(projectRoleData?.items) ? projectRoleData.items.length : 0) === 0 ? (
                 <Skeleton active paragraph={{ rows: 6 }} />
               ) : (
                 <Table
                   rowKey="id"
                   columns={columns}
-                  dataSource={projectRolesQuery.data?.items ?? []}
+                  dataSource={Array.isArray(projectRoleData?.items) ? projectRoleData.items : []}
                   loading={projectRolesQuery.isLoading}
                   scroll={{ x: "max-content" }}
                   pagination={{
-                    current: projectRolesQuery.data?.page ?? paging.page,
-                    pageSize: projectRolesQuery.data?.pageSize ?? paging.pageSize,
-                    total: projectRolesQuery.data?.total ?? 0,
+                    current: projectRoleData?.page ?? paging.page,
+                    pageSize: projectRoleData?.pageSize ?? paging.pageSize,
+                    total: projectRoleData?.total ?? 0,
                     showSizeChanger: true,
                     pageSizeOptions: [10, 25, 50, 100],
                   }}

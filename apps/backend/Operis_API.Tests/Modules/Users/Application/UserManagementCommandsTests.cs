@@ -1,5 +1,6 @@
 using Operis_API.Modules.Users.Application;
 using Operis_API.Modules.Users.Contracts;
+using Operis_API.Modules.Users.Domain;
 using Operis_API.Modules.Users.Infrastructure;
 using Operis_API.Tests.Support;
 
@@ -80,5 +81,41 @@ public sealed class UserManagementCommandsTests
         Assert.Equal(1, keycloakAdminClient.CreateUserCalls);
         Assert.Equal(0, keycloakAdminClient.AssignRealmRolesCalls);
         Assert.Single(auditLogWriter.Entries);
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_WhenRemovingLastAdminRole_ReturnsValidationError()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var adminRoleId = Guid.NewGuid();
+        dbContext.AppRoles.Add(new AppRoleEntity
+        {
+            Id = adminRoleId,
+            Name = "System Admin",
+            KeycloakRoleName = "operis:system_admin",
+            DisplayOrder = 1,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.Users.Add(new UserEntity
+        {
+            Id = "kc-admin",
+            Status = UserStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "seed"
+        });
+        await dbContext.SaveChangesAsync();
+
+        var auditLogWriter = new FakeAuditLogWriter();
+        var keycloakAdminClient = new FakeKeycloakAdminClient();
+        keycloakAdminClient.UserRealmRoles["kc-admin"] = [new KeycloakRole("role-1", "operis:system_admin", null, false)];
+        var sut = new UserManagementCommands(dbContext, auditLogWriter, keycloakAdminClient, new TestKeycloakUserCache());
+
+        var result = await sut.UpdateUserAsync(
+            "kc-admin",
+            new UpdateUserRequest("admin@example.com", "Admin", "User", null, null, null, [], "role cleanup"),
+            CancellationToken.None);
+
+        Assert.Equal(UserCommandStatus.ValidationError, result.Status);
+        Assert.Equal(Shared.Contracts.ApiErrorCodes.LastAdminRemovalBlocked, result.ErrorCode);
     }
 }

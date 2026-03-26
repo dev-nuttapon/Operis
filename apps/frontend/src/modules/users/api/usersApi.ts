@@ -18,6 +18,7 @@ import type {
   InvitationDetail,
   Invitation,
   AppRoleItem,
+  ApplyPermissionMatrixInput,
   CreateRegistrationRequestInput,
   ListInvitationsInput,
   ListProjectAssignmentsInput,
@@ -36,6 +37,7 @@ import type {
   ProjectRoleResponsibilityRow,
   ProjectTeamRegisterRow,
   ProjectTypeTemplate,
+  PermissionMatrix,
   RegistrationRequest,
   RejectRegistrationInput,
   SoftDeleteInput,
@@ -47,7 +49,9 @@ import type {
   UpdateProjectAssignmentInput,
   UpdateProjectInput,
   UpdateProjectRoleInput,
+  UpdateSystemSettingsInput,
   UpsertUserOrgAssignmentInput,
+  SystemSettings,
   User,
 } from "../types/users";
 
@@ -253,7 +257,30 @@ export function updateUser(input: UpdateUserInput) {
       departmentId: input.departmentId,
       jobTitleId: input.jobTitleId,
       roleIds: input.roleIds,
+      roleChangeReason: input.roleChangeReason,
     },
+  });
+}
+
+export function getPermissionMatrix(signal?: AbortSignal) {
+  return apiRequest<PermissionMatrix>("/api/v1/admin/permissions", { signal });
+}
+
+export function applyPermissionMatrix(input: ApplyPermissionMatrixInput) {
+  return apiRequest<PermissionMatrix>("/api/v1/admin/permissions/matrix", {
+    method: "PUT",
+    body: input,
+  });
+}
+
+export function getSystemSettings(signal?: AbortSignal) {
+  return apiRequest<SystemSettings>("/api/v1/admin/settings", { signal });
+}
+
+export function updateSystemSettings(input: UpdateSystemSettingsInput) {
+  return apiRequest<SystemSettings>("/api/v1/admin/settings", {
+    method: "PUT",
+    body: input,
   });
 }
 

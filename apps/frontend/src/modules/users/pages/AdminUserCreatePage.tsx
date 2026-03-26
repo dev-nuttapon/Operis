@@ -28,6 +28,7 @@ type FormValues = {
   departmentId?: string;
   jobTitleId?: string;
   roles?: string[];
+  roleChangeReason?: string;
 };
 
 export function AdminUserCreatePage() {
@@ -87,6 +88,7 @@ export function AdminUserCreatePage() {
           departmentId: values.departmentId,
           jobTitleId: values.jobTitleId,
           roleIds: values.roles,
+          roleChangeReason: values.roleChangeReason,
         },
         {
           onSuccess: () => {
@@ -319,6 +321,9 @@ export function AdminUserCreatePage() {
                       loading={rolesState.loading}
                       options={roleOptions}
                     />
+                  </Form.Item>
+                  <Form.Item label="Role change reason" name="roleChangeReason">
+                    <Input.TextArea rows={3} placeholder="Why is this user receiving these roles?" />
                   </Form.Item>
                 </Card>
               </Space>

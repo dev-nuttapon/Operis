@@ -20,6 +20,8 @@ public sealed class UsersModule : IModule
         services.Configure<KeycloakOptions>(configuration.GetSection(KeycloakOptions.SectionName));
         services.AddScoped<IUserManagementCommands, UserManagementCommands>();
         services.AddScoped<IUserPreferenceCommands, UserPreferenceCommands>();
+        services.AddScoped<IAdminSecurityQueries, AdminSecurityQueries>();
+        services.AddScoped<IAdminSecurityCommands, AdminSecurityCommands>();
         services.AddScoped<IUserQueries, UserQueries>();
         services.AddScoped<IUserInvitationCommands, UserInvitationCommands>();
         services.AddScoped<IUserInvitationQueries, UserInvitationQueries>();
@@ -49,6 +51,9 @@ public sealed class UsersModule : IModule
     {
         var group = endpoints.MapGroup("/api/v1/users")
             .WithTags("Users")
+            .RequireAuthorization();
+        var adminGroup = endpoints.MapGroup("/api/v1/admin")
+            .WithTags("Admin")
             .RequireAuthorization();
 
         group.MapGet("/", ListUsersAsync)
@@ -281,6 +286,18 @@ public sealed class UsersModule : IModule
 
         group.MapPost("/", CreateUserAsync)
             .WithName("Users_CreateUser");
+
+        adminGroup.MapGet("/permissions", GetPermissionMatrixAsync)
+            .WithName("Admin_GetPermissionMatrix");
+
+        adminGroup.MapPut("/permissions/matrix", ApplyPermissionMatrixAsync)
+            .WithName("Admin_ApplyPermissionMatrix");
+
+        adminGroup.MapGet("/settings", GetSystemSettingsAsync)
+            .WithName("Admin_GetSystemSettings");
+
+        adminGroup.MapPut("/settings", UpdateSystemSettingsAsync)
+            .WithName("Admin_UpdateSystemSettings");
 
         return endpoints;
     }
@@ -1332,6 +1349,7 @@ public sealed class UsersModule : IModule
         return result.Status switch
         {
             UserCommandStatus.NotFound => NotFoundWithCode(),
+            UserCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
             UserCommandStatus.ExternalFailure => ProblemWithCode(result.ProblemTitle, result.ErrorMessage, result.ErrorCode, result.ProblemStatusCode, ApiErrorCodes.ExternalDependencyFailure),
             _ => Results.NoContent()
         };
@@ -1726,6 +1744,74 @@ public sealed class UsersModule : IModule
         };
     }
 
+    private static async Task<IResult> GetPermissionMatrixAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IAdminSecurityQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Admin.PermissionMatrixRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read the permission matrix.");
+        }
+
+        return Results.Ok(await queries.GetPermissionMatrixAsync(cancellationToken));
+    }
+
+    private static async Task<IResult> ApplyPermissionMatrixAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        ApplyPermissionMatrixRequest request,
+        IAdminSecurityCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Admin.PermissionMatrixApply))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to apply permission matrix changes.");
+        }
+
+        var result = await commands.ApplyPermissionMatrixAsync(ResolveActor(principal), request, cancellationToken);
+        return result.Status switch
+        {
+            AdminSecurityCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            _ => Results.Ok(result.Response)
+        };
+    }
+
+    private static async Task<IResult> GetSystemSettingsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IAdminSecurityQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Admin.SettingsRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read system settings.");
+        }
+
+        return Results.Ok(await queries.GetSystemSettingsAsync(cancellationToken));
+    }
+
+    private static async Task<IResult> UpdateSystemSettingsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        UpdateSystemSettingsRequest request,
+        IAdminSecurityCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Admin.SettingsManage))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to update system settings.");
+        }
+
+        var result = await commands.UpdateSystemSettingsAsync(ResolveActor(principal), request, cancellationToken);
+        return result.Status switch
+        {
+            AdminSecurityCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            _ => Results.Ok(result.Response)
+        };
+    }
+
     private static string ResolveActor(ClaimsPrincipal principal) =>
         principal.FindFirstValue(ClaimTypes.Email)
         ?? principal.FindFirstValue("preferred_username")
@@ -1739,6 +1825,11 @@ public sealed class UsersModule : IModule
 
     private static bool LacksPermission(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission) =>
         !permissionMatrix.HasPermission(principal, permission);
+
+    private static IResult ForbiddenWithCode(string title, string detail) =>
+        Results.Json(
+            ApiProblemDetailsFactory.Create(StatusCodes.Status403Forbidden, "forbidden", title, detail),
+            statusCode: StatusCodes.Status403Forbidden);
 
     private static async Task<bool> HasProjectReadAccessAsync(
         ClaimsPrincipal principal,

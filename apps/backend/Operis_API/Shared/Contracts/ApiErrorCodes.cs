@@ -6,6 +6,10 @@ namespace Operis_API.Shared.Contracts;
     public const string ResourceNotFound = "resource_not_found";
     public const string ExternalDependencyFailure = "external_dependency_failure";
     public const string InternalFailure = "internal_failure";
+    public const string ReasonRequired = "reason_required";
+    public const string InvalidPermissionKey = "invalid_permission_key";
+    public const string InvalidSystemSettingValue = "invalid_system_setting_value";
+    public const string LastAdminRemovalBlocked = "last_admin_removal_blocked";
 
     public const string UserExists = "user_exists";
     public const string PendingInvitationExists = "pending_invitation_exists";

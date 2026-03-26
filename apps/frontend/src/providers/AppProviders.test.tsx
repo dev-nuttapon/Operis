@@ -47,6 +47,7 @@ describe('AppProviders', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: false,
+      authState: 'anonymous',
       user: null,
       login: vi.fn(),
       logout: vi.fn(),
@@ -102,6 +103,7 @@ describe('AppProviders', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: true,
+      authState: 'authenticated',
       user: null,
       login: vi.fn(),
       logout: vi.fn(),

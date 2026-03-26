@@ -2,6 +2,14 @@ namespace Operis_API.Shared.Security;
 
 public static class Permissions
 {
+    public static class Admin
+    {
+        public const string PermissionMatrixRead = "admin.permission_matrix.read";
+        public const string PermissionMatrixApply = "admin.permission_matrix.apply";
+        public const string SettingsRead = "admin.settings.read";
+        public const string SettingsManage = "admin.settings.manage";
+    }
+
     public static class Users
     {
         public const string Read = "users.read";
@@ -66,6 +74,10 @@ public static class Permissions
 
     public static readonly IReadOnlyList<string> All =
     [
+        Admin.PermissionMatrixRead,
+        Admin.PermissionMatrixApply,
+        Admin.SettingsRead,
+        Admin.SettingsManage,
         Users.Read,
         Users.Create,
         Users.Update,
@@ -97,4 +109,44 @@ public static class Permissions
         Workflows.ManageDefinitions,
         Notifications.Read
     ];
+
+    public static string GetDisplayName(string permission) =>
+        permission switch
+        {
+            Admin.PermissionMatrixRead => "Read Permission Matrix",
+            Admin.PermissionMatrixApply => "Apply Permission Matrix",
+            Admin.SettingsRead => "Read System Settings",
+            Admin.SettingsManage => "Manage System Settings",
+            Users.Read => "Read Users",
+            Users.Create => "Create Users",
+            Users.Update => "Update Users",
+            Users.Delete => "Delete Users",
+            Users.Invite => "Invite Users",
+            Users.ReviewRegistrations => "Review Registrations",
+            MasterData.Read => "Read Master Data",
+            MasterData.ManagePermanentOrg => "Manage Permanent Org",
+            MasterData.ManageProjectStructures => "Manage Project Structures",
+            Projects.Read => "Read Projects",
+            Projects.Manage => "Manage Projects",
+            Projects.ManageRoles => "Manage Project Roles",
+            Projects.ManageMembers => "Manage Project Members",
+            Projects.ReadEvidence => "Read Project Evidence",
+            Projects.ExportEvidence => "Export Project Evidence",
+            Projects.ReadCompliance => "Read Project Compliance",
+            Projects.ManageTemplates => "Manage Project Templates",
+            ActivityLogs.Read => "Read Activity Logs",
+            ActivityLogs.Export => "Export Activity Logs",
+            AuditLogs.Read => "Read Audit Logs",
+            AuditLogs.Export => "Export Audit Logs",
+            Documents.Read => "Read Documents",
+            Documents.Upload => "Upload Documents",
+            Documents.ManageVersions => "Manage Document Versions",
+            Documents.Publish => "Publish Documents",
+            Documents.DeleteDraft => "Delete Document Drafts",
+            Documents.Deactivate => "Deactivate Documents",
+            Workflows.Read => "Read Workflows",
+            Workflows.ManageDefinitions => "Manage Workflow Definitions",
+            Notifications.Read => "Read Notifications",
+            _ => permission
+        };
 }

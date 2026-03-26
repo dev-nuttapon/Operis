@@ -356,14 +356,14 @@ export function ActivityLogsPage() {
           </Flex>
         </Form>
 
-        {activityLogsQuery.isLoading && (activityLogsQuery.data?.items?.length ?? 0) === 0 ? (
+        {activityLogsQuery.isPending && !activityLogsQuery.data ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (
           <Table<ActivityLogListItem>
             rowKey="id"
             columns={columns}
             dataSource={canReadActivityLogs ? (activityLogsQuery.data?.items ?? []) : []}
-            loading={canReadActivityLogs ? activityLogsQuery.isLoading : false}
+            loading={canReadActivityLogs ? activityLogsQuery.isFetching : false}
             scroll={{ x: "max-content" }}
             pagination={{
               current: activityLogsQuery.data?.page ?? filters.page ?? 1,

@@ -108,8 +108,8 @@ export function ProjectCreatePage() {
         navigate("/app/projects");
       },
       onError: (error) => {
-        const { message } = getApiErrorPresentation(error);
-        notification.error({ message: t("projects.messages.create_failed"), description: message });
+        const { description } = getApiErrorPresentation(error);
+        notification.error({ message: t("projects.messages.create_failed"), description });
       },
     });
   };
@@ -151,8 +151,6 @@ export function ProjectCreatePage() {
       };
     });
   }, [memberRoleByUserId, memberTargetKeys, memberTransferData]);
-
-  const hasProjectRoleOptions = projectRoleOptionsState.options.length > 0;
 
   const memberColumns = useMemo<ColumnsType<{ id: string; name: string; email: string; roleId: string | null }>>(
     () => [

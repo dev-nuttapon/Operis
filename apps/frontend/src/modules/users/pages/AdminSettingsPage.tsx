@@ -1,4 +1,4 @@
-import { App, Alert, Button, Card, Flex, Grid, Space, Typography } from "antd";
+import { App, Alert, Button, Card, Flex, Form, Grid, Input, InputNumber, Skeleton, Space, Switch, Typography } from "antd";
 import {
   ApartmentOutlined,
   FileTextOutlined,
@@ -11,6 +11,7 @@ import {
 } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { permissions } from "../../../shared/authz/permissions";
 import { useRefreshKeycloakUsersCache } from "../hooks/useRefreshKeycloakUsersCache";
@@ -20,6 +21,7 @@ import { useRefreshDepartmentsCache } from "../hooks/useRefreshDepartmentsCache"
 import { useRefreshJobTitlesCache } from "../hooks/useRefreshJobTitlesCache";
 import { useRefreshDivisionsCache } from "../hooks/useRefreshDivisionsCache";
 import { useRefreshProjectRolesCache } from "../hooks/useRefreshProjectRolesCache";
+import { useSystemSettings, useUpdateSystemSettings } from "../hooks/useSystemSettings";
 
 export function AdminSettingsPage() {
   const { t } = useTranslation();
@@ -27,6 +29,8 @@ export function AdminSettingsPage() {
   const queryClient = useQueryClient();
   const permissionState = usePermissions();
   const canManageUsers = permissionState.hasPermission(permissions.users.update);
+  const canReadSettings = permissionState.hasPermission(permissions.admin.settingsRead);
+  const canManageSettings = permissionState.hasPermission(permissions.admin.settingsManage);
   const canManageWorkflows =
     permissionState.hasPermission(permissions.workflows.manageDefinitions)
     || permissionState.hasPermission(permissions.users.update);
@@ -43,6 +47,15 @@ export function AdminSettingsPage() {
   const refreshJobTitlesMutation = useRefreshJobTitlesCache();
   const refreshDivisionsMutation = useRefreshDivisionsCache();
   const refreshProjectRolesMutation = useRefreshProjectRolesCache();
+  const systemSettingsQuery = useSystemSettings();
+  const updateSystemSettingsMutation = useUpdateSystemSettings();
+  const [settingsForm] = Form.useForm();
+
+  useEffect(() => {
+    if (systemSettingsQuery.data) {
+      settingsForm.setFieldsValue(systemSettingsQuery.data);
+    }
+  }, [settingsForm, systemSettingsQuery.data]);
 
   const buttonStyle = {
     height: 40,
@@ -101,7 +114,69 @@ export function AdminSettingsPage() {
         {!hasAnyPermission ? (
           <Alert type="warning" showIcon message={t("errors.title_forbidden")} />
         ) : (
-          <div style={gridStyle}>
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Card size="small" style={cardStyle}>
+              <Flex gap={12} vertical>
+                <Typography.Text strong>Security access defaults</Typography.Text>
+                {!canReadSettings ? (
+                  <Alert type="warning" showIcon message="You do not have permission to read secure system settings." />
+                ) : systemSettingsQuery.isLoading && !systemSettingsQuery.data ? (
+                  <Skeleton active paragraph={{ rows: 6 }} />
+                ) : (
+                  <Form
+                    form={settingsForm}
+                    layout="vertical"
+                    disabled={!canManageSettings}
+                  >
+                    <div style={gridStyle}>
+                      <Form.Item label="Session idle timeout (minutes)" name="sessionIdleTimeoutMinutes" rules={[{ required: true }]}>
+                        <InputNumber min={1} style={{ width: "100%" }} />
+                      </Form.Item>
+                      <Form.Item label="Session warning (minutes)" name="sessionWarningMinutes" rules={[{ required: true }]}>
+                        <InputNumber min={1} style={{ width: "100%" }} />
+                      </Form.Item>
+                      <Form.Item label="Redis session TTL (minutes)" name="redisSessionTtlMinutes" rules={[{ required: true }]}>
+                        <InputNumber min={1} style={{ width: "100%" }} />
+                      </Form.Item>
+                      <Form.Item label="Redis user cache TTL (minutes)" name="redisUserCacheTtlMinutes" rules={[{ required: true }]}>
+                        <InputNumber min={1} style={{ width: "100%" }} />
+                      </Form.Item>
+                      <Form.Item label="Permission matrix cache TTL (minutes)" name="permissionMatrixCacheTtlMinutes" rules={[{ required: true }]}>
+                        <InputNumber min={1} style={{ width: "100%" }} />
+                      </Form.Item>
+                      <Form.Item label="Keycloak role mapping required" name="keycloakRoleMappingRequired" valuePropName="checked">
+                        <Switch />
+                      </Form.Item>
+                    </div>
+                    <Form.Item label="Reason" name="reason" rules={[{ required: true, message: "Reason is required." }]}>
+                      <Input.TextArea rows={3} />
+                    </Form.Item>
+                    <Button
+                      type="primary"
+                      icon={<ReloadOutlined />}
+                      loading={updateSystemSettingsMutation.isPending}
+                      disabled={!canManageSettings}
+                      onClick={() => {
+                        void settingsForm.validateFields().then((values) => {
+                          updateSystemSettingsMutation.mutate(values, {
+                            onSuccess: () => {
+                              notification.success({ message: "System settings updated." });
+                            },
+                            onError: () => {
+                              notification.error({ message: "Failed to update system settings." });
+                            },
+                          });
+                        });
+                      }}
+                    >
+                      Save secure defaults
+                    </Button>
+                  </Form>
+                )}
+              </Flex>
+            </Card>
+
+            <div style={gridStyle}>
             <Card size="small" style={cardStyle}>
               <Flex gap={12} vertical>
                 <Flex gap={12} align="center">
@@ -364,7 +439,8 @@ export function AdminSettingsPage() {
                 </Button>
               </Flex>
             </Card>
-          </div>
+            </div>
+          </Space>
         )}
       </Card>
     </Space>

@@ -152,14 +152,14 @@ export function AuditLogsPage() {
         <Alert type="warning" showIcon message={t("errors.title_forbidden")} style={{ marginBottom: 16 }} />
       ) : null}
 
-      {auditLogsQuery.isLoading && (auditLogsQuery.data?.items?.length ?? 0) === 0 ? (
+      {auditLogsQuery.isPending && !auditLogsQuery.data ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
         <Table<BusinessAuditEventItem>
           rowKey="id"
           columns={columns}
           dataSource={canReadAuditLogs ? (auditLogsQuery.data?.items ?? []) : []}
-          loading={canReadAuditLogs ? auditLogsQuery.isLoading : false}
+          loading={canReadAuditLogs ? auditLogsQuery.isFetching : false}
           scroll={{ x: "max-content" }}
           pagination={{
             current: auditLogsQuery.data?.page ?? filters.page ?? 1,

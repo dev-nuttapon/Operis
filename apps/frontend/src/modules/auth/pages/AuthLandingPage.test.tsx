@@ -63,6 +63,7 @@ describe('AuthLandingPage', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: false,
+      authState: 'anonymous',
       login: mockLogin,
       logout: mockLogout,
     });
@@ -87,6 +88,7 @@ describe('AuthLandingPage', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: true,
+      authState: 'authenticated',
       login: mockLogin,
       logout: mockLogout,
     });
@@ -107,6 +109,7 @@ describe('AuthLandingPage', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: false,
       isAuthenticated: false,
+      authState: 'loading',
       login: mockLogin,
       logout: mockLogout,
     });
@@ -121,6 +124,7 @@ describe('AuthLandingPage', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: false,
+      authState: 'anonymous',
       login: mockLogin,
       logout: mockLogout,
     });
@@ -152,6 +156,7 @@ describe('AuthLandingPage', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: false,
+      authState: 'anonymous',
       login: mockLogin,
       logout: mockLogout,
     });

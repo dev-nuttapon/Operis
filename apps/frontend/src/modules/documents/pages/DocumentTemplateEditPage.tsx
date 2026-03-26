@@ -8,7 +8,6 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { useDocumentOptions, useDocumentTemplate, useRefreshDocumentTemplateItemVersion, useUpdateDocumentTemplate } from "../hooks/useDocumentTemplates";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
-import type { DocumentListItemView } from "../types/documents";
 import { useDocumentVersions } from "../hooks/useDocuments";
 import type { DocumentTemplateItemDetail } from "../types/documentTemplates";
 

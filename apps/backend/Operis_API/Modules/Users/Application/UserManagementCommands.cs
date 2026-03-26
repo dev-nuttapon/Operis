@@ -70,6 +70,12 @@ public sealed class UserManagementCommands(
             return new UserCommandResult(UserCommandStatus.ValidationError, "One or more selected roles do not exist.", ApiErrorCodes.RolesNotFound);
         }
 
+        var roleChangeReason = request.RoleChangeReason?.Trim();
+        if (selectedRoles.Count > 0 && string.IsNullOrWhiteSpace(roleChangeReason))
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Reason is required.", ApiErrorCodes.ReasonRequired);
+        }
+
         var existingKeycloakUser = await keycloakAdminClient.FindUserByEmailAsync(email, cancellationToken);
         var userExists = existingKeycloakUser is not null
             && await dbContext.Users.AnyAsync(x => x.Id == existingKeycloakUser.Id, cancellationToken);
@@ -135,7 +141,8 @@ public sealed class UserManagementCommands(
                 selectedRoleNames),
             Metadata: new
             {
-                roleNames = selectedRoleNames
+                roleNames = selectedRoleNames,
+                roleChangeReason
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -219,7 +226,23 @@ public sealed class UserManagementCommands(
             .Where(x => x.DeletedAt == null)
             .Select(x => x.KeycloakRoleName)
             .ToListAsync(cancellationToken);
+        var existingRoleNames = await keycloakAdminClient.GetUserRealmRolesAsync(user.Id, cancellationToken);
         var desiredRoleNames = selectedRoles.Select(x => x.KeycloakRoleName).ToArray();
+        var rolesChanged = existingRoleNames
+            .Select(x => x.Name)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .SequenceEqual(desiredRoleNames.OrderBy(x => x, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase) == false;
+        var roleChangeReason = request.RoleChangeReason?.Trim();
+        if (rolesChanged && string.IsNullOrWhiteSpace(roleChangeReason))
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "Reason is required.", ApiErrorCodes.ReasonRequired);
+        }
+
+        if (rolesChanged && await WouldRemoveLastEffectiveAdminAsync(user.Id, existingRoleNames.Select(x => x.Name), desiredRoleNames, cancellationToken))
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "The last effective admin assignment cannot be removed.", ApiErrorCodes.LastAdminRemovalBlocked);
+        }
+
         var rolesUpdated = await keycloakAdminClient.SetManagedRolesAsync(user.Id, managedRoleNames, desiredRoleNames, cancellationToken);
         if (!rolesUpdated)
         {
@@ -253,7 +276,8 @@ public sealed class UserManagementCommands(
                 lastName = request.LastName.Trim(),
                 departmentId = user.DepartmentId,
                 jobTitleId = user.JobTitleId,
-                roleNames = selectedRoleNames
+                roleNames = selectedRoleNames,
+                roleChangeReason
             }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -268,6 +292,12 @@ public sealed class UserManagementCommands(
         if (entity is null)
         {
             return new UserCommandResult(UserCommandStatus.NotFound);
+        }
+
+        var currentRoles = await keycloakAdminClient.GetUserRealmRolesAsync(entity.Id, cancellationToken);
+        if (await WouldRemoveLastEffectiveAdminAsync(entity.Id, currentRoles.Select(x => x.Name), [], cancellationToken))
+        {
+            return new UserCommandResult(UserCommandStatus.ValidationError, "The last effective admin assignment cannot be removed.", ApiErrorCodes.LastAdminRemovalBlocked);
         }
 
         var before = ToUserAuditState(entity);
@@ -307,6 +337,42 @@ public sealed class UserManagementCommands(
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UserCommandResult(UserCommandStatus.Success);
     }
+
+    private async Task<bool> WouldRemoveLastEffectiveAdminAsync(
+        string targetUserId,
+        IEnumerable<string> existingRoles,
+        IEnumerable<string> desiredRoles,
+        CancellationToken cancellationToken)
+    {
+        var currentlyAdmin = existingRoles.Any(IsEffectiveAdminRole);
+        var remainsAdmin = desiredRoles.Any(IsEffectiveAdminRole);
+        if (!currentlyAdmin || remainsAdmin)
+        {
+            return false;
+        }
+
+        var otherUsers = await dbContext.Users
+            .Where(x => x.DeletedAt == null && x.Id != targetUserId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var otherUserId in otherUsers)
+        {
+            var roles = await keycloakAdminClient.GetUserRealmRolesAsync(otherUserId, cancellationToken);
+            if (roles.Any(role => IsEffectiveAdminRole(role.Name)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsEffectiveAdminRole(string? roleName) =>
+        string.Equals(roleName, "operis:system_admin", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(roleName, "operis_system_admin", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(roleName, "operis:super_admin", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(roleName, "operis_super_admin", StringComparison.OrdinalIgnoreCase);
 
     public async Task<UserCommandResult> RefreshKeycloakUserAsync(string userId, CancellationToken cancellationToken)
     {

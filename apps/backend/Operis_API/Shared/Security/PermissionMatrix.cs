@@ -1,18 +1,25 @@
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Users.Infrastructure;
 
 namespace Operis_API.Shared.Security;
 
-public sealed class PermissionMatrix : IPermissionMatrix
+public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermissionMatrix
 {
     private static readonly StringComparer Comparer = StringComparer.OrdinalIgnoreCase;
 
-    private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> RolePermissions =
+    private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> DefaultRolePermissions =
         new Dictionary<string, IReadOnlyList<string>>(Comparer)
         {
             ["operis:super_admin"] = Permissions.All,
             ["operis_super_admin"] = Permissions.All,
             ["operis:system_admin"] =
             [
+                Permissions.Admin.PermissionMatrixRead,
+                Permissions.Admin.PermissionMatrixApply,
+                Permissions.Admin.SettingsRead,
+                Permissions.Admin.SettingsManage,
                 Permissions.Users.Read,
                 Permissions.Users.Create,
                 Permissions.Users.Update,
@@ -46,6 +53,10 @@ public sealed class PermissionMatrix : IPermissionMatrix
             ],
             ["operis_system_admin"] =
             [
+                Permissions.Admin.PermissionMatrixRead,
+                Permissions.Admin.PermissionMatrixApply,
+                Permissions.Admin.SettingsRead,
+                Permissions.Admin.SettingsManage,
                 Permissions.Users.Read,
                 Permissions.Users.Create,
                 Permissions.Users.Update,
@@ -98,20 +109,28 @@ public sealed class PermissionMatrix : IPermissionMatrix
             ["operis:workflows_approver"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
             ["operis:workflows_department_manager"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
             ["operis:employee_viewer"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
-            ["operis:ops_support"] = [Permissions.ActivityLogs.Read, Permissions.Notifications.Read]
+            ["operis:ops_support"] = [Permissions.Admin.SettingsRead, Permissions.Notifications.Read, Permissions.ActivityLogs.Read]
         };
 
     public IReadOnlyList<string> GetPermissions(IEnumerable<string> roles)
     {
+        var roleList = roles.Where(role => !string.IsNullOrWhiteSpace(role)).Distinct(Comparer).ToArray();
         var permissions = new HashSet<string>(Comparer);
-        foreach (var role in roles)
+        var overridesByRole = LoadOverrides(roleList);
+
+        foreach (var role in roleList)
         {
-            if (string.IsNullOrWhiteSpace(role))
+            if (overridesByRole.TryGetValue(role, out var roleOverrides))
             {
+                foreach (var permission in roleOverrides.Where(item => item.Value).Select(item => item.Key))
+                {
+                    permissions.Add(permission);
+                }
+
                 continue;
             }
 
-            if (!RolePermissions.TryGetValue(role, out var mappedPermissions))
+            if (!DefaultRolePermissions.TryGetValue(role, out var mappedPermissions))
             {
                 continue;
             }
@@ -148,5 +167,26 @@ public sealed class PermissionMatrix : IPermissionMatrix
         }
 
         return requested.Any(permission => HasPermission(principal, permission));
+    }
+
+    private Dictionary<string, Dictionary<string, bool>> LoadOverrides(IReadOnlyCollection<string> roleList)
+    {
+        var overridesByRole = new Dictionary<string, Dictionary<string, bool>>(Comparer);
+        if (dbContext is null || roleList.Count == 0)
+        {
+            return overridesByRole;
+        }
+
+        var entries = dbContext.Set<PermissionMatrixEntryEntity>()
+            .AsNoTracking()
+            .Where(x => roleList.Contains(x.RoleKeycloakName))
+            .ToList();
+
+        foreach (var group in entries.GroupBy(x => x.RoleKeycloakName, Comparer))
+        {
+            overridesByRole[group.Key] = group.ToDictionary(x => x.PermissionKey, x => x.IsGranted, Comparer);
+        }
+
+        return overridesByRole;
     }
 }

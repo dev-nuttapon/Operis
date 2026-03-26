@@ -1,4 +1,4 @@
-import { Space, Tag, Skeleton, Table } from "antd";
+import { Tag, Skeleton, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { CheckCircleOutlined, EditOutlined, StopOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";

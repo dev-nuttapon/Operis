@@ -125,14 +125,14 @@ export function DocumentTemplatesPage() {
               </Button>
             </Flex>
 
-            {templatesQuery.isLoading && (templatesQuery.data?.items?.length ?? 0) === 0 ? (
+            {templatesQuery.isPending && !templatesQuery.data ? (
               <Skeleton active paragraph={{ rows: 5 }} />
             ) : (
               <Table
                 rowKey="id"
                 columns={columns}
                 dataSource={templatesQuery.data?.items ?? []}
-                loading={templatesQuery.isLoading}
+                loading={templatesQuery.isFetching}
                 scroll={{ x: "max-content" }}
                 pagination={{
                   current: templatesQuery.data?.page ?? paging.page,

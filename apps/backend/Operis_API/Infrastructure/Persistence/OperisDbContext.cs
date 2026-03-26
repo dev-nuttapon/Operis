@@ -30,6 +30,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<ProjectTypeRoleRequirementEntity> ProjectTypeRoleRequirements => Set<ProjectTypeRoleRequirementEntity>();
     public DbSet<UserProjectAssignmentEntity> UserProjectAssignments => Set<UserProjectAssignmentEntity>();
     public DbSet<AppRoleEntity> AppRoles => Set<AppRoleEntity>();
+    public DbSet<PermissionMatrixEntryEntity> PermissionMatrixEntries => Set<PermissionMatrixEntryEntity>();
+    public DbSet<SystemSettingEntity> SystemSettings => Set<SystemSettingEntity>();
     public DbSet<UserRegistrationRequestEntity> UserRegistrationRequests => Set<UserRegistrationRequestEntity>();
     public DbSet<UserInvitationEntity> UserInvitations => Set<UserInvitationEntity>();
     public DbSet<ActivityLogEntity> ActivityLogs => Set<ActivityLogEntity>();
@@ -487,6 +489,32 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
             entity.HasIndex(x => x.KeycloakRoleName).IsUnique().HasFilter("\"deleted_at\" IS NULL");
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
+        });
+
+        modelBuilder.Entity<PermissionMatrixEntryEntity>(entity =>
+        {
+            entity.ToTable("permission_matrix_entries");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.RoleKeycloakName).HasColumnName("role_keycloak_name").HasMaxLength(120);
+            entity.Property(x => x.PermissionKey).HasColumnName("permission_key").HasMaxLength(160);
+            entity.Property(x => x.IsGranted).HasColumnName("is_granted");
+            entity.Property(x => x.AppliedAt).HasColumnName("applied_at");
+            entity.Property(x => x.AppliedBy).HasColumnName("applied_by").HasMaxLength(120);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
+            entity.HasIndex(x => new { x.RoleKeycloakName, x.PermissionKey }).IsUnique();
+            entity.HasIndex(x => x.AppliedAt);
+        });
+
+        modelBuilder.Entity<SystemSettingEntity>(entity =>
+        {
+            entity.ToTable("system_settings");
+            entity.HasKey(x => x.Key);
+            entity.Property(x => x.Key).HasColumnName("key").HasMaxLength(120);
+            entity.Property(x => x.Value).HasColumnName("value").HasMaxLength(4000);
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(120);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
         });
 
         modelBuilder.Entity<UserRegistrationRequestEntity>(entity =>

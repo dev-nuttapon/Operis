@@ -5,6 +5,8 @@ import { useDepartmentOptions } from "../../hooks/useDepartmentOptions";
 interface EntityItem {
   id: string;
   name: string;
+  divisionName?: string | null;
+  departmentName?: string | null;
 }
 
 interface OptionItem {

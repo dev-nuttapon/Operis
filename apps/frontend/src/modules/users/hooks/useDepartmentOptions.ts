@@ -26,7 +26,7 @@ export function useDepartmentOptions({
         pageSize,
         search: debouncedSearch,
         sortBy: "displayOrder",
-        sortOrder: "asc",
+        sortOrder: "asc" as "asc",
         divisionId,
       };
 

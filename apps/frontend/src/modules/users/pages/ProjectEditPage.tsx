@@ -243,8 +243,6 @@ export function ProjectEditPage() {
     });
   }, [memberRoleByUserId, memberTargetKeys, memberTransferData, projectAssignmentsQuery.data]);
 
-  const hasProjectRoleOptions = projectRoleOptionsState.options.length > 0;
-
   const memberColumns = useMemo<ColumnsType<{ id: string; name: string; email: string; roleId: string | null }>>(
     () => [
       { title: t("projects.members.columns.name"), dataIndex: "name" },

@@ -89,6 +89,7 @@ describe('MainLayout', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: true,
+      authState: 'authenticated',
       user: { name: 'Test User', email: 'user@example.com', roles: [] },
       login: vi.fn(),
       logout: mockLogout,
@@ -99,8 +100,11 @@ describe('MainLayout', () => {
       setTheme: mockSetTheme,
     });
     vi.mocked(usePermissions).mockReturnValue({
+      roles: [],
+      permissions: [],
       hasAnyPermission: () => true,
       hasPermission: () => true,
+      hasAllPermissions: () => true,
     } as ReturnType<typeof usePermissions>);
     vi.mocked(useI18nLanguage).mockReturnValue('en');
     vi.mocked(useCurrentUserProfile).mockReturnValue({

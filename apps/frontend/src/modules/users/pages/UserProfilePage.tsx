@@ -11,20 +11,24 @@ export function UserProfilePage() {
   const language = useI18nLanguage();
   const tr = (key: string) => i18n.t(key, { lng: language });
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
   const currentUserQuery = useCurrentUserProfile({ includeIdentity: true });
 
-  const profile = currentUserQuery.data ?? user;
+  const profile = currentUserQuery.data;
   const fallbackText = tr("common.position_empty");
-  const firstName = profile?.keycloak?.firstName ?? fallbackText;
-  const lastName = profile?.keycloak?.lastName ?? fallbackText;
-  const fullName = [profile?.keycloak?.firstName, profile?.keycloak?.lastName]
-    .filter(Boolean)
+  
+  // Use data from API profile if available, otherwise from auth user
+  const firstName = profile?.keycloak?.firstName ?? (authUser?.firstName as string | undefined) ?? fallbackText;
+  const lastName = profile?.keycloak?.lastName ?? (authUser?.lastName as string | undefined) ?? fallbackText;
+  
+  const fullName = [firstName, lastName]
+    .filter(val => val && val !== fallbackText)
     .join(" ")
     .trim();
-  const displayName = fullName || profile?.name || profile?.email || tr("common.user_fallback");
-  const divisionName = profile?.divisionName ?? fallbackText;
-  const departmentName = profile?.departmentName ?? fallbackText;
+    
+  const displayName = fullName || profile?.keycloak?.username || authUser?.name || authUser?.email || tr("common.user_fallback");
+  const divisionName = (profile?.divisionName as string | undefined) ?? (authUser?.divisionName as string | undefined) ?? fallbackText;
+  const departmentName = (profile?.departmentName as string | undefined) ?? (authUser?.departmentName as string | undefined) ?? fallbackText;
 
   return (
     <Card variant="borderless" style={{ borderRadius: 16 }}>
@@ -44,23 +48,20 @@ export function UserProfilePage() {
       </Flex>
 
       <Descriptions
-        style={{ marginTop: 16 }}
-        column={1}
-        size="small"
-        labelStyle={{ width: 160 }}
+        bordered
+        column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
+        style={{ marginTop: 24 }}
       >
-        <Descriptions.Item label={tr("admin_users.fields.first_name")}>
-          {firstName}
+        <Descriptions.Item label={tr("common.email")}>{profile?.email ?? authUser?.email ?? "-"}</Descriptions.Item>
+        <Descriptions.Item label={tr("common.roles")}>
+          {(profile?.roles ?? authUser?.roles ?? []).join(", ")}
         </Descriptions.Item>
-        <Descriptions.Item label={tr("admin_users.fields.last_name")}>
-          {lastName}
+        <Descriptions.Item label={tr("common.division")}>{divisionName}</Descriptions.Item>
+        <Descriptions.Item label={tr("common.department")}>{departmentName}</Descriptions.Item>
+        <Descriptions.Item label={tr("common.job_title")}>
+          {profile?.jobTitleName ?? (authUser?.jobTitleName as string | undefined) ?? fallbackText}
         </Descriptions.Item>
-        <Descriptions.Item label={tr("admin_users.fields.division")}>
-          {divisionName}
-        </Descriptions.Item>
-        <Descriptions.Item label={tr("admin_users.fields.department")}>
-          {departmentName}
-        </Descriptions.Item>
+        <Descriptions.Item label={tr("common.status")}>{profile?.status ?? "Active"}</Descriptions.Item>
       </Descriptions>
     </Card>
   );

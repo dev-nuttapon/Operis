@@ -24,6 +24,7 @@ interface AuthUser {
 interface AuthContextValue {
   isReady: boolean;
   isAuthenticated: boolean;
+  authState: "loading" | "anonymous" | "authenticated" | "expired";
   user?: AuthUser | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AuthContextValue>({
     isReady: false,
     isAuthenticated: false,
+    authState: "loading",
     user: null,
     login,
     logout,
@@ -44,9 +46,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let mounted = true;
     let refreshTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    const setAnonymous = () => {
+    const setAnonymous = (authState: AuthContextValue["authState"] = "anonymous") => {
       if (!mounted) return;
-      setState({ isReady: true, isAuthenticated: false, user: null, login, logout });
+      setState({ isReady: true, isAuthenticated: false, authState, user: null, login, logout });
     };
 
     const extractRoles = (tokenParsed: Record<string, unknown> | undefined) => {
@@ -167,6 +169,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setState({
         isReady: true,
         isAuthenticated: authenticated,
+        authState: authenticated ? "authenticated" : "anonymous",
         user,
         login,
         logout
@@ -200,7 +203,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const refreshed = await refreshToken(minValidity);
       if (!refreshed && !isAuthenticated()) {
         stopRefreshLoop();
-        setAnonymous();
+        setAnonymous("expired");
         return;
       }
 
@@ -240,7 +243,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       })
       .catch((err) => {
         console.error("Keycloak init failed:", err);
-        setAnonymous();
+        setAnonymous("expired");
       });
 
     return () => {

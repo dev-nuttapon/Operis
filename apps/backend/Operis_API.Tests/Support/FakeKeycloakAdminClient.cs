@@ -20,6 +20,7 @@ internal sealed class FakeKeycloakAdminClient : IKeycloakAdminClient
     public KeycloakUpdateUserResult DisableUserResult { get; set; } = new(true, false, null);
     public bool AssignRealmRolesResult { get; set; } = true;
     public bool SetManagedRolesResult { get; set; } = true;
+    public Dictionary<string, IReadOnlyList<KeycloakRole>> UserRealmRoles { get; } = new(StringComparer.Ordinal);
 
     public Task<KeycloakUserProfile?> FindUserByEmailAsync(string email, CancellationToken cancellationToken)
     {
@@ -72,7 +73,7 @@ internal sealed class FakeKeycloakAdminClient : IKeycloakAdminClient
     public Task<IReadOnlyList<KeycloakRole>> GetUserRealmRolesAsync(string keycloakUserId, CancellationToken cancellationToken)
     {
         GetUserRealmRolesCalls++;
-        return Task.FromResult<IReadOnlyList<KeycloakRole>>([]);
+        return Task.FromResult(UserRealmRoles.TryGetValue(keycloakUserId, out var roles) ? roles : []);
     }
 
     public Task<bool> AssignRealmRolesAsync(string keycloakUserId, IEnumerable<string> roleNames, CancellationToken cancellationToken)

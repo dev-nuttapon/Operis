@@ -258,12 +258,12 @@ export function DocumentDashboardPage() {
         <Title level={4} style={{ marginTop: 0 }}>
           {tr("documents.list_title")}
         </Title>
-        {documentsQuery.isLoading && (documentsQuery.data?.items?.length ?? 0) === 0 ? (
+        {documentsQuery.isPending && !documentsQuery.data ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (
           <Table<DocumentListItemView>
             rowKey="id"
-            loading={documentsQuery.isLoading}
+            loading={documentsQuery.isFetching}
             columns={latestDocumentColumns}
             dataSource={canReadDocuments ? (documentsQuery.data?.items ?? []) : []}
             pagination={{

@@ -78,6 +78,7 @@ export interface KeycloakUserSummary {
 
 export interface User {
   id: string;
+  email: string;
   status: UserStatus;
   createdAt: string;
   createdBy: string;
@@ -198,6 +199,7 @@ export interface CreateUserInput {
   departmentId?: string;
   jobTitleId?: string;
   roleIds?: string[];
+  roleChangeReason?: string;
 }
 
 export interface UpdateUserInput {
@@ -209,6 +211,7 @@ export interface UpdateUserInput {
   departmentId?: string;
   jobTitleId?: string;
   roleIds?: string[];
+  roleChangeReason?: string;
 }
 
 export interface UpsertUserOrgAssignmentInput {
@@ -270,6 +273,57 @@ export interface AppRoleItem {
   keycloakRoleName: string;
   description: string | null;
   displayOrder: number;
+}
+
+export interface PermissionCatalogItem {
+  key: string;
+  label: string;
+}
+
+export interface PermissionRoleGrant {
+  roleId: string;
+  roleName: string;
+  roleKeycloakName: string;
+  grantedPermissions: string[];
+}
+
+export interface PermissionMatrix {
+  state: "draft" | "applied";
+  appliedAt: string | null;
+  appliedBy: string | null;
+  appliedReason: string | null;
+  permissions: PermissionCatalogItem[];
+  roles: PermissionRoleGrant[];
+}
+
+export interface ApplyPermissionMatrixInput {
+  reason: string;
+  roles: Array<{
+    roleId: string;
+    permissionKeys: string[];
+  }>;
+}
+
+export interface SystemSettings {
+  sessionIdleTimeoutMinutes: number;
+  sessionWarningMinutes: number;
+  redisSessionTtlMinutes: number;
+  redisUserCacheTtlMinutes: number;
+  permissionMatrixCacheTtlMinutes: number;
+  keycloakRoleMappingRequired: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  reason: string | null;
+}
+
+export interface UpdateSystemSettingsInput {
+  reason: string;
+  sessionIdleTimeoutMinutes: number;
+  sessionWarningMinutes: number;
+  redisSessionTtlMinutes: number;
+  redisUserCacheTtlMinutes: number;
+  permissionMatrixCacheTtlMinutes: number;
+  keycloakRoleMappingRequired: boolean;
 }
 
 export interface ProjectListItem {

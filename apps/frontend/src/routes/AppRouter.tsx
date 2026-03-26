@@ -2,8 +2,10 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Flex, Spin } from "antd";
 import { ProtectedRoute } from "../shared/components/ProtectedRoute";
+import { AuthorizedRoute } from "../shared/components/AuthorizedRoute";
 import { MainLayout } from "../shared/components/layouts/MainLayout";
 import { AppErrorBoundary } from "../shared/components/AppErrorBoundary";
+import { permissions } from "../shared/authz/permissions";
 
 const DocumentDashboardPage = lazy(() =>
   import("../modules/documents/pages/DocumentDashboardPage").then((module) => ({ default: module.DocumentDashboardPage }))
@@ -46,6 +48,9 @@ const AdminUserEditPage = lazy(() =>
 );
 const AdminSettingsPage = lazy(() =>
   import("../modules/users/pages/AdminSettingsPage").then((module) => ({ default: module.AdminSettingsPage }))
+);
+const PermissionMatrixPage = lazy(() =>
+  import("../modules/users/pages/PermissionMatrixPage").then((module) => ({ default: module.PermissionMatrixPage }))
 );
 const InvitationAcceptPage = lazy(() =>
   import("../modules/users/pages/InvitationAcceptPage").then((module) => ({ default: module.InvitationAcceptPage }))
@@ -176,10 +181,11 @@ export function AppRouter() {
                 element={<WorkflowTaskUploadPage />}
               />
               <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="admin/users" element={<AdminUsersPage />} />
-              <Route path="admin/users/new" element={<AdminUserCreatePage />} />
-              <Route path="admin/users/:userId/edit" element={<AdminUserEditPage />} />
-              <Route path="admin/settings" element={<AdminSettingsPage />} />
+              <Route path="admin/users" element={<AuthorizedRoute permission={permissions.users.read}><AdminUsersPage /></AuthorizedRoute>} />
+              <Route path="admin/users/new" element={<AuthorizedRoute permission={permissions.users.create}><AdminUserCreatePage /></AuthorizedRoute>} />
+              <Route path="admin/users/:userId/edit" element={<AuthorizedRoute permission={permissions.users.update}><AdminUserEditPage /></AuthorizedRoute>} />
+              <Route path="admin/permissions" element={<AuthorizedRoute permission={permissions.admin.permissionMatrixRead}><PermissionMatrixPage /></AuthorizedRoute>} />
+              <Route path="admin/settings" element={<AuthorizedRoute anyOf={[permissions.admin.settingsRead, permissions.admin.settingsManage]}><AdminSettingsPage /></AuthorizedRoute>} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
                 <Route path="admin/master/divisions" element={<AdminUsersPage />} />
                 <Route path="admin/master/departments" element={<AdminUsersPage />} />

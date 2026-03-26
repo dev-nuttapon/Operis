@@ -80,13 +80,6 @@ export function WorkflowDefinitionEditPage() {
     templateDocumentIds,
     Boolean(templateDocumentIds.length),
   );
-  const formatPublishedVersion = useMemo(
-    () => (doc: { publishedVersionCode?: string | null; publishedRevision?: number | null }) =>
-      doc.publishedVersionCode
-        ? `${doc.publishedVersionCode}${doc.publishedRevision ? ` r${doc.publishedRevision}` : ""}`
-        : t("workflow_definitions.steps.document_unpublished"),
-    [t],
-  );
   const baseDocumentOptions = useMemo(
     () => (templateDocumentsState.data ?? []).map((doc) => ({ label: doc.documentName, value: doc.id })),
     [templateDocumentsState.data],

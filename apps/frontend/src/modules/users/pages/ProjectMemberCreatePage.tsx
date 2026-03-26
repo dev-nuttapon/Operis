@@ -38,7 +38,6 @@ export function ProjectMemberCreatePage() {
   const isMobile = !screens.md;
 
   const [form] = Form.useForm<ProjectMemberFormValues>();
-  const projectId = Form.useWatch("projectId", form) as string | undefined;
 
   useEffect(() => {
     const initialProjectId = searchParams.get("projectId") ?? undefined;

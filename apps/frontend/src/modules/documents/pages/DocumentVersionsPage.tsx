@@ -34,6 +34,7 @@ export function DocumentVersionsPage() {
 
   const [paging, setPaging] = useState({ page: 1, pageSize: 10 });
   const versionsQuery = useDocumentVersions(documentId ?? null, paging, canReadDocuments);
+  const versionsData = versionsQuery.data as { items?: DocumentVersionListItem[]; page?: number; pageSize?: number; total?: number } | undefined;
   const deleteVersionMutation = useDeleteDocumentVersion();
   const publishVersionMutation = usePublishDocumentVersion();
   const unpublishVersionMutation = useUnpublishDocumentVersion();
@@ -252,18 +253,18 @@ export function DocumentVersionsPage() {
           <Alert type="info" showIcon message={tr("documents.read_only_title")} description={tr("documents.read_only_description")} style={{ marginBottom: 24 }} />
         ) : null}
 
-        {versionsQuery.isLoading && (versionsQuery.data?.items?.length ?? 0) === 0 ? (
+        {versionsQuery.isLoading && (Array.isArray(versionsData?.items) ? versionsData.items.length : 0) === 0 ? (
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : (
           <Table<DocumentVersionListItem>
             rowKey="id"
             loading={versionsQuery.isLoading}
             columns={columns}
-            dataSource={versionsQuery.data?.items ?? []}
+            dataSource={Array.isArray(versionsData?.items) ? versionsData.items : []}
             pagination={{
-              current: versionsQuery.data?.page ?? paging.page,
-              pageSize: versionsQuery.data?.pageSize ?? paging.pageSize,
-              total: versionsQuery.data?.total ?? 0,
+              current: versionsData?.page ?? paging.page,
+              pageSize: versionsData?.pageSize ?? paging.pageSize,
+              total: versionsData?.total ?? 0,
               showSizeChanger: true,
               pageSizeOptions: [10, 25, 50, 100],
               onChange: (page, pageSize) => setPaging({ page, pageSize }),

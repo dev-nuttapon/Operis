@@ -13,6 +13,7 @@ describe('ProtectedRoute', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: false,
       isAuthenticated: false,
+      authState: 'loading',
       login: vi.fn(),
       logout: vi.fn()
     });
@@ -30,6 +31,7 @@ describe('ProtectedRoute', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: false,
+      authState: 'anonymous',
       login: vi.fn(),
       logout: vi.fn()
     });
@@ -52,6 +54,7 @@ describe('ProtectedRoute', () => {
     vi.mocked(useAuth).mockReturnValue({
       isReady: true,
       isAuthenticated: true,
+      authState: 'authenticated',
       login: vi.fn(),
       logout: vi.fn()
     });

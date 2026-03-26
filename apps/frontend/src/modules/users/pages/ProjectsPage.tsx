@@ -10,18 +10,9 @@ import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { formatDate, toApiSortOrder } from "../utils/adminUsersPresentation";
 import { useProjectAdmin } from "../hooks/useProjectAdmin";
-import { useProjectTypeOptions } from "../hooks/useProjectTypeOptions";
-import type { ProjectListItem, User } from "../types/users";
-import { useProjectUserOptions } from "../hooks/useProjectUserOptions";
+import type { ProjectListItem } from "../types/users";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import { ActionMenu } from "../../../shared/components/ActionMenu";
-
-function toUserLabel(user: User) {
-  const displayName = [user.keycloak?.firstName, user.keycloak?.lastName].filter(Boolean).join(" ").trim();
-  const base = displayName || user.keycloak?.email || user.keycloak?.username || user.id;
-  const jobTitle = user.jobTitleName?.trim();
-  return jobTitle ? `${base} (${jobTitle})` : base;
-}
 
 export function ProjectsPage() {
   const { t, i18n } = useTranslation();
@@ -68,21 +59,7 @@ export function ProjectsPage() {
     projectRoles: { page: 1, pageSize: 10 },
     projectAssignments: null,
   });
-  const projectTypeOptionsState = useProjectTypeOptions({ enabled: canManageProjects });
-
-  const userOptionsState = useProjectUserOptions(canManageProjects, toUserLabel);
-  const projectTypeOptions = useMemo(() => {
-    const templateOptions = projectTypeOptionsState.options;
-    if (templateOptions.length > 0) {
-      return templateOptions;
-    }
-    return [
-      { value: "Internal", label: t("projects.options.project_type.internal") },
-      { value: "Customer", label: t("projects.options.project_type.customer") },
-      { value: "Compliance", label: t("projects.options.project_type.compliance") },
-      { value: "Improvement", label: t("projects.options.project_type.improvement") },
-    ];
-  }, [projectTypeOptionsState.options, t]);
+  const projectData = projectsQuery.data as { items?: ProjectListItem[]; page?: number; pageSize?: number; total?: number } | undefined;
 
   const handleError = (fallbackTitle: string, error: unknown) => {
     const presentation = getApiErrorPresentation(error, fallbackTitle);
@@ -217,19 +194,19 @@ export function ProjectsPage() {
               ) : null}
             </Flex>
 
-            {projectsQuery.isLoading && (projectsQuery.data?.items?.length ?? 0) === 0 ? (
+            {projectsQuery.isLoading && (Array.isArray(projectData?.items) ? projectData.items.length : 0) === 0 ? (
               <Skeleton active paragraph={{ rows: 6 }} />
             ) : (
               <Table
                 rowKey="id"
                 columns={columns}
-                dataSource={projectsQuery.data?.items ?? []}
+                dataSource={Array.isArray(projectData?.items) ? projectData.items : []}
                 loading={projectsQuery.isLoading}
                 scroll={{ x: "max-content" }}
                 pagination={{
-                  current: projectsQuery.data?.page ?? paging.page,
-                  pageSize: projectsQuery.data?.pageSize ?? paging.pageSize,
-                  total: projectsQuery.data?.total ?? 0,
+                  current: projectData?.page ?? paging.page,
+                  pageSize: projectData?.pageSize ?? paging.pageSize,
+                  total: projectData?.total ?? 0,
                   showSizeChanger: true,
                   pageSizeOptions: [10, 25, 50, 100],
                 }}

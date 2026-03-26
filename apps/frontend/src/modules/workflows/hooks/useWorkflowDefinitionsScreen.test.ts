@@ -18,7 +18,7 @@ describe("useWorkflowDefinitionsScreen", () => {
       isLoading: false,
       isError: false,
       error: null,
-    } as ReturnType<typeof useWorkflowDefinitions>);
+    } as unknown as ReturnType<typeof useWorkflowDefinitions>);
 
     const { result } = renderHook(() => useWorkflowDefinitionsScreen());
 

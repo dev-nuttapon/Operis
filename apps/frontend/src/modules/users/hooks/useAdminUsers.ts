@@ -25,7 +25,6 @@ import {
   updateJobTitle,
   updateUser,
 } from "../api/usersApi";
-import type { PaginationInput } from "../../../shared/types/pagination";
 import type {
   ApproveRegistrationInput,
   CreateDepartmentInput,
@@ -52,13 +51,15 @@ const departmentsQueryKey = ["admin", "departments"];
 const jobTitlesQueryKey = ["admin", "job-titles"];
 const rolesQueryKey = ["admin", "roles"];
 
+import type { ReferenceDataListInput } from "../types/users";
+
 export function useAdminUsers(paging: {
   users: ListUsersInput;
   registrationRequests: ListRegistrationRequestsInput;
   invitations: ListInvitationsInput;
-  divisions: PaginationInput;
-  departments: PaginationInput;
-  jobTitles: PaginationInput;
+  divisions: ReferenceDataListInput;
+  departments: ReferenceDataListInput;
+  jobTitles: ReferenceDataListInput;
 }) {
   const queryClient = useQueryClient();
 

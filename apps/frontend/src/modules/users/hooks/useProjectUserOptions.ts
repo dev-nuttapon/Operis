@@ -4,8 +4,6 @@ import { listUsers } from "../api/usersApi";
 import type { User } from "../types/users";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 
-type UserOption = { label: string; value: string };
-
 export function useProjectUserOptions(enabled: boolean, toLabel: (user: User) => string) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
