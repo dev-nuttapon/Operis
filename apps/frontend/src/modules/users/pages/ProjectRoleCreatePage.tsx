@@ -9,6 +9,7 @@ import { useProjectAdmin } from "../hooks/useProjectAdmin";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { ProjectRoleForm, type ProjectRoleFormValues } from "../components/projectRoles/ProjectRoleForm";
 import type { CreateProjectRoleInput } from "../types/users";
+import { useProjectOptions } from "../hooks/useProjectOptions";
 
 type LocationState = { from?: string };
 
@@ -28,6 +29,7 @@ export function ProjectRoleCreatePage() {
   const backTarget = locationState?.from ?? "/app/projects/roles";
 
   const [form] = Form.useForm<ProjectRoleFormValues>();
+  const projectOptionsState = useProjectOptions({ enabled: canManageProjectRoles });
   const { createProjectRoleMutation } = useProjectAdmin({
     projectsEnabled: false,
     projects: { page: 1, pageSize: 1 },
@@ -38,8 +40,10 @@ export function ProjectRoleCreatePage() {
   const handleSubmit = async () => {
     const values = await form.validateFields();
     const payload: CreateProjectRoleInput = {
+      projectId: values.projectId,
       name: values.name,
       code: values.code,
+      status: values.status,
       description: values.description,
       responsibilities: values.responsibilities,
       authorityScope: values.authorityScope,
@@ -90,7 +94,15 @@ export function ProjectRoleCreatePage() {
           <Alert type="info" showIcon message={t("errors.title_forbidden")} />
         ) : (
           <>
-            <ProjectRoleForm form={form} t={t} />
+            <ProjectRoleForm
+              form={form}
+              t={t}
+              projectOptions={projectOptionsState.options}
+              projectOptionsLoading={projectOptionsState.loading}
+              onProjectSearch={projectOptionsState.onSearch}
+              onProjectLoadMore={projectOptionsState.onLoadMore}
+              hasMoreProjects={projectOptionsState.hasMore}
+            />
             <Flex gap={12} wrap={!isMobile} vertical={isMobile} align={isMobile ? "stretch" : "center"} justify="flex-start">
               <Button
                 type="primary"

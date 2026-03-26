@@ -206,6 +206,12 @@ public sealed class UsersModule : IModule
         group.MapGet("/project-assignments/{assignmentId:guid}", GetProjectAssignmentAsync)
             .WithName("Users_GetProjectAssignment");
 
+        group.MapGet("/phase-approvals", ListPhaseApprovalsAsync)
+            .WithName("Users_ListPhaseApprovals");
+
+        group.MapGet("/phase-approvals/{phaseApprovalId:guid}", GetPhaseApprovalAsync)
+            .WithName("Users_GetPhaseApproval");
+
         group.MapGet("/projects/{projectId:guid}/org-chart", GetProjectOrgChartAsync)
             .WithName("Users_GetProjectOrgChart");
 
@@ -235,6 +241,21 @@ public sealed class UsersModule : IModule
 
         group.MapDelete("/project-assignments/{assignmentId:guid}", DeleteProjectAssignmentAsync)
             .WithName("Users_DeleteProjectAssignment");
+
+        group.MapPost("/phase-approvals", CreatePhaseApprovalAsync)
+            .WithName("Users_CreatePhaseApproval");
+
+        group.MapPut("/phase-approvals/{phaseApprovalId:guid}/submit", SubmitPhaseApprovalAsync)
+            .WithName("Users_SubmitPhaseApproval");
+
+        group.MapPut("/phase-approvals/{phaseApprovalId:guid}/approve", ApprovePhaseApprovalAsync)
+            .WithName("Users_ApprovePhaseApproval");
+
+        group.MapPut("/phase-approvals/{phaseApprovalId:guid}/reject", RejectPhaseApprovalAsync)
+            .WithName("Users_RejectPhaseApproval");
+
+        group.MapPut("/phase-approvals/{phaseApprovalId:guid}/baseline", BaselinePhaseApprovalAsync)
+            .WithName("Users_BaselinePhaseApproval");
 
         group.MapPut("/me/preferences", UpdateCurrentUserPreferencesAsync)
             .WithName("Users_UpdateCurrentUserPreferences");
@@ -732,7 +753,7 @@ public sealed class UsersModule : IModule
         CancellationToken cancellationToken = default)
     {
         var result = await queries.ListProjectRolesAsync(
-            new ReferenceDataQuery(search, sortBy, sortOrder, projectId, null, page, pageSize),
+            new ProjectRoleListQuery(projectId, search, sortBy, sortOrder, page, pageSize),
             cancellationToken);
         return Results.Ok(result);
     }
@@ -1184,6 +1205,155 @@ public sealed class UsersModule : IModule
         return !result.Success
             ? BadRequestWithCode(result.Error, result.ErrorCode)
             : Results.Created($"/api/v1/users/project-assignments/{result.Response!.Id}", result.Response);
+    }
+
+    private static async Task<IResult> ListPhaseApprovalsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IProjectQueries queries,
+        Guid projectId,
+        string? search = null,
+        string? status = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, projectId, cancellationToken))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListPhaseApprovalsAsync(new PhaseApprovalListQuery(projectId, search, status, sortBy, sortOrder, page, pageSize), cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetPhaseApprovalAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IProjectQueries queries,
+        Guid phaseApprovalId,
+        CancellationToken cancellationToken)
+    {
+        var result = await queries.GetPhaseApprovalAsync(phaseApprovalId, cancellationToken);
+        if (result is null)
+        {
+            return NotFoundWithCode();
+        }
+
+        if (!await HasProjectReadAccessAsync(principal, permissionMatrix, queries, result.ProjectId, cancellationToken))
+        {
+            return Results.Forbid();
+        }
+
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> CreatePhaseApprovalAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        CreatePhaseApprovalRequest request,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Projects.Manage, Permissions.Projects.ManageMembers))
+        {
+            return Results.Forbid();
+        }
+
+        var actor = ResolveActor(principal);
+        var result = await commands.CreatePhaseApprovalAsync(request, actor, cancellationToken);
+        return !result.Success
+            ? BadRequestWithCode(result.Error, result.ErrorCode)
+            : Results.Created($"/api/v1/users/phase-approvals/{result.Response!.Id}", result.Response);
+    }
+
+    private static async Task<IResult> SubmitPhaseApprovalAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid phaseApprovalId,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Projects.Manage, Permissions.Projects.ManageMembers))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.SubmitPhaseApprovalAsync(phaseApprovalId, ResolveActor(principal), cancellationToken);
+        if (result.NotFound)
+        {
+            return NotFoundWithCode();
+        }
+
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
+    }
+
+    private static async Task<IResult> ApprovePhaseApprovalAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid phaseApprovalId,
+        DecisionPhaseApprovalRequest request,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Projects.ApprovePhase, Permissions.Projects.Manage))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.ApprovePhaseApprovalAsync(phaseApprovalId, request, ResolveActor(principal), cancellationToken);
+        if (result.NotFound)
+        {
+            return NotFoundWithCode();
+        }
+
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
+    }
+
+    private static async Task<IResult> RejectPhaseApprovalAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid phaseApprovalId,
+        DecisionPhaseApprovalRequest request,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Projects.ApprovePhase, Permissions.Projects.Manage))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.RejectPhaseApprovalAsync(phaseApprovalId, request, ResolveActor(principal), cancellationToken);
+        if (result.NotFound)
+        {
+            return NotFoundWithCode();
+        }
+
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
+    }
+
+    private static async Task<IResult> BaselinePhaseApprovalAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        Guid phaseApprovalId,
+        BaselinePhaseApprovalRequest request,
+        IProjectCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Projects.ApprovePhase, Permissions.Projects.Manage))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.BaselinePhaseApprovalAsync(phaseApprovalId, request, ResolveActor(principal), cancellationToken);
+        if (result.NotFound)
+        {
+            return NotFoundWithCode();
+        }
+
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
     }
 
     private static async Task<IResult> GetProjectOrgChartAsync(

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text;
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,23 @@ public sealed record ProjectListQuery(
 public sealed record ProjectAssignmentListQuery(
     Guid ProjectId,
     string? Search,
+    string? SortBy,
+    string? SortOrder,
+    int Page = 1,
+    int PageSize = 10);
+
+public sealed record ProjectRoleListQuery(
+    Guid? ProjectId,
+    string? Search,
+    string? SortBy,
+    string? SortOrder,
+    int Page = 1,
+    int PageSize = 10);
+
+public sealed record PhaseApprovalListQuery(
+    Guid ProjectId,
+    string? Search,
+    string? Status,
     string? SortBy,
     string? SortOrder,
     int Page = 1,
@@ -67,10 +85,12 @@ public interface IProjectQueries
 {
     Task<PagedResult<ProjectListItem>> ListProjectsAsync(ProjectListQuery query, CancellationToken cancellationToken);
     Task<ProjectResponse?> GetProjectAsync(Guid projectId, CancellationToken cancellationToken);
-    Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ReferenceDataQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ProjectRoleListQuery query, CancellationToken cancellationToken);
     Task<ProjectRoleResponse?> GetProjectRoleAsync(Guid projectRoleId, CancellationToken cancellationToken);
     Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken);
     Task<ProjectAssignmentResponse?> GetProjectAssignmentAsync(Guid assignmentId, CancellationToken cancellationToken);
+    Task<PagedResult<PhaseApprovalRequestResponse>> ListPhaseApprovalsAsync(PhaseApprovalListQuery query, CancellationToken cancellationToken);
+    Task<PhaseApprovalRequestResponse?> GetPhaseApprovalAsync(Guid phaseApprovalId, CancellationToken cancellationToken);
     Task<bool> HasProjectAccessAsync(Guid projectId, string userId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ProjectOrgChartNodeResponse>> GetProjectOrgChartAsync(Guid projectId, CancellationToken cancellationToken);
     Task<ProjectEvidenceResponse?> GetProjectEvidenceAsync(Guid projectId, CancellationToken cancellationToken);
@@ -371,37 +391,45 @@ public sealed class ProjectQueries(
                               assignment.Status == "Active",
                 cancellationToken);
 
-    public async Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ReferenceDataQuery query, CancellationToken cancellationToken)
+    public async Task<PagedResult<ProjectRoleResponse>> ListProjectRolesAsync(ProjectRoleListQuery query, CancellationToken cancellationToken)
     {
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
         IQueryable<ProjectRoleEntity> source = dbContext.ProjectRoles.AsNoTracking().Where(x => x.DeletedAt == null);
 
+        if (query.ProjectId.HasValue)
+        {
+            source = source.Where(x => x.ProjectId == query.ProjectId.Value);
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var search = $"%{query.Search.Trim()}%";
-            source = source.Where(x => EF.Functions.ILike(x.Name, search));
+            source = source.Where(x => EF.Functions.ILike(x.Name, search) || (x.Code != null && EF.Functions.ILike(x.Code, search)));
         }
 
         source = ApplyProjectRoleSorting(source, query.SortBy, query.SortOrder);
         var total = await source.CountAsync(cancellationToken);
-        var items = await source
-            .Select(role => new ProjectRoleResponse(
-                role.Id,
-                null,
-                null,
-                role.Name,
-                role.Code,
-                role.Description,
-                role.Responsibilities,
-                role.AuthorityScope,
-                role.DisplayOrder,
-                role.CreatedAt,
-                role.UpdatedAt,
-                role.DeletedReason,
-                role.DeletedBy,
-                role.DeletedAt))
-            .Skip(skip)
-            .Take(pageSize)
+        var items = await (
+                from role in source.Skip(skip).Take(pageSize)
+                join project in dbContext.Projects.AsNoTracking() on role.ProjectId equals project.Id into projectJoin
+                from project in projectJoin.DefaultIfEmpty()
+                select new ProjectRoleResponse(
+                    role.Id,
+                    role.ProjectId,
+                    project != null && project.DeletedAt == null ? project.Name : null,
+                    role.Name,
+                    role.Code,
+                    role.Status,
+                    role.Description,
+                    role.Responsibilities,
+                    role.AuthorityScope,
+                    dbContext.UserProjectAssignments.Count(assignment => assignment.ProjectRoleId == role.Id && assignment.Status == "Active"),
+                    role.DisplayOrder,
+                    role.CreatedAt,
+                    role.UpdatedAt,
+                    role.DeletedReason,
+                    role.DeletedBy,
+                    role.DeletedAt))
             .ToListAsync(cancellationToken);
 
         auditLogWriter.Append(new AuditLogEntry(
@@ -409,7 +437,7 @@ public sealed class ProjectQueries(
             Action: "list",
             EntityType: "project_role",
             StatusCode: StatusCodes.Status200OK,
-            Metadata: new { total, page, pageSize, query.Search, query.SortBy, query.SortOrder }));
+            Metadata: new { total, page, pageSize, query.ProjectId, query.Search, query.SortBy, query.SortOrder }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new PagedResult<ProjectRoleResponse>(items, total, page, pageSize);
@@ -422,13 +450,15 @@ public sealed class ProjectQueries(
             .Where(role => role.Id == projectRoleId && role.DeletedAt == null)
             .Select(role => new ProjectRoleResponse(
                 role.Id,
-                null,
-                null,
+                role.ProjectId,
+                dbContext.Projects.Where(project => project.Id == role.ProjectId && project.DeletedAt == null).Select(project => project.Name).FirstOrDefault(),
                 role.Name,
                 role.Code,
+                role.Status,
                 role.Description,
                 role.Responsibilities,
                 role.AuthorityScope,
+                dbContext.UserProjectAssignments.Count(assignment => assignment.ProjectRoleId == role.Id && assignment.Status == "Active"),
                 role.DisplayOrder,
                 role.CreatedAt,
                 role.UpdatedAt,
@@ -446,6 +476,67 @@ public sealed class ProjectQueries(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return result;
+    }
+
+    public async Task<PagedResult<PhaseApprovalRequestResponse>> ListPhaseApprovalsAsync(PhaseApprovalListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var source = dbContext.PhaseApprovalRequests
+            .AsNoTracking()
+            .Where(x => x.ProjectId == query.ProjectId);
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x => EF.Functions.ILike(x.PhaseCode, search) || EF.Functions.ILike(x.EntryCriteriaSummary, search));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            source = source.Where(x => x.Status == query.Status);
+        }
+
+        var descending = string.Equals(query.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "phasecode" => descending ? source.OrderByDescending(x => x.PhaseCode) : source.OrderBy(x => x.PhaseCode),
+            "status" => descending ? source.OrderByDescending(x => x.Status) : source.OrderBy(x => x.Status),
+            _ => descending ? source.OrderByDescending(x => x.CreatedAt) : source.OrderBy(x => x.CreatedAt)
+        };
+
+        var total = await source.CountAsync(cancellationToken);
+        var entities = await source.Skip(skip).Take(pageSize).ToListAsync(cancellationToken);
+        var items = await BuildPhaseApprovalResponsesAsync(entities, cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "list",
+            EntityType: "phase_approval_request",
+            StatusCode: StatusCodes.Status200OK,
+            Metadata: new { total, page, pageSize, query.ProjectId, query.Search, query.Status, query.SortBy, query.SortOrder }));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new PagedResult<PhaseApprovalRequestResponse>(items, total, page, pageSize);
+    }
+
+    public async Task<PhaseApprovalRequestResponse?> GetPhaseApprovalAsync(Guid phaseApprovalId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.PhaseApprovalRequests.AsNoTracking().SingleOrDefaultAsync(x => x.Id == phaseApprovalId, cancellationToken);
+
+        auditLogWriter.Append(new AuditLogEntry(
+            Module: "users",
+            Action: "get",
+            EntityType: "phase_approval_request",
+            EntityId: phaseApprovalId.ToString(),
+            StatusCode: entity is null ? StatusCodes.Status404NotFound : StatusCodes.Status200OK));
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (entity is null)
+        {
+            return null;
+        }
+
+        return (await BuildPhaseApprovalResponsesAsync([entity], cancellationToken)).Single();
     }
 
     public async Task<PagedResult<ProjectAssignmentResponse>> ListProjectAssignmentsAsync(ProjectAssignmentListQuery query, CancellationToken cancellationToken)
@@ -1316,7 +1407,7 @@ public sealed class ProjectQueries(
                 severity: "info",
                 isPassing: true,
                 passedDetail: "Workflow configuration will define document roles.",
-                failedDetail: null),
+                failedDetail: string.Empty),
             BuildComplianceCheck(
                 code: "review_role_assigned",
                 title: "Review role assigned",
@@ -1324,7 +1415,7 @@ public sealed class ProjectQueries(
                 severity: "info",
                 isPassing: true,
                 passedDetail: "Workflow configuration will define review roles.",
-                failedDetail: null),
+                failedDetail: string.Empty),
             BuildComplianceCheck(
                 code: "approval_role_assigned",
                 title: "Approval role assigned",
@@ -1332,7 +1423,7 @@ public sealed class ProjectQueries(
                 severity: "info",
                 isPassing: true,
                 passedDetail: "Workflow configuration will define approval roles.",
-                failedDetail: null),
+                failedDetail: string.Empty),
             BuildComplianceCheck(
                 code: "release_role_assigned",
                 title: "Release role assigned",
@@ -1340,7 +1431,7 @@ public sealed class ProjectQueries(
                 severity: "info",
                 isPassing: true,
                 passedDetail: "Workflow configuration will define release roles.",
-                failedDetail: null)
+                failedDetail: string.Empty)
         ];
 
         foreach (var requirement in templateRoleRequirements)
@@ -1480,6 +1571,74 @@ public sealed class ProjectQueries(
                    assignment.EndAt,
                    assignment.CreatedAt,
                    assignment.UpdatedAt);
+    }
+
+    private async Task<IReadOnlyList<PhaseApprovalRequestResponse>> BuildPhaseApprovalResponsesAsync(
+        IReadOnlyList<PhaseApprovalRequestEntity> entities,
+        CancellationToken cancellationToken)
+    {
+        if (entities.Count == 0)
+        {
+            return [];
+        }
+
+        var projectIds = entities.Select(x => x.ProjectId).Distinct().ToArray();
+        var userIds = entities
+            .SelectMany(x => new[] { x.SubmittedBy, x.DecidedBy, x.BaselineBy })
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        var projectNames = await dbContext.Projects.AsNoTracking()
+            .Where(x => projectIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+        var profiles = await ResolveUserProfilesAsync(userIds, cancellationToken);
+
+        return entities.Select(entity =>
+        {
+            profiles.TryGetValue(entity.SubmittedBy ?? string.Empty, out var submittedProfile);
+            profiles.TryGetValue(entity.DecidedBy ?? string.Empty, out var decidedProfile);
+            profiles.TryGetValue(entity.BaselineBy ?? string.Empty, out var baselineProfile);
+
+            return new PhaseApprovalRequestResponse(
+                entity.Id,
+                entity.ProjectId,
+                projectNames.GetValueOrDefault(entity.ProjectId, string.Empty),
+                entity.PhaseCode,
+                entity.EntryCriteriaSummary,
+                DeserializeEvidenceRefs(entity.RequiredEvidenceRefsJson),
+                entity.Status,
+                entity.SubmittedBy,
+                string.IsNullOrWhiteSpace(entity.SubmittedBy) ? null : ResolveDisplayName(submittedProfile, entity.SubmittedBy!),
+                entity.SubmittedAt,
+                entity.Decision,
+                entity.DecisionReason,
+                entity.DecidedBy,
+                string.IsNullOrWhiteSpace(entity.DecidedBy) ? null : ResolveDisplayName(decidedProfile, entity.DecidedBy!),
+                entity.DecidedAt,
+                entity.BaselineBy,
+                string.IsNullOrWhiteSpace(entity.BaselineBy) ? null : ResolveDisplayName(baselineProfile, entity.BaselineBy!),
+                entity.BaselinedAt,
+                entity.CreatedAt,
+                entity.UpdatedAt);
+        }).ToList();
+    }
+
+    private static IReadOnlyList<string> DeserializeEvidenceRefs(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 }
 

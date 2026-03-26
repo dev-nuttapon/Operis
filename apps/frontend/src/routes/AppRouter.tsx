@@ -136,6 +136,15 @@ const EvidenceExportsPage = lazy(() =>
 const AuditPlansPage = lazy(() =>
   import("../modules/audits/pages/AuditPlansPage").then((module) => ({ default: module.AuditPlansPage }))
 );
+const MetricDefinitionsPage = lazy(() =>
+  import("../modules/metrics/pages/MetricDefinitionsPage").then((module) => ({ default: module.MetricDefinitionsPage }))
+);
+const MetricsDashboardPage = lazy(() =>
+  import("../modules/metrics/pages/MetricsDashboardPage").then((module) => ({ default: module.MetricsDashboardPage }))
+);
+const QualityGatesPage = lazy(() =>
+  import("../modules/metrics/pages/QualityGatesPage").then((module) => ({ default: module.QualityGatesPage }))
+);
 const InvitationAcceptPage = lazy(() =>
   import("../modules/users/pages/InvitationAcceptPage").then((module) => ({ default: module.InvitationAcceptPage }))
 );
@@ -177,6 +186,9 @@ const ProjectMemberEditPage = lazy(() =>
 );
 const ProjectOrgChartPage = lazy(() =>
   import("../modules/users/pages/ProjectOrgChartPage").then((module) => ({ default: module.ProjectOrgChartPage }))
+);
+const ProjectPhaseApprovalsPage = lazy(() =>
+  import("../modules/users/pages/ProjectPhaseApprovalsPage").then((module) => ({ default: module.ProjectPhaseApprovalsPage }))
 );
 const ProjectWorkspacePrototypePage = lazy(() =>
   import("../modules/users/pages/ProjectWorkspacePrototypePage").then((module) => ({ default: module.ProjectWorkspacePrototypePage }))
@@ -299,6 +311,9 @@ export function AppRouter() {
               <Route path="audit-logs" element={<AuthorizedRoute permission={permissions.auditLogs.read}><AuditLogsPage /></AuthorizedRoute>} />
               <Route path="evidence-exports" element={<AuthorizedRoute anyOf={[permissions.auditLogs.read, permissions.auditLogs.export]}><EvidenceExportsPage /></AuthorizedRoute>} />
               <Route path="audit-plans" element={<AuthorizedRoute anyOf={[permissions.auditLogs.read, permissions.auditLogs.manage]}><AuditPlansPage /></AuthorizedRoute>} />
+              <Route path="metrics/definitions" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><MetricDefinitionsPage /></AuthorizedRoute>} />
+              <Route path="metrics/dashboard" element={<AuthorizedRoute permission={permissions.metrics.read}><MetricsDashboardPage /></AuthorizedRoute>} />
+              <Route path="metrics/quality-gates" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage, permissions.metrics.overrideQualityGates]}><QualityGatesPage /></AuthorizedRoute>} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
                 <Route path="admin/master/divisions" element={<AdminUsersPage />} />
                 <Route path="admin/master/departments" element={<AdminUsersPage />} />
@@ -306,6 +321,7 @@ export function AppRouter() {
                 <Route path="projects/roles" element={<ProjectRolesPage />} />
                 <Route path="projects/roles/new" element={<ProjectRoleCreatePage />} />
                 <Route path="projects/roles/:projectRoleId/edit" element={<ProjectRoleEditPage />} />
+                <Route path="projects/phase-approvals" element={<AuthorizedRoute anyOf={[permissions.projects.read, permissions.projects.manage, permissions.projects.approvePhase]}><ProjectPhaseApprovalsPage /></AuthorizedRoute>} />
                 <Route path="admin/project-members" element={<ProjectMembersPage />} />
                 <Route path="admin/project-members/new" element={<ProjectMemberCreatePage />} />
                 <Route path="admin/project-members/:assignmentId/edit" element={<ProjectMemberEditPage />} />

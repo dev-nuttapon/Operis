@@ -33,6 +33,7 @@ public static class Permissions
         public const string Manage = "projects.manage";
         public const string ManageRoles = "projects.roles.manage";
         public const string ManageMembers = "projects.members.manage";
+        public const string ApprovePhase = "projects.phase_approvals.approve";
         public const string ReadEvidence = "projects.evidence.read";
         public const string ExportEvidence = "projects.evidence.export";
         public const string ReadCompliance = "projects.compliance.read";
@@ -130,6 +131,13 @@ public static class Permissions
         public const string ReadSensitiveEvidence = "verification.evidence_sensitive.read";
     }
 
+    public static class Metrics
+    {
+        public const string Read = "metrics.read";
+        public const string Manage = "metrics.manage";
+        public const string OverrideQualityGates = "metrics.quality_gates.override";
+    }
+
     public static class Notifications
     {
         public const string Read = "notifications.read";
@@ -154,6 +162,7 @@ public static class Permissions
         Projects.Manage,
         Projects.ManageRoles,
         Projects.ManageMembers,
+        Projects.ApprovePhase,
         Projects.ReadEvidence,
         Projects.ExportEvidence,
         Projects.ReadCompliance,
@@ -209,6 +218,9 @@ public static class Permissions
         Verification.SubmitUat,
         Verification.Export,
         Verification.ReadSensitiveEvidence,
+        Metrics.Read,
+        Metrics.Manage,
+        Metrics.OverrideQualityGates,
         Notifications.Read
     ];
 
@@ -287,6 +299,9 @@ public static class Permissions
             Verification.SubmitUat => "Submit UAT Sign-off",
             Verification.Export => "Export Verification Evidence",
             Verification.ReadSensitiveEvidence => "Read Sensitive Test Evidence",
+            Metrics.Read => "Read Metrics and Quality Gates",
+            Metrics.Manage => "Manage Metric Definitions and Schedules",
+            Metrics.OverrideQualityGates => "Override Quality Gates",
             Notifications.Read => "Read Notifications",
             _ => permission
         };

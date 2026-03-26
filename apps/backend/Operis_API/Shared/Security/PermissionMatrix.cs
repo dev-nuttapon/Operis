@@ -33,6 +33,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Projects.Manage,
                 Permissions.Projects.ManageRoles,
                 Permissions.Projects.ManageMembers,
+                Permissions.Projects.ApprovePhase,
                 Permissions.Projects.ReadEvidence,
                 Permissions.Projects.ExportEvidence,
                 Permissions.Projects.ReadCompliance,
@@ -76,6 +77,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Verification.SubmitUat,
                 Permissions.Verification.Export,
                 Permissions.Verification.ReadSensitiveEvidence,
+                Permissions.Metrics.Read,
+                Permissions.Metrics.Manage,
+                Permissions.Metrics.OverrideQualityGates,
                 Permissions.Notifications.Read
             ],
             ["operis_system_admin"] =
@@ -97,6 +101,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Projects.Manage,
                 Permissions.Projects.ManageRoles,
                 Permissions.Projects.ManageMembers,
+                Permissions.Projects.ApprovePhase,
                 Permissions.Projects.ReadEvidence,
                 Permissions.Projects.ExportEvidence,
                 Permissions.Projects.ReadCompliance,
@@ -118,6 +123,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Meetings.ReadRestricted,
                 Permissions.Verification.Read,
                 Permissions.Verification.Export,
+                Permissions.Metrics.Read,
+                Permissions.Metrics.Manage,
+                Permissions.Metrics.OverrideQualityGates,
                 Permissions.Notifications.Read
             ],
             ["operis:audit_auditor"] =
@@ -140,6 +148,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Meetings.ReadRestricted,
                 Permissions.Verification.Read,
                 Permissions.Verification.Export,
+                Permissions.Metrics.Read,
                 Permissions.Notifications.Read
             ],
             ["operis:documents_owner"] =
@@ -183,6 +192,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.ChangeControl.ReadConfiguration,
                 Permissions.ChangeControl.ApproveBaselines,
                 Permissions.ChangeControl.EmergencyOverride,
+                Permissions.Projects.ApprovePhase,
                 Permissions.Risks.Read,
                 Permissions.Risks.Manage,
                 Permissions.Risks.ReadSensitive,
@@ -195,12 +205,18 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Verification.Approve,
                 Permissions.Verification.SubmitUat,
                 Permissions.Verification.Export,
-                Permissions.Verification.ReadSensitiveEvidence
+                Permissions.Verification.ReadSensitiveEvidence,
+                Permissions.Metrics.Read,
+                Permissions.Metrics.Manage,
+                Permissions.Metrics.OverrideQualityGates
             ],
             ["operis:pm"] =
             [
                 Permissions.AuditLogs.Read,
                 Permissions.AuditLogs.Export,
+                Permissions.Projects.Read,
+                Permissions.Projects.ManageRoles,
+                Permissions.Projects.ManageMembers,
                 Permissions.Governance.ProcessLibraryRead,
                 Permissions.Governance.QaChecklistRead,
                 Permissions.Governance.ProjectPlanRead,
@@ -224,7 +240,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Meetings.Manage,
                 Permissions.Meetings.ReadRestricted,
                 Permissions.Verification.Read,
-                Permissions.Verification.SubmitUat
+                Permissions.Verification.SubmitUat,
+                Permissions.Metrics.Read
             ],
             ["operis:ba"] =
             [
@@ -254,6 +271,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Risks.Read,
                 Permissions.Meetings.Read,
                 Permissions.Verification.Read,
+                Permissions.Metrics.Read,
+                Permissions.Metrics.Manage,
                 Permissions.Verification.Manage,
                 Permissions.Verification.Export,
                 Permissions.Verification.ReadSensitiveEvidence
@@ -353,6 +372,20 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
             [
                 Permissions.ChangeControl.ReadConfiguration,
                 Permissions.ChangeControl.ManageConfiguration
+            ],
+            ["operis:metrics_manager"] =
+            [
+                Permissions.Metrics.Read,
+                Permissions.Metrics.Manage
+            ],
+            ["operis:quality_gate_approver"] =
+            [
+                Permissions.Metrics.Read,
+                Permissions.Metrics.OverrideQualityGates
+            ],
+            ["operis:metrics_viewer"] =
+            [
+                Permissions.Metrics.Read
             ]
         };
 

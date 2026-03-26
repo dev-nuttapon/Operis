@@ -74,6 +74,17 @@ namespace Operis_API.Shared.Contracts;
     public const string AuditFindingResolutionRequired = "audit_finding_resolution_required";
     public const string ExportScopeRequired = "export_scope_required";
     public const string ExportDateRangeRequired = "export_date_range_required";
+    public const string MetricTargetRequired = "metric_target_required";
+    public const string MetricThresholdRequired = "metric_threshold_required";
+    public const string MetricCodeDuplicate = "metric_code_duplicate";
+    public const string MetricDefinitionNotFound = "metric_definition_not_found";
+    public const string MetricCollectionScheduleNotFound = "metric_collection_schedule_not_found";
+    public const string QualityGateResultNotFound = "quality_gate_result_not_found";
+    public const string QualityGateOverrideReasonRequired = "quality_gate_override_reason_required";
+    public const string PhaseEntryCriteriaRequired = "phase_entry_criteria_required";
+    public const string PhaseEvidenceRequired = "phase_evidence_required";
+    public const string ProjectRoleRequired = "project_role_required";
+    public const string InvalidAssignmentPeriod = "invalid_assignment_period";
 
     public const string UserExists = "user_exists";
     public const string PendingInvitationExists = "pending_invitation_exists";

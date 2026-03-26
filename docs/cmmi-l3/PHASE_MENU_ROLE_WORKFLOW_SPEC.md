@@ -1460,6 +1460,10 @@ Implementation note:
 - `POST /quality-gates/evaluate`
 - `PUT /quality-gates/{id}/override`
 
+Implementation note:
+- current implementation records `metric_results` during `POST /quality-gates/evaluate` so gate decisions and dashboard data share the same persisted measurement source
+- `GET /metric-results` returns both paged metric results and aggregated dashboard widgets to avoid client-side N+1 widget fan-out
+
 #### Phase 9 Validation and Error Contract
 - Gate override requires reason and elevated permission
 - Metric definition requires target and threshold

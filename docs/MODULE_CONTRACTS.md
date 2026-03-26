@@ -110,6 +110,13 @@ Public entry:
 * [apps/frontend/src/modules/verification/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/verification/index.ts)
 * [apps/frontend/src/modules/verification/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/verification/README.md)
 
+## metrics
+
+Public entry:
+
+* [apps/frontend/src/modules/metrics/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/metrics/index.ts)
+* [apps/frontend/src/modules/metrics/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/metrics/README.md)
+
 ---
 
 # Backend Public Surfaces
@@ -225,6 +232,23 @@ Module entry:
 
 * [apps/backend/Operis_API/Modules/ChangeControl/ChangeControlModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/ChangeControl/ChangeControlModule.cs)
 * [apps/backend/Operis_API/Modules/ChangeControl/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/ChangeControl/README.md)
+
+## metrics
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Metrics/MetricsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Metrics/MetricsModule.cs)
+* [apps/backend/Operis_API/Modules/Metrics/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Metrics/README.md)
+
+Application surfaces:
+
+* metric queries
+* metric commands
+
+Notes:
+
+* quality gate evaluation persists the measured metric results used for the decision
+* dashboard widgets are aggregated from a shared metrics query response instead of per-widget fan-out
 
 Application surfaces:
 

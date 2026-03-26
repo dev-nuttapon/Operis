@@ -123,6 +123,11 @@ export function MainLayout() {
     permissions.auditLogs.export,
     permissions.auditLogs.manage,
   );
+  const hasMetricsAccess = permissionState.hasAnyPermission(
+    permissions.metrics.read,
+    permissions.metrics.manage,
+    permissions.metrics.overrideQualityGates,
+  );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
   const jobTitleLabel =
@@ -213,6 +218,10 @@ export function MainLayout() {
         {
           key: '/app/projects/roles',
           label: tr('common.master_project_roles'),
+        },
+        {
+          key: '/app/projects/phase-approvals',
+          label: 'Project Phase Approval',
         },
         {
           key: '/app/steps',
@@ -310,6 +319,18 @@ export function MainLayout() {
             { key: '/app/audit-logs', label: 'Audit Log' },
             { key: '/app/evidence-exports', label: 'Evidence Export' },
             { key: '/app/audit-plans', label: 'Process Audit Plan & Findings' },
+          ],
+        }]
+      : []),
+    ...(hasMetricsAccess
+      ? [{
+          key: '/app/metrics-group',
+          icon: <BulbOutlined />,
+          label: 'Metrics & Quality Gates',
+          children: [
+            { key: '/app/metrics/dashboard', label: 'Metrics Dashboard' },
+            { key: '/app/metrics/definitions', label: 'Metric Definitions' },
+            { key: '/app/metrics/quality-gates', label: 'Quality Gate Status' },
           ],
         }]
       : []),
@@ -466,6 +487,7 @@ export function MainLayout() {
     if (path.includes('admin/master/departments')) return tr('common.master_departments');
     if (path.includes('admin/master/positions')) return tr('common.master_positions');
     if (path.includes('/projects/roles')) return tr('common.master_project_roles');
+    if (path.includes('/projects/phase-approvals')) return 'Project Phase Approval';
     if (path.includes('/projects/') && path.includes('/workspace')) return tr('common.project_workspace');
     if (path.includes('admin/master')) return tr('common.master_data_management');
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
@@ -474,6 +496,9 @@ export function MainLayout() {
     if (path.includes('/app/audit-plans')) return 'Process Audit Plan & Findings';
     if (path.includes('/app/evidence-exports')) return 'Evidence Export';
     if (path.includes('/app/audit-logs')) return 'Audit Log';
+    if (path.includes('/app/metrics/dashboard')) return 'Metrics Dashboard';
+    if (path.includes('/app/metrics/definitions')) return 'Metric Definitions';
+    if (path.includes('/app/metrics/quality-gates')) return 'Quality Gate Status';
     return tr('common.dashboard');
   };
 
@@ -809,6 +834,7 @@ function getOpenKeys(path: string) {
   if (
     path.startsWith('/app/projects') ||
     path.startsWith('/app/projects/roles') ||
+    path.startsWith('/app/projects/phase-approvals') ||
     path.startsWith('/app/steps') ||
     path.startsWith('/app/workspace')
   ) {
@@ -841,6 +867,10 @@ function getOpenKeys(path: string) {
 
   if (path.startsWith('/app/audit-logs') || path.startsWith('/app/evidence-exports') || path.startsWith('/app/audit-plans')) {
     return ['/app/audits-group'];
+  }
+
+  if (path.startsWith('/app/metrics/')) {
+    return ['/app/metrics-group'];
   }
 
   if (path.startsWith('/app/admin/master/')) {
@@ -877,6 +907,10 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/projects/roles')) {
     return '/app/projects/roles';
+  }
+
+  if (path.startsWith('/app/projects/phase-approvals')) {
+    return '/app/projects/phase-approvals';
   }
 
   if (path.startsWith('/app/projects/')) {
@@ -957,6 +991,18 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/audit-logs')) {
     return '/app/audit-logs';
+  }
+
+  if (path.startsWith('/app/metrics/quality-gates')) {
+    return '/app/metrics/quality-gates';
+  }
+
+  if (path.startsWith('/app/metrics/definitions')) {
+    return '/app/metrics/definitions';
+  }
+
+  if (path.startsWith('/app/metrics/dashboard')) {
+    return '/app/metrics/dashboard';
   }
 
   if (path.startsWith('/app/admin/users')) {

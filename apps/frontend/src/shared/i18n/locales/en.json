@@ -1014,7 +1014,7 @@
   },
   "project_roles": {
     "page_title": "Project Roles",
-    "page_description": "Define organization-wide project roles that can be reused across projects.",
+    "page_description": "Define accountable project roles per project and monitor assignment coverage.",
     "create_page_title": "Add Project Role",
     "create_page_description": "Fill in the role details before assigning project members.",
     "create_page_back": "Back",
@@ -1032,14 +1032,17 @@
     "delete_modal_title_with_name": "Delete project role {{name}}",
     "delete_description": "Confirm deletion and provide a reason.",
     "fields": {
+      "project": "Project",
       "name": "Role name",
       "code": "Role code",
+      "status": "Status",
       "description": "Role description",
       "responsibilities": "Responsibilities",
       "authority_scope": "Authority scope",
       "display_order": "Display order"
     },
     "placeholders": {
+      "project": "Select a project",
       "name": "e.g. Project Manager",
       "code": "e.g. PM",
       "description": "Short summary of this role",
@@ -1050,8 +1053,15 @@
     "columns": {
       "name": "Role Name",
       "code": "Code",
+      "status": "Status",
+      "assigned_count": "Assigned Count",
       "display_order": "Display Order"
     },
+    "status": {
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "select_project_placeholder": "Filter by project",
     "messages": {
       "created": "Created project role {{name}}",
       "updated": "Updated project role {{name}}",
@@ -1059,6 +1069,63 @@
       "create_failed": "Unable to create the project role",
       "update_failed": "Unable to update the project role",
       "delete_failed": "Unable to delete the project role"
+    }
+  },
+  "project_phase_approvals": {
+    "page_title": "Project Phase Approval",
+    "page_description": "Collect entry criteria and evidence before a project phase is submitted, approved, and baselined.",
+    "select_project_placeholder": "Select a project",
+    "select_project_message": "Choose a project to manage phase approvals.",
+    "search_placeholder": "Search phase or entry criteria",
+    "status_placeholder": "All statuses",
+    "create_action": "New Phase Approval",
+    "create_modal_title": "Create Phase Approval Request",
+    "approve_modal_title": "Approve Phase Approval",
+    "reject_modal_title": "Reject Phase Approval",
+    "baseline_modal_title": "Baseline Phase Approval",
+    "fields": {
+      "phase": "Phase",
+      "entry_criteria": "Entry criteria summary",
+      "required_evidence": "Required evidence references",
+      "decision_reason": "Decision reason"
+    },
+    "placeholders": {
+      "phase": "e.g. Requirements Baseline",
+      "entry_criteria": "Summarize what must be true before this phase is approved.",
+      "required_evidence": "One evidence reference per line",
+      "decision_reason": "State the basis for the decision"
+    },
+    "columns": {
+      "phase": "Phase",
+      "status": "Status",
+      "submitted_by": "Submitted By",
+      "submitted_at": "Submitted At",
+      "decision": "Decision"
+    },
+    "actions": {
+      "submit": "Submit",
+      "approve": "Approve",
+      "reject": "Reject",
+      "baseline": "Baseline"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "baseline": "Baseline"
+    },
+    "messages": {
+      "created": "Created phase approval for {{phase}}",
+      "create_failed": "Unable to create the phase approval request",
+      "submitted": "Submitted phase approval for {{phase}}",
+      "submit_failed": "Unable to submit the phase approval request",
+      "approved": "Approved phase {{phase}}",
+      "approve_failed": "Unable to approve the phase approval request",
+      "rejected": "Rejected phase {{phase}}",
+      "reject_failed": "Unable to reject the phase approval request",
+      "baselined": "Baselined phase {{phase}}",
+      "baseline_failed": "Unable to baseline the phase approval request"
     }
   },
   "project_members": {

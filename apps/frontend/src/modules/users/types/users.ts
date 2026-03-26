@@ -56,6 +56,26 @@ export interface ListProjectAssignmentsInput {
   pageSize?: number;
 }
 
+export interface ListProjectRolesInput {
+  projectId?: string;
+  status?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListPhaseApprovalsInput {
+  projectId: string;
+  status?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
 export interface ReferenceDataListInput {
   search?: string;
   sortBy?: string;
@@ -395,9 +415,11 @@ export interface ProjectRole {
   projectName: string | null;
   name: string;
   code: string | null;
+  status: string;
   description: string | null;
   responsibilities: string | null;
   authorityScope: string | null;
+  assignedCount: number;
   displayOrder: number;
   createdAt: string;
   updatedAt: string | null;
@@ -526,6 +548,7 @@ export interface CreateProjectRoleInput {
   projectId?: string;
   name: string;
   code?: string;
+  status?: string;
   description?: string;
   responsibilities?: string;
   authorityScope?: string;
@@ -549,6 +572,46 @@ export interface CreateProjectAssignmentInput {
 export interface UpdateProjectAssignmentInput extends CreateProjectAssignmentInput {
   id: string;
   reason: string;
+}
+
+export interface PhaseApprovalRequest {
+  id: string;
+  projectId: string;
+  projectName: string;
+  phaseCode: string;
+  entryCriteriaSummary: string;
+  requiredEvidenceRefs: string[];
+  status: string;
+  submittedBy: string | null;
+  submittedByDisplayName: string | null;
+  submittedAt: string | null;
+  decision: string | null;
+  decisionReason: string | null;
+  decidedBy: string | null;
+  decidedByDisplayName: string | null;
+  decidedAt: string | null;
+  baselineBy: string | null;
+  baselineByDisplayName: string | null;
+  baselinedAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreatePhaseApprovalInput {
+  projectId: string;
+  phaseCode: string;
+  entryCriteriaSummary: string;
+  requiredEvidenceRefs: string[];
+}
+
+export interface DecidePhaseApprovalInput {
+  id: string;
+  decisionReason: string;
+}
+
+export interface BaselinePhaseApprovalInput {
+  id: string;
+  decisionReason?: string;
 }
 
 export interface ApproveRegistrationInput {

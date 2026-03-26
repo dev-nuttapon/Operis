@@ -9,6 +9,7 @@ import type {
   CreateJobTitleInput,
   CreateMasterDataInput,
   CreateInvitationInput,
+  CreatePhaseApprovalInput,
   CreateProjectAssignmentInput,
   CreateProjectInput,
   CreateProjectRoleInput,
@@ -19,9 +20,13 @@ import type {
   Invitation,
   AppRoleItem,
   ApplyPermissionMatrixInput,
+  BaselinePhaseApprovalInput,
   CreateRegistrationRequestInput,
+  DecidePhaseApprovalInput,
   ListInvitationsInput,
+  ListPhaseApprovalsInput,
   ListProjectAssignmentsInput,
+  ListProjectRolesInput,
   ListProjectsInput,
   ListRegistrationRequestsInput,
   ListUsersInput,
@@ -33,6 +38,7 @@ import type {
   ProjectAssignment,
   ProjectAssignmentHistoryRow,
   ProjectOrgChartNode,
+  PhaseApprovalRequest,
   ProjectRole,
   ProjectRoleResponsibilityRow,
   ProjectTeamRegisterRow,
@@ -64,6 +70,8 @@ type ListQueryInput = PaginationInput & {
   assignedOnly?: boolean;
   divisionId?: string;
   departmentId?: string;
+  projectId?: string;
+  status?: string;
 };
 
 function toListQuery(input?: ListQueryInput) {
@@ -78,6 +86,8 @@ function toListQuery(input?: ListQueryInput) {
   if (input?.assignedOnly) params.set("assignedOnly", "true");
   if (input?.divisionId) params.set("divisionId", input.divisionId);
   if (input?.departmentId) params.set("departmentId", input.departmentId);
+  if (input?.projectId) params.set("projectId", input.projectId);
+  if (input?.status) params.set("status", input.status);
   const query = params.toString();
   return query ? `?${query}` : "";
 }
@@ -371,7 +381,7 @@ export function listJobTitles(input?: ListQueryInput, signal?: AbortSignal) {
 }
 
 
-export function listProjectRoles(input?: ListQueryInput, signal?: AbortSignal) {
+export function listProjectRoles(input?: ListProjectRolesInput, signal?: AbortSignal) {
   return apiRequest<PaginatedResult<ProjectRole>>(`/api/v1/users/project-roles${toListQuery(input)}`, { signal });
 }
 
@@ -571,6 +581,56 @@ export function deleteProjectAssignment(id: string, input: SoftDeleteInput) {
   return apiRequest<void>(`/api/v1/users/project-assignments/${id}`, {
     method: "DELETE",
     body: input,
+  });
+}
+
+export function listPhaseApprovals(input: ListPhaseApprovalsInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  params.set("projectId", input.projectId);
+  if (input.page) params.set("page", String(input.page));
+  if (input.pageSize) params.set("pageSize", String(input.pageSize));
+  if (input.search) params.set("search", input.search);
+  if (input.status) params.set("status", input.status);
+  if (input.sortBy) params.set("sortBy", input.sortBy);
+  if (input.sortOrder) params.set("sortOrder", input.sortOrder);
+  return apiRequest<PaginatedResult<PhaseApprovalRequest>>(`/api/v1/users/phase-approvals?${params.toString()}`, { signal });
+}
+
+export function getPhaseApproval(id: string, signal?: AbortSignal) {
+  return apiRequest<PhaseApprovalRequest>(`/api/v1/users/phase-approvals/${encodeURIComponent(id)}`, { signal });
+}
+
+export function createPhaseApproval(input: CreatePhaseApprovalInput) {
+  return apiRequest<PhaseApprovalRequest>("/api/v1/users/phase-approvals", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export function submitPhaseApproval(id: string) {
+  return apiRequest<PhaseApprovalRequest>(`/api/v1/users/phase-approvals/${encodeURIComponent(id)}/submit`, {
+    method: "PUT",
+  });
+}
+
+export function approvePhaseApproval(input: DecidePhaseApprovalInput) {
+  return apiRequest<PhaseApprovalRequest>(`/api/v1/users/phase-approvals/${encodeURIComponent(input.id)}/approve`, {
+    method: "PUT",
+    body: { decisionReason: input.decisionReason },
+  });
+}
+
+export function rejectPhaseApproval(input: DecidePhaseApprovalInput) {
+  return apiRequest<PhaseApprovalRequest>(`/api/v1/users/phase-approvals/${encodeURIComponent(input.id)}/reject`, {
+    method: "PUT",
+    body: { decisionReason: input.decisionReason },
+  });
+}
+
+export function baselinePhaseApproval(input: BaselinePhaseApprovalInput) {
+  return apiRequest<PhaseApprovalRequest>(`/api/v1/users/phase-approvals/${encodeURIComponent(input.id)}/baseline`, {
+    method: "PUT",
+    body: { decisionReason: input.decisionReason },
   });
 }
 

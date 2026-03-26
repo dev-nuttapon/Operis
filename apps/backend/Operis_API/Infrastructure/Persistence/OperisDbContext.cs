@@ -4,6 +4,7 @@ using Operis_API.Modules.ChangeControl.Infrastructure;
 using Operis_API.Modules.Documents.Infrastructure;
 using Operis_API.Modules.Governance.Infrastructure;
 using Operis_API.Modules.Meetings.Infrastructure;
+using Operis_API.Modules.Metrics.Infrastructure;
 using Operis_API.Modules.Notifications.Infrastructure;
 using Operis_API.Modules.Requirements.Infrastructure;
 using Operis_API.Modules.Risks.Infrastructure;
@@ -31,6 +32,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<DepartmentEntity> Departments => Set<DepartmentEntity>();
     public DbSet<JobTitleEntity> JobTitles => Set<JobTitleEntity>();
     public DbSet<ProjectRoleEntity> ProjectRoles => Set<ProjectRoleEntity>();
+    public DbSet<PhaseApprovalRequestEntity> PhaseApprovalRequests => Set<PhaseApprovalRequestEntity>();
     public DbSet<UserOrgAssignmentEntity> UserOrgAssignments => Set<UserOrgAssignmentEntity>();
     public DbSet<ReportingLineEntity> ReportingLines => Set<ReportingLineEntity>();
     public DbSet<ProjectEntity> Projects => Set<ProjectEntity>();
@@ -83,6 +85,10 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<ChangeImpactEntity> ChangeImpacts => Set<ChangeImpactEntity>();
     public DbSet<ConfigurationItemEntity> ConfigurationItems => Set<ConfigurationItemEntity>();
     public DbSet<BaselineRegistryEntity> BaselineRegistry => Set<BaselineRegistryEntity>();
+    public DbSet<MetricDefinitionEntity> MetricDefinitions => Set<MetricDefinitionEntity>();
+    public DbSet<MetricCollectionScheduleEntity> MetricCollectionSchedules => Set<MetricCollectionScheduleEntity>();
+    public DbSet<MetricResultEntity> MetricResults => Set<MetricResultEntity>();
+    public DbSet<QualityGateResultEntity> QualityGateResults => Set<QualityGateResultEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -390,8 +396,10 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.ToTable("project_roles");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(120);
             entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(80);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
             entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
             entity.Property(x => x.Responsibilities).HasColumnName("responsibilities").HasMaxLength(2000);
             entity.Property(x => x.AuthorityScope).HasColumnName("authority_scope").HasMaxLength(500);
@@ -401,9 +409,39 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.DeletedReason).HasColumnName("deleted_reason").HasMaxLength(500);
             entity.Property(x => x.DeletedBy).HasColumnName("deleted_by").HasMaxLength(120);
             entity.Property(x => x.DeletedAt).HasColumnName("deleted_at");
-            entity.HasIndex(x => x.Name).IsUnique().HasFilter("\"deleted_at\" IS NULL");
-            entity.HasIndex(x => x.Code).IsUnique().HasFilter("\"deleted_at\" IS NULL AND \"code\" IS NOT NULL");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Name }).HasFilter("\"deleted_at\" IS NULL");
+            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique().HasFilter("\"deleted_at\" IS NULL AND \"code\" IS NOT NULL");
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.DisplayOrder, x.Name });
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
+        });
+
+        modelBuilder.Entity<PhaseApprovalRequestEntity>(entity =>
+        {
+            entity.ToTable("phase_approval_requests");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.PhaseCode).HasColumnName("phase_code").HasMaxLength(128);
+            entity.Property(x => x.EntryCriteriaSummary).HasColumnName("entry_criteria_summary").HasMaxLength(4000);
+            entity.Property(x => x.RequiredEvidenceRefsJson).HasColumnName("required_evidence_refs_json").HasColumnType("jsonb");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.SubmittedBy).HasColumnName("submitted_by").HasMaxLength(64);
+            entity.Property(x => x.SubmittedAt).HasColumnName("submitted_at");
+            entity.Property(x => x.Decision).HasColumnName("decision").HasMaxLength(32);
+            entity.Property(x => x.DecisionReason).HasColumnName("decision_reason").HasMaxLength(2000);
+            entity.Property(x => x.DecidedBy).HasColumnName("decided_by").HasMaxLength(64);
+            entity.Property(x => x.DecidedAt).HasColumnName("decided_at");
+            entity.Property(x => x.BaselineBy).HasColumnName("baseline_by").HasMaxLength(64);
+            entity.Property(x => x.BaselinedAt).HasColumnName("baselined_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.SubmittedBy).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.DecidedBy).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.BaselineBy).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => new { x.ProjectId, x.Status });
+            entity.HasIndex(x => new { x.ProjectId, x.PhaseCode, x.CreatedAt });
         });
 
         modelBuilder.Entity<UserOrgAssignmentEntity>(entity =>
@@ -796,6 +834,80 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.FailureReason).HasColumnName("failure_reason").HasMaxLength(2000);
             entity.HasIndex(x => new { x.RequestedBy, x.RequestedAt });
             entity.HasIndex(x => new { x.Status, x.RequestedAt });
+        });
+
+        modelBuilder.Entity<MetricDefinitionEntity>(entity =>
+        {
+            entity.ToTable("metric_definitions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.MetricType).HasColumnName("metric_type").HasMaxLength(128);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(128);
+            entity.Property(x => x.TargetValue).HasColumnName("target_value").HasPrecision(18, 4);
+            entity.Property(x => x.ThresholdValue).HasColumnName("threshold_value").HasPrecision(18, 4);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.MetricType, x.Status });
+            entity.HasIndex(x => x.OwnerUserId);
+        });
+
+        modelBuilder.Entity<MetricCollectionScheduleEntity>(entity =>
+        {
+            entity.ToTable("metric_collection_schedules");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.MetricDefinitionId).HasColumnName("metric_definition_id");
+            entity.Property(x => x.CollectionFrequency).HasColumnName("collection_frequency").HasMaxLength(64);
+            entity.Property(x => x.CollectorType).HasColumnName("collector_type").HasMaxLength(64);
+            entity.Property(x => x.NextRunAt).HasColumnName("next_run_at");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<MetricDefinitionEntity>().WithMany().HasForeignKey(x => x.MetricDefinitionId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.MetricDefinitionId, x.Status });
+            entity.HasIndex(x => x.NextRunAt);
+        });
+
+        modelBuilder.Entity<MetricResultEntity>(entity =>
+        {
+            entity.ToTable("metric_results");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.MetricDefinitionId).HasColumnName("metric_definition_id");
+            entity.Property(x => x.QualityGateResultId).HasColumnName("quality_gate_result_id");
+            entity.Property(x => x.MeasuredAt).HasColumnName("measured_at");
+            entity.Property(x => x.MeasuredValue).HasColumnName("measured_value").HasPrecision(18, 4);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.SourceRef).HasColumnName("source_ref").HasMaxLength(512);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<MetricDefinitionEntity>().WithMany().HasForeignKey(x => x.MetricDefinitionId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<QualityGateResultEntity>().WithMany().HasForeignKey(x => x.QualityGateResultId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => new { x.MetricDefinitionId, x.MeasuredAt });
+            entity.HasIndex(x => x.Status);
+        });
+
+        modelBuilder.Entity<QualityGateResultEntity>(entity =>
+        {
+            entity.ToTable("quality_gate_results");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.GateType).HasColumnName("gate_type").HasMaxLength(128);
+            entity.Property(x => x.EvaluatedAt).HasColumnName("evaluated_at");
+            entity.Property(x => x.Result).HasColumnName("result").HasMaxLength(32);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
+            entity.Property(x => x.OverrideReason).HasColumnName("override_reason").HasMaxLength(2000);
+            entity.Property(x => x.EvaluatedByUserId).HasColumnName("evaluated_by_user_id").HasMaxLength(128);
+            entity.Property(x => x.OverriddenByUserId).HasColumnName("overridden_by_user_id").HasMaxLength(128);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.GateType, x.EvaluatedAt });
+            entity.HasIndex(x => new { x.Result, x.EvaluatedAt });
         });
 
         modelBuilder.Entity<NotificationEntity>(entity =>

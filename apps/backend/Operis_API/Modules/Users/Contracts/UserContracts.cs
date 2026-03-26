@@ -56,6 +56,7 @@ public sealed record CreateProjectRoleRequest(
     Guid? ProjectId,
     string Name,
     string? Code,
+    string? Status,
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
@@ -98,12 +99,16 @@ public sealed record UpdateProjectRoleRequest(
     Guid? ProjectId,
     string Name,
     string? Code,
+    string? Status,
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
     int DisplayOrder);
 public sealed record CreateProjectAssignmentRequest(string UserId, Guid ProjectId, Guid ProjectRoleId, string? ReportsToUserId, bool IsPrimary, DateTimeOffset? StartAt, DateTimeOffset? EndAt);
 public sealed record UpdateProjectAssignmentRequest(string UserId, Guid ProjectId, Guid ProjectRoleId, string? ReportsToUserId, bool IsPrimary, DateTimeOffset? StartAt, DateTimeOffset? EndAt, string Reason);
+public sealed record CreatePhaseApprovalRequest(Guid ProjectId, string PhaseCode, string EntryCriteriaSummary, IReadOnlyList<string> RequiredEvidenceRefs);
+public sealed record DecisionPhaseApprovalRequest(string DecisionReason);
+public sealed record BaselinePhaseApprovalRequest(string? DecisionReason);
 public sealed record SoftDeleteRequest(string Reason);
 
 public sealed record UserResponse(
@@ -255,9 +260,11 @@ public sealed record ProjectRoleResponse(
     string? ProjectName,
     string Name,
     string? Code,
+    string Status,
     string? Description,
     string? Responsibilities,
     string? AuthorityScope,
+    int AssignedCount,
     int DisplayOrder,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
@@ -395,3 +402,25 @@ public sealed record ProjectComplianceResponse(
     int WarningChecks,
     int FailedChecks,
     IReadOnlyList<ProjectComplianceCheckResponse> Checks);
+
+public sealed record PhaseApprovalRequestResponse(
+    Guid Id,
+    Guid ProjectId,
+    string ProjectName,
+    string PhaseCode,
+    string EntryCriteriaSummary,
+    IReadOnlyList<string> RequiredEvidenceRefs,
+    string Status,
+    string? SubmittedBy,
+    string? SubmittedByDisplayName,
+    DateTimeOffset? SubmittedAt,
+    string? Decision,
+    string? DecisionReason,
+    string? DecidedBy,
+    string? DecidedByDisplayName,
+    DateTimeOffset? DecidedAt,
+    string? BaselineBy,
+    string? BaselineByDisplayName,
+    DateTimeOffset? BaselinedAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);

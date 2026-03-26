@@ -16,6 +16,7 @@ const allPermissions = [
   "projects.manage",
   "projects.roles.manage",
   "projects.members.manage",
+  "projects.phase_approvals.approve",
   "projects.evidence.read",
   "projects.evidence.export",
   "projects.compliance.read",
@@ -71,6 +72,9 @@ const allPermissions = [
   "verification.uat.submit",
   "verification.export",
   "verification.evidence_sensitive.read",
+  "metrics.read",
+  "metrics.manage",
+  "metrics.quality_gates.override",
   "notifications.read",
 ] as const;
 
@@ -99,6 +103,7 @@ export const permissions = {
     manage: "projects.manage",
     manageRoles: "projects.roles.manage",
     manageMembers: "projects.members.manage",
+    approvePhase: "projects.phase_approvals.approve",
     readEvidence: "projects.evidence.read",
     exportEvidence: "projects.evidence.export",
     readCompliance: "projects.compliance.read",
@@ -175,6 +180,11 @@ export const permissions = {
     export: "verification.export",
     readSensitiveEvidence: "verification.evidence_sensitive.read",
   },
+  metrics: {
+    read: "metrics.read",
+    manage: "metrics.manage",
+    overrideQualityGates: "metrics.quality_gates.override",
+  },
   notifications: {
     read: "notifications.read",
   },
@@ -203,6 +213,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.projects.manage,
     permissions.projects.manageRoles,
     permissions.projects.manageMembers,
+    permissions.projects.approvePhase,
     permissions.projects.readEvidence,
     permissions.projects.exportEvidence,
     permissions.projects.readCompliance,
@@ -258,6 +269,9 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.verification.submitUat,
     permissions.verification.export,
     permissions.verification.readSensitiveEvidence,
+    permissions.metrics.read,
+    permissions.metrics.manage,
+    permissions.metrics.overrideQualityGates,
     permissions.notifications.read,
   ],
   operis_system_admin: [
@@ -278,6 +292,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.projects.manage,
     permissions.projects.manageRoles,
     permissions.projects.manageMembers,
+    permissions.projects.approvePhase,
     permissions.projects.readEvidence,
     permissions.projects.exportEvidence,
     permissions.projects.readCompliance,
@@ -311,6 +326,9 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.meetings.readRestricted,
     permissions.verification.read,
     permissions.verification.export,
+    permissions.metrics.read,
+    permissions.metrics.manage,
+    permissions.metrics.overrideQualityGates,
     permissions.notifications.read,
   ],
   "operis:audit_auditor": [
@@ -329,6 +347,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.meetings.readRestricted,
     permissions.verification.read,
     permissions.verification.export,
+    permissions.metrics.read,
     permissions.notifications.read,
   ],
   "operis:documents_owner": [
@@ -370,6 +389,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.changeControl.readConfiguration,
     permissions.changeControl.approveBaselines,
     permissions.changeControl.emergencyOverride,
+    permissions.projects.approvePhase,
     permissions.risks.read,
     permissions.risks.manage,
     permissions.risks.readSensitive,
@@ -383,8 +403,14 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.verification.submitUat,
     permissions.verification.export,
     permissions.verification.readSensitiveEvidence,
+    permissions.metrics.read,
+    permissions.metrics.manage,
+    permissions.metrics.overrideQualityGates,
   ],
   "operis:pm": [
+    permissions.projects.read,
+    permissions.projects.manageRoles,
+    permissions.projects.manageMembers,
     permissions.governance.processLibraryRead,
     permissions.governance.qaChecklistRead,
     permissions.governance.projectPlanRead,
@@ -409,6 +435,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.meetings.readRestricted,
     permissions.verification.read,
     permissions.verification.submitUat,
+    permissions.metrics.read,
   ],
   "operis:ba": [
     permissions.governance.processLibraryRead,
@@ -436,6 +463,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.risks.read,
     permissions.meetings.read,
     permissions.verification.read,
+    permissions.metrics.read,
     permissions.verification.manage,
     permissions.verification.export,
     permissions.verification.readSensitiveEvidence,
@@ -521,6 +549,17 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.changeControl.readConfiguration,
     permissions.changeControl.manageConfiguration,
   ],
+  "operis:metrics_manager": [
+    permissions.metrics.read,
+    permissions.metrics.manage,
+  ],
+  "operis:quality_gate_approver": [
+    permissions.metrics.read,
+    permissions.metrics.overrideQualityGates,
+  ],
+  "operis:metrics_viewer": [
+    permissions.metrics.read,
+  ],
 };
 
 export function getPermissionLabel(permission: Permission) {
@@ -542,6 +581,7 @@ export function getPermissionLabel(permission: Permission) {
     [permissions.projects.manage]: "Manage Projects",
     [permissions.projects.manageRoles]: "Manage Project Roles",
     [permissions.projects.manageMembers]: "Manage Project Members",
+    [permissions.projects.approvePhase]: "Approve Project Phases",
     [permissions.projects.readEvidence]: "Read Project Evidence",
     [permissions.projects.exportEvidence]: "Export Project Evidence",
     [permissions.projects.readCompliance]: "Read Project Compliance",
@@ -597,6 +637,9 @@ export function getPermissionLabel(permission: Permission) {
     [permissions.verification.submitUat]: "Submit UAT Sign-off",
     [permissions.verification.export]: "Export Verification Evidence",
     [permissions.verification.readSensitiveEvidence]: "Read Sensitive Test Evidence",
+    [permissions.metrics.read]: "Read Metrics and Quality Gates",
+    [permissions.metrics.manage]: "Manage Metric Definitions and Schedules",
+    [permissions.metrics.overrideQualityGates]: "Override Quality Gates",
     [permissions.notifications.read]: "Read Notifications",
   }[permission];
 }

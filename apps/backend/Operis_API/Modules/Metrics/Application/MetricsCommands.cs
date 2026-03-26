@@ -1,0 +1,274 @@
+using Microsoft.EntityFrameworkCore;
+using Operis_API.Infrastructure.Persistence;
+using Operis_API.Modules.Audits.Application;
+using Operis_API.Modules.Audits.Contracts;
+using Operis_API.Modules.Metrics.Contracts;
+using Operis_API.Modules.Metrics.Infrastructure;
+using Operis_API.Shared.Auditing;
+using Operis_API.Shared.Contracts;
+
+namespace Operis_API.Modules.Metrics.Application;
+
+public sealed class MetricsCommands(
+    OperisDbContext dbContext,
+    IAuditLogWriter auditLogWriter,
+    IBusinessAuditEventWriter businessAuditEventWriter,
+    IMetricsQueries queries) : IMetricsCommands
+{
+    private static readonly string[] MetricStatuses = ["draft", "approved", "active", "deprecated"];
+    private static readonly string[] ScheduleStatuses = ["draft", "active", "archived"];
+
+    public async Task<MetricsCommandResult<MetricDefinitionCommandResponse>> CreateMetricDefinitionAsync(CreateMetricDefinitionRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        if (!request.TargetValue.HasValue)
+        {
+            return Validation<MetricDefinitionCommandResponse>(ApiErrorCodes.MetricTargetRequired, "Metric target value is required.");
+        }
+
+        if (!request.ThresholdValue.HasValue)
+        {
+            return Validation<MetricDefinitionCommandResponse>(ApiErrorCodes.MetricThresholdRequired, "Metric threshold value is required.");
+        }
+
+        var code = request.Code.Trim().ToUpperInvariant();
+        if (await dbContext.MetricDefinitions.AnyAsync(x => x.Code == code, cancellationToken))
+        {
+            return Conflict<MetricDefinitionCommandResponse>(ApiErrorCodes.MetricCodeDuplicate, "Metric code already exists.");
+        }
+
+        var entity = new MetricDefinitionEntity
+        {
+            Id = Guid.NewGuid(),
+            Code = code,
+            Name = request.Name.Trim(),
+            MetricType = request.MetricType.Trim().ToLowerInvariant(),
+            OwnerUserId = request.OwnerUserId.Trim(),
+            TargetValue = request.TargetValue.Value,
+            ThresholdValue = request.ThresholdValue.Value,
+            Status = "draft",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.MetricDefinitions.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("create", "metric_definition", entity.Id, 201, new { entity.Code, entity.Status });
+        await AppendBusinessAsync("metric_definition_created", "metric_definition", entity.Id, $"Created metric definition {entity.Code}", actorUserId, null, new { entity.Code }, cancellationToken);
+        return Success(new MetricDefinitionCommandResponse(entity.Id, entity.Code, entity.Status));
+    }
+
+    public async Task<MetricsCommandResult<MetricDefinitionCommandResponse>> UpdateMetricDefinitionAsync(Guid metricDefinitionId, UpdateMetricDefinitionRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.MetricDefinitions.SingleOrDefaultAsync(x => x.Id == metricDefinitionId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<MetricDefinitionCommandResponse>(ApiErrorCodes.MetricDefinitionNotFound, "Metric definition not found.");
+        }
+
+        if (!request.TargetValue.HasValue)
+        {
+            return Validation<MetricDefinitionCommandResponse>(ApiErrorCodes.MetricTargetRequired, "Metric target value is required.");
+        }
+
+        if (!request.ThresholdValue.HasValue)
+        {
+            return Validation<MetricDefinitionCommandResponse>(ApiErrorCodes.MetricThresholdRequired, "Metric threshold value is required.");
+        }
+
+        var nextStatus = request.Status.Trim().ToLowerInvariant();
+        if (!MetricStatuses.Contains(nextStatus))
+        {
+            return Validation<MetricDefinitionCommandResponse>(ApiErrorCodes.InvalidWorkflowTransition, "Metric definition status is invalid.");
+        }
+
+        if (!IsValidTransition(entity.Status, nextStatus, MetricStatuses))
+        {
+            return Validation<MetricDefinitionCommandResponse>(ApiErrorCodes.InvalidWorkflowTransition, "Metric definition transition is invalid.");
+        }
+
+        dbContext.Entry(entity).CurrentValues.SetValues(entity with
+        {
+            Name = request.Name.Trim(),
+            MetricType = request.MetricType.Trim().ToLowerInvariant(),
+            OwnerUserId = request.OwnerUserId.Trim(),
+            TargetValue = request.TargetValue.Value,
+            ThresholdValue = request.ThresholdValue.Value,
+            Status = nextStatus,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("update", "metric_definition", entity.Id, 200, new { entity.Code, Status = nextStatus });
+        await AppendBusinessAsync("metric_definition_updated", "metric_definition", entity.Id, $"Updated metric definition {entity.Code}", actorUserId, null, new { Status = nextStatus }, cancellationToken);
+        return Success(new MetricDefinitionCommandResponse(entity.Id, entity.Code, nextStatus));
+    }
+
+    public async Task<MetricsCommandResult<MetricCollectionScheduleItem>> CreateMetricCollectionScheduleAsync(CreateMetricCollectionScheduleRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var definition = await dbContext.MetricDefinitions.SingleOrDefaultAsync(x => x.Id == request.MetricDefinitionId, cancellationToken);
+        if (definition is null)
+        {
+            return NotFound<MetricCollectionScheduleItem>(ApiErrorCodes.MetricDefinitionNotFound, "Metric definition not found.");
+        }
+
+        var status = request.Status.Trim().ToLowerInvariant();
+        if (!ScheduleStatuses.Contains(status))
+        {
+            return Validation<MetricCollectionScheduleItem>(ApiErrorCodes.InvalidWorkflowTransition, "Collection schedule status is invalid.");
+        }
+
+        var frequency = request.CollectionFrequency.Trim().ToLowerInvariant();
+        var nextRunAt = CalculateNextRun(DateTimeOffset.UtcNow, frequency);
+        var entity = new MetricCollectionScheduleEntity
+        {
+            Id = Guid.NewGuid(),
+            MetricDefinitionId = request.MetricDefinitionId,
+            CollectionFrequency = frequency,
+            CollectorType = request.CollectorType.Trim().ToLowerInvariant(),
+            NextRunAt = nextRunAt,
+            Status = status,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.MetricCollectionSchedules.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("create", "metric_collection_schedule", entity.Id, 201, new { definition.Code, entity.Status });
+        await AppendBusinessAsync("metric_schedule_created", "metric_collection_schedule", entity.Id, $"Created collection schedule for {definition.Code}", actorUserId, null, new { definition.Code, entity.Status }, cancellationToken);
+        return Success(new MetricCollectionScheduleItem(entity.Id, definition.Id, definition.Code, definition.Name, entity.CollectionFrequency, entity.CollectorType, entity.NextRunAt, entity.Status, entity.UpdatedAt));
+    }
+
+    public async Task<MetricsCommandResult<QualityGateResultItem>> EvaluateQualityGateAsync(EvaluateQualityGateRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        if (!await dbContext.Projects.AnyAsync(x => x.Id == request.ProjectId, cancellationToken))
+        {
+            return NotFound<QualityGateResultItem>(ApiErrorCodes.ProjectNotFound, "Project not found.");
+        }
+
+        var inputs = request.MetricInputs ?? [];
+        var metricIds = inputs.Select(x => x.MetricDefinitionId).Distinct().ToArray();
+        var definitions = await dbContext.MetricDefinitions
+            .Where(x => metricIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        if (definitions.Count != metricIds.Length)
+        {
+            return NotFound<QualityGateResultItem>(ApiErrorCodes.MetricDefinitionNotFound, "One or more metric definitions were not found.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var gate = new QualityGateResultEntity
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = request.ProjectId,
+            GateType = request.GateType.Trim().ToLowerInvariant(),
+            EvaluatedAt = now,
+            Result = "pending",
+            Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+            EvaluatedByUserId = actorUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        var metricRows = new List<MetricResultEntity>();
+        foreach (var input in inputs)
+        {
+            var definition = definitions[input.MetricDefinitionId];
+            var status = input.MeasuredValue > definition.ThresholdValue ? "threshold_breached" : "within_target";
+            metricRows.Add(new MetricResultEntity
+            {
+                Id = Guid.NewGuid(),
+                MetricDefinitionId = definition.Id,
+                QualityGateResultId = gate.Id,
+                MeasuredAt = input.MeasuredAt ?? now,
+                MeasuredValue = input.MeasuredValue,
+                Status = status,
+                SourceRef = input.SourceRef.Trim(),
+                CreatedAt = now
+            });
+        }
+
+        var gateResult = metricRows.Any(x => x.Status == "threshold_breached") ? "failed" : "passed";
+        gate = gate with
+        {
+            Result = gateResult,
+            Reason = gateResult == "failed"
+                ? string.Join(", ", metricRows.Where(x => x.Status == "threshold_breached").Select(x => $"{definitions[x.MetricDefinitionId].Code} breached threshold"))
+                : gate.Reason
+        };
+
+        dbContext.QualityGateResults.Add(gate);
+        dbContext.MetricResults.AddRange(metricRows);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("evaluate", "quality_gate_result", gate.Id, 201, new { gate.GateType, gate.Result });
+        await AppendBusinessAsync("quality_gate_evaluated", "quality_gate_result", gate.Id, $"Evaluated quality gate {gate.GateType}", actorUserId, gate.Reason, new { gate.Result }, cancellationToken);
+
+        var item = await BuildQualityGateItemAsync(gate.Id, cancellationToken);
+        return item is null
+            ? NotFound<QualityGateResultItem>(ApiErrorCodes.QualityGateResultNotFound, "Quality gate result not found.")
+            : Success(item);
+    }
+
+    public async Task<MetricsCommandResult<QualityGateOverrideResponse>> OverrideQualityGateAsync(Guid qualityGateResultId, OverrideQualityGateRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.QualityGateResults.SingleOrDefaultAsync(x => x.Id == qualityGateResultId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<QualityGateOverrideResponse>(ApiErrorCodes.QualityGateResultNotFound, "Quality gate result not found.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return Validation<QualityGateOverrideResponse>(ApiErrorCodes.QualityGateOverrideReasonRequired, "Quality gate override reason is required.");
+        }
+
+        if (!string.Equals(entity.Result, "failed", StringComparison.OrdinalIgnoreCase))
+        {
+            return Validation<QualityGateOverrideResponse>(ApiErrorCodes.InvalidWorkflowTransition, "Only failed quality gates can be overridden.");
+        }
+
+        dbContext.Entry(entity).CurrentValues.SetValues(entity with
+        {
+            Result = "overridden",
+            OverrideReason = request.Reason.Trim(),
+            OverriddenByUserId = actorUserId,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("override", "quality_gate_result", entity.Id, 200, new { Result = "overridden" }, request.Reason.Trim());
+        await AppendBusinessAsync("quality_gate_overridden", "quality_gate_result", entity.Id, $"Overrode quality gate {entity.GateType}", actorUserId, request.Reason.Trim(), new { Result = "overridden" }, cancellationToken);
+        return Success(new QualityGateOverrideResponse(entity.Id, "overridden", request.Reason.Trim()));
+    }
+
+    private async Task<QualityGateResultItem?> BuildQualityGateItemAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await queries.ListQualityGatesAsync(new QualityGateListQuery(null, null, null, 1, 100), cancellationToken);
+        return result.Items.SingleOrDefault(x => x.Id == id);
+    }
+
+    private void AppendAudit(string action, string entityType, Guid entityId, int statusCode, object? metadata, string? reason = null) =>
+        auditLogWriter.Append(new AuditLogEntry("metrics", action, entityType, entityId.ToString(), StatusCode: statusCode, Reason: reason, Metadata: metadata, Audience: LogAudience.AuditOnly));
+
+    private Task AppendBusinessAsync(string eventType, string entityType, Guid entityId, string summary, string? actorUserId, string? reason, object? metadata, CancellationToken cancellationToken) =>
+        businessAuditEventWriter.AppendAsync("metrics", eventType, entityType, entityId.ToString(), summary, reason, metadata, cancellationToken);
+
+    private static DateTimeOffset CalculateNextRun(DateTimeOffset now, string frequency) =>
+        frequency switch
+        {
+            "hourly" => now.AddHours(1),
+            "daily" => now.AddDays(1),
+            "weekly" => now.AddDays(7),
+            _ => now.AddDays(1)
+        };
+
+    private static bool IsValidTransition(string current, string next, IReadOnlyList<string> states)
+    {
+        var currentIndex = states.ToList().IndexOf(current.ToLowerInvariant());
+        var nextIndex = states.ToList().IndexOf(next.ToLowerInvariant());
+        return currentIndex >= 0 && nextIndex >= 0 && nextIndex >= currentIndex && nextIndex - currentIndex <= 1;
+    }
+
+    private static MetricsCommandResult<T> Success<T>(T value) => new(MetricsCommandStatus.Success, value);
+    private static MetricsCommandResult<T> Validation<T>(string code, string message) => new(MetricsCommandStatus.ValidationError, default, code, message);
+    private static MetricsCommandResult<T> NotFound<T>(string code, string message) => new(MetricsCommandStatus.NotFound, default, code, message);
+    private static MetricsCommandResult<T> Conflict<T>(string code, string message) => new(MetricsCommandStatus.Conflict, default, code, message);
+}

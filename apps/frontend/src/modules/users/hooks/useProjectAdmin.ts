@@ -1,28 +1,40 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  approvePhaseApproval,
+  baselinePhaseApproval,
+  createPhaseApproval,
   createProject,
   createProjectAssignment,
   createProjectRole,
   deleteProject,
   deleteProjectAssignment,
+  getPhaseApproval,
   getProject,
   deleteProjectRole,
   getProjectOrgChart,
+  listPhaseApprovals,
   listProjectEvidenceAssignmentHistory,
   listProjectEvidenceRoleResponsibilities,
   listProjectEvidenceTeamRegister,
   listProjectAssignments,
   listProjectRoles,
   listProjects,
+  rejectPhaseApproval,
+  submitPhaseApproval,
   updateProject,
   updateProjectAssignment,
   updateProjectRole,
 } from "../api/usersApi";
 import type {
+  BaselinePhaseApprovalInput,
+  CreatePhaseApprovalInput,
   CreateProjectAssignmentInput,
   CreateProjectInput,
   CreateProjectRoleInput,
+  DecidePhaseApprovalInput,
+  ListPhaseApprovalsInput,
   ListProjectAssignmentsInput,
+  ListProjectRolesInput,
   ListProjectsInput,
   SoftDeleteInput,
   UpdateProjectAssignmentInput,
@@ -34,13 +46,16 @@ const projectsQueryKey = ["admin", "projects"];
 const projectDetailQueryKey = ["admin", "project-detail"];
 const projectRolesQueryKey = ["admin", "project-roles"];
 const projectAssignmentsQueryKey = ["admin", "project-assignments"];
+const phaseApprovalsQueryKey = ["admin", "phase-approvals"];
 
 export function useProjectAdmin(input: {
   projectsEnabled?: boolean;
   projects: ListProjectsInput;
   projectDetailId?: string;
-  projectRoles: { search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; page?: number; pageSize?: number };
+  projectRoles: ListProjectRolesInput;
   projectAssignments: ListProjectAssignmentsInput | null;
+  phaseApprovals?: ListPhaseApprovalsInput | null;
+  phaseApprovalDetailId?: string;
   projectOrgChartProjectId?: string;
   projectEvidenceTeamRegister?: { projectId?: string; page?: number; pageSize?: number };
   projectEvidenceRoleResponsibilities?: { projectId?: string; page?: number; pageSize?: number };
@@ -83,6 +98,20 @@ export function useProjectAdmin(input: {
     queryKey: [...projectAssignmentsQueryKey, input.projectAssignments],
     enabled: Boolean(input.projectAssignments?.projectId),
     queryFn: ({ signal }) => listProjectAssignments(input.projectAssignments!, signal),
+    staleTime: 15_000,
+  });
+
+  const phaseApprovalsQuery = useQuery({
+    queryKey: [...phaseApprovalsQueryKey, input.phaseApprovals],
+    enabled: Boolean(input.phaseApprovals?.projectId),
+    queryFn: ({ signal }) => listPhaseApprovals(input.phaseApprovals!, signal),
+    staleTime: 15_000,
+  });
+
+  const phaseApprovalDetailQuery = useQuery({
+    queryKey: [...phaseApprovalsQueryKey, "detail", input.phaseApprovalDetailId],
+    enabled: Boolean(input.phaseApprovalDetailId),
+    queryFn: ({ signal }) => getPhaseApproval(input.phaseApprovalDetailId!, signal),
     staleTime: 15_000,
   });
 
@@ -137,6 +166,7 @@ export function useProjectAdmin(input: {
       queryClient.invalidateQueries({ queryKey: projectRolesQueryKey }),
       queryClient.invalidateQueries({ queryKey: ["admin", "project-role-detail"] }),
       queryClient.invalidateQueries({ queryKey: projectAssignmentsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: phaseApprovalsQueryKey }),
     ]);
   };
 
@@ -185,11 +215,38 @@ export function useProjectAdmin(input: {
     onSuccess: invalidateProjects,
   });
 
+  const createPhaseApprovalMutation = useMutation({
+    mutationFn: (payload: CreatePhaseApprovalInput) => createPhaseApproval(payload),
+    onSuccess: invalidateProjects,
+  });
+
+  const submitPhaseApprovalMutation = useMutation({
+    mutationFn: (id: string) => submitPhaseApproval(id),
+    onSuccess: invalidateProjects,
+  });
+
+  const approvePhaseApprovalMutation = useMutation({
+    mutationFn: (payload: DecidePhaseApprovalInput) => approvePhaseApproval(payload),
+    onSuccess: invalidateProjects,
+  });
+
+  const rejectPhaseApprovalMutation = useMutation({
+    mutationFn: (payload: DecidePhaseApprovalInput) => rejectPhaseApproval(payload),
+    onSuccess: invalidateProjects,
+  });
+
+  const baselinePhaseApprovalMutation = useMutation({
+    mutationFn: (payload: BaselinePhaseApprovalInput) => baselinePhaseApproval(payload),
+    onSuccess: invalidateProjects,
+  });
+
   return {
     projectsQuery,
     projectDetailQuery,
     projectRolesQuery,
     projectAssignmentsQuery,
+    phaseApprovalsQuery,
+    phaseApprovalDetailQuery,
     projectOrgChartQuery,
     projectEvidenceTeamRegisterQuery,
     projectEvidenceRoleResponsibilitiesQuery,
@@ -203,5 +260,10 @@ export function useProjectAdmin(input: {
     createProjectAssignmentMutation,
     updateProjectAssignmentMutation,
     deleteProjectAssignmentMutation,
+    createPhaseApprovalMutation,
+    submitPhaseApprovalMutation,
+    approvePhaseApprovalMutation,
+    rejectPhaseApprovalMutation,
+    baselinePhaseApprovalMutation,
   };
 }
