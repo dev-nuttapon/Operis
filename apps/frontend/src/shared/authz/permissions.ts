@@ -75,6 +75,9 @@ const allPermissions = [
   "metrics.read",
   "metrics.manage",
   "metrics.quality_gates.override",
+  "operations.read",
+  "operations.manage",
+  "operations.approve",
   "notifications.read",
 ] as const;
 
@@ -185,6 +188,11 @@ export const permissions = {
     manage: "metrics.manage",
     overrideQualityGates: "metrics.quality_gates.override",
   },
+  operations: {
+    read: "operations.read",
+    manage: "operations.manage",
+    approve: "operations.approve",
+  },
   notifications: {
     read: "notifications.read",
   },
@@ -272,6 +280,9 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.metrics.read,
     permissions.metrics.manage,
     permissions.metrics.overrideQualityGates,
+    permissions.operations.read,
+    permissions.operations.manage,
+    permissions.operations.approve,
     permissions.notifications.read,
   ],
   operis_system_admin: [
@@ -329,6 +340,9 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.metrics.read,
     permissions.metrics.manage,
     permissions.metrics.overrideQualityGates,
+    permissions.operations.read,
+    permissions.operations.manage,
+    permissions.operations.approve,
     permissions.notifications.read,
   ],
   "operis:audit_auditor": [
@@ -348,6 +362,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.verification.read,
     permissions.verification.export,
     permissions.metrics.read,
+    permissions.operations.read,
     permissions.notifications.read,
   ],
   "operis:documents_owner": [
@@ -406,6 +421,9 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.metrics.read,
     permissions.metrics.manage,
     permissions.metrics.overrideQualityGates,
+    permissions.operations.read,
+    permissions.operations.manage,
+    permissions.operations.approve,
   ],
   "operis:pm": [
     permissions.projects.read,
@@ -436,6 +454,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.verification.read,
     permissions.verification.submitUat,
     permissions.metrics.read,
+    permissions.operations.read,
   ],
   "operis:ba": [
     permissions.governance.processLibraryRead,
@@ -640,6 +659,9 @@ export function getPermissionLabel(permission: Permission) {
     [permissions.metrics.read]: "Read Metrics and Quality Gates",
     [permissions.metrics.manage]: "Manage Metric Definitions and Schedules",
     [permissions.metrics.overrideQualityGates]: "Override Quality Gates",
+    [permissions.operations.read]: "Read Security and Dependency Reviews",
+    [permissions.operations.manage]: "Manage Security and Dependency Reviews",
+    [permissions.operations.approve]: "Approve Access Reviews",
     [permissions.notifications.read]: "Read Notifications",
   }[permission];
 }

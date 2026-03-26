@@ -1,0 +1,1 @@
+import{u as e}from"./query-vendor-D2wyIPfx.js";import{d as o}from"./workflowsApi-koZ6rRUz.js";function a(r,s=!0){return e({queryKey:["workflows","tasks",r],queryFn:()=>o(r),staleTime:3e4,enabled:s})}export{a as u};

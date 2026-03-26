@@ -117,6 +117,13 @@ Public entry:
 * [apps/frontend/src/modules/metrics/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/metrics/index.ts)
 * [apps/frontend/src/modules/metrics/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/metrics/README.md)
 
+## operations
+
+Public entry:
+
+* [apps/frontend/src/modules/operations/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/operations/index.ts)
+* [apps/frontend/src/modules/operations/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/operations/README.md)
+
 ---
 
 # Backend Public Surfaces
@@ -249,6 +256,23 @@ Notes:
 
 * quality gate evaluation persists the measured metric results used for the decision
 * dashboard widgets are aggregated from a shared metrics query response instead of per-widget fan-out
+
+## operations
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Operations/OperationsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Operations/OperationsModule.cs)
+* [apps/backend/Operis_API/Modules/Operations/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Operations/README.md)
+
+Application surfaces:
+
+* operations queries
+* operations commands
+
+Notes:
+
+* access review approval stays on a dedicated endpoint because it enforces decision and rationale requirements
+* dependency and audit registers are owned by this module and not shared with project admin persistence
 
 Application surfaces:
 

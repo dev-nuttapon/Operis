@@ -5,6 +5,7 @@ using Operis_API.Modules.Documents.Infrastructure;
 using Operis_API.Modules.Governance.Infrastructure;
 using Operis_API.Modules.Meetings.Infrastructure;
 using Operis_API.Modules.Metrics.Infrastructure;
+using Operis_API.Modules.Operations.Infrastructure;
 using Operis_API.Modules.Notifications.Infrastructure;
 using Operis_API.Modules.Requirements.Infrastructure;
 using Operis_API.Modules.Risks.Infrastructure;
@@ -33,6 +34,12 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<JobTitleEntity> JobTitles => Set<JobTitleEntity>();
     public DbSet<ProjectRoleEntity> ProjectRoles => Set<ProjectRoleEntity>();
     public DbSet<PhaseApprovalRequestEntity> PhaseApprovalRequests => Set<PhaseApprovalRequestEntity>();
+    public DbSet<MasterDataItemEntity> MasterDataItems => Set<MasterDataItemEntity>();
+    public DbSet<MasterDataChangeEntity> MasterDataChanges => Set<MasterDataChangeEntity>();
+    public DbSet<AccessReviewEntity> AccessReviews => Set<AccessReviewEntity>();
+    public DbSet<SecurityReviewEntity> SecurityReviews => Set<SecurityReviewEntity>();
+    public DbSet<ExternalDependencyEntity> ExternalDependencies => Set<ExternalDependencyEntity>();
+    public DbSet<ConfigurationAuditEntity> ConfigurationAudits => Set<ConfigurationAuditEntity>();
     public DbSet<UserOrgAssignmentEntity> UserOrgAssignments => Set<UserOrgAssignmentEntity>();
     public DbSet<ReportingLineEntity> ReportingLines => Set<ReportingLineEntity>();
     public DbSet<ProjectEntity> Projects => Set<ProjectEntity>();
@@ -414,6 +421,100 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique().HasFilter("\"deleted_at\" IS NULL AND \"code\" IS NOT NULL");
             entity.HasIndex(x => new { x.ProjectId, x.Status, x.DisplayOrder, x.Name });
             entity.HasIndex(x => new { x.DeletedAt, x.DisplayOrder, x.Name });
+        });
+
+        modelBuilder.Entity<MasterDataItemEntity>(entity =>
+        {
+            entity.ToTable("master_data_items");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Domain).HasColumnName("domain").HasMaxLength(128);
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.DisplayOrder).HasColumnName("display_order");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.Domain, x.Code }).IsUnique();
+            entity.HasIndex(x => new { x.Domain, x.Status, x.DisplayOrder });
+        });
+
+        modelBuilder.Entity<MasterDataChangeEntity>(entity =>
+        {
+            entity.ToTable("master_data_changes");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.MasterDataItemId).HasColumnName("master_data_item_id");
+            entity.Property(x => x.ChangeType).HasColumnName("change_type").HasMaxLength(64);
+            entity.Property(x => x.ChangedBy).HasColumnName("changed_by").HasMaxLength(64);
+            entity.Property(x => x.ChangedAt).HasColumnName("changed_at");
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
+            entity.HasOne<MasterDataItemEntity>().WithMany().HasForeignKey(x => x.MasterDataItemId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.MasterDataItemId, x.ChangedAt });
+        });
+
+        modelBuilder.Entity<AccessReviewEntity>(entity =>
+        {
+            entity.ToTable("access_reviews");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScopeType).HasColumnName("scope_type").HasMaxLength(64);
+            entity.Property(x => x.ScopeRef).HasColumnName("scope_ref").HasMaxLength(256);
+            entity.Property(x => x.ReviewCycle).HasColumnName("review_cycle").HasMaxLength(64);
+            entity.Property(x => x.ReviewedBy).HasColumnName("reviewed_by").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.Decision).HasColumnName("decision").HasMaxLength(64);
+            entity.Property(x => x.DecisionRationale).HasColumnName("decision_rationale").HasMaxLength(2000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.ScopeType, x.Status });
+        });
+
+        modelBuilder.Entity<SecurityReviewEntity>(entity =>
+        {
+            entity.ToTable("security_reviews");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScopeType).HasColumnName("scope_type").HasMaxLength(64);
+            entity.Property(x => x.ScopeRef).HasColumnName("scope_ref").HasMaxLength(256);
+            entity.Property(x => x.ControlsReviewed).HasColumnName("controls_reviewed").HasMaxLength(2000);
+            entity.Property(x => x.FindingsSummary).HasColumnName("findings_summary").HasMaxLength(2000);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.ScopeType, x.Status });
+        });
+
+        modelBuilder.Entity<ExternalDependencyEntity>(entity =>
+        {
+            entity.ToTable("external_dependencies");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(128);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.Criticality).HasColumnName("criticality").HasMaxLength(32);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ReviewDueAt).HasColumnName("review_due_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.DependencyType);
+            entity.HasIndex(x => x.OwnerUserId);
+            entity.HasIndex(x => new { x.Criticality, x.Status, x.ReviewDueAt });
+        });
+
+        modelBuilder.Entity<ConfigurationAuditEntity>(entity =>
+        {
+            entity.ToTable("configuration_audits");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScopeRef).HasColumnName("scope_ref").HasMaxLength(256);
+            entity.Property(x => x.PlannedAt).HasColumnName("planned_at");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.FindingCount).HasColumnName("finding_count");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.ScopeRef, x.Status });
         });
 
         modelBuilder.Entity<PhaseApprovalRequestEntity>(entity =>

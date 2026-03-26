@@ -20,6 +20,8 @@ public sealed record CreateDepartmentRequest(string Name, int DisplayOrder, Guid
 public sealed record UpdateDepartmentRequest(string Name, int DisplayOrder, Guid? DivisionId);
 public sealed record CreateJobTitleRequest(string Name, int DisplayOrder, Guid? DepartmentId);
 public sealed record UpdateJobTitleRequest(string Name, int DisplayOrder, Guid? DepartmentId);
+public sealed record CreateMasterDataCatalogRequest(string Domain, string Code, string Name, int DisplayOrder, string Reason);
+public sealed record UpdateMasterDataCatalogRequest(string Domain, string Code, string Name, string Status, int DisplayOrder, string Reason);
 public sealed record CreateProjectRequest(
     string Code,
     string Name,
@@ -214,6 +216,24 @@ public sealed record MasterDataResponse(
     string? DeletedReason,
     string? DeletedBy,
     DateTimeOffset? DeletedAt);
+
+public sealed record MasterDataCatalogResponse(
+    Guid Id,
+    string Domain,
+    string Code,
+    string Name,
+    string Status,
+    int DisplayOrder,
+    string? LastChangedBy,
+    DateTimeOffset? LastChangedAt,
+    IReadOnlyList<MasterDataChangeResponse> Changes);
+
+public sealed record MasterDataChangeResponse(
+    Guid Id,
+    string ChangeType,
+    string ChangedBy,
+    DateTimeOffset ChangedAt,
+    string Reason);
 
 public sealed record AppRoleResponse(Guid Id, string Name, string KeycloakRoleName, string? Description, int DisplayOrder);
 public sealed record ProjectListItem(

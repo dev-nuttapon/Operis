@@ -85,6 +85,12 @@ namespace Operis_API.Shared.Contracts;
     public const string PhaseEvidenceRequired = "phase_evidence_required";
     public const string ProjectRoleRequired = "project_role_required";
     public const string InvalidAssignmentPeriod = "invalid_assignment_period";
+    public const string MasterDataCodeDuplicate = "master_data_code_duplicate";
+    public const string MasterDataInUse = "master_data_in_use";
+    public const string AccessReviewDecisionRequired = "access_review_decision_required";
+    public const string AccessReviewRationaleRequired = "access_review_rationale_required";
+    public const string DependencyOwnerRequired = "dependency_owner_required";
+    public const string DependencyCriticalityRequired = "dependency_criticality_required";
 
     public const string UserExists = "user_exists";
     public const string PendingInvitationExists = "pending_invitation_exists";

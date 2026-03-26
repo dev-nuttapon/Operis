@@ -76,6 +76,16 @@ export interface ListPhaseApprovalsInput {
   pageSize?: number;
 }
 
+export interface ListMasterDataCatalogInput {
+  domain?: string;
+  status?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
 export interface ReferenceDataListInput {
   search?: string;
   sortBy?: string;
@@ -256,6 +266,26 @@ export interface MasterDataItem {
   deletedAt: string | null;
 }
 
+export interface MasterDataCatalogItem {
+  id: string;
+  domain: string;
+  code: string;
+  name: string;
+  status: string;
+  displayOrder: number;
+  lastChangedBy: string | null;
+  lastChangedAt: string | null;
+  changes: MasterDataCatalogChange[];
+}
+
+export interface MasterDataCatalogChange {
+  id: string;
+  changeType: string;
+  changedBy: string;
+  changedAt: string;
+  reason: string;
+}
+
 export interface CreateMasterDataInput {
   name: string;
   displayOrder: number;
@@ -269,6 +299,19 @@ export interface UpdateMasterDataInput {
   id: string;
   name: string;
   displayOrder: number;
+}
+
+export interface CreateMasterDataCatalogInput {
+  domain: string;
+  code: string;
+  name: string;
+  displayOrder: number;
+  reason: string;
+}
+
+export interface UpdateMasterDataCatalogInput extends CreateMasterDataCatalogInput {
+  id: string;
+  status: string;
 }
 
 export interface UpdateDepartmentInput extends UpdateMasterDataInput {

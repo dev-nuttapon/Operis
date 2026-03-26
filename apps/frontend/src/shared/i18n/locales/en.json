@@ -1128,6 +1128,49 @@
       "baseline_failed": "Unable to baseline the phase approval request"
     }
   },
+  "master_data_catalog": {
+    "page_title": "Master Data Catalog",
+    "page_description": "Manage reusable domain-coded reference data with controlled change history.",
+    "search_placeholder": "Search domain, code, or name",
+    "domain_placeholder": "Filter by domain",
+    "create_action": "Add Item",
+    "create_modal_title": "Create Master Data Item",
+    "edit_modal_title": "Edit Master Data Item",
+    "archive_modal_title": "Archive Master Data Item",
+    "fields": {
+      "domain": "Domain",
+      "code": "Code",
+      "name": "Name",
+      "status": "Status",
+      "display_order": "Display order",
+      "reason": "Change reason"
+    },
+    "placeholders": {
+      "domain": "e.g. project_type",
+      "code": "e.g. CMMI_DELIVERY",
+      "name": "Display name",
+      "reason": "Explain why this change is required"
+    },
+    "columns": {
+      "domain": "Domain",
+      "code": "Code",
+      "name": "Name",
+      "status": "Status",
+      "last_changed": "Last Changed"
+    },
+    "status": {
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "messages": {
+      "created": "Created master data item {{name}}",
+      "create_failed": "Unable to create the master data item",
+      "updated": "Updated master data item {{name}}",
+      "update_failed": "Unable to update the master data item",
+      "archived": "Archived master data item {{name}}",
+      "archive_failed": "Unable to archive the master data item"
+    }
+  },
   "project_members": {
     "page_title": "Project Members",
     "page_description": "Select a project to manage who is in the project, which role each person holds, and who they report to within the project.",

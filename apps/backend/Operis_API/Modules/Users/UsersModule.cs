@@ -29,6 +29,8 @@ public sealed class UsersModule : IModule
         services.AddScoped<IUserReferenceDataCommands, UserReferenceDataCommands>();
         services.AddScoped<IUserReferenceDataQueries, UserReferenceDataQueries>();
         services.AddScoped<IUserSelfServiceCommands, UserSelfServiceCommands>();
+        services.AddScoped<IMasterDataCatalogQueries, MasterDataCatalogQueries>();
+        services.AddScoped<IMasterDataCatalogCommands, MasterDataCatalogCommands>();
         services.AddScoped<IProjectCommands, ProjectCommands>();
         services.AddScoped<IProjectQueries, ProjectQueries>();
         services.AddScoped<IProjectTemplateCommands, ProjectTemplateCommands>();
@@ -126,6 +128,21 @@ public sealed class UsersModule : IModule
         group.MapGet("/job-titles", ListJobTitlesAsync)
             .AllowAnonymous()
             .WithName("Users_ListJobTitles");
+
+        group.MapGet("/master-data", ListMasterDataCatalogAsync)
+            .WithName("Users_ListMasterDataCatalog");
+
+        group.MapGet("/master-data/{id:guid}", GetMasterDataCatalogAsync)
+            .WithName("Users_GetMasterDataCatalog");
+
+        group.MapPost("/master-data", CreateMasterDataCatalogAsync)
+            .WithName("Users_CreateMasterDataCatalog");
+
+        group.MapPut("/master-data/{id:guid}", UpdateMasterDataCatalogAsync)
+            .WithName("Users_UpdateMasterDataCatalog");
+
+        group.MapPut("/master-data/{id:guid}/archive", ArchiveMasterDataCatalogAsync)
+            .WithName("Users_ArchiveMasterDataCatalog");
 
         group.MapPost("/job-titles", CreateJobTitleAsync)
             .WithName("Users_CreateJobTitle");
@@ -696,6 +713,106 @@ public sealed class UsersModule : IModule
             MasterDataCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
             _ => Results.Created($"/api/v1/users/job-titles/{result.Response!.Id}", result.Response)
         };
+    }
+
+    private static async Task<IResult> ListMasterDataCatalogAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IMasterDataCatalogQueries queries,
+        string? domain = null,
+        string? status = null,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.MasterData.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListAsync(new MasterDataCatalogListQuery(domain, status, search, sortBy, sortOrder, page, pageSize), cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetMasterDataCatalogAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        [FromServices] IPermissionMatrix permissionMatrix,
+        [FromServices] IMasterDataCatalogQueries queries,
+        CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.MasterData.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.GetAsync(id, cancellationToken);
+        return result is null ? NotFoundWithCode() : Results.Ok(result);
+    }
+
+    private static async Task<IResult> CreateMasterDataCatalogAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        CreateMasterDataCatalogRequest request,
+        IMasterDataCatalogCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.MasterData.ManagePermanentOrg, Permissions.MasterData.ManageProjectStructures))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.CreateAsync(request, ResolveActor(principal), cancellationToken);
+        return !result.Success
+            ? BadRequestWithCode(result.Error, result.ErrorCode)
+            : Results.Created($"/api/v1/users/master-data/{result.Response!.Id}", result.Response);
+    }
+
+    private static async Task<IResult> UpdateMasterDataCatalogAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        UpdateMasterDataCatalogRequest request,
+        IMasterDataCatalogCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.MasterData.ManagePermanentOrg, Permissions.MasterData.ManageProjectStructures))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.UpdateAsync(id, request, ResolveActor(principal), cancellationToken);
+        if (result.NotFound)
+        {
+            return NotFoundWithCode();
+        }
+
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
+    }
+
+    private static async Task<IResult> ArchiveMasterDataCatalogAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        [FromBody] SoftDeleteRequest request,
+        IMasterDataCatalogCommands commands,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.MasterData.ManagePermanentOrg, Permissions.MasterData.ManageProjectStructures))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await commands.ArchiveAsync(id, request, ResolveActor(principal), cancellationToken);
+        if (result.NotFound)
+        {
+            return NotFoundWithCode();
+        }
+
+        return !result.Success ? BadRequestWithCode(result.Error, result.ErrorCode) : Results.Ok(result.Response);
     }
 
     private static async Task<IResult> UpdateJobTitleAsync(

@@ -128,6 +128,11 @@ export function MainLayout() {
     permissions.metrics.manage,
     permissions.metrics.overrideQualityGates,
   );
+  const hasOperationsAccess = permissionState.hasAnyPermission(
+    permissions.operations.read,
+    permissions.operations.manage,
+    permissions.operations.approve,
+  );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
   const jobTitleLabel =
@@ -334,6 +339,19 @@ export function MainLayout() {
           ],
         }]
       : []),
+    ...(hasOperationsAccess
+      ? [{
+          key: '/app/operations-group',
+          icon: <AlertOutlined />,
+          label: 'Security & Dependencies',
+          children: [
+            { key: '/app/operations/access-reviews', label: 'Access Review' },
+            { key: '/app/operations/security-reviews', label: 'Security Review' },
+            { key: '/app/operations/external-dependencies', label: 'External Dependency Register' },
+            { key: '/app/operations/configuration-audits', label: 'Configuration Audit Log' },
+          ],
+        }]
+      : []),
     ...(hasAdminAccess
       ? [{
           key: '/app/admin',
@@ -362,6 +380,10 @@ export function MainLayout() {
               key: '/app/admin/master',
               label: tr('common.master_data_management'),
               children: [
+                {
+                  key: '/app/admin/master/catalog',
+                  label: 'Catalog',
+                },
                 {
                   key: '/app/admin/master/permanent',
                   label: tr('common.master_permanent_structure'),
@@ -484,6 +506,7 @@ export function MainLayout() {
     if (path.includes('steps')) return tr('common.workflows');
     if (path.includes('admin/users')) return tr('common.user_management');
     if (path.includes('admin/master/divisions')) return tr('common.master_divisions');
+    if (path.includes('admin/master/catalog')) return 'Master Data Catalog';
     if (path.includes('admin/master/departments')) return tr('common.master_departments');
     if (path.includes('admin/master/positions')) return tr('common.master_positions');
     if (path.includes('/projects/roles')) return tr('common.master_project_roles');
@@ -499,6 +522,10 @@ export function MainLayout() {
     if (path.includes('/app/metrics/dashboard')) return 'Metrics Dashboard';
     if (path.includes('/app/metrics/definitions')) return 'Metric Definitions';
     if (path.includes('/app/metrics/quality-gates')) return 'Quality Gate Status';
+    if (path.includes('/app/operations/access-reviews')) return 'Access Review';
+    if (path.includes('/app/operations/security-reviews')) return 'Security Review';
+    if (path.includes('/app/operations/external-dependencies')) return 'External Dependency Register';
+    if (path.includes('/app/operations/configuration-audits')) return 'Configuration Audit Log';
     return tr('common.dashboard');
   };
 
@@ -825,6 +852,7 @@ export function MainLayout() {
 function getOpenKeys(path: string) {
   if (
     path.startsWith('/app/admin/master/divisions') ||
+    path.startsWith('/app/admin/master/catalog') ||
     path.startsWith('/app/admin/master/departments') ||
     path.startsWith('/app/admin/master/positions')
   ) {
@@ -1019,6 +1047,10 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/admin/master/divisions')) {
     return '/app/admin/master/divisions';
+  }
+
+  if (path.startsWith('/app/admin/master/catalog')) {
+    return '/app/admin/master/catalog';
   }
 
   if (path.startsWith('/app/admin/master/departments')) {

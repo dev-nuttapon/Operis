@@ -143,6 +143,13 @@ public static class Permissions
         public const string Read = "notifications.read";
     }
 
+    public static class Operations
+    {
+        public const string Read = "operations.read";
+        public const string Manage = "operations.manage";
+        public const string Approve = "operations.approve";
+    }
+
     public static readonly IReadOnlyList<string> All =
     [
         Admin.PermissionMatrixRead,
@@ -221,6 +228,9 @@ public static class Permissions
         Metrics.Read,
         Metrics.Manage,
         Metrics.OverrideQualityGates,
+        Operations.Read,
+        Operations.Manage,
+        Operations.Approve,
         Notifications.Read
     ];
 
@@ -302,6 +312,9 @@ public static class Permissions
             Metrics.Read => "Read Metrics and Quality Gates",
             Metrics.Manage => "Manage Metric Definitions and Schedules",
             Metrics.OverrideQualityGates => "Override Quality Gates",
+            Operations.Read => "Read Security and Dependency Reviews",
+            Operations.Manage => "Manage Security and Dependency Reviews",
+            Operations.Approve => "Approve Access Reviews",
             Notifications.Read => "Read Notifications",
             _ => permission
         };

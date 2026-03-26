@@ -145,6 +145,18 @@ const MetricsDashboardPage = lazy(() =>
 const QualityGatesPage = lazy(() =>
   import("../modules/metrics/pages/QualityGatesPage").then((module) => ({ default: module.QualityGatesPage }))
 );
+const AccessReviewsPage = lazy(() =>
+  import("../modules/operations/pages/AccessReviewsPage").then((module) => ({ default: module.AccessReviewsPage }))
+);
+const SecurityReviewsPage = lazy(() =>
+  import("../modules/operations/pages/SecurityReviewsPage").then((module) => ({ default: module.SecurityReviewsPage }))
+);
+const ExternalDependenciesPage = lazy(() =>
+  import("../modules/operations/pages/ExternalDependenciesPage").then((module) => ({ default: module.ExternalDependenciesPage }))
+);
+const ConfigurationAuditsPage = lazy(() =>
+  import("../modules/operations/pages/ConfigurationAuditsPage").then((module) => ({ default: module.ConfigurationAuditsPage }))
+);
 const InvitationAcceptPage = lazy(() =>
   import("../modules/users/pages/InvitationAcceptPage").then((module) => ({ default: module.InvitationAcceptPage }))
 );
@@ -189,6 +201,9 @@ const ProjectOrgChartPage = lazy(() =>
 );
 const ProjectPhaseApprovalsPage = lazy(() =>
   import("../modules/users/pages/ProjectPhaseApprovalsPage").then((module) => ({ default: module.ProjectPhaseApprovalsPage }))
+);
+const MasterDataCatalogPage = lazy(() =>
+  import("../modules/users/pages/MasterDataCatalogPage").then((module) => ({ default: module.MasterDataCatalogPage }))
 );
 const ProjectWorkspacePrototypePage = lazy(() =>
   import("../modules/users/pages/ProjectWorkspacePrototypePage").then((module) => ({ default: module.ProjectWorkspacePrototypePage }))
@@ -314,7 +329,12 @@ export function AppRouter() {
               <Route path="metrics/definitions" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><MetricDefinitionsPage /></AuthorizedRoute>} />
               <Route path="metrics/dashboard" element={<AuthorizedRoute permission={permissions.metrics.read}><MetricsDashboardPage /></AuthorizedRoute>} />
               <Route path="metrics/quality-gates" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage, permissions.metrics.overrideQualityGates]}><QualityGatesPage /></AuthorizedRoute>} />
+              <Route path="operations/access-reviews" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><AccessReviewsPage /></AuthorizedRoute>} />
+              <Route path="operations/security-reviews" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SecurityReviewsPage /></AuthorizedRoute>} />
+              <Route path="operations/external-dependencies" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ExternalDependenciesPage /></AuthorizedRoute>} />
+              <Route path="operations/configuration-audits" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ConfigurationAuditsPage /></AuthorizedRoute>} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
+                <Route path="admin/master/catalog" element={<AuthorizedRoute anyOf={[permissions.masterData.read, permissions.masterData.managePermanentOrg, permissions.masterData.manageProjectStructures]}><MasterDataCatalogPage /></AuthorizedRoute>} />
                 <Route path="admin/master/divisions" element={<AdminUsersPage />} />
                 <Route path="admin/master/departments" element={<AdminUsersPage />} />
                 <Route path="admin/master/positions" element={<AdminUsersPage />} />

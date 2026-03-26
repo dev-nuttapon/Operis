@@ -80,6 +80,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Metrics.Read,
                 Permissions.Metrics.Manage,
                 Permissions.Metrics.OverrideQualityGates,
+                Permissions.Operations.Read,
+                Permissions.Operations.Manage,
+                Permissions.Operations.Approve,
                 Permissions.Notifications.Read
             ],
             ["operis_system_admin"] =
@@ -126,6 +129,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Metrics.Read,
                 Permissions.Metrics.Manage,
                 Permissions.Metrics.OverrideQualityGates,
+                Permissions.Operations.Read,
+                Permissions.Operations.Manage,
+                Permissions.Operations.Approve,
                 Permissions.Notifications.Read
             ],
             ["operis:audit_auditor"] =
@@ -149,6 +155,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Verification.Read,
                 Permissions.Verification.Export,
                 Permissions.Metrics.Read,
+                Permissions.Operations.Read,
                 Permissions.Notifications.Read
             ],
             ["operis:documents_owner"] =
@@ -208,7 +215,10 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Verification.ReadSensitiveEvidence,
                 Permissions.Metrics.Read,
                 Permissions.Metrics.Manage,
-                Permissions.Metrics.OverrideQualityGates
+                Permissions.Metrics.OverrideQualityGates,
+                Permissions.Operations.Read,
+                Permissions.Operations.Manage,
+                Permissions.Operations.Approve
             ],
             ["operis:pm"] =
             [
@@ -241,7 +251,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Meetings.ReadRestricted,
                 Permissions.Verification.Read,
                 Permissions.Verification.SubmitUat,
-                Permissions.Metrics.Read
+                Permissions.Metrics.Read,
+                Permissions.Operations.Read
             ],
             ["operis:ba"] =
             [

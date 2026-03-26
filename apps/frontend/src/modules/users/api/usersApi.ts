@@ -9,6 +9,7 @@ import type {
   CreateJobTitleInput,
   CreateMasterDataInput,
   CreateInvitationInput,
+  CreateMasterDataCatalogInput,
   CreatePhaseApprovalInput,
   CreateProjectAssignmentInput,
   CreateProjectInput,
@@ -24,6 +25,7 @@ import type {
   CreateRegistrationRequestInput,
   DecidePhaseApprovalInput,
   ListInvitationsInput,
+  ListMasterDataCatalogInput,
   ListPhaseApprovalsInput,
   ListProjectAssignmentsInput,
   ListProjectRolesInput,
@@ -31,6 +33,7 @@ import type {
   ListRegistrationRequestsInput,
   ListUsersInput,
   MasterDataItem,
+  MasterDataCatalogItem,
   Project,
   ProjectHistoryItem,
   ProjectHistoryListInput,
@@ -48,6 +51,7 @@ import type {
   RejectRegistrationInput,
   SoftDeleteInput,
   UpdateMasterDataInput,
+  UpdateMasterDataCatalogInput,
   UpdateCurrentUserPreferencesInput,
   UpdateDepartmentInput,
   UpdateJobTitleInput,
@@ -378,6 +382,35 @@ export function deleteDivision(id: string, input: SoftDeleteInput) {
 
 export function listJobTitles(input?: ListQueryInput, signal?: AbortSignal) {
   return apiRequest<PaginatedResult<MasterDataItem>>(`/api/v1/users/job-titles${toListQuery(input)}`, { signal });
+}
+
+export function listMasterDataCatalog(input?: ListMasterDataCatalogInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<MasterDataCatalogItem>>(`/api/v1/users/master-data${toListQuery(input)}`, { signal });
+}
+
+export function getMasterDataCatalog(id: string, signal?: AbortSignal) {
+  return apiRequest<MasterDataCatalogItem>(`/api/v1/users/master-data/${encodeURIComponent(id)}`, { signal });
+}
+
+export function createMasterDataCatalog(input: CreateMasterDataCatalogInput) {
+  return apiRequest<MasterDataCatalogItem>("/api/v1/users/master-data", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export function updateMasterDataCatalog(input: UpdateMasterDataCatalogInput) {
+  return apiRequest<MasterDataCatalogItem>(`/api/v1/users/master-data/${encodeURIComponent(input.id)}`, {
+    method: "PUT",
+    body: input,
+  });
+}
+
+export function archiveMasterDataCatalog(id: string, input: SoftDeleteInput) {
+  return apiRequest<MasterDataCatalogItem>(`/api/v1/users/master-data/${encodeURIComponent(id)}/archive`, {
+    method: "PUT",
+    body: input,
+  });
 }
 
 
