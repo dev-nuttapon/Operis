@@ -147,6 +147,204 @@ public sealed class GovernanceOperationsQueries(OperisDbContext dbContext) : IGo
         return await PageAsync(source.Select(x => new RetentionPolicyResponse(x.Id, x.PolicyCode, x.AppliesTo, x.RetentionPeriodDays, x.ArchiveRule, x.Status, x.CreatedAt, x.UpdatedAt)), query.Page, query.PageSize, cancellationToken);
     }
 
+    public async Task<PagedResult<ArchitectureRecordResponse>> ListArchitectureRecordsAsync(ArchitectureRecordListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.ArchitectureRecords.AsNoTracking()
+            .Join(
+                dbContext.Projects.AsNoTracking(),
+                architecture => architecture.ProjectId,
+                project => project.Id,
+                (architecture, project) => new { Architecture = architecture, ProjectName = project.Name })
+            .AsQueryable();
+
+        if (query.ProjectId.HasValue)
+        {
+            source = source.Where(x => x.Architecture.ProjectId == query.ProjectId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            source = source.Where(x => x.Architecture.Status == query.Status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.OwnerUserId))
+        {
+            source = source.Where(x => x.Architecture.OwnerUserId == query.OwnerUserId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ArchitectureType))
+        {
+            source = source.Where(x => x.Architecture.ArchitectureType == query.ArchitectureType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var pattern = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.Architecture.Title, pattern) ||
+                EF.Functions.ILike(x.ProjectName, pattern) ||
+                (x.Architecture.CurrentVersionId != null && EF.Functions.ILike(x.Architecture.CurrentVersionId, pattern)));
+        }
+
+        source = source.OrderBy(x => x.Architecture.Title);
+        return await PageAsync(
+            source.Select(x => new ArchitectureRecordResponse(
+                x.Architecture.Id,
+                x.Architecture.ProjectId,
+                x.ProjectName,
+                x.Architecture.Title,
+                x.Architecture.ArchitectureType,
+                x.Architecture.OwnerUserId,
+                x.Architecture.Status,
+                x.Architecture.CurrentVersionId,
+                x.Architecture.Summary,
+                x.Architecture.SecurityImpact,
+                x.Architecture.EvidenceRef,
+                x.Architecture.ApprovedBy,
+                x.Architecture.ApprovedAt,
+                x.Architecture.CreatedAt,
+                x.Architecture.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<ArchitectureRecordResponse?> GetArchitectureRecordAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await dbContext.ArchitectureRecords.AsNoTracking()
+            .Where(x => x.Id == id)
+            .Join(
+                dbContext.Projects.AsNoTracking(),
+                architecture => architecture.ProjectId,
+                project => project.Id,
+                (architecture, project) => new ArchitectureRecordResponse(
+                    architecture.Id,
+                    architecture.ProjectId,
+                    project.Name,
+                    architecture.Title,
+                    architecture.ArchitectureType,
+                    architecture.OwnerUserId,
+                    architecture.Status,
+                    architecture.CurrentVersionId,
+                    architecture.Summary,
+                    architecture.SecurityImpact,
+                    architecture.EvidenceRef,
+                    architecture.ApprovedBy,
+                    architecture.ApprovedAt,
+                    architecture.CreatedAt,
+                    architecture.UpdatedAt))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<PagedResult<DesignReviewResponse>> ListDesignReviewsAsync(DesignReviewListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.DesignReviews.AsNoTracking()
+            .Join(
+                dbContext.ArchitectureRecords.AsNoTracking(),
+                review => review.ArchitectureRecordId,
+                architecture => architecture.Id,
+                (review, architecture) => new { Review = review, ArchitectureTitle = architecture.Title })
+            .AsQueryable();
+
+        if (query.ArchitectureRecordId.HasValue)
+        {
+            source = source.Where(x => x.Review.ArchitectureRecordId == query.ArchitectureRecordId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            source = source.Where(x => x.Review.Status == query.Status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ReviewType))
+        {
+            source = source.Where(x => x.Review.ReviewType == query.ReviewType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ReviewedBy))
+        {
+            source = source.Where(x => x.Review.ReviewedBy == query.ReviewedBy);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var pattern = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.ArchitectureTitle, pattern) ||
+                EF.Functions.ILike(x.Review.ReviewType, pattern) ||
+                (x.Review.DecisionReason != null && EF.Functions.ILike(x.Review.DecisionReason, pattern)));
+        }
+
+        source = source.OrderByDescending(x => x.Review.UpdatedAt);
+        return await PageAsync(
+            source.Select(x => new DesignReviewResponse(
+                x.Review.Id,
+                x.Review.ArchitectureRecordId,
+                x.ArchitectureTitle,
+                x.Review.ReviewType,
+                x.Review.ReviewedBy,
+                x.Review.Status,
+                x.Review.DecisionReason,
+                x.Review.DesignSummary,
+                x.Review.Concerns,
+                x.Review.EvidenceRef,
+                x.Review.DecidedAt,
+                x.Review.CreatedAt,
+                x.Review.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<IntegrationReviewResponse>> ListIntegrationReviewsAsync(IntegrationReviewListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.IntegrationReviews.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            source = source.Where(x => x.Status == query.Status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.IntegrationType))
+        {
+            source = source.Where(x => x.IntegrationType == query.IntegrationType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ReviewedBy))
+        {
+            source = source.Where(x => x.ReviewedBy == query.ReviewedBy);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var pattern = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.ScopeRef, pattern) ||
+                EF.Functions.ILike(x.IntegrationType, pattern) ||
+                (x.DependencyImpact != null && EF.Functions.ILike(x.DependencyImpact, pattern)));
+        }
+
+        source = source.OrderByDescending(x => x.UpdatedAt);
+        return await PageAsync(
+            source.Select(x => new IntegrationReviewResponse(
+                x.Id,
+                x.ScopeRef,
+                x.IntegrationType,
+                x.ReviewedBy,
+                x.Status,
+                x.DecisionReason,
+                x.Risks,
+                x.DependencyImpact,
+                x.EvidenceRef,
+                x.DecidedAt,
+                x.AppliedAt,
+                x.CreatedAt,
+                x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
     private static async Task<PagedResult<T>> PageAsync<T>(IQueryable<T> query, int page, int pageSize, CancellationToken cancellationToken)
     {
         var normalizedPage = page <= 0 ? 1 : page;

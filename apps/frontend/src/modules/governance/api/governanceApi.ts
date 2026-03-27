@@ -1,9 +1,15 @@
 import { apiRequest } from "../../../shared/lib/apiClient";
 import type {
   ApprovalEvidenceLog,
+  ArchitectureRecord,
+  ArchitectureRecordFormInput,
+  DesignReview,
+  DesignReviewFormInput,
   GovernanceListInput,
   GovernanceListResult,
   GovernanceMutationResponse,
+  IntegrationReview,
+  IntegrationReviewFormInput,
   ProcessAsset,
   ProcessAssetFormInput,
   ProcessAssetListItem,
@@ -48,6 +54,11 @@ function toQuery(input?: GovernanceListInput) {
   if (input?.occurredTo) params.set("occurredTo", input.occurredTo);
   if (input?.scopeType) params.set("scopeType", input.scopeType);
   if (input?.appliesTo) params.set("appliesTo", input.appliesTo);
+  if (input?.architectureType) params.set("architectureType", input.architectureType);
+  if (input?.architectureRecordId) params.set("architectureRecordId", input.architectureRecordId);
+  if (input?.reviewType) params.set("reviewType", input.reviewType);
+  if (input?.reviewedBy) params.set("reviewedBy", input.reviewedBy);
+  if (input?.integrationType) params.set("integrationType", input.integrationType);
   const query = params.toString();
   return query ? `?${query}` : "";
 }
@@ -159,3 +170,26 @@ export const createRetentionPolicy = (input: RetentionPolicyFormInput) =>
   apiRequest<RetentionPolicy>("/api/v1/governance/retention-policies", { method: "POST", body: input });
 export const updateRetentionPolicy = (id: string, input: RetentionPolicyFormInput) =>
   apiRequest<RetentionPolicy>(`/api/v1/governance/retention-policies/${id}`, { method: "PUT", body: input });
+
+export const listArchitectureRecords = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<ArchitectureRecord>>(`/api/v1/governance/architecture-records${toQuery(input)}`, { signal });
+export const getArchitectureRecord = (id: string, signal?: AbortSignal) =>
+  apiRequest<ArchitectureRecord>(`/api/v1/governance/architecture-records/${id}`, { signal });
+export const createArchitectureRecord = (input: ArchitectureRecordFormInput) =>
+  apiRequest<ArchitectureRecord>("/api/v1/governance/architecture-records", { method: "POST", body: input });
+export const updateArchitectureRecord = (id: string, input: ArchitectureRecordFormInput) =>
+  apiRequest<ArchitectureRecord>(`/api/v1/governance/architecture-records/${id}`, { method: "PUT", body: input });
+
+export const listDesignReviews = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<DesignReview>>(`/api/v1/governance/design-reviews${toQuery(input)}`, { signal });
+export const createDesignReview = (input: DesignReviewFormInput) =>
+  apiRequest<DesignReview>("/api/v1/governance/design-reviews", { method: "POST", body: input });
+export const updateDesignReview = (id: string, input: DesignReviewFormInput) =>
+  apiRequest<DesignReview>(`/api/v1/governance/design-reviews/${id}`, { method: "PUT", body: input });
+
+export const listIntegrationReviews = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<IntegrationReview>>(`/api/v1/governance/integration-reviews${toQuery(input)}`, { signal });
+export const createIntegrationReview = (input: IntegrationReviewFormInput) =>
+  apiRequest<IntegrationReview>("/api/v1/governance/integration-reviews", { method: "POST", body: input });
+export const updateIntegrationReview = (id: string, input: IntegrationReviewFormInput) =>
+  apiRequest<IntegrationReview>(`/api/v1/governance/integration-reviews/${id}`, { method: "PUT", body: input });

@@ -31,6 +31,11 @@ export interface GovernanceListInput extends PaginationInput {
   occurredTo?: string;
   scopeType?: string;
   appliesTo?: string;
+  architectureType?: string;
+  architectureRecordId?: string;
+  reviewType?: string;
+  reviewedBy?: string;
+  integrationType?: string;
 }
 
 export interface ProcessAssetVersionSummary {
@@ -312,4 +317,88 @@ export interface RetentionPolicyFormInput {
   archiveRule?: string | null;
   status: string;
   reason?: string | null;
+}
+
+export interface ArchitectureRecord {
+  id: string;
+  projectId: string;
+  projectName?: string | null;
+  title: string;
+  architectureType: string;
+  ownerUserId: string;
+  status: string;
+  currentVersionId?: string | null;
+  summary?: string | null;
+  securityImpact?: string | null;
+  evidenceRef?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArchitectureRecordFormInput {
+  projectId: string;
+  title: string;
+  architectureType: string;
+  ownerUserId: string;
+  status: string;
+  currentVersionId?: string | null;
+  summary?: string | null;
+  securityImpact?: string | null;
+  evidenceRef?: string | null;
+}
+
+export interface DesignReview {
+  id: string;
+  architectureRecordId: string;
+  architectureTitle?: string | null;
+  reviewType: string;
+  reviewedBy?: string | null;
+  status: string;
+  decisionReason?: string | null;
+  designSummary?: string | null;
+  concerns?: string | null;
+  evidenceRef?: string | null;
+  decidedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DesignReviewFormInput {
+  architectureRecordId: string;
+  reviewType: string;
+  reviewedBy?: string | null;
+  status: string;
+  decisionReason?: string | null;
+  designSummary?: string | null;
+  concerns?: string | null;
+  evidenceRef?: string | null;
+}
+
+export interface IntegrationReview {
+  id: string;
+  scopeRef: string;
+  integrationType: string;
+  reviewedBy?: string | null;
+  status: string;
+  decisionReason?: string | null;
+  risks?: string | null;
+  dependencyImpact?: string | null;
+  evidenceRef?: string | null;
+  decidedAt?: string | null;
+  appliedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IntegrationReviewFormInput {
+  scopeRef: string;
+  integrationType: string;
+  reviewedBy?: string | null;
+  status: string;
+  decisionReason?: string | null;
+  risks?: string | null;
+  dependencyImpact?: string | null;
+  evidenceRef?: string | null;
 }

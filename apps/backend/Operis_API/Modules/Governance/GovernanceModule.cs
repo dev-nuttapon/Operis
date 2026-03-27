@@ -80,6 +80,16 @@ public sealed class GovernanceModule : IModule
         group.MapGet("/retention-policies", ListRetentionPoliciesAsync);
         group.MapPost("/retention-policies", CreateRetentionPolicyAsync);
         group.MapPut("/retention-policies/{id:guid}", UpdateRetentionPolicyAsync);
+        group.MapGet("/architecture-records", ListArchitectureRecordsAsync);
+        group.MapGet("/architecture-records/{id:guid}", GetArchitectureRecordAsync);
+        group.MapPost("/architecture-records", CreateArchitectureRecordAsync);
+        group.MapPut("/architecture-records/{id:guid}", UpdateArchitectureRecordAsync);
+        group.MapGet("/design-reviews", ListDesignReviewsAsync);
+        group.MapPost("/design-reviews", CreateDesignReviewAsync);
+        group.MapPut("/design-reviews/{id:guid}", UpdateDesignReviewAsync);
+        group.MapGet("/integration-reviews", ListIntegrationReviewsAsync);
+        group.MapPost("/integration-reviews", CreateIntegrationReviewAsync);
+        group.MapPut("/integration-reviews/{id:guid}", UpdateIntegrationReviewAsync);
 
         return endpoints;
     }
@@ -308,6 +318,57 @@ public sealed class GovernanceModule : IModule
 
     private static async Task<IResult> UpdateRetentionPolicyAsync(ClaimsPrincipal principal, Guid id, UpdateRetentionPolicyRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.RetentionManage, "You do not have permission to manage retention policies.", () => commands.UpdateRetentionPolicyAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListArchitectureRecordsAsync(ClaimsPrincipal principal, [AsParameters] ArchitectureRecordListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.ArchitectureRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read architecture records.");
+        }
+
+        return Results.Ok(await queries.ListArchitectureRecordsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> GetArchitectureRecordAsync(ClaimsPrincipal principal, Guid id, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ReadSingleAsync(principal, permissionMatrix, Permissions.Governance.ArchitectureRead, "You do not have permission to read architecture records.", () => queries.GetArchitectureRecordAsync(id, cancellationToken));
+
+    private static async Task<IResult> CreateArchitectureRecordAsync(ClaimsPrincipal principal, CreateArchitectureRecordRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.ArchitectureManage, "You do not have permission to manage architecture records.", () => commands.CreateArchitectureRecordAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateArchitectureRecordAsync(ClaimsPrincipal principal, Guid id, UpdateArchitectureRecordRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.ArchitectureManage, "You do not have permission to manage architecture records.", () => commands.UpdateArchitectureRecordAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListDesignReviewsAsync(ClaimsPrincipal principal, [AsParameters] DesignReviewListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.DesignReviewRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read design reviews.");
+        }
+
+        return Results.Ok(await queries.ListDesignReviewsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateDesignReviewAsync(ClaimsPrincipal principal, CreateDesignReviewRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.DesignReviewManage, "You do not have permission to manage design reviews.", () => commands.CreateDesignReviewAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateDesignReviewAsync(ClaimsPrincipal principal, Guid id, UpdateDesignReviewRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.DesignReviewManage, "You do not have permission to manage design reviews.", () => commands.UpdateDesignReviewAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListIntegrationReviewsAsync(ClaimsPrincipal principal, [AsParameters] IntegrationReviewListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.IntegrationReviewRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read integration reviews.");
+        }
+
+        return Results.Ok(await queries.ListIntegrationReviewsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateIntegrationReviewAsync(ClaimsPrincipal principal, CreateIntegrationReviewRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.IntegrationReviewManage, "You do not have permission to manage integration reviews.", () => commands.CreateIntegrationReviewAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateIntegrationReviewAsync(ClaimsPrincipal principal, Guid id, UpdateIntegrationReviewRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.IntegrationReviewManage, "You do not have permission to manage integration reviews.", () => commands.UpdateIntegrationReviewAsync(id, request, ResolveActor(principal), cancellationToken));
 
     private static async Task<IResult> ReadSingleAsync<T>(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission, string forbiddenDetail, Func<Task<T?>> loader)
         where T : class

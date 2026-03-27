@@ -84,6 +84,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<WorkflowOverrideLogEntity> WorkflowOverrideLogs => Set<WorkflowOverrideLogEntity>();
     public DbSet<SlaRuleEntity> SlaRules => Set<SlaRuleEntity>();
     public DbSet<RetentionPolicyEntity> RetentionPolicies => Set<RetentionPolicyEntity>();
+    public DbSet<ArchitectureRecordEntity> ArchitectureRecords => Set<ArchitectureRecordEntity>();
+    public DbSet<DesignReviewEntity> DesignReviews => Set<DesignReviewEntity>();
+    public DbSet<IntegrationReviewEntity> IntegrationReviews => Set<IntegrationReviewEntity>();
     public DbSet<RequirementEntity> Requirements => Set<RequirementEntity>();
     public DbSet<RequirementVersionEntity> RequirementVersions => Set<RequirementVersionEntity>();
     public DbSet<RequirementBaselineEntity> RequirementBaselines => Set<RequirementBaselineEntity>();
@@ -1492,6 +1495,71 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasIndex(x => x.PolicyCode).IsUnique();
             entity.HasIndex(x => new { x.AppliesTo, x.Status });
+        });
+
+        modelBuilder.Entity<ArchitectureRecordEntity>(entity =>
+        {
+            entity.ToTable("architecture_records");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.ArchitectureType).HasColumnName("architecture_type").HasMaxLength(128);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CurrentVersionId).HasColumnName("current_version_id").HasMaxLength(128);
+            entity.Property(x => x.Summary).HasColumnName("summary").HasMaxLength(4000);
+            entity.Property(x => x.SecurityImpact).HasColumnName("security_impact").HasMaxLength(4000);
+            entity.Property(x => x.EvidenceRef).HasColumnName("evidence_ref").HasMaxLength(512);
+            entity.Property(x => x.ApprovedBy).HasColumnName("approved_by").HasMaxLength(128);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.ArchitectureType, x.Status });
+            entity.HasIndex(x => x.OwnerUserId);
+        });
+
+        modelBuilder.Entity<DesignReviewEntity>(entity =>
+        {
+            entity.ToTable("design_reviews");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ArchitectureRecordId).HasColumnName("architecture_record_id");
+            entity.Property(x => x.ReviewType).HasColumnName("review_type").HasMaxLength(128);
+            entity.Property(x => x.ReviewedBy).HasColumnName("reviewed_by").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.DecisionReason).HasColumnName("decision_reason").HasMaxLength(2000);
+            entity.Property(x => x.DesignSummary).HasColumnName("design_summary").HasMaxLength(4000);
+            entity.Property(x => x.Concerns).HasColumnName("concerns").HasMaxLength(4000);
+            entity.Property(x => x.EvidenceRef).HasColumnName("evidence_ref").HasMaxLength(512);
+            entity.Property(x => x.DecidedAt).HasColumnName("decided_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ArchitectureRecordEntity>().WithMany().HasForeignKey(x => x.ArchitectureRecordId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ArchitectureRecordId, x.Status });
+            entity.HasIndex(x => x.ReviewedBy);
+        });
+
+        modelBuilder.Entity<IntegrationReviewEntity>(entity =>
+        {
+            entity.ToTable("integration_reviews");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScopeRef).HasColumnName("scope_ref").HasMaxLength(256);
+            entity.Property(x => x.IntegrationType).HasColumnName("integration_type").HasMaxLength(128);
+            entity.Property(x => x.ReviewedBy).HasColumnName("reviewed_by").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.DecisionReason).HasColumnName("decision_reason").HasMaxLength(2000);
+            entity.Property(x => x.Risks).HasColumnName("risks").HasMaxLength(4000);
+            entity.Property(x => x.DependencyImpact).HasColumnName("dependency_impact").HasMaxLength(4000);
+            entity.Property(x => x.EvidenceRef).HasColumnName("evidence_ref").HasMaxLength(512);
+            entity.Property(x => x.DecidedAt).HasColumnName("decided_at");
+            entity.Property(x => x.AppliedAt).HasColumnName("applied_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.ScopeRef, x.IntegrationType, x.Status });
+            entity.HasIndex(x => x.ReviewedBy);
         });
 
         modelBuilder.Entity<RequirementEntity>(entity =>

@@ -92,6 +92,12 @@ export function MainLayout() {
     permissions.governance.slaManage,
     permissions.governance.retentionRead,
     permissions.governance.retentionManage,
+    permissions.governance.architectureRead,
+    permissions.governance.architectureManage,
+    permissions.governance.designReviewRead,
+    permissions.governance.designReviewManage,
+    permissions.governance.integrationReviewRead,
+    permissions.governance.integrationReviewManage,
   );
   const hasRequirementsAccess = permissionState.hasAnyPermission(
     permissions.requirements.read,
@@ -303,6 +309,9 @@ export function MainLayout() {
             { key: '/app/governance/workflow-overrides', label: 'Workflow Override Log' },
             { key: '/app/governance/sla-rules', label: 'SLA & Escalation Rules' },
             { key: '/app/governance/retention-policies', label: 'Data Retention Policy' },
+            { key: '/app/governance/architecture-records', label: 'Architecture Register' },
+            { key: '/app/governance/design-reviews', label: 'Design Review' },
+            { key: '/app/governance/integration-reviews', label: 'Integration Review' },
           ],
         }]
       : []),
@@ -599,6 +608,9 @@ export function MainLayout() {
     if (path.includes('/app/governance/workflow-overrides')) return 'Workflow Override Log';
     if (path.includes('/app/governance/sla-rules')) return 'SLA & Escalation Rules';
     if (path.includes('/app/governance/retention-policies')) return 'Data Retention Policy';
+    if (path.includes('/app/governance/architecture-records')) return 'Architecture Register';
+    if (path.includes('/app/governance/design-reviews')) return 'Design Review';
+    if (path.includes('/app/governance/integration-reviews')) return 'Integration Review';
     if (path.includes('/app/metrics/dashboard')) return 'Metrics Dashboard';
     if (path.includes('/app/metrics/definitions')) return 'Metric Definitions';
     if (path.includes('/app/metrics/quality-gates')) return 'Quality Gate Status';

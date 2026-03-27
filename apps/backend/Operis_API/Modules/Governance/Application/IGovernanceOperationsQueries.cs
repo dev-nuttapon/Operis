@@ -10,4 +10,8 @@ public interface IGovernanceOperationsQueries
     Task<PagedResult<WorkflowOverrideLogResponse>> ListWorkflowOverridesAsync(WorkflowOverrideListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<SlaRuleResponse>> ListSlaRulesAsync(SlaRuleListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<RetentionPolicyResponse>> ListRetentionPoliciesAsync(RetentionPolicyListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<ArchitectureRecordResponse>> ListArchitectureRecordsAsync(ArchitectureRecordListQuery query, CancellationToken cancellationToken);
+    Task<ArchitectureRecordResponse?> GetArchitectureRecordAsync(Guid id, CancellationToken cancellationToken);
+    Task<PagedResult<DesignReviewResponse>> ListDesignReviewsAsync(DesignReviewListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<IntegrationReviewResponse>> ListIntegrationReviewsAsync(IntegrationReviewListQuery query, CancellationToken cancellationToken);
 }

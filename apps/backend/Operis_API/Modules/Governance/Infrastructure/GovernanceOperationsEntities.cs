@@ -56,3 +56,54 @@ public sealed class RetentionPolicyEntity
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+public sealed class ArchitectureRecordEntity
+{
+    public Guid Id { get; init; }
+    public Guid ProjectId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string ArchitectureType { get; set; } = string.Empty;
+    public string OwnerUserId { get; set; } = string.Empty;
+    public string Status { get; set; } = "draft";
+    public string? CurrentVersionId { get; set; }
+    public string? Summary { get; set; }
+    public string? SecurityImpact { get; set; }
+    public string? EvidenceRef { get; set; }
+    public string? ApprovedBy { get; set; }
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class DesignReviewEntity
+{
+    public Guid Id { get; init; }
+    public Guid ArchitectureRecordId { get; set; }
+    public string ReviewType { get; set; } = string.Empty;
+    public string? ReviewedBy { get; set; }
+    public string Status { get; set; } = "draft";
+    public string? DecisionReason { get; set; }
+    public string? DesignSummary { get; set; }
+    public string? Concerns { get; set; }
+    public string? EvidenceRef { get; set; }
+    public DateTimeOffset? DecidedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class IntegrationReviewEntity
+{
+    public Guid Id { get; init; }
+    public string ScopeRef { get; set; } = string.Empty;
+    public string IntegrationType { get; set; } = string.Empty;
+    public string? ReviewedBy { get; set; }
+    public string Status { get; set; } = "draft";
+    public string? DecisionReason { get; set; }
+    public string? Risks { get; set; }
+    public string? DependencyImpact { get; set; }
+    public string? EvidenceRef { get; set; }
+    public DateTimeOffset? DecidedAt { get; set; }
+    public DateTimeOffset? AppliedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}

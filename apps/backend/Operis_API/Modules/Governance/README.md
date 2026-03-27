@@ -5,6 +5,7 @@ Purpose:
 * owns process assets, QA checklists, project plans, stakeholder registers, tailoring records, and governance control registers
 * enforces Phase 1 workflow transitions and governance audit evidence
 * owns Phase 13 RACI maps, approval evidence logs, workflow override logs, SLA rules, and retention policies
+* owns Phase 20 architecture records, design reviews, and integration reviews
 
 Public surface:
 
@@ -28,6 +29,9 @@ Owned data:
 * workflow_override_logs
 * sla_rules
 * retention_policies
+* architecture_records
+* design_reviews
+* integration_reviews
 
 Notes:
 

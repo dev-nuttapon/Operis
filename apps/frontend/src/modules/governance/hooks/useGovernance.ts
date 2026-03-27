@@ -10,6 +10,9 @@ import {
   archiveStakeholder,
   archiveTailoringRecord,
   baselineProjectPlan,
+  createArchitectureRecord,
+  createDesignReview,
+  createIntegrationReview,
   createRaciMap,
   createProcessAsset,
   createProcessAssetVersion,
@@ -21,10 +24,14 @@ import {
   createTailoringRecord,
   deprecateProcessAsset,
   deprecateQaChecklist,
+  getArchitectureRecord,
   getProcessAsset,
   getProjectPlan,
   getQaChecklist,
   listApprovalEvidence,
+  listArchitectureRecords,
+  listDesignReviews,
+  listIntegrationReviews,
   listProcessAssets,
   listProjectPlans,
   listQaChecklists,
@@ -38,6 +45,9 @@ import {
   submitProjectPlanReview,
   submitTailoringRecord,
   supersedeProjectPlan,
+  updateArchitectureRecord,
+  updateDesignReview,
+  updateIntegrationReview,
   updateRaciMap,
   updateProcessAsset,
   updateProcessAssetVersion,
@@ -49,7 +59,10 @@ import {
   updateTailoringRecord,
 } from "../api/governanceApi";
 import type {
+  ArchitectureRecordFormInput,
+  DesignReviewFormInput,
   GovernanceListInput,
+  IntegrationReviewFormInput,
   ProcessAssetFormInput,
   ProcessAssetVersionFormInput,
   ProjectPlanFormInput,
@@ -165,6 +178,38 @@ export function useRetentionPolicies(input?: GovernanceListInput, enabled = true
   });
 }
 
+export function useArchitectureRecords(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "architecture-records", input],
+    queryFn: ({ signal }) => listArchitectureRecords(input, signal),
+    enabled,
+  });
+}
+
+export function useArchitectureRecord(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "architecture-record", id],
+    queryFn: ({ signal }) => (id ? getArchitectureRecord(id, signal) : Promise.resolve(null)),
+    enabled: enabled && Boolean(id),
+  });
+}
+
+export function useDesignReviews(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "design-reviews", input],
+    queryFn: ({ signal }) => listDesignReviews(input, signal),
+    enabled,
+  });
+}
+
+export function useIntegrationReviews(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "integration-reviews", input],
+    queryFn: ({ signal }) => listIntegrationReviews(input, signal),
+    enabled,
+  });
+}
+
 function useInvalidateGovernance() {
   const queryClient = useQueryClient();
   return async () => {
@@ -176,6 +221,54 @@ export function useCreateProcessAsset() {
   const invalidate = useInvalidateGovernance();
   return useMutation({
     mutationFn: (input: ProcessAssetFormInput) => createProcessAsset(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateArchitectureRecord() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: ArchitectureRecordFormInput) => createArchitectureRecord(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateArchitectureRecord() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: ArchitectureRecordFormInput }) => updateArchitectureRecord(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateDesignReview() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: DesignReviewFormInput) => createDesignReview(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateDesignReview() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: DesignReviewFormInput }) => updateDesignReview(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateIntegrationReview() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: IntegrationReviewFormInput) => createIntegrationReview(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateIntegrationReview() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: IntegrationReviewFormInput }) => updateIntegrationReview(id, input),
     onSuccess: invalidate,
   });
 }

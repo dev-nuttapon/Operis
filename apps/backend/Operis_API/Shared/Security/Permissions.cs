@@ -91,6 +91,12 @@ public static class Permissions
         public const string SlaManage = "governance.sla.manage";
         public const string RetentionRead = "governance.retention.read";
         public const string RetentionManage = "governance.retention.manage";
+        public const string ArchitectureRead = "governance.architecture.read";
+        public const string ArchitectureManage = "governance.architecture.manage";
+        public const string DesignReviewRead = "governance.design_review.read";
+        public const string DesignReviewManage = "governance.design_review.manage";
+        public const string IntegrationReviewRead = "governance.integration_review.read";
+        public const string IntegrationReviewManage = "governance.integration_review.manage";
     }
 
     public static class Requirements
@@ -234,6 +240,12 @@ public static class Permissions
         Governance.SlaManage,
         Governance.RetentionRead,
         Governance.RetentionManage,
+        Governance.ArchitectureRead,
+        Governance.ArchitectureManage,
+        Governance.DesignReviewRead,
+        Governance.DesignReviewManage,
+        Governance.IntegrationReviewRead,
+        Governance.IntegrationReviewManage,
         Requirements.Read,
         Requirements.Manage,
         Requirements.Approve,
@@ -333,6 +345,12 @@ public static class Permissions
             Governance.SlaManage => "Manage SLA Rules",
             Governance.RetentionRead => "Read Retention Policies",
             Governance.RetentionManage => "Manage Retention Policies",
+            Governance.ArchitectureRead => "Read Architecture Records",
+            Governance.ArchitectureManage => "Manage Architecture Records",
+            Governance.DesignReviewRead => "Read Design Reviews",
+            Governance.DesignReviewManage => "Manage Design Reviews",
+            Governance.IntegrationReviewRead => "Read Integration Reviews",
+            Governance.IntegrationReviewManage => "Manage Integration Reviews",
             Requirements.Read => "Read Requirements",
             Requirements.Manage => "Manage Requirements",
             Requirements.Approve => "Approve Requirements",

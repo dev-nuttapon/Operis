@@ -4,6 +4,7 @@ Purpose:
 
 * owns Phase 1 governance screens for process assets, QA checklists, project plans, stakeholders, and tailoring records
 * owns Phase 13 governance control screens for RACI maps, approval evidence, workflow override logs, SLA rules, and retention policies
+* owns Phase 20 architecture governance screens for architecture records, design reviews, and integration reviews
 
 Public surface:
 

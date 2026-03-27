@@ -85,6 +85,15 @@ const SlaEscalationRulesPage = lazy(() =>
 const RetentionPolicyPage = lazy(() =>
   import("../modules/governance/pages/RetentionPolicyPage").then((module) => ({ default: module.RetentionPolicyPage }))
 );
+const ArchitectureRegisterPage = lazy(() =>
+  import("../modules/governance/pages/ArchitectureRegisterPage").then((module) => ({ default: module.ArchitectureRegisterPage }))
+);
+const DesignReviewPage = lazy(() =>
+  import("../modules/governance/pages/DesignReviewPage").then((module) => ({ default: module.DesignReviewPage }))
+);
+const IntegrationReviewPage = lazy(() =>
+  import("../modules/governance/pages/IntegrationReviewPage").then((module) => ({ default: module.IntegrationReviewPage }))
+);
 const RequirementRegisterPage = lazy(() =>
   import("../modules/requirements/pages/RequirementRegisterPage").then((module) => ({ default: module.RequirementRegisterPage }))
 );
@@ -363,6 +372,9 @@ export function AppRouter() {
               <Route path="governance/workflow-overrides" element={<AuthorizedRoute permission={permissions.governance.overrideLogRead}><WorkflowOverrideLogPage /></AuthorizedRoute>} />
               <Route path="governance/sla-rules" element={<AuthorizedRoute anyOf={[permissions.governance.slaRead, permissions.governance.slaManage]}><SlaEscalationRulesPage /></AuthorizedRoute>} />
               <Route path="governance/retention-policies" element={<AuthorizedRoute anyOf={[permissions.governance.retentionRead, permissions.governance.retentionManage]}><RetentionPolicyPage /></AuthorizedRoute>} />
+              <Route path="governance/architecture-records" element={<AuthorizedRoute anyOf={[permissions.governance.architectureRead, permissions.governance.architectureManage]}><ArchitectureRegisterPage /></AuthorizedRoute>} />
+              <Route path="governance/design-reviews" element={<AuthorizedRoute anyOf={[permissions.governance.designReviewRead, permissions.governance.designReviewManage]}><DesignReviewPage /></AuthorizedRoute>} />
+              <Route path="governance/integration-reviews" element={<AuthorizedRoute anyOf={[permissions.governance.integrationReviewRead, permissions.governance.integrationReviewManage]}><IntegrationReviewPage /></AuthorizedRoute>} />
               <Route path="requirements" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementRegisterPage /></AuthorizedRoute>} />
               <Route path="requirements/:requirementId" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementDetailPage /></AuthorizedRoute>} />
               <Route path="requirements/baselines" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.baseline]}><RequirementBaselinesPage /></AuthorizedRoute>} />

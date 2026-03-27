@@ -10,4 +10,10 @@ public interface IGovernanceOperationsCommands
     Task<GovernanceCommandResult<SlaRuleResponse>> UpdateSlaRuleAsync(Guid id, UpdateSlaRuleRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<RetentionPolicyResponse>> CreateRetentionPolicyAsync(CreateRetentionPolicyRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<RetentionPolicyResponse>> UpdateRetentionPolicyAsync(Guid id, UpdateRetentionPolicyRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<ArchitectureRecordResponse>> CreateArchitectureRecordAsync(CreateArchitectureRecordRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<ArchitectureRecordResponse>> UpdateArchitectureRecordAsync(Guid id, UpdateArchitectureRecordRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<DesignReviewResponse>> CreateDesignReviewAsync(CreateDesignReviewRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<DesignReviewResponse>> UpdateDesignReviewAsync(Guid id, UpdateDesignReviewRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<IntegrationReviewResponse>> CreateIntegrationReviewAsync(CreateIntegrationReviewRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<IntegrationReviewResponse>> UpdateIntegrationReviewAsync(Guid id, UpdateIntegrationReviewRequest request, string? actor, CancellationToken cancellationToken);
 }
