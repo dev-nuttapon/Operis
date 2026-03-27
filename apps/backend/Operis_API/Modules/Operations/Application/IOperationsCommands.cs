@@ -36,4 +36,10 @@ public interface IOperationsCommands
     Task<OperationsCommandResult<DrDrillResponse>> UpdateDrDrillAsync(Guid id, UpdateDrDrillRequest request, string? actor, CancellationToken cancellationToken);
     Task<OperationsCommandResult<LegalHoldResponse>> CreateLegalHoldAsync(CreateLegalHoldRequest request, string? actor, CancellationToken cancellationToken);
     Task<OperationsCommandResult<LegalHoldResponse>> ReleaseLegalHoldAsync(Guid id, ReleaseLegalHoldRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<CapaRecordResponse>> CreateCapaRecordAsync(CreateCapaRecordRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<CapaRecordResponse>> UpdateCapaRecordAsync(Guid id, UpdateCapaRecordRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<CapaActionResponse>> AddCapaActionAsync(Guid id, CreateCapaActionRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<CapaRecordResponse>> VerifyCapaAsync(Guid id, VerifyCapaRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<CapaRecordResponse>> CloseCapaAsync(Guid id, CloseCapaRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<EscalationEventResponse>> CreateEscalationEventAsync(CreateEscalationEventRequest request, string? actor, CancellationToken cancellationToken);
 }

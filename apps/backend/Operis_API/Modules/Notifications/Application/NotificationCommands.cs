@@ -1,10 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
+using Operis_API.Shared.Contracts;
+using Operis_API.Modules.Notifications.Infrastructure;
 
 namespace Operis_API.Modules.Notifications;
 
 public sealed class NotificationCommands(OperisDbContext dbContext) : INotificationCommands
 {
+    private static readonly string[] QueueStatuses = ["queued", "sent", "failed", "retried", "closed"];
+
     public async Task<NotificationUpdateResult> MarkReadAsync(
         Guid notificationId,
         string? currentUserId,
@@ -89,4 +93,87 @@ public sealed class NotificationCommands(OperisDbContext dbContext) : INotificat
         await dbContext.SaveChangesAsync(cancellationToken);
         return NotificationUpdateResult.Success(total);
     }
+
+    public async Task<NotificationQueueCommandResult> EnqueueAsync(CreateNotificationQueueRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var channel = Required(request.Channel, 64);
+        var targetRef = Required(request.TargetRef, 512);
+        var payloadRef = Required(request.PayloadRef, 512);
+        if (channel is null || targetRef is null || payloadRef is null)
+        {
+            return NotificationQueueCommandResult.Fail(ApiErrorCodes.RequestValidationFailed, "Channel, target, and payload reference are required.");
+        }
+
+        var status = NormalizeQueueStatus(request.Status);
+        var entity = new NotificationQueueEntity
+        {
+            Id = Guid.NewGuid(),
+            Channel = channel,
+            TargetRef = targetRef,
+            PayloadRef = payloadRef,
+            QueuedAt = DateTimeOffset.UtcNow,
+            Status = status,
+            RetryCount = 0,
+            LastError = Optional(request.LastError, 2000),
+            LastRetriedAt = null
+        };
+
+        dbContext.NotificationQueue.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return NotificationQueueCommandResult.Success(ToQueueContract(entity));
+    }
+
+    public async Task<NotificationQueueCommandResult> RetryAsync(Guid id, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.NotificationQueue.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return NotificationQueueCommandResult.Missing();
+        }
+
+        if (!string.Equals(entity.Status, "failed", StringComparison.OrdinalIgnoreCase))
+        {
+            return NotificationQueueCommandResult.Fail(ApiErrorCodes.NotificationRetryInvalidState, "Notification retry requires a failed queue item.");
+        }
+
+        entity.Status = "retried";
+        entity.RetryCount += 1;
+        entity.LastRetriedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return NotificationQueueCommandResult.Success(ToQueueContract(entity));
+    }
+
+    private static string? Required(string? value, int maxLength)
+    {
+        var normalized = value?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return null;
+        }
+
+        return normalized.Length <= maxLength ? normalized : normalized[..maxLength];
+    }
+
+    private static string? Optional(string? value, int maxLength)
+    {
+        var normalized = value?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return null;
+        }
+
+        return normalized.Length <= maxLength ? normalized : normalized[..maxLength];
+    }
+
+    private static string NormalizeQueueStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "sent" => "sent",
+        "failed" => "failed",
+        "retried" => "retried",
+        "closed" => "closed",
+        _ => "queued"
+    };
+
+    private static NotificationQueueItemContract ToQueueContract(NotificationQueueEntity entity) =>
+        new(entity.Id, entity.Channel, entity.TargetRef, entity.PayloadRef, entity.QueuedAt, entity.Status, entity.RetryCount, entity.LastError, entity.LastRetriedAt);
 }

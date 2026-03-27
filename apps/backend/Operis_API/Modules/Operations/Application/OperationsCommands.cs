@@ -16,6 +16,9 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
     private static readonly string[] RestoreVerificationStatuses = ["planned", "executed", "verified", "closed"];
     private static readonly string[] DrDrillStatuses = ["planned", "executed", "findings_issued", "closed"];
     private static readonly string[] LegalHoldStatuses = ["active", "released", "archived"];
+    private static readonly string[] CapaStatuses = ["open", "root_cause_analysis", "action_planned", "action_in_progress", "verified", "closed"];
+    private static readonly string[] CapaActionStatuses = ["open", "in_progress", "done"];
+    private static readonly string[] EscalationStatuses = ["triggered", "acknowledged", "closed"];
 
     public async Task<OperationsCommandResult<AccessReviewResponse>> CreateAccessReviewAsync(CreateAccessReviewRequest request, string? actor, CancellationToken cancellationToken)
     {
@@ -1068,6 +1071,193 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         return Success(ToResponse(entity));
     }
 
+    public async Task<OperationsCommandResult<CapaRecordResponse>> CreateCapaRecordAsync(CreateCapaRecordRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var sourceType = Required(request.SourceType, 64);
+        var sourceRef = Required(request.SourceRef, 256);
+        var title = Required(request.Title, 512);
+        var ownerUserId = Required(request.OwnerUserId, 128);
+        if (sourceType is null || sourceRef is null || title is null || ownerUserId is null)
+        {
+            return Validation<CapaRecordResponse>("Source, title, and owner are required.");
+        }
+
+        var entity = new CapaRecordEntity
+        {
+            Id = Guid.NewGuid(),
+            SourceType = sourceType,
+            SourceRef = sourceRef,
+            Title = title,
+            OwnerUserId = ownerUserId,
+            RootCauseSummary = Optional(request.RootCauseSummary, 4000),
+            Status = NormalizeCapaStatus(request.Status),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.CapaRecords.Add(entity);
+        AppendAudit("create", "capa_record", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity, []), created: true);
+    }
+
+    public async Task<OperationsCommandResult<CapaRecordResponse>> UpdateCapaRecordAsync(Guid id, UpdateCapaRecordRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.CapaRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<CapaRecordResponse>();
+        }
+
+        var sourceType = Required(request.SourceType, 64);
+        var sourceRef = Required(request.SourceRef, 256);
+        var title = Required(request.Title, 512);
+        var ownerUserId = Required(request.OwnerUserId, 128);
+        if (sourceType is null || sourceRef is null || title is null || ownerUserId is null)
+        {
+            return Validation<CapaRecordResponse>("Source, title, and owner are required.");
+        }
+
+        var nextStatus = NormalizeCapaStatus(request.Status);
+        if (!IsValidLinearTransition(entity.Status, nextStatus, CapaStatuses))
+        {
+            return Validation<CapaRecordResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.SourceType = sourceType;
+        entity.SourceRef = sourceRef;
+        entity.Title = title;
+        entity.OwnerUserId = ownerUserId;
+        entity.RootCauseSummary = Optional(request.RootCauseSummary, 4000);
+        entity.Status = nextStatus;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("update", "capa_record", entity.Id.ToString(), StatusCodes.Status200OK, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await GetCapaResultAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<OperationsCommandResult<CapaActionResponse>> AddCapaActionAsync(Guid id, CreateCapaActionRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var record = await dbContext.CapaRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (record is null)
+        {
+            return NotFound<CapaActionResponse>();
+        }
+
+        var actionDescription = Required(request.ActionDescription, 2000);
+        var assignedTo = Required(request.AssignedTo, 128);
+        if (actionDescription is null || assignedTo is null)
+        {
+            return Validation<CapaActionResponse>("Action description and assignee are required.");
+        }
+
+        var entity = new CapaActionEntity
+        {
+            Id = Guid.NewGuid(),
+            CapaRecordId = id,
+            ActionDescription = actionDescription,
+            AssignedTo = assignedTo,
+            DueDate = request.DueDate,
+            Status = NormalizeCapaActionStatus(request.Status),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.CapaActions.Add(entity);
+        if (record.Status == "open" || record.Status == "root_cause_analysis")
+        {
+            record.Status = "action_planned";
+            record.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        AppendAudit("create", "capa_action", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<CapaRecordResponse>> VerifyCapaAsync(Guid id, VerifyCapaRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.CapaRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<CapaRecordResponse>();
+        }
+
+        if (!IsValidLinearTransition(entity.Status, "verified", CapaStatuses))
+        {
+            return Validation<CapaRecordResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.RootCauseSummary = Optional(request.RootCauseSummary, 4000) ?? entity.RootCauseSummary;
+        entity.Status = "verified";
+        entity.VerifiedAt = DateTimeOffset.UtcNow;
+        entity.VerifiedBy = Optional(actor, 128);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("verify", "capa_record", entity.Id.ToString(), StatusCodes.Status200OK, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await GetCapaResultAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<OperationsCommandResult<CapaRecordResponse>> CloseCapaAsync(Guid id, CloseCapaRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.CapaRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<CapaRecordResponse>();
+        }
+
+        var openActionsExist = await dbContext.CapaActions.AnyAsync(
+            x => x.CapaRecordId == id && x.Status != "done",
+            cancellationToken);
+        if (openActionsExist)
+        {
+            return Validation<CapaRecordResponse>("CAPA cannot close while open actions remain.", ApiErrorCodes.CapaOpenActionsExist);
+        }
+
+        if (!IsValidLinearTransition(entity.Status, "closed", CapaStatuses))
+        {
+            return Validation<CapaRecordResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.Status = "closed";
+        entity.ClosedAt = DateTimeOffset.UtcNow;
+        entity.ClosedBy = Optional(actor, 128);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("close", "capa_record", entity.Id.ToString(), StatusCodes.Status200OK, Optional(request.ClosureSummary, 2000), after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await GetCapaResultAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<OperationsCommandResult<EscalationEventResponse>> CreateEscalationEventAsync(CreateEscalationEventRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var scopeType = Required(request.ScopeType, 64);
+        var scopeRef = Required(request.ScopeRef, 256);
+        var triggerReason = Required(request.TriggerReason, 2000);
+        var escalatedTo = Required(request.EscalatedTo, 128);
+        if (scopeType is null || scopeRef is null || triggerReason is null || escalatedTo is null)
+        {
+            return Validation<EscalationEventResponse>("Scope, reason, and escalated target are required.");
+        }
+
+        var entity = new EscalationEventEntity
+        {
+            Id = Guid.NewGuid(),
+            ScopeType = scopeType,
+            ScopeRef = scopeRef,
+            TriggeredAt = request.TriggeredAt == default ? DateTimeOffset.UtcNow : request.TriggeredAt,
+            TriggerReason = triggerReason,
+            EscalatedTo = escalatedTo,
+            Status = NormalizeEscalationStatus(request.Status),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.EscalationEvents.Add(entity);
+        AppendAudit("create", "escalation_event", entity.Id.ToString(), StatusCodes.Status201Created, triggerReason, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
     private static string? NormalizeIncidentSeverity(string? value) => value?.Trim().ToLowerInvariant() switch
     {
         "low" => "low",
@@ -1168,6 +1358,9 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
     private static RestoreVerificationResponse ToResponse(RestoreVerificationEntity x, string backupScope) => new(x.Id, x.BackupEvidenceId, backupScope, x.ExecutedAt, x.ExecutedBy, x.Status, x.ResultSummary, x.CreatedAt);
     private static DrDrillResponse ToResponse(DrDrillEntity x) => new(x.Id, x.ScopeRef, x.PlannedAt, x.ExecutedAt, x.Status, x.FindingCount, x.Summary, x.CreatedAt, x.UpdatedAt);
     private static LegalHoldResponse ToResponse(LegalHoldEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.PlacedAt, x.PlacedBy, x.Status, x.Reason, x.ReleasedAt, x.ReleasedBy, x.ReleaseReason, x.CreatedAt, x.UpdatedAt);
+    private static CapaActionResponse ToResponse(CapaActionEntity x) => new(x.Id, x.CapaRecordId, x.ActionDescription, x.AssignedTo, x.DueDate, x.Status, x.CreatedAt, x.UpdatedAt);
+    private static CapaRecordResponse ToResponse(CapaRecordEntity x, IReadOnlyList<CapaActionResponse> actions) => new(x.Id, x.SourceType, x.SourceRef, x.Title, x.OwnerUserId, x.RootCauseSummary, x.Status, actions, x.CreatedAt, x.UpdatedAt, x.VerifiedAt, x.VerifiedBy, x.ClosedAt, x.ClosedBy);
+    private static EscalationEventResponse ToResponse(EscalationEventEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.TriggeredAt, x.TriggerReason, x.EscalatedTo, x.Status, x.CreatedAt, x.UpdatedAt);
     private async Task<ExternalDependencyResponse> ToResponseAsync(ExternalDependencyEntity x, CancellationToken cancellationToken)
     {
         string? supplierName = null;
@@ -1337,6 +1530,24 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
             _ => false
         };
 
+    private async Task<OperationsCommandResult<CapaRecordResponse>> GetCapaResultAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var record = await dbContext.CapaRecords.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (record is null)
+        {
+            return NotFound<CapaRecordResponse>();
+        }
+
+        var actions = await dbContext.CapaActions.AsNoTracking()
+            .Where(x => x.CapaRecordId == id)
+            .OrderBy(x => x.DueDate)
+            .ThenBy(x => x.CreatedAt)
+            .Select(x => ToResponse(x))
+            .ToListAsync(cancellationToken);
+
+        return Success(ToResponse(record, actions));
+    }
+
     private static bool IsValidLinearTransition(string current, string next, IReadOnlyList<string> statuses)
     {
         var currentIndex = Array.IndexOf(statuses.ToArray(), current);
@@ -1374,4 +1585,28 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+    private static string NormalizeCapaStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "root_cause_analysis" => "root_cause_analysis",
+        "action_planned" => "action_planned",
+        "action_in_progress" => "action_in_progress",
+        "verified" => "verified",
+        "closed" => "closed",
+        _ => "open"
+    };
+
+    private static string NormalizeCapaActionStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "in_progress" => "in_progress",
+        "done" => "done",
+        _ => "open"
+    };
+
+    private static string NormalizeEscalationStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "acknowledged" => "acknowledged",
+        "closed" => "closed",
+        _ => "triggered"
+    };
 }

@@ -168,6 +168,7 @@ public static class Permissions
     public static class Notifications
     {
         public const string Read = "notifications.read";
+        public const string Manage = "notifications.manage";
     }
 
     public static class Operations
@@ -285,7 +286,8 @@ public static class Permissions
         Operations.Approve,
         Knowledge.Read,
         Knowledge.Manage,
-        Notifications.Read
+        Notifications.Read,
+        Notifications.Manage
     ];
 
     public static string GetDisplayName(string permission) =>
@@ -391,6 +393,7 @@ public static class Permissions
             Knowledge.Read => "Read Lessons Learned",
             Knowledge.Manage => "Manage Lessons Learned",
             Notifications.Read => "Read Notifications",
+            Notifications.Manage => "Manage Notification Queue",
             _ => permission
         };
 }

@@ -102,7 +102,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Operations.Approve,
                 Permissions.Knowledge.Read,
                 Permissions.Knowledge.Manage,
-                Permissions.Notifications.Read
+                Permissions.Notifications.Read,
+                Permissions.Notifications.Manage
             ],
             ["operis_system_admin"] =
             [
@@ -172,7 +173,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Operations.Approve,
                 Permissions.Knowledge.Read,
                 Permissions.Knowledge.Manage,
-                Permissions.Notifications.Read
+                Permissions.Notifications.Read,
+                Permissions.Notifications.Manage
             ],
             ["operis:audit_auditor"] =
             [
@@ -225,7 +227,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
             ["operis:workflows_approver"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
             ["operis:workflows_department_manager"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
             ["operis:employee_viewer"] = [Permissions.Workflows.Read, Permissions.Notifications.Read],
-            ["operis:ops_support"] = [Permissions.Admin.SettingsRead, Permissions.Notifications.Read, Permissions.ActivityLogs.Read],
+            ["operis:ops_support"] = [Permissions.Admin.SettingsRead, Permissions.Notifications.Read, Permissions.Notifications.Manage, Permissions.ActivityLogs.Read],
             ["operis:compliance_admin"] =
             [
                 Permissions.Governance.ProcessLibraryRead,
@@ -288,7 +290,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Operations.Manage,
                 Permissions.Operations.Approve,
                 Permissions.Knowledge.Read,
-                Permissions.Knowledge.Manage
+                Permissions.Knowledge.Manage,
+                Permissions.Notifications.Read,
+                Permissions.Notifications.Manage
             ],
             ["operis:pm"] =
             [

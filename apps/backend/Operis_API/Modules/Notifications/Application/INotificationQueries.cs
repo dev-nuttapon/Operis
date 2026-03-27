@@ -13,4 +13,7 @@ public interface INotificationQueries
         Guid notificationId,
         string? currentUserId,
         CancellationToken cancellationToken);
+    Task<PagedResult<NotificationQueueItemContract>> ListQueueAsync(
+        NotificationQueueListQuery query,
+        CancellationToken cancellationToken);
 }

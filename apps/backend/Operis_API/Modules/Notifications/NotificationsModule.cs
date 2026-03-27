@@ -31,6 +31,17 @@ public sealed class NotificationsModule : IModule
         group.MapPost("/seed", SeedNotificationsAsync)
             .WithName("Notifications_Seed");
 
+        var queueGroup = endpoints.MapGroup("/api/v1/notification-queue")
+            .WithTags("Notifications")
+            .RequireAuthorization();
+
+        queueGroup.MapGet("/", ListNotificationQueueAsync)
+            .WithName("Notifications_Queue_List");
+        queueGroup.MapPost("/", EnqueueNotificationAsync)
+            .WithName("Notifications_Queue_Enqueue");
+        queueGroup.MapPut("/{id:guid}/retry", RetryNotificationAsync)
+            .WithName("Notifications_Queue_Retry");
+
         return endpoints;
     }
 
@@ -137,6 +148,82 @@ public sealed class NotificationsModule : IModule
 
         return result.Succeeded
             ? Results.Ok(new { inserted = result.UpdatedCount })
+            : Results.BadRequest(new { error = result.ErrorMessage, code = result.ErrorCode });
+    }
+
+    private static async Task<IResult> ListNotificationQueueAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        INotificationQueries queries,
+        CancellationToken cancellationToken,
+        [FromQuery] string? channel = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Notifications.Read))
+        {
+            return Results.Forbid();
+        }
+
+        var result = await queries.ListQueueAsync(new NotificationQueueListQuery(channel, status, search, page, pageSize), cancellationToken);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> EnqueueNotificationAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        INotificationCommands commands,
+        CreateNotificationQueueRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Notifications.Manage))
+        {
+            return Results.Forbid();
+        }
+
+        var actor = principal.FindFirstValue(ClaimTypes.Email)
+            ?? principal.FindFirstValue("preferred_username")
+            ?? principal.FindFirstValue("sub")
+            ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var result = await commands.EnqueueAsync(request, actor, cancellationToken);
+        if (result.NotFound)
+        {
+            return Results.NotFound();
+        }
+
+        return result.Succeeded
+            ? Results.Created(string.Empty, result.Value)
+            : Results.BadRequest(new { error = result.ErrorMessage, code = result.ErrorCode });
+    }
+
+    private static async Task<IResult> RetryNotificationAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        INotificationCommands commands,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Notifications.Manage))
+        {
+            return Results.Forbid();
+        }
+
+        var actor = principal.FindFirstValue(ClaimTypes.Email)
+            ?? principal.FindFirstValue("preferred_username")
+            ?? principal.FindFirstValue("sub")
+            ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var result = await commands.RetryAsync(id, actor, cancellationToken);
+        if (result.NotFound)
+        {
+            return Results.NotFound();
+        }
+
+        return result.Succeeded
+            ? Results.Ok(result.Value)
             : Results.BadRequest(new { error = result.ErrorMessage, code = result.ErrorCode });
     }
 }

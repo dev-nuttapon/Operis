@@ -56,6 +56,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<RestoreVerificationEntity> RestoreVerifications => Set<RestoreVerificationEntity>();
     public DbSet<DrDrillEntity> DrDrills => Set<DrDrillEntity>();
     public DbSet<LegalHoldEntity> LegalHolds => Set<LegalHoldEntity>();
+    public DbSet<CapaRecordEntity> CapaRecords => Set<CapaRecordEntity>();
+    public DbSet<CapaActionEntity> CapaActions => Set<CapaActionEntity>();
+    public DbSet<EscalationEventEntity> EscalationEvents => Set<EscalationEventEntity>();
     public DbSet<UserOrgAssignmentEntity> UserOrgAssignments => Set<UserOrgAssignmentEntity>();
     public DbSet<ReportingLineEntity> ReportingLines => Set<ReportingLineEntity>();
     public DbSet<ProjectEntity> Projects => Set<ProjectEntity>();
@@ -75,6 +78,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<AuditFindingEntity> AuditFindings => Set<AuditFindingEntity>();
     public DbSet<EvidenceExportEntity> EvidenceExports => Set<EvidenceExportEntity>();
     public DbSet<NotificationEntity> Notifications => Set<NotificationEntity>();
+    public DbSet<NotificationQueueEntity> NotificationQueue => Set<NotificationQueueEntity>();
     public DbSet<WorkflowDefinitionEntity> WorkflowDefinitions => Set<WorkflowDefinitionEntity>();
     public DbSet<WorkflowStepEntity> WorkflowSteps => Set<WorkflowStepEntity>();
     public DbSet<WorkflowStepRoleEntity> WorkflowStepRoles => Set<WorkflowStepRoleEntity>();
@@ -1499,6 +1503,78 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => x.RecipientUserId);
             entity.HasIndex(x => new { x.RecipientUserId, x.Status });
             entity.HasIndex(x => new { x.RecipientUserId, x.CreatedAt });
+        });
+
+        modelBuilder.Entity<NotificationQueueEntity>(entity =>
+        {
+            entity.ToTable("notification_queue");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Channel).HasColumnName("channel").HasMaxLength(64);
+            entity.Property(x => x.TargetRef).HasColumnName("target_ref").HasMaxLength(512);
+            entity.Property(x => x.PayloadRef).HasColumnName("payload_ref").HasMaxLength(512);
+            entity.Property(x => x.QueuedAt).HasColumnName("queued_at");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.RetryCount).HasColumnName("retry_count");
+            entity.Property(x => x.LastError).HasColumnName("last_error").HasMaxLength(2000);
+            entity.Property(x => x.LastRetriedAt).HasColumnName("last_retried_at");
+            entity.HasIndex(x => new { x.Status, x.QueuedAt });
+            entity.HasIndex(x => new { x.Channel, x.Status });
+        });
+
+        modelBuilder.Entity<CapaRecordEntity>(entity =>
+        {
+            entity.ToTable("capa_records");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.SourceType).HasColumnName("source_type").HasMaxLength(64);
+            entity.Property(x => x.SourceRef).HasColumnName("source_ref").HasMaxLength(256);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(128);
+            entity.Property(x => x.RootCauseSummary).HasColumnName("root_cause_summary").HasMaxLength(4000);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(x => x.VerifiedAt).HasColumnName("verified_at");
+            entity.Property(x => x.VerifiedBy).HasColumnName("verified_by").HasMaxLength(128);
+            entity.Property(x => x.ClosedAt).HasColumnName("closed_at");
+            entity.Property(x => x.ClosedBy).HasColumnName("closed_by").HasMaxLength(128);
+            entity.HasIndex(x => new { x.SourceType, x.Status });
+            entity.HasIndex(x => new { x.OwnerUserId, x.Status });
+        });
+
+        modelBuilder.Entity<CapaActionEntity>(entity =>
+        {
+            entity.ToTable("capa_actions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.CapaRecordId).HasColumnName("capa_record_id");
+            entity.Property(x => x.ActionDescription).HasColumnName("action_description").HasMaxLength(2000);
+            entity.Property(x => x.AssignedTo).HasColumnName("assigned_to").HasMaxLength(128);
+            entity.Property(x => x.DueDate).HasColumnName("due_date");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<CapaRecordEntity>().WithMany().HasForeignKey(x => x.CapaRecordId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.CapaRecordId, x.Status });
+            entity.HasIndex(x => new { x.AssignedTo, x.DueDate });
+        });
+
+        modelBuilder.Entity<EscalationEventEntity>(entity =>
+        {
+            entity.ToTable("escalation_events");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScopeType).HasColumnName("scope_type").HasMaxLength(64);
+            entity.Property(x => x.ScopeRef).HasColumnName("scope_ref").HasMaxLength(256);
+            entity.Property(x => x.TriggeredAt).HasColumnName("triggered_at");
+            entity.Property(x => x.TriggerReason).HasColumnName("trigger_reason").HasMaxLength(2000);
+            entity.Property(x => x.EscalatedTo).HasColumnName("escalated_to").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.ScopeType, x.Status });
+            entity.HasIndex(x => new { x.EscalatedTo, x.TriggeredAt });
         });
 
         modelBuilder.Entity<ActivityLogEntity>(entity =>

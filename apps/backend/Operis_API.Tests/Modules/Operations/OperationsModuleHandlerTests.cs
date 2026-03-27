@@ -143,6 +143,12 @@ public sealed class OperationsModuleHandlerTests
         public Task<OperationsCommandResult<LegalHoldResponse>> CreateLegalHoldAsync(CreateLegalHoldRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<OperationsCommandResult<LegalHoldResponse>> ReleaseLegalHoldAsync(Guid id, ReleaseLegalHoldRequest request, string? actor, CancellationToken cancellationToken) =>
             Task.FromResult(new OperationsCommandResult<LegalHoldResponse>(OperationsCommandStatus.Success, new LegalHoldResponse(id, "document", "DOC-1", DateTimeOffset.UtcNow.AddDays(-1), "legal@example.com", "released", "Preserve evidence", DateTimeOffset.UtcNow, actor, request.Reason, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow)));
+        public Task<OperationsCommandResult<CapaRecordResponse>> CreateCapaRecordAsync(CreateCapaRecordRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<CapaRecordResponse>> UpdateCapaRecordAsync(Guid id, UpdateCapaRecordRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<CapaActionResponse>> AddCapaActionAsync(Guid id, CreateCapaActionRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<CapaRecordResponse>> VerifyCapaAsync(Guid id, VerifyCapaRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<CapaRecordResponse>> CloseCapaAsync(Guid id, CloseCapaRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<EscalationEventResponse>> CreateEscalationEventAsync(CreateEscalationEventRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 
     private sealed class FakeOperationsQueries : IOperationsQueries
@@ -167,5 +173,8 @@ public sealed class OperationsModuleHandlerTests
         public Task<PagedResult<RestoreVerificationResponse>> ListRestoreVerificationsAsync(RestoreVerificationListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<PagedResult<DrDrillResponse>> ListDrDrillsAsync(DrDrillListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<PagedResult<LegalHoldResponse>> ListLegalHoldsAsync(LegalHoldListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<PagedResult<CapaRecordResponse>> ListCapaRecordsAsync(CapaRecordListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<CapaRecordResponse?> GetCapaRecordAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<PagedResult<EscalationEventResponse>> ListEscalationEventsAsync(EscalationEventListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }

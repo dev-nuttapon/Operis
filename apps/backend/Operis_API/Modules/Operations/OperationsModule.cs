@@ -77,6 +77,19 @@ public sealed class OperationsModule : IModule
         legalHolds.MapPost("/", CreateLegalHoldAsync);
         legalHolds.MapPut("/{id:guid}/release", ReleaseLegalHoldAsync);
 
+        var capa = endpoints.MapGroup("/api/v1/capa").WithTags("Operations").RequireAuthorization();
+        capa.MapGet("/", ListCapaRecordsAsync);
+        capa.MapPost("/", CreateCapaRecordAsync);
+        capa.MapGet("/{id:guid}", GetCapaRecordAsync);
+        capa.MapPut("/{id:guid}", UpdateCapaRecordAsync);
+        capa.MapPost("/{id:guid}/actions", AddCapaActionAsync);
+        capa.MapPut("/{id:guid}/verify", VerifyCapaAsync);
+        capa.MapPut("/{id:guid}/close", CloseCapaAsync);
+
+        var escalations = endpoints.MapGroup("/api/v1/escalations").WithTags("Operations").RequireAuthorization();
+        escalations.MapGet("/", ListEscalationEventsAsync);
+        escalations.MapPost("/", CreateEscalationEventAsync);
+
         var securityReviews = endpoints.MapGroup("/api/v1/security-reviews").WithTags("Operations").RequireAuthorization();
         securityReviews.MapGet("/", ListSecurityReviewsAsync);
         securityReviews.MapPost("/", CreateSecurityReviewAsync);
@@ -309,6 +322,57 @@ public sealed class OperationsModule : IModule
 
     private static async Task<IResult> ReleaseLegalHoldAsync(ClaimsPrincipal principal, Guid id, ReleaseLegalHoldRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Approve, "You do not have permission to release legal holds.", () => commands.ReleaseLegalHoldAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListCapaRecordsAsync(ClaimsPrincipal principal, [AsParameters] CapaRecordListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read CAPA records.");
+        }
+
+        return Results.Ok(await queries.ListCapaRecordsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> GetCapaRecordAsync(ClaimsPrincipal principal, Guid id, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read CAPA records.");
+        }
+
+        var detail = await queries.GetCapaRecordAsync(id, cancellationToken);
+        return detail is null
+            ? Results.NotFound(ApiProblemDetailsFactory.Create(StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound, "CAPA record not found.", "CAPA record not found."))
+            : Results.Ok(detail);
+    }
+
+    private static async Task<IResult> CreateCapaRecordAsync(ClaimsPrincipal principal, CreateCapaRecordRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage CAPA records.", () => commands.CreateCapaRecordAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateCapaRecordAsync(ClaimsPrincipal principal, Guid id, UpdateCapaRecordRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage CAPA records.", () => commands.UpdateCapaRecordAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> AddCapaActionAsync(ClaimsPrincipal principal, Guid id, CreateCapaActionRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage CAPA actions.", () => commands.AddCapaActionAsync(id, request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> VerifyCapaAsync(ClaimsPrincipal principal, Guid id, VerifyCapaRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Approve, "You do not have permission to verify CAPA records.", () => commands.VerifyCapaAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> CloseCapaAsync(ClaimsPrincipal principal, Guid id, CloseCapaRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Approve, "You do not have permission to close CAPA records.", () => commands.CloseCapaAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListEscalationEventsAsync(ClaimsPrincipal principal, [AsParameters] EscalationEventListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read escalation history.");
+        }
+
+        return Results.Ok(await queries.ListEscalationEventsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateEscalationEventAsync(ClaimsPrincipal principal, CreateEscalationEventRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage escalation history.", () => commands.CreateEscalationEventAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
 
     private static async Task<IResult> ListSecurityReviewsAsync(ClaimsPrincipal principal, [AsParameters] SecurityReviewListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
     {

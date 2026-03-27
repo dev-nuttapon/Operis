@@ -300,4 +300,39 @@ public sealed class OperationsCommandsTests
         Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
         Assert.Equal(ApiErrorCodes.LegalHoldReleaseReasonRequired, result.ErrorCode);
     }
+
+    [Fact]
+    public async Task CloseCapaAsync_WithOpenActions_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var capaId = Guid.NewGuid();
+        dbContext.CapaRecords.Add(new CapaRecordEntity
+        {
+            Id = capaId,
+            SourceType = "audit_finding",
+            SourceRef = "AF-001",
+            Title = "Fix recurring process deviation",
+            OwnerUserId = "owner@example.com",
+            RootCauseSummary = "handoff gap",
+            Status = "verified",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.CapaActions.Add(new CapaActionEntity
+        {
+            Id = Guid.NewGuid(),
+            CapaRecordId = capaId,
+            ActionDescription = "Update SOP",
+            AssignedTo = "pm@example.com",
+            DueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7)),
+            Status = "open",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.CloseCapaAsync(capaId, new CloseCapaRequest("All work completed"), "owner@example.com", CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.CapaOpenActionsExist, result.ErrorCode);
+    }
 }

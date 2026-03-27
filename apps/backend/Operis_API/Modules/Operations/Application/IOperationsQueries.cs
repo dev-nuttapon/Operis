@@ -19,6 +19,8 @@ public sealed record BackupEvidenceListQuery(string? BackupScope, string? Execut
 public sealed record RestoreVerificationListQuery(Guid? BackupEvidenceId, string? ExecutedBy, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record DrDrillListQuery(string? ScopeRef, string? Status, DateTimeOffset? PlannedAfter, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record LegalHoldListQuery(string? ScopeType, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record CapaRecordListQuery(string? SourceType, string? OwnerUserId, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record EscalationEventListQuery(string? ScopeType, string? EscalatedTo, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 
 public interface IOperationsQueries
 {
@@ -41,4 +43,7 @@ public interface IOperationsQueries
     Task<PagedResult<RestoreVerificationResponse>> ListRestoreVerificationsAsync(RestoreVerificationListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<DrDrillResponse>> ListDrDrillsAsync(DrDrillListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<LegalHoldResponse>> ListLegalHoldsAsync(LegalHoldListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<CapaRecordResponse>> ListCapaRecordsAsync(CapaRecordListQuery query, CancellationToken cancellationToken);
+    Task<CapaRecordResponse?> GetCapaRecordAsync(Guid id, CancellationToken cancellationToken);
+    Task<PagedResult<EscalationEventResponse>> ListEscalationEventsAsync(EscalationEventListQuery query, CancellationToken cancellationToken);
 }

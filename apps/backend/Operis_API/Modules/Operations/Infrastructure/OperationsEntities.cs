@@ -226,3 +226,45 @@ public sealed class LegalHoldEntity
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; set; }
 }
+
+public sealed class CapaRecordEntity
+{
+    public Guid Id { get; init; }
+    public string SourceType { get; set; } = string.Empty;
+    public string SourceRef { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string OwnerUserId { get; set; } = string.Empty;
+    public string? RootCauseSummary { get; set; }
+    public string Status { get; set; } = "open";
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+    public DateTimeOffset? VerifiedAt { get; set; }
+    public string? VerifiedBy { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
+    public string? ClosedBy { get; set; }
+}
+
+public sealed class CapaActionEntity
+{
+    public Guid Id { get; init; }
+    public Guid CapaRecordId { get; set; }
+    public string ActionDescription { get; set; } = string.Empty;
+    public string AssignedTo { get; set; } = string.Empty;
+    public DateOnly DueDate { get; set; }
+    public string Status { get; set; } = "open";
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class EscalationEventEntity
+{
+    public Guid Id { get; init; }
+    public string ScopeType { get; set; } = string.Empty;
+    public string ScopeRef { get; set; } = string.Empty;
+    public DateTimeOffset TriggeredAt { get; set; }
+    public string TriggerReason { get; set; } = string.Empty;
+    public string EscalatedTo { get; set; } = string.Empty;
+    public string Status { get; set; } = "triggered";
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}

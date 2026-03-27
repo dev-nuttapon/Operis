@@ -11,3 +11,16 @@ public sealed class NotificationEntity
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? ReadAt { get; set; }
 }
+
+public sealed class NotificationQueueEntity
+{
+    public Guid Id { get; set; }
+    public string Channel { get; set; } = string.Empty;
+    public string TargetRef { get; set; } = string.Empty;
+    public string PayloadRef { get; set; } = string.Empty;
+    public DateTimeOffset QueuedAt { get; set; }
+    public string Status { get; set; } = "queued";
+    public int RetryCount { get; set; }
+    public string? LastError { get; set; }
+    public DateTimeOffset? LastRetriedAt { get; set; }
+}

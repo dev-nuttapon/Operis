@@ -31,6 +31,12 @@ public sealed record CreateDrDrillRequest(string ScopeRef, DateTimeOffset Planne
 public sealed record UpdateDrDrillRequest(string ScopeRef, DateTimeOffset PlannedAt, DateTimeOffset? ExecutedAt, string Status, int FindingCount, string? Summary);
 public sealed record CreateLegalHoldRequest(string ScopeType, string ScopeRef, string Reason);
 public sealed record ReleaseLegalHoldRequest(string Reason);
+public sealed record CreateCapaRecordRequest(string SourceType, string SourceRef, string Title, string OwnerUserId, string? RootCauseSummary, string Status);
+public sealed record UpdateCapaRecordRequest(string SourceType, string SourceRef, string Title, string OwnerUserId, string? RootCauseSummary, string Status);
+public sealed record CreateCapaActionRequest(string ActionDescription, string AssignedTo, DateOnly DueDate, string Status);
+public sealed record VerifyCapaRequest(string? RootCauseSummary);
+public sealed record CloseCapaRequest(string? ClosureSummary);
+public sealed record CreateEscalationEventRequest(string ScopeType, string ScopeRef, DateTimeOffset TriggeredAt, string TriggerReason, string EscalatedTo, string Status);
 
 public sealed record AccessReviewResponse(Guid Id, string ScopeType, string ScopeRef, string ReviewCycle, string? ReviewedBy, string Status, string? Decision, string? DecisionRationale, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 public sealed record SecurityReviewResponse(Guid Id, string ScopeType, string ScopeRef, string ControlsReviewed, string? FindingsSummary, string Status, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
@@ -49,3 +55,6 @@ public sealed record BackupEvidenceResponse(Guid Id, string BackupScope, DateTim
 public sealed record RestoreVerificationResponse(Guid Id, Guid BackupEvidenceId, string BackupScope, DateTimeOffset ExecutedAt, string ExecutedBy, string Status, string ResultSummary, DateTimeOffset CreatedAt);
 public sealed record DrDrillResponse(Guid Id, string ScopeRef, DateTimeOffset PlannedAt, DateTimeOffset? ExecutedAt, string Status, int FindingCount, string? Summary, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 public sealed record LegalHoldResponse(Guid Id, string ScopeType, string ScopeRef, DateTimeOffset PlacedAt, string PlacedBy, string Status, string Reason, DateTimeOffset? ReleasedAt, string? ReleasedBy, string? ReleaseReason, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+public sealed record CapaActionResponse(Guid Id, Guid CapaRecordId, string ActionDescription, string AssignedTo, DateOnly DueDate, string Status, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+public sealed record CapaRecordResponse(Guid Id, string SourceType, string SourceRef, string Title, string OwnerUserId, string? RootCauseSummary, string Status, IReadOnlyList<CapaActionResponse> Actions, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt, DateTimeOffset? VerifiedAt, string? VerifiedBy, DateTimeOffset? ClosedAt, string? ClosedBy);
+public sealed record EscalationEventResponse(Guid Id, string ScopeType, string ScopeRef, DateTimeOffset TriggeredAt, string TriggerReason, string EscalatedTo, string Status, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);

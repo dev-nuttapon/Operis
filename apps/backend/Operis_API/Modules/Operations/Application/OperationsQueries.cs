@@ -624,6 +624,81 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
             cancellationToken);
     }
 
+    public async Task<PagedResult<CapaRecordResponse>> ListCapaRecordsAsync(CapaRecordListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.CapaRecords.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.SourceType)) source = source.Where(x => x.SourceType == query.SourceType.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.OwnerUserId)) source = source.Where(x => x.OwnerUserId == query.OwnerUserId.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.SourceRef, search) ||
+                EF.Functions.ILike(x.Title, search) ||
+                EF.Functions.ILike(x.OwnerUserId, search) ||
+                (x.RootCauseSummary != null && EF.Functions.ILike(x.RootCauseSummary, search)));
+        }
+
+        source = ApplyOrdering(source, query.SortBy, query.SortOrder, x => x.CreatedAt, x => x.SourceRef);
+        var page = NormalizePage(query.Page);
+        var pageSize = NormalizePageSize(query.PageSize);
+        var total = await source.CountAsync(cancellationToken);
+        var records = await source.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        var ids = records.Select(x => x.Id).ToArray();
+        var actions = await dbContext.CapaActions.AsNoTracking()
+            .Where(x => ids.Contains(x.CapaRecordId))
+            .OrderBy(x => x.DueDate)
+            .ThenBy(x => x.CreatedAt)
+            .Select(x => new CapaActionResponse(x.Id, x.CapaRecordId, x.ActionDescription, x.AssignedTo, x.DueDate, x.Status, x.CreatedAt, x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        var actionLookup = actions.GroupBy(x => x.CapaRecordId).ToDictionary(x => x.Key, x => (IReadOnlyList<CapaActionResponse>)x.ToList());
+        var items = records.Select(x => new CapaRecordResponse(x.Id, x.SourceType, x.SourceRef, x.Title, x.OwnerUserId, x.RootCauseSummary, x.Status, actionLookup.GetValueOrDefault(x.Id, []), x.CreatedAt, x.UpdatedAt, x.VerifiedAt, x.VerifiedBy, x.ClosedAt, x.ClosedBy)).ToList();
+        return new PagedResult<CapaRecordResponse>(items, total, page, pageSize);
+    }
+
+    public async Task<CapaRecordResponse?> GetCapaRecordAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var record = await dbContext.CapaRecords.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (record is null)
+        {
+            return null;
+        }
+
+        var actions = await dbContext.CapaActions.AsNoTracking()
+            .Where(x => x.CapaRecordId == id)
+            .OrderBy(x => x.DueDate)
+            .ThenBy(x => x.CreatedAt)
+            .Select(x => new CapaActionResponse(x.Id, x.CapaRecordId, x.ActionDescription, x.AssignedTo, x.DueDate, x.Status, x.CreatedAt, x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new CapaRecordResponse(record.Id, record.SourceType, record.SourceRef, record.Title, record.OwnerUserId, record.RootCauseSummary, record.Status, actions, record.CreatedAt, record.UpdatedAt, record.VerifiedAt, record.VerifiedBy, record.ClosedAt, record.ClosedBy);
+    }
+
+    public async Task<PagedResult<EscalationEventResponse>> ListEscalationEventsAsync(EscalationEventListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.EscalationEvents.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.ScopeType)) source = source.Where(x => x.ScopeType == query.ScopeType.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.EscalatedTo)) source = source.Where(x => x.EscalatedTo == query.EscalatedTo.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.ScopeRef, search) ||
+                EF.Functions.ILike(x.EscalatedTo, search) ||
+                EF.Functions.ILike(x.TriggerReason, search));
+        }
+
+        source = ApplyOrdering(source, query.SortBy, query.SortOrder, x => x.TriggeredAt, x => x.ScopeRef);
+        return await PageAsync(
+            source.Select(x => new EscalationEventResponse(x.Id, x.ScopeType, x.ScopeRef, x.TriggeredAt, x.TriggerReason, x.EscalatedTo, x.Status, x.CreatedAt, x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
     private static IQueryable<T> ApplyOrdering<T, TDate, TString>(IQueryable<T> source, string? sortBy, string? sortOrder, Expression<Func<T, TDate>> dateSelector, Expression<Func<T, TString>> stringSelector)
     {
         var descending = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
