@@ -698,6 +698,12 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
 
     public async Task<OperationsCommandResult<SecretRotationResponse>> CreateSecretRotationAsync(CreateSecretRotationRequest request, string? actor, CancellationToken cancellationToken)
     {
+        var touchpoint = NormalizeSecretRotationTouchpoint(request.Touchpoint);
+        if (touchpoint is null)
+        {
+            return Validation<SecretRotationResponse>("Secret rotation touchpoint is required.", ApiErrorCodes.SecretRotationTouchpointRequired);
+        }
+
         var secretScope = Required(request.SecretScope, 256);
         if (secretScope is null)
         {
@@ -705,6 +711,12 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         }
 
         var status = NormalizeSecretRotationStatus(request.Status);
+        var evidenceRef = Optional(request.EvidenceRef, 512);
+        if (status == "verified" && evidenceRef is null)
+        {
+            return Validation<SecretRotationResponse>("Verified secret rotation requires evidence.", ApiErrorCodes.SecretRotationEvidenceRequired);
+        }
+
         if (status == "verified" && (Required(request.VerifiedBy, 128) is null || request.VerifiedAt is null || request.RotatedAt is null))
         {
             return Validation<SecretRotationResponse>("Secret rotation verification requires verifier and verification time.", ApiErrorCodes.SecretRotationVerificationRequired);
@@ -713,7 +725,9 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         var entity = new SecretRotationEntity
         {
             Id = Guid.NewGuid(),
+            Touchpoint = touchpoint,
             SecretScope = secretScope,
+            EvidenceRef = evidenceRef,
             PlannedAt = request.PlannedAt,
             RotatedAt = request.RotatedAt,
             VerifiedBy = Optional(request.VerifiedBy, 128),
@@ -733,6 +747,12 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         var entity = await dbContext.SecretRotations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (entity is null) return NotFound<SecretRotationResponse>();
 
+        var touchpoint = NormalizeSecretRotationTouchpoint(request.Touchpoint);
+        if (touchpoint is null)
+        {
+            return Validation<SecretRotationResponse>("Secret rotation touchpoint is required.", ApiErrorCodes.SecretRotationTouchpointRequired);
+        }
+
         var secretScope = Required(request.SecretScope, 256);
         if (secretScope is null)
         {
@@ -746,12 +766,20 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         }
 
         var verifiedBy = Optional(request.VerifiedBy, 128);
+        var evidenceRef = Optional(request.EvidenceRef, 512);
+        if (nextStatus == "verified" && evidenceRef is null)
+        {
+            return Validation<SecretRotationResponse>("Verified secret rotation requires evidence.", ApiErrorCodes.SecretRotationEvidenceRequired);
+        }
+
         if (nextStatus == "verified" && (verifiedBy is null || request.VerifiedAt is null || request.RotatedAt is null))
         {
             return Validation<SecretRotationResponse>("Secret rotation verification requires verifier and verification time.", ApiErrorCodes.SecretRotationVerificationRequired);
         }
 
+        entity.Touchpoint = touchpoint;
         entity.SecretScope = secretScope;
+        entity.EvidenceRef = evidenceRef;
         entity.PlannedAt = request.PlannedAt;
         entity.RotatedAt = request.RotatedAt;
         entity.VerifiedBy = verifiedBy;
@@ -1294,6 +1322,15 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         _ => "planned"
     };
 
+    private static string? NormalizeSecretRotationTouchpoint(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "keycloak" => "keycloak",
+        "redis" => "redis",
+        "minio" => "minio",
+        "custom" => "custom",
+        _ => null
+    };
+
     private static string NormalizePrivilegedAccessStatus(string? value) => value?.Trim().ToLowerInvariant() switch
     {
         "approved" => "approved",
@@ -1351,7 +1388,7 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
     private static SecurityReviewResponse ToResponse(SecurityReviewEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.ControlsReviewed, x.FindingsSummary, x.Status, x.CreatedAt, x.UpdatedAt);
     private static AccessRecertificationDecisionResponse ToResponse(AccessRecertificationDecisionEntity x) => new(x.Id, x.ScheduleId, x.SubjectUserId, x.Decision, x.Reason, x.DecidedBy, x.DecidedAt);
     private static VulnerabilityResponse ToResponse(VulnerabilityRecordEntity x) => new(x.Id, x.AssetRef, x.Title, x.Severity, x.IdentifiedAt, x.PatchDueAt, x.OwnerUserId, x.Status, x.VerificationSummary, x.CreatedAt, x.UpdatedAt);
-    private static SecretRotationResponse ToResponse(SecretRotationEntity x) => new(x.Id, x.SecretScope, x.PlannedAt, x.RotatedAt, x.VerifiedBy, x.VerifiedAt, x.Status, x.CreatedAt, x.UpdatedAt);
+    private static SecretRotationResponse ToResponse(SecretRotationEntity x) => new(x.Id, x.Touchpoint, x.SecretScope, x.EvidenceRef, x.PlannedAt, x.RotatedAt, x.VerifiedBy, x.VerifiedAt, x.Status, x.CreatedAt, x.UpdatedAt);
     private static PrivilegedAccessEventResponse ToResponse(PrivilegedAccessEventEntity x) => new(x.Id, x.RequestedBy, x.ApprovedBy, x.UsedBy, x.RequestedAt, x.ApprovedAt, x.UsedAt, x.ReviewedAt, x.Status, x.Reason, x.CreatedAt, x.UpdatedAt);
     private static ClassificationPolicyResponse ToResponse(DataClassificationPolicyEntity x) => new(x.Id, x.PolicyCode, x.ClassificationLevel, x.Scope, x.Status, x.HandlingRule, x.CreatedAt, x.UpdatedAt);
     private static BackupEvidenceResponse ToResponse(BackupEvidenceEntity x) => new(x.Id, x.BackupScope, x.ExecutedAt, x.ExecutedBy, x.Status, x.EvidenceRef, x.CreatedAt);

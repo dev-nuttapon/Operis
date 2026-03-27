@@ -1,14 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addAccessRecertificationDecision,
+  addCapaAction,
   completeAccessRecertification,
+  closeCapa,
   createAccessRecertification,
   approveAccessReview,
   createBackupEvidence,
+  createCapaRecord,
   createClassificationPolicy,
   createAccessReview,
   createConfigurationAudit,
   createDrDrill,
+  createEscalationEvent,
   createExternalDependency,
   createLegalHold,
   createPrivilegedAccessEvent,
@@ -20,14 +24,17 @@ import {
   createSupplierAgreement,
   createVulnerability,
   getAccessRecertification,
+  getCapaRecord,
   getSecurityIncident,
   getSupplier,
   listAccessRecertifications,
   listAccessReviews,
   listBackupEvidence,
+  listCapaRecords,
   listClassificationPolicies,
   listConfigurationAudits,
   listDrDrills,
+  listEscalationEvents,
   listExternalDependencies,
   listLegalHolds,
   listPrivilegedAccessEvents,
@@ -39,9 +46,11 @@ import {
   listSuppliers,
   listVulnerabilities,
   releaseLegalHold,
+  verifyCapa,
   updateClassificationPolicy,
   updateAccessRecertification,
   updateAccessReview,
+  updateCapaRecord,
   updateDrDrill,
   updateExternalDependency,
   updatePrivilegedAccessEvent,
@@ -55,12 +64,16 @@ import {
 import type {
   AddAccessRecertificationDecisionInput,
   ApproveAccessReviewInput,
+  CloseCapaInput,
   CreateBackupEvidenceInput,
+  CreateCapaActionInput,
+  CreateCapaRecordInput,
   CreateAccessRecertificationInput,
   CreateAccessReviewInput,
   CreateClassificationPolicyInput,
   CreateConfigurationAuditInput,
   CreateDrDrillInput,
+  CreateEscalationEventInput,
   CreateExternalDependencyInput,
   CreateLegalHoldInput,
   CreatePrivilegedAccessEventInput,
@@ -77,6 +90,7 @@ import type {
   UpdateClassificationPolicyInput,
   UpdateAccessRecertificationInput,
   UpdateAccessReviewInput,
+  UpdateCapaRecordInput,
   UpdateExternalDependencyInput,
   UpdatePrivilegedAccessEventInput,
   UpdateSecretRotationInput,
@@ -85,6 +99,7 @@ import type {
   UpdateSupplierInput,
   UpdateSecurityReviewInput,
   UpdateVulnerabilityInput,
+  VerifyCapaInput,
 } from "../types/operations";
 
 export function useAccessReviews(input: OperationsListInput, enabled = true) {
@@ -226,6 +241,33 @@ export function useLegalHolds(input: OperationsListInput, enabled = true) {
   return useQuery({
     queryKey: ["operations", "legal-holds", input],
     queryFn: ({ signal }) => listLegalHolds(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useCapaRecords(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "capa", input],
+    queryFn: ({ signal }) => listCapaRecords(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useCapaRecord(id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "capa", id],
+    queryFn: ({ signal }) => getCapaRecord(id!, signal),
+    staleTime: 15_000,
+    enabled: enabled && Boolean(id),
+  });
+}
+
+export function useEscalationEvents(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "escalations", input],
+    queryFn: ({ signal }) => listEscalationEvents(input, signal),
     staleTime: 15_000,
     enabled,
   });
@@ -485,6 +527,54 @@ export function useReleaseLegalHold() {
   const invalidate = useInvalidateOperations();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ReleaseLegalHoldInput }) => releaseLegalHold(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateCapaRecord() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateCapaRecordInput) => createCapaRecord(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateCapaRecord() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateCapaRecordInput }) => updateCapaRecord(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAddCapaAction() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: CreateCapaActionInput }) => addCapaAction(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useVerifyCapa() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: VerifyCapaInput }) => verifyCapa(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCloseCapa() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: CloseCapaInput }) => closeCapa(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateEscalationEvent() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateEscalationEventInput) => createEscalationEvent(input),
     onSuccess: invalidate,
   });
 }

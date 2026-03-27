@@ -3,7 +3,7 @@ import { Alert, App, Button, Card, Input, Select, Space, Table, Tag, Typography,
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { DeleteOutlined, EditOutlined, PlusOutlined, ShareAltOutlined } from "@ant-design/icons";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
 import { permissions } from "../../../shared/authz/permissions";
@@ -23,6 +23,7 @@ export function ProjectMembersPage() {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const [searchParams] = useSearchParams();
+  const { projectId: routeProjectId } = useParams<{ projectId: string }>();
   const permissionState = usePermissions();
   const canReadProjects = permissionState.hasPermission(permissions.projects.read);
   const canManageProjectMembers = permissionState.hasPermission(permissions.projects.manageMembers);
@@ -45,11 +46,11 @@ export function ProjectMembersPage() {
   }, [debouncedSearch, setPaging]);
 
   useEffect(() => {
-    const projectId = searchParams.get("projectId") ?? undefined;
+    const projectId = routeProjectId ?? searchParams.get("projectId") ?? undefined;
     if (projectId) {
       setSelectedProjectId(projectId);
     }
-  }, [searchParams]);
+  }, [routeProjectId, searchParams]);
   const {
     projectAssignmentsQuery,
     deleteProjectAssignmentMutation,

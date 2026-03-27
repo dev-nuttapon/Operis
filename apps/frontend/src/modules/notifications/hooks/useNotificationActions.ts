@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { markAllNotificationsRead, markNotificationRead, seedNotifications } from "../api/notificationsApi";
+import { createNotificationQueueItem, markAllNotificationsRead, markNotificationRead, retryNotificationQueueItem, seedNotifications } from "../api/notificationsApi";
+import type { CreateNotificationQueueInput } from "../types/notifications";
 
 export function useNotificationActions() {
   const queryClient = useQueryClient();
@@ -25,9 +26,25 @@ export function useNotificationActions() {
     },
   });
 
+  const enqueueMutation = useMutation({
+    mutationFn: (input: CreateNotificationQueueInput) => createNotificationQueueItem(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["notifications", "queue"] });
+    },
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: (id: string) => retryNotificationQueueItem(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["notifications", "queue"] });
+    },
+  });
+
   return {
     markReadMutation,
     markAllReadMutation,
     seedMutation,
+    enqueueMutation,
+    retryMutation,
   };
 }

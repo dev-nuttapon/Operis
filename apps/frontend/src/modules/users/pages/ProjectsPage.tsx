@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { App, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography, Skeleton, Flex, Grid } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
-import { DeleteOutlined, EditOutlined, EyeOutlined, FolderOpenOutlined, HistoryOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, EyeOutlined, FolderOpenOutlined, HistoryOutlined, PlusOutlined, ShareAltOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
@@ -103,7 +103,13 @@ export function ProjectsPage() {
               key: "detail",
               icon: <EyeOutlined />,
               label: t("common.actions.detail"),
-              onClick: () => navigate(`/app/projects/${record.id}/workspace`),
+              onClick: () => navigate(`/app/projects/${record.id}`),
+            },
+            {
+              key: "team-assignment",
+              icon: <ShareAltOutlined />,
+              label: "Team Assignment",
+              onClick: () => navigate(`/app/projects/${record.id}/team-assignment`),
             },
             {
               key: "edit",

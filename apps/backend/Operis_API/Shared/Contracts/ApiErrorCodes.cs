@@ -106,6 +106,8 @@ namespace Operis_API.Shared.Contracts;
     public const string IntegrationReviewApprovalRequired = "integration_review_approval_required";
     public const string PrivilegedAccessApprovalRequired = "privileged_access_approval_required";
     public const string SecretRotationVerificationRequired = "secret_rotation_verification_required";
+    public const string SecretRotationTouchpointRequired = "secret_rotation_touchpoint_required";
+    public const string SecretRotationEvidenceRequired = "secret_rotation_evidence_required";
     public const string SecurityIncidentResolutionRequired = "security_incident_resolution_required";
     public const string SecurityIncidentCodeDuplicate = "security_incident_code_duplicate";
     public const string PerformanceGateOverrideReasonRequired = "performance_gate_override_reason_required";

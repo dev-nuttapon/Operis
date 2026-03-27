@@ -679,7 +679,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.ToTable("secret_rotations");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Touchpoint).HasColumnName("touchpoint").HasMaxLength(32);
             entity.Property(x => x.SecretScope).HasColumnName("secret_scope").HasMaxLength(256);
+            entity.Property(x => x.EvidenceRef).HasColumnName("evidence_ref").HasMaxLength(512);
             entity.Property(x => x.PlannedAt).HasColumnName("planned_at");
             entity.Property(x => x.RotatedAt).HasColumnName("rotated_at");
             entity.Property(x => x.VerifiedBy).HasColumnName("verified_by").HasMaxLength(128);
@@ -687,6 +689,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.Touchpoint, x.Status });
             entity.HasIndex(x => new { x.SecretScope, x.Status });
             entity.HasIndex(x => x.VerifiedBy);
         });

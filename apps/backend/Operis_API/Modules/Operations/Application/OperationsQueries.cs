@@ -417,6 +417,7 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
     public async Task<PagedResult<SecretRotationResponse>> ListSecretRotationsAsync(SecretRotationListQuery query, CancellationToken cancellationToken)
     {
         var source = dbContext.SecretRotations.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.Touchpoint)) source = source.Where(x => x.Touchpoint == query.Touchpoint.Trim().ToLowerInvariant());
         if (!string.IsNullOrWhiteSpace(query.SecretScope)) source = source.Where(x => x.SecretScope == query.SecretScope.Trim());
         if (!string.IsNullOrWhiteSpace(query.VerifiedBy)) source = source.Where(x => x.VerifiedBy == query.VerifiedBy.Trim());
         if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
@@ -424,7 +425,9 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
         {
             var search = $"%{query.Search.Trim()}%";
             source = source.Where(x =>
+                EF.Functions.ILike(x.Touchpoint, search) ||
                 EF.Functions.ILike(x.SecretScope, search) ||
+                (x.EvidenceRef != null && EF.Functions.ILike(x.EvidenceRef, search)) ||
                 (x.VerifiedBy != null && EF.Functions.ILike(x.VerifiedBy, search)));
         }
 
@@ -437,7 +440,7 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
         };
 
         return await PageAsync(
-            source.Select(x => new SecretRotationResponse(x.Id, x.SecretScope, x.PlannedAt, x.RotatedAt, x.VerifiedBy, x.VerifiedAt, x.Status, x.CreatedAt, x.UpdatedAt)),
+            source.Select(x => new SecretRotationResponse(x.Id, x.Touchpoint, x.SecretScope, x.EvidenceRef, x.PlannedAt, x.RotatedAt, x.VerifiedBy, x.VerifiedAt, x.Status, x.CreatedAt, x.UpdatedAt)),
             query.Page,
             query.PageSize,
             cancellationToken);

@@ -12,7 +12,7 @@ public sealed record SupplierAgreementListQuery(Guid? SupplierId, string? Agreem
 public sealed record AccessRecertificationListQuery(string? ScopeType, string? ReviewOwnerUserId, string? Status, DateTimeOffset? PlannedBefore, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record SecurityIncidentListQuery(Guid? ProjectId, string? Severity, string? OwnerUserId, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record VulnerabilityListQuery(string? Severity, string? OwnerUserId, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
-public sealed record SecretRotationListQuery(string? SecretScope, string? VerifiedBy, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record SecretRotationListQuery(string? Touchpoint, string? SecretScope, string? VerifiedBy, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record PrivilegedAccessEventListQuery(string? RequestedBy, string? ApprovedBy, string? UsedBy, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record ClassificationPolicyListQuery(string? ClassificationLevel, string? Scope, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record BackupEvidenceListQuery(string? BackupScope, string? ExecutedBy, string? Status, DateTimeOffset? ExecutedAfter, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);

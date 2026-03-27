@@ -158,6 +158,10 @@ export function MainLayout() {
     permissions.operations.manage,
     permissions.operations.approve,
   );
+  const hasNotificationsAccess = permissionState.hasAnyPermission(
+    permissions.notifications.read,
+    permissions.notifications.manage,
+  );
   const hasKnowledgeAccess = permissionState.hasAnyPermission(
     permissions.knowledge.read,
     permissions.knowledge.manage,
@@ -254,6 +258,10 @@ export function MainLayout() {
           label: tr('common.master_project_roles'),
         },
         {
+          key: '/app/projects',
+          label: 'Project Register',
+        },
+        {
           key: '/app/projects/phase-approvals',
           label: 'Project Phase Approval',
         },
@@ -262,16 +270,23 @@ export function MainLayout() {
           label: tr('common.workflows'),
         },
         {
-          key: '/app/projects',
-          label: tr('common.project_list'),
-        },
-        {
           key: '/app/workspace',
           label: tr('common.workflow_tasks'),
         },
       ],
     },
     ...[],
+    ...(hasNotificationsAccess
+      ? [{
+          key: '/app/notifications-group',
+          icon: <BellOutlined />,
+          label: 'Notifications',
+          children: [
+            { key: '/app/notifications', label: 'My Notifications' },
+            { key: '/app/notifications/queue', label: 'Notification Queue' },
+          ],
+        }]
+      : []),
     ...(hasGovernanceAccess
       ? [{
           key: '/app/governance',
@@ -322,6 +337,7 @@ export function MainLayout() {
           label: 'Change Control',
           children: [
             { key: '/app/change-control/change-requests', label: 'Change Requests' },
+            { key: '/app/change-control/change-log', label: 'Change Log' },
             { key: '/app/change-control/configuration-items', label: 'Configuration Items' },
             { key: '/app/change-control/baseline-registry', label: 'Baseline Registry' },
           ],
@@ -380,6 +396,7 @@ export function MainLayout() {
           label: 'Metrics & Quality Gates',
           children: [
             { key: '/app/metrics/dashboard', label: 'Metrics Dashboard' },
+            { key: '/app/metrics/schedules', label: 'Data Collection Schedule' },
             { key: '/app/metrics/definitions', label: 'Metric Definitions' },
             { key: '/app/metrics/quality-gates', label: 'Quality Gate Status' },
             { key: '/app/metrics/reviews', label: 'Metrics Review Log' },
@@ -433,6 +450,8 @@ export function MainLayout() {
             { key: '/app/operations/restore-verifications', label: 'Restore Verification' },
             { key: '/app/operations/dr-drills', label: 'DR Drill Log' },
             { key: '/app/operations/legal-holds', label: 'Legal Hold Register' },
+            { key: '/app/operations/capa', label: 'CAPA Register' },
+            { key: '/app/operations/escalations', label: 'Escalation History' },
             { key: '/app/operations/suppliers', label: 'Supplier Register' },
             { key: '/app/operations/supplier-agreements', label: 'SLA/Contract Evidence' },
             { key: '/app/operations/configuration-audits', label: 'Configuration Audit Log' },
@@ -600,6 +619,8 @@ export function MainLayout() {
     if (path.includes('/app/profile')) return tr('common.profile');
     if (path.includes('/app/change-password')) return tr('common.change_password');
     if (path === '/app/projects') return tr('common.my_projects');
+    if (path.includes('/app/notifications/queue')) return 'Notification Queue';
+    if (path.includes('/app/notifications')) return tr('common.notifications');
     if (path.includes('steps')) return tr('common.workflows');
     if (path.includes('admin/users')) return tr('common.user_management');
     if (path.includes('admin/master/divisions')) return tr('common.master_divisions');
@@ -608,6 +629,8 @@ export function MainLayout() {
     if (path.includes('admin/master/positions')) return tr('common.master_positions');
     if (path.includes('/projects/roles')) return tr('common.master_project_roles');
     if (path.includes('/projects/phase-approvals')) return 'Project Phase Approval';
+    if (path.match(/\/app\/projects\/[^/]+\/team-assignment/)) return 'Team Assignment';
+    if (path.match(/\/app\/projects\/[^/]+$/)) return 'Project Detail';
     if (path.includes('/projects/') && path.includes('/workspace')) return tr('common.project_workspace');
     if (path.includes('admin/master')) return tr('common.master_data_management');
     if (path.includes('admin/invitations')) return tr('common.user_invitations');
@@ -625,6 +648,7 @@ export function MainLayout() {
     if (path.includes('/app/governance/design-reviews')) return 'Design Review';
     if (path.includes('/app/governance/integration-reviews')) return 'Integration Review';
     if (path.includes('/app/metrics/dashboard')) return 'Metrics Dashboard';
+    if (path.includes('/app/metrics/schedules')) return 'Data Collection Schedule';
     if (path.includes('/app/metrics/definitions')) return 'Metric Definitions';
     if (path.includes('/app/metrics/quality-gates')) return 'Quality Gate Status';
     if (path.includes('/app/metrics/reviews')) return 'Metrics Review Log';
@@ -651,6 +675,8 @@ export function MainLayout() {
     if (path.includes('/app/operations/restore-verifications')) return 'Restore Verification';
     if (path.includes('/app/operations/dr-drills')) return 'DR Drill Log';
     if (path.includes('/app/operations/legal-holds')) return 'Legal Hold Register';
+    if (path.includes('/app/operations/capa')) return 'CAPA Register';
+    if (path.includes('/app/operations/escalations')) return 'Escalation History';
     if (path.includes('/app/operations/suppliers')) return 'Supplier Register';
     if (path.includes('/app/operations/supplier-agreements')) return 'SLA/Contract Evidence';
     if (path.includes('/app/operations/configuration-audits')) return 'Configuration Audit Log';
@@ -988,6 +1014,10 @@ function getOpenKeys(path: string) {
     return ['/app/admin', '/app/admin/master', '/app/admin/master/permanent'];
   }
 
+  if (path.startsWith('/app/notifications')) {
+    return ['/app/notifications-group'];
+  }
+
   if (
     path.startsWith('/app/projects') ||
     path.startsWith('/app/projects/roles') ||
@@ -1000,6 +1030,29 @@ function getOpenKeys(path: string) {
 
   if (path.startsWith('/app/documents') || path.startsWith('/app/document-templates')) {
     return ['/app/documents-group'];
+  }
+
+  if (
+    path.startsWith('/app/process-library') ||
+    path.startsWith('/app/qa-review-checklists') ||
+    path.startsWith('/app/project-plans') ||
+    path.startsWith('/app/stakeholders') ||
+    path.startsWith('/app/tailoring-records')
+  ) {
+    return ['/app/governance'];
+  }
+
+  if (
+    path.startsWith('/app/governance/raci-maps') ||
+    path.startsWith('/app/governance/approval-evidence') ||
+    path.startsWith('/app/governance/workflow-overrides') ||
+    path.startsWith('/app/governance/sla-rules') ||
+    path.startsWith('/app/governance/retention-policies') ||
+    path.startsWith('/app/governance/architecture-records') ||
+    path.startsWith('/app/governance/design-reviews') ||
+    path.startsWith('/app/governance/integration-reviews')
+  ) {
+    return ['/app/governance-operations'];
   }
 
   if (path.startsWith('/app/requirements')) {
@@ -1028,6 +1081,14 @@ function getOpenKeys(path: string) {
 
   if (path.startsWith('/app/metrics/')) {
     return ['/app/metrics-group'];
+  }
+
+  if (path.startsWith('/app/releases')) {
+    return ['/app/releases-group'];
+  }
+
+  if (path.startsWith('/app/operations/')) {
+    return ['/app/operations-group'];
   }
 
   if (path.startsWith('/app/lessons-learned')) {
@@ -1087,6 +1148,9 @@ function getSelectedMenuKey(path: string) {
   }
 
   if (path.startsWith('/app/notifications')) {
+    if (path.startsWith('/app/notifications/queue')) {
+      return '/app/notifications/queue';
+    }
     return '/app/notifications';
   }
 
@@ -1104,6 +1168,10 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/change-control/configuration-items')) {
     return '/app/change-control/configuration-items';
+  }
+
+  if (path.startsWith('/app/change-control/change-log')) {
+    return '/app/change-control/change-log';
   }
 
   if (path.startsWith('/app/change-control/baseline-registry')) {
@@ -1158,6 +1226,10 @@ function getSelectedMenuKey(path: string) {
     return '/app/metrics/quality-gates';
   }
 
+  if (path.startsWith('/app/metrics/schedules')) {
+    return '/app/metrics/schedules';
+  }
+
   if (path.startsWith('/app/metrics/definitions')) {
     return '/app/metrics/definitions';
   }
@@ -1168,6 +1240,14 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/operations/access-recertifications')) {
     return '/app/operations/access-recertifications';
+  }
+
+  if (path.startsWith('/app/operations/capa')) {
+    return '/app/operations/capa';
+  }
+
+  if (path.startsWith('/app/operations/escalations')) {
+    return '/app/operations/escalations';
   }
 
   if (path.startsWith('/app/lessons-learned')) {

@@ -138,7 +138,9 @@ public sealed class VulnerabilityRecordEntity
 public sealed class SecretRotationEntity
 {
     public Guid Id { get; init; }
+    public string Touchpoint { get; set; } = "custom";
     public string SecretScope { get; set; } = string.Empty;
+    public string? EvidenceRef { get; set; }
     public DateTimeOffset PlannedAt { get; set; }
     public DateTimeOffset? RotatedAt { get; set; }
     public string? VerifiedBy { get; set; }

@@ -131,7 +131,9 @@ export interface VulnerabilityRecord {
 
 export interface SecretRotation {
   id: string;
+  touchpoint: string;
   secretScope: string;
+  evidenceRef: string | null;
   plannedAt: string;
   rotatedAt: string | null;
   verifiedBy: string | null;
@@ -215,6 +217,46 @@ export interface LegalHold {
   updatedAt: string | null;
 }
 
+export interface CapaAction {
+  id: string;
+  capaRecordId: string;
+  actionDescription: string;
+  assignedTo: string;
+  dueDate: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CapaRecord {
+  id: string;
+  sourceType: string;
+  sourceRef: string;
+  title: string;
+  ownerUserId: string;
+  rootCauseSummary: string | null;
+  status: string;
+  actions: CapaAction[];
+  createdAt: string;
+  updatedAt: string | null;
+  verifiedAt: string | null;
+  verifiedBy: string | null;
+  closedAt: string | null;
+  closedBy: string | null;
+}
+
+export interface EscalationEvent {
+  id: string;
+  scopeType: string;
+  scopeRef: string;
+  triggeredAt: string;
+  triggerReason: string;
+  escalatedTo: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 export interface OperationsListInput {
   scopeType?: string;
   scopeRef?: string;
@@ -237,6 +279,9 @@ export interface OperationsListInput {
   classificationLevel?: string;
   backupScope?: string;
   backupEvidenceId?: string;
+  touchpoint?: string;
+  sourceType?: string;
+  escalatedTo?: string;
   scope?: string;
   projectId?: string;
   executedAfter?: string;
@@ -309,6 +354,41 @@ export interface CreateLegalHoldInput {
 
 export interface ReleaseLegalHoldInput {
   reason: string;
+}
+
+export interface CreateCapaRecordInput {
+  sourceType: string;
+  sourceRef: string;
+  title: string;
+  ownerUserId: string;
+  rootCauseSummary?: string | null;
+  status: string;
+}
+
+export interface UpdateCapaRecordInput extends CreateCapaRecordInput {}
+
+export interface CreateCapaActionInput {
+  actionDescription: string;
+  assignedTo: string;
+  dueDate: string;
+  status: string;
+}
+
+export interface VerifyCapaInput {
+  rootCauseSummary?: string | null;
+}
+
+export interface CloseCapaInput {
+  closureSummary?: string | null;
+}
+
+export interface CreateEscalationEventInput {
+  scopeType: string;
+  scopeRef: string;
+  triggeredAt: string;
+  triggerReason: string;
+  escalatedTo: string;
+  status: string;
 }
 
 export interface CreateAccessRecertificationInput {
@@ -399,7 +479,9 @@ export interface CreateVulnerabilityInput {
 export interface UpdateVulnerabilityInput extends CreateVulnerabilityInput {}
 
 export interface CreateSecretRotationInput {
+  touchpoint: string;
   secretScope: string;
+  evidenceRef?: string | null;
   plannedAt: string;
   rotatedAt?: string | null;
   verifiedBy?: string | null;

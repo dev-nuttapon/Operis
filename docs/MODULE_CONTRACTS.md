@@ -229,6 +229,7 @@ Module entry:
 Application surfaces:
 
 * notification queries
+* notification commands
 
 ## governance
 
@@ -305,6 +306,11 @@ Module entry:
 
 * [apps/backend/Operis_API/Modules/Operations/OperationsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Operations/OperationsModule.cs)
 * [apps/backend/Operis_API/Modules/Operations/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Operations/README.md)
+
+Application surfaces:
+
+* operations queries
+* operations commands
 
 ## knowledge
 

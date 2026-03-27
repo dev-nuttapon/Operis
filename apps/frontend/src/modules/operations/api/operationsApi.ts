@@ -6,15 +6,20 @@ import type {
   AddAccessRecertificationDecisionInput,
   ApproveAccessReviewInput,
   BackupEvidence,
+  CapaAction,
+  CapaRecord,
   ClassificationPolicy,
   ConfigurationAudit,
   CreateBackupEvidenceInput,
+  CreateCapaActionInput,
+  CreateCapaRecordInput,
   CreateAccessRecertificationInput,
   CreateAccessReviewInput,
   CreateClassificationPolicyInput,
   CreateConfigurationAuditInput,
   CreateDrDrillInput,
   CreateExternalDependencyInput,
+  CreateEscalationEventInput,
   CreateLegalHoldInput,
   CreatePrivilegedAccessEventInput,
   CreateRestoreVerificationInput,
@@ -25,11 +30,13 @@ import type {
   CreateSupplierInput,
   CreateVulnerabilityInput,
   DrDrill,
+  EscalationEvent,
   ExternalDependency,
   LegalHold,
   OperationsListInput,
   PrivilegedAccessEvent,
   ReleaseLegalHoldInput,
+  CloseCapaInput,
   RestoreVerification,
   SecretRotation,
   SecurityIncident,
@@ -37,6 +44,7 @@ import type {
   Supplier,
   SupplierAgreement,
   UpdateDrDrillInput,
+  UpdateCapaRecordInput,
   UpdateClassificationPolicyInput,
   UpdateAccessRecertificationInput,
   UpdateAccessReviewInput,
@@ -48,6 +56,7 @@ import type {
   UpdateSupplierInput,
   UpdateSecurityReviewInput,
   UpdateVulnerabilityInput,
+  VerifyCapaInput,
   VulnerabilityRecord,
 } from "../types/operations";
 
@@ -74,6 +83,10 @@ function toQuery(input?: OperationsListInput) {
   if (input?.classificationLevel) params.set("classificationLevel", input.classificationLevel);
   if (input?.backupScope) params.set("backupScope", input.backupScope);
   if (input?.backupEvidenceId) params.set("backupEvidenceId", input.backupEvidenceId);
+  if (input?.touchpoint) params.set("touchpoint", input.touchpoint);
+  if (input?.sourceType) params.set("sourceType", input.sourceType);
+  if (input?.ownerUserId) params.set("ownerUserId", input.ownerUserId);
+  if (input?.escalatedTo) params.set("escalatedTo", input.escalatedTo);
   if (input?.scope) params.set("scope", input.scope);
   if (input?.projectId) params.set("projectId", input.projectId);
   if (input?.executedAfter) params.set("executedAfter", input.executedAfter);
@@ -134,6 +147,15 @@ export const listDrDrills = (input?: OperationsListInput, signal?: AbortSignal) 
 
 export const listLegalHolds = (input?: OperationsListInput, signal?: AbortSignal) =>
   apiRequest<PaginatedResult<LegalHold>>(`/api/v1/legal-holds${toQuery(input)}`, { signal });
+
+export const listCapaRecords = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<CapaRecord>>(`/api/v1/capa${toQuery(input)}`, { signal });
+
+export const getCapaRecord = (id: string, signal?: AbortSignal) =>
+  apiRequest<CapaRecord>(`/api/v1/capa/${id}`, { signal });
+
+export const listEscalationEvents = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<EscalationEvent>>(`/api/v1/escalations${toQuery(input)}`, { signal });
 
 export const listSuppliers = (input?: OperationsListInput, signal?: AbortSignal) =>
   apiRequest<PaginatedResult<Supplier>>(`/api/v1/suppliers${toQuery(input)}`, { signal });
@@ -227,6 +249,24 @@ export const createLegalHold = (input: CreateLegalHoldInput) =>
 
 export const releaseLegalHold = (id: string, input: ReleaseLegalHoldInput) =>
   apiRequest<LegalHold>(`/api/v1/legal-holds/${id}/release`, { method: "PUT", body: input });
+
+export const createCapaRecord = (input: CreateCapaRecordInput) =>
+  apiRequest<CapaRecord>("/api/v1/capa", { method: "POST", body: input });
+
+export const updateCapaRecord = (id: string, input: UpdateCapaRecordInput) =>
+  apiRequest<CapaRecord>(`/api/v1/capa/${id}`, { method: "PUT", body: input });
+
+export const addCapaAction = (id: string, input: CreateCapaActionInput) =>
+  apiRequest<CapaAction>(`/api/v1/capa/${id}/actions`, { method: "POST", body: input });
+
+export const verifyCapa = (id: string, input: VerifyCapaInput) =>
+  apiRequest<CapaRecord>(`/api/v1/capa/${id}/verify`, { method: "PUT", body: input });
+
+export const closeCapa = (id: string, input: CloseCapaInput) =>
+  apiRequest<CapaRecord>(`/api/v1/capa/${id}/close`, { method: "PUT", body: input });
+
+export const createEscalationEvent = (input: CreateEscalationEventInput) =>
+  apiRequest<EscalationEvent>("/api/v1/escalations", { method: "POST", body: input });
 
 export const createSupplier = (input: CreateSupplierInput) =>
   apiRequest<Supplier>("/api/v1/suppliers", { method: "POST", body: input });

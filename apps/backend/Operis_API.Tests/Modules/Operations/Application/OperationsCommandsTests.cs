@@ -253,12 +253,40 @@ public sealed class OperationsCommandsTests
         var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
         var result = await sut.UpdateSecretRotationAsync(
             rotationId,
-            new UpdateSecretRotationRequest("keycloak/admin-client", DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddHours(-2), "", DateTimeOffset.UtcNow, "verified"),
+            new UpdateSecretRotationRequest("keycloak", "keycloak/admin-client", "ops://rotation/keycloak-admin-client-2026-03", DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddHours(-2), "", DateTimeOffset.UtcNow, "verified"),
             "security@example.com",
             CancellationToken.None);
 
         Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
         Assert.Equal(ApiErrorCodes.SecretRotationVerificationRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task UpdateSecretRotationAsync_VerifyWithoutEvidence_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var rotationId = Guid.NewGuid();
+        dbContext.SecretRotations.Add(new SecretRotationEntity
+        {
+            Id = rotationId,
+            Touchpoint = "redis",
+            SecretScope = "redis/session-signing-key",
+            PlannedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            RotatedAt = DateTimeOffset.UtcNow.AddHours(-2),
+            Status = "rotated",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.UpdateSecretRotationAsync(
+            rotationId,
+            new UpdateSecretRotationRequest("redis", "redis/session-signing-key", "", DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddHours(-2), "security@example.com", DateTimeOffset.UtcNow, "verified"),
+            "security@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.SecretRotationEvidenceRequired, result.ErrorCode);
     }
 
     [Fact]

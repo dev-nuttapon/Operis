@@ -100,6 +100,7 @@ const allPermissions = [
   "knowledge.read",
   "knowledge.manage",
   "notifications.read",
+  "notifications.manage",
 ] as const;
 
 export const permissions = {
@@ -243,6 +244,7 @@ export const permissions = {
   },
   notifications: {
     read: "notifications.read",
+    manage: "notifications.manage",
   },
 } as const;
 
@@ -353,6 +355,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.knowledge.read,
     permissions.knowledge.manage,
     permissions.notifications.read,
+    permissions.notifications.manage,
   ],
   operis_system_admin: [
     permissions.admin.permissionMatrixRead,
@@ -434,6 +437,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.knowledge.read,
     permissions.knowledge.manage,
     permissions.notifications.read,
+    permissions.notifications.manage,
   ],
   "operis:audit_auditor": [
     permissions.activityLogs.read,
@@ -481,7 +485,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
   "operis:workflows_approver": [permissions.workflows.read, permissions.notifications.read],
   "operis:workflows_department_manager": [permissions.workflows.read, permissions.notifications.read],
   "operis:employee_viewer": [permissions.workflows.read, permissions.notifications.read],
-  "operis:ops_support": [permissions.admin.settingsRead, permissions.activityLogs.read, permissions.notifications.read],
+  "operis:ops_support": [permissions.admin.settingsRead, permissions.activityLogs.read, permissions.notifications.read, permissions.notifications.manage],
   "operis:compliance_admin": [
     permissions.auditLogs.read,
     permissions.auditLogs.export,
@@ -544,6 +548,8 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.operations.approve,
     permissions.knowledge.read,
     permissions.knowledge.manage,
+    permissions.notifications.read,
+    permissions.notifications.manage,
   ],
   "operis:pm": [
     permissions.projects.read,
@@ -844,6 +850,7 @@ export function getPermissionLabel(permission: Permission) {
     [permissions.knowledge.read]: "Read Lessons Learned",
     [permissions.knowledge.manage]: "Manage Lessons Learned",
     [permissions.notifications.read]: "Read Notifications",
+    [permissions.notifications.manage]: "Manage Notification Queue",
   }[permission];
 }
 

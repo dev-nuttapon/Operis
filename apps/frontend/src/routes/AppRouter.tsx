@@ -343,6 +343,21 @@ const WorkspaceProjectsPage = lazy(() =>
 const NotificationsPage = lazy(() =>
   import("../modules/notifications/pages/NotificationsPage").then((module) => ({ default: module.NotificationsPage }))
 );
+const NotificationQueuePage = lazy(() =>
+  import("../modules/notifications/pages/NotificationQueuePage").then((module) => ({ default: module.NotificationQueuePage }))
+);
+const DataCollectionSchedulePage = lazy(() =>
+  import("../modules/metrics/pages/DataCollectionSchedulePage").then((module) => ({ default: module.DataCollectionSchedulePage }))
+);
+const ChangeLogPage = lazy(() =>
+  import("../modules/change-control/pages/ChangeLogPage").then((module) => ({ default: module.ChangeLogPage }))
+);
+const CapaRegisterPage = lazy(() =>
+  import("../modules/operations/pages/CapaRegisterPage").then((module) => ({ default: module.CapaRegisterPage }))
+);
+const EscalationHistoryPage = lazy(() =>
+  import("../modules/operations/pages/EscalationHistoryPage").then((module) => ({ default: module.EscalationHistoryPage }))
+);
 
 function RouteFallback() {
   return (
@@ -381,10 +396,12 @@ export function AppRouter() {
                 <Route path="documents/:documentId/versions" element={<AuthorizedRoute anyOf={[permissions.documents.read, permissions.documents.manageVersions, permissions.documents.publish]}><DocumentVersionsPage /></AuthorizedRoute>} />
                 <Route path="documents/:documentId/history" element={<AuthorizedRoute permission={permissions.activityLogs.read}><DocumentHistoryPage /></AuthorizedRoute>} />
                 <Route path="documents/:documentId/versions/new" element={<AuthorizedRoute permission={permissions.documents.manageVersions}><DocumentVersionUploadPage /></AuthorizedRoute>} />
-                <Route path="projects" element={<ProjectsPage />} />
-                <Route path="projects/new" element={<ProjectCreatePage />} />
-                <Route path="projects/:projectId/edit" element={<ProjectEditPage />} />
-                <Route path="projects/:projectId/history" element={<ProjectHistoryPage />} />
+                <Route path="projects" element={<AuthorizedRoute anyOf={[permissions.projects.read, permissions.projects.manage]}><ProjectsPage /></AuthorizedRoute>} />
+                <Route path="projects/new" element={<AuthorizedRoute permission={permissions.projects.manage}><ProjectCreatePage /></AuthorizedRoute>} />
+                <Route path="projects/:projectId" element={<AuthorizedRoute anyOf={[permissions.projects.read, permissions.projects.manage]}><ProjectWorkspacePrototypePage /></AuthorizedRoute>} />
+                <Route path="projects/:projectId/team-assignment" element={<AuthorizedRoute anyOf={[permissions.projects.read, permissions.projects.manageMembers]}><ProjectMembersPage /></AuthorizedRoute>} />
+                <Route path="projects/:projectId/edit" element={<AuthorizedRoute permission={permissions.projects.manage}><ProjectEditPage /></AuthorizedRoute>} />
+                <Route path="projects/:projectId/history" element={<AuthorizedRoute permission={permissions.activityLogs.read}><ProjectHistoryPage /></AuthorizedRoute>} />
               <Route path="steps" element={<WorkflowDefinitionsPage />} />
               <Route path="steps/new" element={<WorkflowDefinitionCreatePage />} />
               <Route path="steps/:workflowDefinitionId/edit" element={<WorkflowDefinitionEditPage />} />
@@ -396,6 +413,7 @@ export function AppRouter() {
                 element={<WorkflowTaskUploadPage />}
               />
               <Route path="notifications" element={<NotificationsPage />} />
+              <Route path="notifications/queue" element={<AuthorizedRoute anyOf={[permissions.notifications.read, permissions.notifications.manage]}><NotificationQueuePage /></AuthorizedRoute>} />
               <Route path="admin/users" element={<AuthorizedRoute permission={permissions.users.read}><AdminUsersPage /></AuthorizedRoute>} />
               <Route path="admin/users/new" element={<AuthorizedRoute permission={permissions.users.create}><AdminUserCreatePage /></AuthorizedRoute>} />
               <Route path="admin/users/:userId/edit" element={<AuthorizedRoute permission={permissions.users.update}><AdminUserEditPage /></AuthorizedRoute>} />
@@ -420,6 +438,7 @@ export function AppRouter() {
               <Route path="requirements/traceability" element={<AuthorizedRoute permission={permissions.requirements.read}><TraceabilityMatrixPage /></AuthorizedRoute>} />
               <Route path="change-control/change-requests" element={<AuthorizedRoute anyOf={[permissions.changeControl.read, permissions.changeControl.manage, permissions.changeControl.approve]}><ChangeRequestRegisterPage /></AuthorizedRoute>} />
               <Route path="change-control/change-requests/:changeRequestId" element={<AuthorizedRoute anyOf={[permissions.changeControl.read, permissions.changeControl.manage, permissions.changeControl.approve]}><ChangeRequestDetailPage /></AuthorizedRoute>} />
+              <Route path="change-control/change-log" element={<AuthorizedRoute anyOf={[permissions.changeControl.read, permissions.changeControl.manage, permissions.changeControl.approve]}><ChangeLogPage /></AuthorizedRoute>} />
               <Route path="change-control/configuration-items" element={<AuthorizedRoute anyOf={[permissions.changeControl.readConfiguration, permissions.changeControl.manageConfiguration]}><ConfigurationItemsPage /></AuthorizedRoute>} />
               <Route path="change-control/baseline-registry" element={<AuthorizedRoute anyOf={[permissions.changeControl.manageBaselines, permissions.changeControl.approveBaselines, permissions.changeControl.readConfiguration]}><BaselineRegistryPage /></AuthorizedRoute>} />
               <Route path="risks" element={<AuthorizedRoute anyOf={[permissions.risks.read, permissions.risks.manage]}><RiskRegisterPage /></AuthorizedRoute>} />
@@ -437,6 +456,7 @@ export function AppRouter() {
               <Route path="evidence-exports" element={<AuthorizedRoute anyOf={[permissions.auditLogs.read, permissions.auditLogs.export]}><EvidenceExportsPage /></AuthorizedRoute>} />
               <Route path="audit-plans" element={<AuthorizedRoute anyOf={[permissions.auditLogs.read, permissions.auditLogs.manage]}><AuditPlansPage /></AuthorizedRoute>} />
               <Route path="metrics/definitions" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><MetricDefinitionsPage /></AuthorizedRoute>} />
+              <Route path="metrics/schedules" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><DataCollectionSchedulePage /></AuthorizedRoute>} />
               <Route path="metrics/dashboard" element={<AuthorizedRoute permission={permissions.metrics.read}><MetricsDashboardPage /></AuthorizedRoute>} />
               <Route path="metrics/quality-gates" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage, permissions.metrics.overrideQualityGates]}><QualityGatesPage /></AuthorizedRoute>} />
               <Route path="metrics/reviews" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><MetricReviewsPage /></AuthorizedRoute>} />
@@ -465,6 +485,8 @@ export function AppRouter() {
               <Route path="operations/restore-verifications" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><RestoreVerificationPage /></AuthorizedRoute>} />
               <Route path="operations/dr-drills" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><DrDrillLogPage /></AuthorizedRoute>} />
               <Route path="operations/legal-holds" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><LegalHoldRegisterPage /></AuthorizedRoute>} />
+              <Route path="operations/capa" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><CapaRegisterPage /></AuthorizedRoute>} />
+              <Route path="operations/escalations" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><EscalationHistoryPage /></AuthorizedRoute>} />
               <Route path="operations/suppliers" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierRegisterPage /></AuthorizedRoute>} />
               <Route path="operations/supplier-agreements" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierAgreementsPage /></AuthorizedRoute>} />
               <Route path="operations/configuration-audits" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ConfigurationAuditsPage /></AuthorizedRoute>} />

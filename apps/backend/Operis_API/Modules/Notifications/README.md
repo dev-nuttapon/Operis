@@ -3,6 +3,7 @@
 Purpose:
 
 * owns notification persistence and delivery orchestration
+* owns Phase 24 notification queue management endpoints
 
 Public surface:
 
@@ -12,8 +13,10 @@ Public surface:
 
 Owned data:
 
-* notification-related tables (when introduced)
+* `notifications`
+* `notification_queue`
 
 Notes:
 
 * keep endpoints thin and delegate logic to `Application/`
+* queue retry validation and lifecycle state changes stay in `Application/`

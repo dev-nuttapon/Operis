@@ -1,5 +1,6 @@
 export * from "./api/metricsApi";
 export * from "./hooks/useMetrics";
+export * from "./pages/DataCollectionSchedulePage";
 export * from "./pages/MetricReviewsPage";
 export * from "./pages/TrendReportsPage";
 export * from "./pages/PerformanceBaselinePage";
