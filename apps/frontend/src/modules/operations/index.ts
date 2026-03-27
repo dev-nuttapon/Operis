@@ -1,6 +1,7 @@
 export * from "./api/operationsApi";
 export * from "./hooks/useOperations";
 export * from "./pages/AccessReviewsPage";
+export * from "./pages/AccessRecertificationsPage";
 export * from "./pages/SecurityReviewsPage";
 export * from "./pages/ExternalDependenciesPage";
 export * from "./pages/SupplierRegisterPage";

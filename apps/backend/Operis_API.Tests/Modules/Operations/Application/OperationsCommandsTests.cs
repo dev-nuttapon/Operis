@@ -112,4 +112,69 @@ public sealed class OperationsCommandsTests
         Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
         Assert.Equal(ApiErrorCodes.SupplierActiveAgreementExists, result.ErrorCode);
     }
+
+    [Fact]
+    public async Task AddAccessRecertificationDecisionAsync_WithoutRationale_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var scheduleId = Guid.NewGuid();
+        dbContext.AccessRecertificationSchedules.Add(new AccessRecertificationScheduleEntity
+        {
+            Id = scheduleId,
+            ScopeType = "role",
+            ScopeRef = "finance-approver",
+            PlannedAt = DateTimeOffset.UtcNow.AddDays(7),
+            ReviewOwnerUserId = "owner@example.com",
+            Status = "planned",
+            SubjectUsersJson = "[\"user-1\"]",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.AddAccessRecertificationDecisionAsync(
+            scheduleId,
+            new AddAccessRecertificationDecisionRequest("user-1", "revoked", ""),
+            "owner@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.AccessRecertificationDecisionRationaleRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CompleteAccessRecertificationAsync_WithPendingDecisions_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var scheduleId = Guid.NewGuid();
+        dbContext.AccessRecertificationSchedules.Add(new AccessRecertificationScheduleEntity
+        {
+            Id = scheduleId,
+            ScopeType = "role",
+            ScopeRef = "finance-approver",
+            PlannedAt = DateTimeOffset.UtcNow.AddDays(7),
+            ReviewOwnerUserId = "owner@example.com",
+            Status = "approved",
+            SubjectUsersJson = "[\"user-1\",\"user-2\"]",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.AccessRecertificationDecisions.Add(new AccessRecertificationDecisionEntity
+        {
+            Id = Guid.NewGuid(),
+            ScheduleId = scheduleId,
+            SubjectUserId = "user-1",
+            Decision = "kept",
+            Reason = "Still required",
+            DecidedBy = "owner@example.com",
+            DecidedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.CompleteAccessRecertificationAsync(scheduleId, "owner@example.com", CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.AccessRecertificationPendingDecisions, result.ErrorCode);
+    }
 }

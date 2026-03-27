@@ -100,6 +100,8 @@ namespace Operis_API.Shared.Contracts;
     public const string SupplierAgreementEvidenceRequired = "supplier_agreement_evidence_required";
     public const string SupplierAgreementEffectiveDatesRequired = "supplier_agreement_effective_dates_required";
     public const string SupplierActiveAgreementExists = "supplier_active_agreement_exists";
+    public const string AccessRecertificationPendingDecisions = "access_recertification_pending_decisions";
+    public const string AccessRecertificationDecisionRationaleRequired = "access_recertification_decision_rationale_required";
     public const string SlaTargetRequired = "sla_target_required";
     public const string SlaEscalationPolicyRequired = "sla_escalation_policy_required";
     public const string OverrideLogMutationForbidden = "override_log_mutation_forbidden";

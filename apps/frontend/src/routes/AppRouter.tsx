@@ -190,6 +190,9 @@ const NonConformanceDetailPage = lazy(() =>
 const AccessReviewsPage = lazy(() =>
   import("../modules/operations/pages/AccessReviewsPage").then((module) => ({ default: module.AccessReviewsPage }))
 );
+const AccessRecertificationsPage = lazy(() =>
+  import("../modules/operations/pages/AccessRecertificationsPage").then((module) => ({ default: module.AccessRecertificationsPage }))
+);
 const SecurityReviewsPage = lazy(() =>
   import("../modules/operations/pages/SecurityReviewsPage").then((module) => ({ default: module.SecurityReviewsPage }))
 );
@@ -395,6 +398,7 @@ export function AppRouter() {
               <Route path="non-conformances" element={<AuthorizedRoute anyOf={[permissions.defects.read, permissions.defects.manage]}><NonConformanceLogPage /></AuthorizedRoute>} />
               <Route path="non-conformances/:nonConformanceId" element={<AuthorizedRoute anyOf={[permissions.defects.read, permissions.defects.manage]}><NonConformanceDetailPage /></AuthorizedRoute>} />
               <Route path="operations/access-reviews" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><AccessReviewsPage /></AuthorizedRoute>} />
+              <Route path="operations/access-recertifications" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><AccessRecertificationsPage /></AuthorizedRoute>} />
               <Route path="operations/security-reviews" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SecurityReviewsPage /></AuthorizedRoute>} />
               <Route path="operations/external-dependencies" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ExternalDependenciesPage /></AuthorizedRoute>} />
               <Route path="operations/suppliers" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierRegisterPage /></AuthorizedRoute>} />

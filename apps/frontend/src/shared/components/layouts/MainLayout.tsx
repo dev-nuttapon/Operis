@@ -408,6 +408,7 @@ export function MainLayout() {
           label: 'Security & Dependencies',
           children: [
             { key: '/app/operations/access-reviews', label: 'Access Review' },
+            { key: '/app/operations/access-recertifications', label: 'Access Recertification' },
             { key: '/app/operations/security-reviews', label: 'Security Review' },
             { key: '/app/operations/external-dependencies', label: 'External Dependency Register' },
             { key: '/app/operations/suppliers', label: 'Supplier Register' },
@@ -609,6 +610,7 @@ export function MainLayout() {
     if (path.includes('/app/non-conformances')) return 'Non-Conformance Log';
     if (path.includes('/app/defects')) return 'Defect Log';
     if (path.includes('/app/operations/access-reviews')) return 'Access Review';
+    if (path.includes('/app/operations/access-recertifications')) return 'Access Recertification';
     if (path.includes('/app/operations/security-reviews')) return 'Security Review';
     if (path.includes('/app/operations/external-dependencies')) return 'External Dependency Register';
     if (path.includes('/app/operations/suppliers')) return 'Supplier Register';
@@ -1124,6 +1126,10 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/metrics/dashboard')) {
     return '/app/metrics/dashboard';
+  }
+
+  if (path.startsWith('/app/operations/access-recertifications')) {
+    return '/app/operations/access-recertifications';
   }
 
   if (path.startsWith('/app/lessons-learned')) {

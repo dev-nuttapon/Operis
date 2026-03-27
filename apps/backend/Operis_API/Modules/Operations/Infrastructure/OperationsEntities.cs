@@ -77,3 +77,30 @@ public sealed class ConfigurationAuditEntity
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; set; }
 }
+
+public sealed class AccessRecertificationScheduleEntity
+{
+    public Guid Id { get; init; }
+    public string ScopeType { get; set; } = string.Empty;
+    public string ScopeRef { get; set; } = string.Empty;
+    public DateTimeOffset PlannedAt { get; set; }
+    public string ReviewOwnerUserId { get; set; } = string.Empty;
+    public string Status { get; set; } = "planned";
+    public string? SubjectUsersJson { get; set; }
+    public string? ExceptionNotes { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class AccessRecertificationDecisionEntity
+{
+    public Guid Id { get; init; }
+    public Guid ScheduleId { get; set; }
+    public string SubjectUserId { get; set; } = string.Empty;
+    public string Decision { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public string DecidedBy { get; set; } = string.Empty;
+    public DateTimeOffset DecidedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+}

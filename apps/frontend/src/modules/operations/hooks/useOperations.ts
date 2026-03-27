@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  addAccessRecertificationDecision,
+  completeAccessRecertification,
+  createAccessRecertification,
   approveAccessReview,
   createAccessReview,
   createConfigurationAudit,
@@ -7,13 +10,16 @@ import {
   createSecurityReview,
   createSupplier,
   createSupplierAgreement,
+  getAccessRecertification,
   getSupplier,
+  listAccessRecertifications,
   listAccessReviews,
   listConfigurationAudits,
   listExternalDependencies,
   listSecurityReviews,
   listSupplierAgreements,
   listSuppliers,
+  updateAccessRecertification,
   updateAccessReview,
   updateExternalDependency,
   updateSupplier,
@@ -21,7 +27,9 @@ import {
   updateSecurityReview,
 } from "../api/operationsApi";
 import type {
+  AddAccessRecertificationDecisionInput,
   ApproveAccessReviewInput,
+  CreateAccessRecertificationInput,
   CreateAccessReviewInput,
   CreateConfigurationAuditInput,
   CreateExternalDependencyInput,
@@ -29,6 +37,7 @@ import type {
   CreateSupplierAgreementInput,
   CreateSupplierInput,
   OperationsListInput,
+  UpdateAccessRecertificationInput,
   UpdateAccessReviewInput,
   UpdateExternalDependencyInput,
   UpdateSupplierAgreementInput,
@@ -42,6 +51,24 @@ export function useAccessReviews(input: OperationsListInput, enabled = true) {
     queryFn: ({ signal }) => listAccessReviews(input, signal),
     staleTime: 15_000,
     enabled,
+  });
+}
+
+export function useAccessRecertifications(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "access-recertifications", input],
+    queryFn: ({ signal }) => listAccessRecertifications(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useAccessRecertification(id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "access-recertifications", id],
+    queryFn: ({ signal }) => getAccessRecertification(id!, signal),
+    staleTime: 15_000,
+    enabled: enabled && Boolean(id),
   });
 }
 
@@ -126,6 +153,38 @@ export function useApproveAccessReview() {
   const invalidate = useInvalidateOperations();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ApproveAccessReviewInput }) => approveAccessReview(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateAccessRecertification() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateAccessRecertificationInput) => createAccessRecertification(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateAccessRecertification() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateAccessRecertificationInput }) => updateAccessRecertification(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAddAccessRecertificationDecision() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: AddAccessRecertificationDecisionInput }) => addAccessRecertificationDecision(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCompleteAccessRecertification() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (id: string) => completeAccessRecertification(id),
     onSuccess: invalidate,
   });
 }

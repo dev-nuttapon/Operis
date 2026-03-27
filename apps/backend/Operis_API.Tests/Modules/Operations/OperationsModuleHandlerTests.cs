@@ -22,12 +22,32 @@ public sealed class OperationsModuleHandlerTests
         Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
     }
 
+    [Fact]
+    public async Task CompleteAccessRecertificationAsync_WithoutApprovePermission_ReturnsForbidden()
+    {
+        var result = await InvokeCompleteAccessRecertificationAsync(CreateComplianceReaderPrincipal(), new FakeOperationsCommands());
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+    }
+
     private static async Task<IResult> InvokeApproveAccessReviewAsync(ClaimsPrincipal principal, IOperationsCommands commands)
     {
         var method = typeof(OperationsModule).GetMethod("ApproveAccessReviewAsync", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("OperationsModule.ApproveAccessReviewAsync was not found.");
 
         var task = (Task<IResult>)method.Invoke(null, [principal, Guid.NewGuid(), new ApproveAccessReviewRequest("approve", "Documented evidence"), commands, new PermissionMatrix(), CancellationToken.None])!;
+        return await task;
+    }
+
+    private static async Task<IResult> InvokeCompleteAccessRecertificationAsync(ClaimsPrincipal principal, IOperationsCommands commands)
+    {
+        var method = typeof(OperationsModule).GetMethod("CompleteAccessRecertificationAsync", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("OperationsModule.CompleteAccessRecertificationAsync was not found.");
+
+        var task = (Task<IResult>)method.Invoke(null, [principal, Guid.NewGuid(), commands, new PermissionMatrix(), CancellationToken.None])!;
         return await task;
     }
 
@@ -57,5 +77,10 @@ public sealed class OperationsModuleHandlerTests
         public Task<OperationsCommandResult<SupplierResponse>> UpdateSupplierAsync(Guid id, UpdateSupplierRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<OperationsCommandResult<SupplierAgreementResponse>> CreateSupplierAgreementAsync(CreateSupplierAgreementRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<OperationsCommandResult<SupplierAgreementResponse>> UpdateSupplierAgreementAsync(Guid id, UpdateSupplierAgreementRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<AccessRecertificationResponse>> CreateAccessRecertificationAsync(CreateAccessRecertificationRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<AccessRecertificationResponse>> UpdateAccessRecertificationAsync(Guid id, UpdateAccessRecertificationRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<AccessRecertificationDecisionResponse>> AddAccessRecertificationDecisionAsync(Guid id, AddAccessRecertificationDecisionRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<AccessRecertificationResponse>> CompleteAccessRecertificationAsync(Guid id, string? actor, CancellationToken cancellationToken) =>
+            Task.FromResult(new OperationsCommandResult<AccessRecertificationResponse>(OperationsCommandStatus.Success, new AccessRecertificationResponse(id, "role", "finance-approver", DateTimeOffset.UtcNow, "owner@example.com", "completed", ["user-1"], [new AccessRecertificationDecisionResponse(Guid.NewGuid(), id, "user-1", "kept", "Still required", actor ?? "owner@example.com", DateTimeOffset.UtcNow)], null, 1, 0, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)));
     }
 }

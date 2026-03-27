@@ -3732,6 +3732,9 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
   - `planned_at`: datetime, required, indexed
   - `review_owner_user_id`: string, required, indexed
   - `status`: enum(`planned`,`in_review`,`approved`,`completed`), required, indexed
+  - `subject_user_ids`: json/string list, optional
+  - `exception_notes`: string, optional, max 2000
+  - `completed_at`: datetime, optional
 - Indexes
   - index(`status`,`planned_at`)
 

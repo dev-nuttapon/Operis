@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
@@ -219,6 +220,98 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
             cancellationToken);
     }
 
+    public async Task<PagedResult<AccessRecertificationResponse>> ListAccessRecertificationsAsync(AccessRecertificationListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.AccessRecertificationSchedules.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.ScopeType)) source = source.Where(x => x.ScopeType == query.ScopeType.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.ReviewOwnerUserId)) source = source.Where(x => x.ReviewOwnerUserId == query.ReviewOwnerUserId.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (query.PlannedBefore.HasValue) source = source.Where(x => x.PlannedAt <= query.PlannedBefore.Value);
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x => EF.Functions.ILike(x.ScopeRef, search) || EF.Functions.ILike(x.ReviewOwnerUserId, search));
+        }
+
+        var descending = string.Equals(query.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "scoperef" => descending ? source.OrderByDescending(x => x.ScopeRef) : source.OrderBy(x => x.ScopeRef),
+            _ => descending ? source.OrderByDescending(x => x.PlannedAt) : source.OrderBy(x => x.PlannedAt)
+        };
+
+        var normalizedPage = NormalizePage(query.Page);
+        var normalizedPageSize = NormalizePageSize(query.PageSize);
+        var total = await source.CountAsync(cancellationToken);
+        var schedules = await source.Skip((normalizedPage - 1) * normalizedPageSize).Take(normalizedPageSize).ToListAsync(cancellationToken);
+        var scheduleIds = schedules.Select(x => x.Id).ToArray();
+        var decisions = await dbContext.AccessRecertificationDecisions.AsNoTracking()
+            .Where(x => scheduleIds.Contains(x.ScheduleId))
+            .OrderBy(x => x.SubjectUserId)
+            .Select(x => new AccessRecertificationDecisionResponse(x.Id, x.ScheduleId, x.SubjectUserId, x.Decision, x.Reason, x.DecidedBy, x.DecidedAt))
+            .ToListAsync(cancellationToken);
+        var decisionsBySchedule = decisions.GroupBy(x => x.ScheduleId).ToDictionary(x => x.Key, x => (IReadOnlyList<AccessRecertificationDecisionResponse>)x.ToList());
+
+        var items = schedules.Select(schedule =>
+        {
+            var subjectUserIds = DeserializeSubjects(schedule.SubjectUsersJson);
+            var scheduleDecisions = decisionsBySchedule.GetValueOrDefault(schedule.Id, []);
+            var completedCount = scheduleDecisions.Count;
+            var pendingCount = Math.Max(0, subjectUserIds.Count - completedCount);
+            return new AccessRecertificationResponse(
+                schedule.Id,
+                schedule.ScopeType,
+                schedule.ScopeRef,
+                schedule.PlannedAt,
+                schedule.ReviewOwnerUserId,
+                schedule.Status,
+                subjectUserIds,
+                scheduleDecisions,
+                schedule.ExceptionNotes,
+                completedCount,
+                pendingCount,
+                schedule.CreatedAt,
+                schedule.UpdatedAt,
+                schedule.CompletedAt);
+        }).ToList();
+
+        return new PagedResult<AccessRecertificationResponse>(items, total, normalizedPage, normalizedPageSize);
+    }
+
+    public async Task<AccessRecertificationResponse?> GetAccessRecertificationAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var schedule = await dbContext.AccessRecertificationSchedules.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (schedule is null)
+        {
+            return null;
+        }
+
+        var decisions = await dbContext.AccessRecertificationDecisions.AsNoTracking()
+            .Where(x => x.ScheduleId == id)
+            .OrderBy(x => x.SubjectUserId)
+            .Select(x => new AccessRecertificationDecisionResponse(x.Id, x.ScheduleId, x.SubjectUserId, x.Decision, x.Reason, x.DecidedBy, x.DecidedAt))
+            .ToListAsync(cancellationToken);
+
+        var subjectUserIds = DeserializeSubjects(schedule.SubjectUsersJson);
+        var completedCount = decisions.Count;
+        var pendingCount = Math.Max(0, subjectUserIds.Count - completedCount);
+        return new AccessRecertificationResponse(
+            schedule.Id,
+            schedule.ScopeType,
+            schedule.ScopeRef,
+            schedule.PlannedAt,
+            schedule.ReviewOwnerUserId,
+            schedule.Status,
+            subjectUserIds,
+            decisions,
+            schedule.ExceptionNotes,
+            completedCount,
+            pendingCount,
+            schedule.CreatedAt,
+            schedule.UpdatedAt,
+            schedule.CompletedAt);
+    }
+
     private static IQueryable<T> ApplyOrdering<T, TDate, TString>(IQueryable<T> source, string? sortBy, string? sortOrder, Expression<Func<T, TDate>> dateSelector, Expression<Func<T, TString>> stringSelector)
     {
         var descending = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
@@ -240,4 +333,22 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
 
     private static int NormalizePage(int page) => page <= 0 ? 1 : page;
     private static int NormalizePageSize(int pageSize) => pageSize <= 0 ? 25 : Math.Min(pageSize, 100);
+
+    private static IReadOnlyList<string> DeserializeSubjects(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json)?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList()
+                ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
 }

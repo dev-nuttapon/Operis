@@ -25,6 +25,14 @@ public sealed class OperationsModule : IModule
         accessReviews.MapPut("/{id:guid}", UpdateAccessReviewAsync);
         accessReviews.MapPut("/{id:guid}/approve", ApproveAccessReviewAsync);
 
+        var accessRecertifications = endpoints.MapGroup("/api/v1/access-recertifications").WithTags("Operations").RequireAuthorization();
+        accessRecertifications.MapGet("/", ListAccessRecertificationsAsync);
+        accessRecertifications.MapPost("/", CreateAccessRecertificationAsync);
+        accessRecertifications.MapGet("/{id:guid}", GetAccessRecertificationAsync);
+        accessRecertifications.MapPut("/{id:guid}", UpdateAccessRecertificationAsync);
+        accessRecertifications.MapPost("/{id:guid}/decisions", AddAccessRecertificationDecisionAsync);
+        accessRecertifications.MapPut("/{id:guid}/complete", CompleteAccessRecertificationAsync);
+
         var securityReviews = endpoints.MapGroup("/api/v1/security-reviews").WithTags("Operations").RequireAuthorization();
         securityReviews.MapGet("/", ListSecurityReviewsAsync);
         securityReviews.MapPost("/", CreateSecurityReviewAsync);
@@ -71,6 +79,41 @@ public sealed class OperationsModule : IModule
 
     private static async Task<IResult> ApproveAccessReviewAsync(ClaimsPrincipal principal, Guid id, ApproveAccessReviewRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Approve, "You do not have permission to approve access reviews.", () => commands.ApproveAccessReviewAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListAccessRecertificationsAsync(ClaimsPrincipal principal, [AsParameters] AccessRecertificationListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read access recertifications.");
+        }
+
+        return Results.Ok(await queries.ListAccessRecertificationsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> GetAccessRecertificationAsync(ClaimsPrincipal principal, Guid id, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read access recertifications.");
+        }
+
+        var detail = await queries.GetAccessRecertificationAsync(id, cancellationToken);
+        return detail is null
+            ? Results.NotFound(ApiProblemDetailsFactory.Create(StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound, "Access recertification not found.", "Access recertification not found."))
+            : Results.Ok(detail);
+    }
+
+    private static async Task<IResult> CreateAccessRecertificationAsync(ClaimsPrincipal principal, CreateAccessRecertificationRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage access recertifications.", () => commands.CreateAccessRecertificationAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateAccessRecertificationAsync(ClaimsPrincipal principal, Guid id, UpdateAccessRecertificationRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage access recertifications.", () => commands.UpdateAccessRecertificationAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> AddAccessRecertificationDecisionAsync(ClaimsPrincipal principal, Guid id, AddAccessRecertificationDecisionRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage access recertification decisions.", () => commands.AddAccessRecertificationDecisionAsync(id, request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> CompleteAccessRecertificationAsync(ClaimsPrincipal principal, Guid id, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Approve, "You do not have permission to complete access recertifications.", () => commands.CompleteAccessRecertificationAsync(id, ResolveActor(principal), cancellationToken));
 
     private static async Task<IResult> ListSecurityReviewsAsync(ClaimsPrincipal principal, [AsParameters] SecurityReviewListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
     {

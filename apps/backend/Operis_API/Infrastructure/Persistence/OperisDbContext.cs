@@ -45,6 +45,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<SupplierEntity> Suppliers => Set<SupplierEntity>();
     public DbSet<SupplierAgreementEntity> SupplierAgreements => Set<SupplierAgreementEntity>();
     public DbSet<ConfigurationAuditEntity> ConfigurationAudits => Set<ConfigurationAuditEntity>();
+    public DbSet<AccessRecertificationScheduleEntity> AccessRecertificationSchedules => Set<AccessRecertificationScheduleEntity>();
+    public DbSet<AccessRecertificationDecisionEntity> AccessRecertificationDecisions => Set<AccessRecertificationDecisionEntity>();
     public DbSet<UserOrgAssignmentEntity> UserOrgAssignments => Set<UserOrgAssignmentEntity>();
     public DbSet<ReportingLineEntity> ReportingLines => Set<ReportingLineEntity>();
     public DbSet<ProjectEntity> Projects => Set<ProjectEntity>();
@@ -571,6 +573,43 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasIndex(x => new { x.ScopeRef, x.Status });
+        });
+
+        modelBuilder.Entity<AccessRecertificationScheduleEntity>(entity =>
+        {
+            entity.ToTable("access_recertification_schedules");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScopeType).HasColumnName("scope_type").HasMaxLength(64);
+            entity.Property(x => x.ScopeRef).HasColumnName("scope_ref").HasMaxLength(256);
+            entity.Property(x => x.PlannedAt).HasColumnName("planned_at");
+            entity.Property(x => x.ReviewOwnerUserId).HasColumnName("review_owner_user_id").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.SubjectUsersJson).HasColumnName("subject_users_json").HasColumnType("jsonb");
+            entity.Property(x => x.ExceptionNotes).HasColumnName("exception_notes").HasMaxLength(2000);
+            entity.Property(x => x.CompletedAt).HasColumnName("completed_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.Status, x.PlannedAt });
+            entity.HasIndex(x => x.ReviewOwnerUserId);
+        });
+
+        modelBuilder.Entity<AccessRecertificationDecisionEntity>(entity =>
+        {
+            entity.ToTable("access_recertification_decisions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScheduleId).HasColumnName("schedule_id");
+            entity.Property(x => x.SubjectUserId).HasColumnName("subject_user_id").HasMaxLength(128);
+            entity.Property(x => x.Decision).HasColumnName("decision").HasMaxLength(32);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
+            entity.Property(x => x.DecidedBy).HasColumnName("decided_by").HasMaxLength(128);
+            entity.Property(x => x.DecidedAt).HasColumnName("decided_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<AccessRecertificationScheduleEntity>().WithMany().HasForeignKey(x => x.ScheduleId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ScheduleId, x.Decision });
+            entity.HasIndex(x => x.SubjectUserId);
+            entity.HasIndex(x => new { x.ScheduleId, x.SubjectUserId }).IsUnique();
         });
 
         modelBuilder.Entity<PhaseApprovalRequestEntity>(entity =>

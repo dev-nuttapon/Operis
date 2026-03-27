@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Operations.Contracts;
@@ -9,6 +10,9 @@ namespace Operis_API.Modules.Operations.Application;
 
 public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWriter auditLogWriter) : IOperationsCommands
 {
+    private static readonly string[] RecertificationStatuses = ["planned", "in_review", "approved", "completed"];
+    private static readonly string[] RecertificationDecisions = ["kept", "revoked", "adjusted"];
+
     public async Task<OperationsCommandResult<AccessReviewResponse>> CreateAccessReviewAsync(CreateAccessReviewRequest request, string? actor, CancellationToken cancellationToken)
     {
         var scopeType = Required(request.ScopeType, 64);
@@ -320,6 +324,175 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         return Success(ToResponse(entity, supplier.Name));
     }
 
+    public async Task<OperationsCommandResult<AccessRecertificationResponse>> CreateAccessRecertificationAsync(CreateAccessRecertificationRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var scopeType = Required(request.ScopeType, 64);
+        var scopeRef = Required(request.ScopeRef, 256);
+        var reviewOwnerUserId = Required(request.ReviewOwnerUserId, 128);
+        if (scopeType is null || scopeRef is null || reviewOwnerUserId is null)
+        {
+            return Validation<AccessRecertificationResponse>("Scope and review owner are required.");
+        }
+
+        var entity = new AccessRecertificationScheduleEntity
+        {
+            Id = Guid.NewGuid(),
+            ScopeType = scopeType.ToLowerInvariant(),
+            ScopeRef = scopeRef,
+            PlannedAt = request.PlannedAt,
+            ReviewOwnerUserId = reviewOwnerUserId,
+            Status = "planned",
+            SubjectUsersJson = SerializeSubjects(request.SubjectUserIds),
+            ExceptionNotes = Optional(request.ExceptionNotes, 2000),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.AccessRecertificationSchedules.Add(entity);
+        AppendAudit("create", "access_recertification_schedule", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success((await GetAccessRecertificationAsync(entity.Id, cancellationToken))!, created: true);
+    }
+
+    public async Task<OperationsCommandResult<AccessRecertificationResponse>> UpdateAccessRecertificationAsync(Guid id, UpdateAccessRecertificationRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.AccessRecertificationSchedules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<AccessRecertificationResponse>();
+
+        var scopeType = Required(request.ScopeType, 64);
+        var scopeRef = Required(request.ScopeRef, 256);
+        var reviewOwnerUserId = Required(request.ReviewOwnerUserId, 128);
+        var nextStatus = NormalizeRecertificationStatus(request.Status);
+        if (scopeType is null || scopeRef is null || reviewOwnerUserId is null)
+        {
+            return Validation<AccessRecertificationResponse>("Scope and review owner are required.");
+        }
+
+        if (!IsValidRecertificationTransition(entity.Status, nextStatus))
+        {
+            return Validation<AccessRecertificationResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        var subjectUserIds = NormalizeSubjects(request.SubjectUserIds);
+        var decisionsCount = await dbContext.AccessRecertificationDecisions.CountAsync(x => x.ScheduleId == id, cancellationToken);
+        if ((nextStatus is "approved" or "completed") && subjectUserIds.Count > decisionsCount)
+        {
+            return Validation<AccessRecertificationResponse>(
+                "Schedule cannot complete while pending decisions remain.",
+                ApiErrorCodes.AccessRecertificationPendingDecisions);
+        }
+
+        entity.ScopeType = scopeType.ToLowerInvariant();
+        entity.ScopeRef = scopeRef;
+        entity.PlannedAt = request.PlannedAt;
+        entity.ReviewOwnerUserId = reviewOwnerUserId;
+        entity.Status = nextStatus;
+        entity.SubjectUsersJson = SerializeSubjects(subjectUserIds);
+        entity.ExceptionNotes = Optional(request.ExceptionNotes, 2000);
+        entity.CompletedAt = nextStatus == "completed" ? entity.CompletedAt ?? DateTimeOffset.UtcNow : null;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("update", "access_recertification_schedule", entity.Id.ToString(), StatusCodes.Status200OK, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success((await GetAccessRecertificationAsync(entity.Id, cancellationToken))!);
+    }
+
+    public async Task<OperationsCommandResult<AccessRecertificationDecisionResponse>> AddAccessRecertificationDecisionAsync(Guid id, AddAccessRecertificationDecisionRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var schedule = await dbContext.AccessRecertificationSchedules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (schedule is null) return NotFound<AccessRecertificationDecisionResponse>();
+
+        if (schedule.Status is "approved" or "completed")
+        {
+            return Validation<AccessRecertificationDecisionResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        var subjectUserId = Required(request.SubjectUserId, 128);
+        var decision = NormalizeRecertificationDecision(request.Decision);
+        var reason = Required(request.Reason, 2000);
+        if (subjectUserId is null || decision is null)
+        {
+            return Validation<AccessRecertificationDecisionResponse>("Subject and decision are required.");
+        }
+
+        var subjects = DeserializeSubjects(schedule.SubjectUsersJson);
+        if (subjects.Count > 0 && !subjects.Contains(subjectUserId, StringComparer.OrdinalIgnoreCase))
+        {
+            return Validation<AccessRecertificationDecisionResponse>("Subject is outside the recertification scope.");
+        }
+
+        if (reason is null)
+        {
+            return Validation<AccessRecertificationDecisionResponse>(
+                "Decision rationale is required.",
+                ApiErrorCodes.AccessRecertificationDecisionRationaleRequired);
+        }
+
+        var entity = await dbContext.AccessRecertificationDecisions.FirstOrDefaultAsync(
+            x => x.ScheduleId == id && x.SubjectUserId == subjectUserId,
+            cancellationToken);
+
+        if (entity is null)
+        {
+            entity = new AccessRecertificationDecisionEntity
+            {
+                Id = Guid.NewGuid(),
+                ScheduleId = id,
+                SubjectUserId = subjectUserId,
+                Decision = decision,
+                Reason = reason,
+                DecidedBy = actor ?? "system",
+                DecidedAt = DateTimeOffset.UtcNow,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            dbContext.AccessRecertificationDecisions.Add(entity);
+        }
+        else
+        {
+            entity.Decision = decision;
+            entity.Reason = reason;
+            entity.DecidedBy = actor ?? "system";
+            entity.DecidedAt = DateTimeOffset.UtcNow;
+        }
+
+        if (schedule.Status == "planned")
+        {
+            schedule.Status = "in_review";
+            schedule.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        AppendAudit("decision", "access_recertification_decision", entity.Id.ToString(), StatusCodes.Status200OK, reason, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity));
+    }
+
+    public async Task<OperationsCommandResult<AccessRecertificationResponse>> CompleteAccessRecertificationAsync(Guid id, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.AccessRecertificationSchedules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<AccessRecertificationResponse>();
+
+        if (entity.Status != "approved")
+        {
+            return Validation<AccessRecertificationResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        var subjects = DeserializeSubjects(entity.SubjectUsersJson);
+        var decisionsCount = await dbContext.AccessRecertificationDecisions.CountAsync(x => x.ScheduleId == id, cancellationToken);
+        if (subjects.Count > decisionsCount)
+        {
+            return Validation<AccessRecertificationResponse>(
+                "Schedule cannot complete while pending decisions remain.",
+                ApiErrorCodes.AccessRecertificationPendingDecisions);
+        }
+
+        entity.Status = "completed";
+        entity.CompletedAt = entity.CompletedAt ?? DateTimeOffset.UtcNow;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("complete", "access_recertification_schedule", entity.Id.ToString(), StatusCodes.Status200OK, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success((await GetAccessRecertificationAsync(entity.Id, cancellationToken))!);
+    }
+
     private OperationsCommandResult<SupplierAgreementResponse>? ValidateAgreement(DateOnly? effectiveFrom, DateOnly? effectiveTo, string? evidenceRef)
     {
         if (!effectiveFrom.HasValue)
@@ -369,8 +542,11 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
     private static string NormalizeAuditStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "in_review" => "In Review", "findings_issued" => "Findings Issued", "closed" => "Closed", _ => "Planned" };
     private static string NormalizeSupplierStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "review_due" => "Review Due", "updated" => "Updated", "archived" => "Archived", _ => "Active" };
     private static string NormalizeAgreementStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "approved" => "Approved", "active" => "Active", "archived" => "Archived", _ => "Draft" };
+    private static string NormalizeRecertificationStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "in_review" => "in_review", "approved" => "approved", "completed" => "completed", _ => "planned" };
+    private static string? NormalizeRecertificationDecision(string? value) => value?.Trim().ToLowerInvariant() switch { "kept" => "kept", "revoked" => "revoked", "adjusted" => "adjusted", _ => null };
     private static AccessReviewResponse ToResponse(AccessReviewEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.ReviewCycle, x.ReviewedBy, x.Status, x.Decision, x.DecisionRationale, x.CreatedAt, x.UpdatedAt);
     private static SecurityReviewResponse ToResponse(SecurityReviewEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.ControlsReviewed, x.FindingsSummary, x.Status, x.CreatedAt, x.UpdatedAt);
+    private static AccessRecertificationDecisionResponse ToResponse(AccessRecertificationDecisionEntity x) => new(x.Id, x.ScheduleId, x.SubjectUserId, x.Decision, x.Reason, x.DecidedBy, x.DecidedAt);
     private async Task<ExternalDependencyResponse> ToResponseAsync(ExternalDependencyEntity x, CancellationToken cancellationToken)
     {
         string? supplierName = null;
@@ -388,4 +564,87 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
     private static ConfigurationAuditResponse ToResponse(ConfigurationAuditEntity x) => new(x.Id, x.ScopeRef, x.PlannedAt, x.Status, x.FindingCount, x.CreatedAt, x.UpdatedAt);
     private static SupplierResponse ToResponse(SupplierEntity x, int activeAgreementCount) => new(x.Id, x.Name, x.SupplierType, x.OwnerUserId, x.Criticality, x.Status, x.ReviewDueAt, activeAgreementCount, x.CreatedAt, x.UpdatedAt);
     private static SupplierAgreementResponse ToResponse(SupplierAgreementEntity x, string supplierName) => new(x.Id, x.SupplierId, supplierName, x.AgreementType, x.EffectiveFrom, x.EffectiveTo, x.SlaTerms, x.EvidenceRef, x.Status, x.CreatedAt, x.UpdatedAt);
+
+    private async Task<AccessRecertificationResponse?> GetAccessRecertificationAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var schedule = await dbContext.AccessRecertificationSchedules.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (schedule is null)
+        {
+            return null;
+        }
+
+        var decisions = await dbContext.AccessRecertificationDecisions.AsNoTracking()
+            .Where(x => x.ScheduleId == id)
+            .OrderBy(x => x.SubjectUserId)
+            .Select(x => ToResponse(x))
+            .ToListAsync(cancellationToken);
+
+        var subjects = DeserializeSubjects(schedule.SubjectUsersJson);
+        return ToResponse(schedule, decisions, subjects);
+    }
+
+    private static AccessRecertificationResponse ToResponse(AccessRecertificationScheduleEntity schedule, IReadOnlyList<AccessRecertificationDecisionResponse> decisions, IReadOnlyList<string> subjects)
+    {
+        var completedCount = decisions.Count;
+        var pendingCount = Math.Max(0, subjects.Count - completedCount);
+        return new AccessRecertificationResponse(
+            schedule.Id,
+            schedule.ScopeType,
+            schedule.ScopeRef,
+            schedule.PlannedAt,
+            schedule.ReviewOwnerUserId,
+            schedule.Status,
+            subjects,
+            decisions,
+            schedule.ExceptionNotes,
+            completedCount,
+            pendingCount,
+            schedule.CreatedAt,
+            schedule.UpdatedAt,
+            schedule.CompletedAt);
+    }
+
+    private static bool IsValidRecertificationTransition(string current, string next) =>
+        (current, next) switch
+        {
+            ("planned", "planned") => true,
+            ("planned", "in_review") => true,
+            ("in_review", "in_review") => true,
+            ("in_review", "approved") => true,
+            ("approved", "approved") => true,
+            ("approved", "completed") => true,
+            ("completed", "completed") => true,
+            _ => false
+        };
+
+    private static string? SerializeSubjects(IEnumerable<string>? subjectUserIds)
+    {
+        var subjects = NormalizeSubjects(subjectUserIds);
+        return JsonSerializer.Serialize(subjects);
+    }
+
+    private static List<string> DeserializeSubjects(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return NormalizeSubjects(JsonSerializer.Deserialize<List<string>>(json));
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static List<string> NormalizeSubjects(IEnumerable<string>? subjectUserIds) =>
+        (subjectUserIds ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 }
