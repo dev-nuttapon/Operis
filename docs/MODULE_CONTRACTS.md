@@ -138,6 +138,13 @@ Public entry:
 * [apps/frontend/src/modules/operations/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/operations/index.ts)
 * [apps/frontend/src/modules/operations/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/operations/README.md)
 
+## knowledge
+
+Public entry:
+
+* [apps/frontend/src/modules/knowledge/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/knowledge/index.ts)
+* [apps/frontend/src/modules/knowledge/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/knowledge/README.md)
+
 ---
 
 # Backend Public Surfaces
@@ -298,6 +305,13 @@ Module entry:
 
 * [apps/backend/Operis_API/Modules/Operations/OperationsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Operations/OperationsModule.cs)
 * [apps/backend/Operis_API/Modules/Operations/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Operations/README.md)
+
+## knowledge
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Knowledge/KnowledgeModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Knowledge/KnowledgeModule.cs)
+* [apps/backend/Operis_API/Modules/Knowledge/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Knowledge/README.md)
 
 Application surfaces:
 

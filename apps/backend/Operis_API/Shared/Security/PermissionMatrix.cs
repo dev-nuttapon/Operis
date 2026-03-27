@@ -94,6 +94,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Operations.Read,
                 Permissions.Operations.Manage,
                 Permissions.Operations.Approve,
+                Permissions.Knowledge.Read,
+                Permissions.Knowledge.Manage,
                 Permissions.Notifications.Read
             ],
             ["operis_system_admin"] =
@@ -156,6 +158,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Operations.Read,
                 Permissions.Operations.Manage,
                 Permissions.Operations.Approve,
+                Permissions.Knowledge.Read,
+                Permissions.Knowledge.Manage,
                 Permissions.Notifications.Read
             ],
             ["operis:audit_auditor"] =
@@ -185,6 +189,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Releases.Read,
                 Permissions.Defects.Read,
                 Permissions.Operations.Read,
+                Permissions.Knowledge.Read,
                 Permissions.Notifications.Read
             ],
             ["operis:documents_owner"] =
@@ -260,7 +265,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Defects.Manage,
                 Permissions.Operations.Read,
                 Permissions.Operations.Manage,
-                Permissions.Operations.Approve
+                Permissions.Operations.Approve,
+                Permissions.Knowledge.Read,
+                Permissions.Knowledge.Manage
             ],
             ["operis:pm"] =
             [
@@ -303,7 +310,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Releases.Approve,
                 Permissions.Defects.Read,
                 Permissions.Defects.Manage,
-                Permissions.Operations.Read
+                Permissions.Operations.Read,
+                Permissions.Knowledge.Read,
+                Permissions.Knowledge.Manage
             ],
             ["operis:ba"] =
             [
@@ -322,7 +331,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Meetings.Read,
                 Permissions.Meetings.Manage,
                 Permissions.Meetings.ReadRestricted,
-                Permissions.Verification.Read
+                Permissions.Verification.Read,
+                Permissions.Knowledge.Read,
+                Permissions.Knowledge.Manage
             ],
             ["operis:qa"] =
             [
@@ -338,7 +349,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Metrics.Manage,
                 Permissions.Verification.Manage,
                 Permissions.Verification.Export,
-                Permissions.Verification.ReadSensitiveEvidence
+                Permissions.Verification.ReadSensitiveEvidence,
+                Permissions.Knowledge.Read
             ],
             ["operis:approver"] =
             [
@@ -367,7 +379,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Releases.Read,
                 Permissions.Releases.Approve,
                 Permissions.Defects.Read,
-                Permissions.Defects.Manage
+                Permissions.Defects.Manage,
+                Permissions.Knowledge.Read,
+                Permissions.Knowledge.Manage
             ],
             ["operis:defect_manager"] =
             [
@@ -478,6 +492,15 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
             ["operis:metrics_viewer"] =
             [
                 Permissions.Metrics.Read
+            ],
+            ["operis:knowledge_manager"] =
+            [
+                Permissions.Knowledge.Read,
+                Permissions.Knowledge.Manage
+            ],
+            ["operis:knowledge_viewer"] =
+            [
+                Permissions.Knowledge.Read
             ]
         };
 

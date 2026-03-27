@@ -3703,6 +3703,12 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
   - `owner_user_id`: string, required, indexed
   - `status`: enum(`draft`,`reviewed`,`published`,`archived`), required, indexed
   - `source_ref`: string, optional
+  - `context`: string, optional, max 4000
+  - `what_happened`: string, optional, max 4000
+  - `what_to_repeat`: string, optional, max 4000
+  - `what_to_avoid`: string, optional, max 4000
+  - `linked_evidence_refs`: json/string list, optional
+  - `published_at`: datetime, optional
 - Indexes
   - index(`project_id`,`lesson_type`,`status`)
 

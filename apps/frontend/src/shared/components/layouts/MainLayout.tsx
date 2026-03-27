@@ -152,6 +152,10 @@ export function MainLayout() {
     permissions.operations.manage,
     permissions.operations.approve,
   );
+  const hasKnowledgeAccess = permissionState.hasAnyPermission(
+    permissions.knowledge.read,
+    permissions.knowledge.manage,
+  );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
   const jobTitleLabel =
@@ -412,6 +416,16 @@ export function MainLayout() {
           ],
         }]
       : []),
+    ...(hasKnowledgeAccess
+      ? [{
+          key: '/app/knowledge-group',
+          icon: <BulbOutlined />,
+          label: 'Knowledge Base',
+          children: [
+            { key: '/app/lessons-learned', label: 'Lessons Learned' },
+          ],
+        }]
+      : []),
     ...(hasAdminAccess
       ? [{
           key: '/app/admin',
@@ -600,6 +614,7 @@ export function MainLayout() {
     if (path.includes('/app/operations/suppliers')) return 'Supplier Register';
     if (path.includes('/app/operations/supplier-agreements')) return 'SLA/Contract Evidence';
     if (path.includes('/app/operations/configuration-audits')) return 'Configuration Audit Log';
+    if (path.includes('/app/lessons-learned')) return 'Lessons Learned';
     return tr('common.dashboard');
   };
 
@@ -975,6 +990,10 @@ function getOpenKeys(path: string) {
     return ['/app/metrics-group'];
   }
 
+  if (path.startsWith('/app/lessons-learned')) {
+    return ['/app/knowledge-group'];
+  }
+
   if (path.startsWith('/app/admin/master/')) {
     return ['/app/admin', '/app/admin/master'];
   }
@@ -1105,6 +1124,10 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/metrics/dashboard')) {
     return '/app/metrics/dashboard';
+  }
+
+  if (path.startsWith('/app/lessons-learned')) {
+    return '/app/lessons-learned';
   }
 
   if (path.startsWith('/app/admin/users')) {

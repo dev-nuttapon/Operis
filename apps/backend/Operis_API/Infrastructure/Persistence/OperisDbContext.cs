@@ -4,6 +4,7 @@ using Operis_API.Modules.ChangeControl.Infrastructure;
 using Operis_API.Modules.Defects.Infrastructure;
 using Operis_API.Modules.Documents.Infrastructure;
 using Operis_API.Modules.Governance.Infrastructure;
+using Operis_API.Modules.Knowledge.Infrastructure;
 using Operis_API.Modules.Meetings.Infrastructure;
 using Operis_API.Modules.Metrics.Infrastructure;
 using Operis_API.Modules.Operations.Infrastructure;
@@ -112,6 +113,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<ReleaseEntity> Releases => Set<ReleaseEntity>();
     public DbSet<DeploymentChecklistEntity> DeploymentChecklists => Set<DeploymentChecklistEntity>();
     public DbSet<ReleaseNoteEntity> ReleaseNotes => Set<ReleaseNoteEntity>();
+    public DbSet<LessonLearnedEntity> LessonsLearned => Set<LessonLearnedEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1159,6 +1161,32 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasOne<ReleaseEntity>().WithMany().HasForeignKey(x => x.ReleaseId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.ReleaseId, x.Status });
+        });
+
+        modelBuilder.Entity<LessonLearnedEntity>(entity =>
+        {
+            entity.ToTable("lessons_learned");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.Summary).HasColumnName("summary").HasMaxLength(4000);
+            entity.Property(x => x.LessonType).HasColumnName("lesson_type").HasMaxLength(128);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.SourceRef).HasColumnName("source_ref").HasMaxLength(512);
+            entity.Property(x => x.Context).HasColumnName("context").HasMaxLength(4000);
+            entity.Property(x => x.WhatHappened).HasColumnName("what_happened").HasMaxLength(4000);
+            entity.Property(x => x.WhatToRepeat).HasColumnName("what_to_repeat").HasMaxLength(4000);
+            entity.Property(x => x.WhatToAvoid).HasColumnName("what_to_avoid").HasMaxLength(4000);
+            entity.Property(x => x.LinkedEvidenceJson).HasColumnName("linked_evidence_json").HasColumnType("jsonb");
+            entity.Property(x => x.PublishedAt).HasColumnName("published_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.ProjectId, x.LessonType, x.Status });
+            entity.HasIndex(x => x.OwnerUserId);
+            entity.HasIndex(x => x.PublishedAt);
         });
 
         modelBuilder.Entity<NotificationEntity>(entity =>

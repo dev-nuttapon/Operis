@@ -171,6 +171,12 @@ public static class Permissions
         public const string Approve = "operations.approve";
     }
 
+    public static class Knowledge
+    {
+        public const string Read = "knowledge.read";
+        public const string Manage = "knowledge.manage";
+    }
+
     public static readonly IReadOnlyList<string> All =
     [
         Admin.PermissionMatrixRead,
@@ -265,6 +271,8 @@ public static class Permissions
         Operations.Read,
         Operations.Manage,
         Operations.Approve,
+        Knowledge.Read,
+        Knowledge.Manage,
         Notifications.Read
     ];
 
@@ -362,6 +370,8 @@ public static class Permissions
             Operations.Read => "Read Security and Dependency Reviews",
             Operations.Manage => "Manage Security and Dependency Reviews",
             Operations.Approve => "Approve Access Reviews",
+            Knowledge.Read => "Read Lessons Learned",
+            Knowledge.Manage => "Manage Lessons Learned",
             Notifications.Read => "Read Notifications",
             _ => permission
         };

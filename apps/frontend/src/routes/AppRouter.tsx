@@ -205,6 +205,9 @@ const SupplierRegisterPage = lazy(() =>
 const SupplierAgreementsPage = lazy(() =>
   import("../modules/operations/pages/SupplierAgreementsPage").then((module) => ({ default: module.SupplierAgreementsPage }))
 );
+const LessonsLearnedPage = lazy(() =>
+  import("../modules/knowledge/pages/LessonsLearnedPage").then((module) => ({ default: module.LessonsLearnedPage }))
+);
 const InvitationAcceptPage = lazy(() =>
   import("../modules/users/pages/InvitationAcceptPage").then((module) => ({ default: module.InvitationAcceptPage }))
 );
@@ -397,6 +400,7 @@ export function AppRouter() {
               <Route path="operations/suppliers" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierRegisterPage /></AuthorizedRoute>} />
               <Route path="operations/supplier-agreements" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierAgreementsPage /></AuthorizedRoute>} />
               <Route path="operations/configuration-audits" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ConfigurationAuditsPage /></AuthorizedRoute>} />
+              <Route path="lessons-learned" element={<AuthorizedRoute anyOf={[permissions.knowledge.read, permissions.knowledge.manage]}><LessonsLearnedPage /></AuthorizedRoute>} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
                 <Route path="admin/master/catalog" element={<AuthorizedRoute anyOf={[permissions.masterData.read, permissions.masterData.managePermanentOrg, permissions.masterData.manageProjectStructures]}><MasterDataCatalogPage /></AuthorizedRoute>} />
                 <Route path="admin/master/divisions" element={<AdminUsersPage />} />

@@ -91,6 +91,8 @@ const allPermissions = [
   "operations.read",
   "operations.manage",
   "operations.approve",
+  "knowledge.read",
+  "knowledge.manage",
   "notifications.read",
 ] as const;
 
@@ -223,6 +225,10 @@ export const permissions = {
     manage: "operations.manage",
     approve: "operations.approve",
   },
+  knowledge: {
+    read: "knowledge.read",
+    manage: "knowledge.manage",
+  },
   notifications: {
     read: "notifications.read",
   },
@@ -326,6 +332,8 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.operations.read,
     permissions.operations.manage,
     permissions.operations.approve,
+    permissions.knowledge.read,
+    permissions.knowledge.manage,
     permissions.notifications.read,
   ],
   operis_system_admin: [
@@ -399,6 +407,8 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.operations.read,
     permissions.operations.manage,
     permissions.operations.approve,
+    permissions.knowledge.read,
+    permissions.knowledge.manage,
     permissions.notifications.read,
   ],
   "operis:audit_auditor": [
@@ -424,6 +434,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.releases.read,
     permissions.defects.read,
     permissions.operations.read,
+    permissions.knowledge.read,
     permissions.notifications.read,
   ],
   "operis:documents_owner": [
@@ -498,6 +509,8 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.operations.read,
     permissions.operations.manage,
     permissions.operations.approve,
+    permissions.knowledge.read,
+    permissions.knowledge.manage,
   ],
   "operis:pm": [
     permissions.projects.read,
@@ -538,6 +551,8 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.defects.read,
     permissions.defects.manage,
     permissions.operations.read,
+    permissions.knowledge.read,
+    permissions.knowledge.manage,
   ],
   "operis:ba": [
     permissions.governance.processLibraryRead,
@@ -556,6 +571,8 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.meetings.manage,
     permissions.meetings.readRestricted,
     permissions.verification.read,
+    permissions.knowledge.read,
+    permissions.knowledge.manage,
   ],
   "operis:qa": [
     permissions.governance.qaChecklistRead,
@@ -570,6 +587,7 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.verification.manage,
     permissions.verification.export,
     permissions.verification.readSensitiveEvidence,
+    permissions.knowledge.read,
   ],
   "operis:approver": [
     permissions.governance.qaChecklistRead,
@@ -597,6 +615,8 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
     permissions.releases.approve,
     permissions.defects.read,
     permissions.defects.manage,
+    permissions.knowledge.read,
+    permissions.knowledge.manage,
   ],
   "operis:release_manager": [permissions.releases.read, permissions.releases.manage],
   "operis:release_approver": [permissions.releases.read, permissions.releases.approve],
@@ -673,6 +693,13 @@ const rolePermissionMap: Record<string, readonly Permission[]> = {
   ],
   "operis:metrics_viewer": [
     permissions.metrics.read,
+  ],
+  "operis:knowledge_manager": [
+    permissions.knowledge.read,
+    permissions.knowledge.manage,
+  ],
+  "operis:knowledge_viewer": [
+    permissions.knowledge.read,
   ],
 };
 
@@ -770,6 +797,8 @@ export function getPermissionLabel(permission: Permission) {
     [permissions.operations.read]: "Read Security and Dependency Reviews",
     [permissions.operations.manage]: "Manage Security and Dependency Reviews",
     [permissions.operations.approve]: "Approve Access Reviews",
+    [permissions.knowledge.read]: "Read Lessons Learned",
+    [permissions.knowledge.manage]: "Manage Lessons Learned",
     [permissions.notifications.read]: "Read Notifications",
   }[permission];
 }
