@@ -44,3 +44,55 @@ public sealed record EvidenceExportEntity
     public string IncludedArtifactTypesJson { get; init; } = "[]";
     public string? FailureReason { get; init; }
 }
+
+public sealed record EvidenceRuleEntity
+{
+    public Guid Id { get; init; }
+    public string RuleCode { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string ProcessArea { get; init; } = string.Empty;
+    public string ArtifactType { get; init; } = string.Empty;
+    public Guid? ProjectId { get; init; }
+    public string Status { get; init; } = "draft";
+    public string ExpressionType { get; init; } = "required";
+    public string? Reason { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+}
+
+public sealed record EvidenceRuleResultEntity
+{
+    public Guid Id { get; init; }
+    public string ScopeType { get; init; } = "portfolio";
+    public string ScopeRef { get; init; } = "all-projects";
+    public Guid? ProjectId { get; init; }
+    public string? ProcessArea { get; init; }
+    public string Status { get; init; } = "completed";
+    public int EvaluatedRuleCount { get; init; }
+    public int MissingItemCount { get; init; }
+    public DateTimeOffset StartedAt { get; init; }
+    public DateTimeOffset CompletedAt { get; init; }
+    public Guid? SupersededByResultId { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+}
+
+public sealed record EvidenceMissingItemEntity
+{
+    public Guid Id { get; init; }
+    public Guid ResultId { get; init; }
+    public Guid RuleId { get; init; }
+    public Guid? ProjectId { get; init; }
+    public string ProcessArea { get; init; } = string.Empty;
+    public string ArtifactType { get; init; } = string.Empty;
+    public string ReasonCode { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string Module { get; init; } = string.Empty;
+    public string Route { get; init; } = string.Empty;
+    public string Scope { get; init; } = string.Empty;
+    public string? EntityType { get; init; }
+    public string? EntityId { get; init; }
+    public string? Metadata { get; init; }
+    public DateTimeOffset DetectedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+}

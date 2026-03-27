@@ -4,6 +4,10 @@ namespace Operis_API.Modules.Governance.Application;
 
 public interface IGovernanceOperationsCommands
 {
+    Task<GovernanceCommandResult<ComplianceDashboardPreferenceResponse>> UpdateComplianceDashboardPreferencesAsync(UpdateComplianceDashboardPreferencesRequest request, string userId, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<ManagementReviewDetailResponse>> CreateManagementReviewAsync(CreateManagementReviewRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<ManagementReviewDetailResponse>> UpdateManagementReviewAsync(Guid id, UpdateManagementReviewRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<ManagementReviewDetailResponse>> TransitionManagementReviewAsync(Guid id, TransitionManagementReviewRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<RaciMapResponse>> CreateRaciMapAsync(CreateRaciMapRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<RaciMapResponse>> UpdateRaciMapAsync(Guid id, UpdateRaciMapRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<SlaRuleResponse>> CreateSlaRuleAsync(CreateSlaRuleRequest request, string? actor, CancellationToken cancellationToken);

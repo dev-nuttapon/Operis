@@ -66,6 +66,22 @@ public sealed class AuditsModule : IModule
         exports.MapGet("/", ListEvidenceExportsAsync);
         exports.MapGet("/{exportId:guid}", GetEvidenceExportAsync);
 
+        var evidenceRules = endpoints.MapGroup("/api/v1/audits/evidence-rules")
+            .WithTags("Evidence Rules")
+            .RequireAuthorization();
+
+        evidenceRules.MapGet("/", ListEvidenceRulesAsync);
+        evidenceRules.MapPost("/", CreateEvidenceRuleAsync);
+        evidenceRules.MapPut("/{ruleId:guid}", UpdateEvidenceRuleAsync);
+        evidenceRules.MapPost("/evaluate", EvaluateEvidenceRulesAsync);
+
+        var evidenceResults = endpoints.MapGroup("/api/v1/audits/evidence-results")
+            .WithTags("Evidence Results")
+            .RequireAuthorization();
+
+        evidenceResults.MapGet("/", ListEvidenceResultsAsync);
+        evidenceResults.MapGet("/{resultId:guid}", GetEvidenceResultAsync);
+
         return endpoints;
     }
 
@@ -194,6 +210,15 @@ public sealed class AuditsModule : IModule
     private static async Task<IResult> CreateEvidenceExportAsync(ClaimsPrincipal principal, CreateEvidenceExportRequest request, IAuditComplianceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.AuditLogs.Export, () => commands.CreateEvidenceExportAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
 
+    private static async Task<IResult> CreateEvidenceRuleAsync(ClaimsPrincipal principal, CreateEvidenceRuleRequest request, IAuditComplianceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Audits.EvidenceManage, () => commands.CreateEvidenceRuleAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateEvidenceRuleAsync(ClaimsPrincipal principal, Guid ruleId, UpdateEvidenceRuleRequest request, IAuditComplianceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Audits.EvidenceManage, () => commands.UpdateEvidenceRuleAsync(ruleId, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> EvaluateEvidenceRulesAsync(ClaimsPrincipal principal, EvaluateEvidenceRulesRequest request, IAuditComplianceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Audits.EvidenceManage, () => commands.EvaluateEvidenceRulesAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
     private static async Task<IResult> ListEvidenceExportsAsync(
         ClaimsPrincipal principal,
         IPermissionMatrix permissionMatrix,
@@ -226,6 +251,63 @@ public sealed class AuditsModule : IModule
         }
 
         var item = await queries.GetEvidenceExportAsync(exportId, cancellationToken);
+        return item is null ? Results.NotFound() : Results.Ok(item);
+    }
+
+    private static async Task<IResult> ListEvidenceRulesAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IAuditComplianceQueries queries,
+        string? search,
+        string? status,
+        string? processArea,
+        string? artifactType,
+        Guid? projectId,
+        int page = 1,
+        int pageSize = 25,
+        CancellationToken cancellationToken = default)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Audits.EvidenceRead, Permissions.Audits.EvidenceManage))
+        {
+            return Results.Forbid();
+        }
+
+        return Results.Ok(await queries.ListEvidenceRulesAsync(new EvidenceRuleListQuery(search, status, processArea, artifactType, projectId, page, pageSize), cancellationToken));
+    }
+
+    private static async Task<IResult> ListEvidenceResultsAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IAuditComplianceQueries queries,
+        string? scopeType,
+        string? status,
+        string? processArea,
+        Guid? projectId,
+        int page = 1,
+        int pageSize = 25,
+        CancellationToken cancellationToken = default)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Audits.EvidenceRead, Permissions.Audits.EvidenceManage))
+        {
+            return Results.Forbid();
+        }
+
+        return Results.Ok(await queries.ListEvidenceRuleResultsAsync(new EvidenceRuleResultListQuery(scopeType, status, processArea, projectId, page, pageSize), cancellationToken));
+    }
+
+    private static async Task<IResult> GetEvidenceResultAsync(
+        ClaimsPrincipal principal,
+        IPermissionMatrix permissionMatrix,
+        IAuditComplianceQueries queries,
+        Guid resultId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Audits.EvidenceRead, Permissions.Audits.EvidenceManage))
+        {
+            return Results.Forbid();
+        }
+
+        var item = await queries.GetEvidenceRuleResultAsync(resultId, cancellationToken);
         return item is null ? Results.NotFound() : Results.Ok(item);
     }
 

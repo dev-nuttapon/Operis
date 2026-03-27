@@ -114,4 +114,92 @@ public sealed class GovernanceOperationsCommandsTests
         Assert.Equal(GovernanceCommandStatus.ValidationError, result.Status);
         Assert.Equal(ApiErrorCodes.IntegrationReviewApprovalRequired, result.ErrorCode);
     }
+
+    [Fact]
+    public async Task UpdateComplianceDashboardPreferencesAsync_WithInvalidPeriod_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var sut = new GovernanceOperationsCommands(dbContext, new FakeAuditLogWriter());
+
+        var result = await sut.UpdateComplianceDashboardPreferencesAsync(
+            new UpdateComplianceDashboardPreferencesRequest(null, null, 2, false),
+            "compliance@example.com",
+            "compliance@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(GovernanceCommandStatus.ValidationError, result.Status);
+        Assert.Equal("compliance_dashboard_period_invalid", result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CreateManagementReviewAsync_WithoutSchedule_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var sut = new GovernanceOperationsCommands(dbContext, new FakeAuditLogWriter());
+
+        var result = await sut.CreateManagementReviewAsync(
+            new CreateManagementReviewRequest(
+                null,
+                "MR-001",
+                "Monthly management review",
+                "2026-03",
+                default,
+                "director@example.com",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null),
+            "director@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(GovernanceCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.ManagementReviewScheduleRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task TransitionManagementReviewAsync_CloseWithOpenMandatoryActions_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var reviewId = Guid.NewGuid();
+
+        dbContext.ManagementReviews.Add(new ManagementReviewEntity
+        {
+            Id = reviewId,
+            ReviewCode = "MR-100",
+            Title = "Quarterly review",
+            ReviewPeriod = "2026-Q1",
+            ScheduledAt = DateTimeOffset.UtcNow.AddDays(-1),
+            FacilitatorUserId = "director@example.com",
+            Status = "in_review",
+            MinutesSummary = "Minutes captured",
+            DecisionSummary = "Decisions captured",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.ManagementReviewActions.Add(new ManagementReviewActionEntity
+        {
+            Id = Guid.NewGuid(),
+            ReviewId = reviewId,
+            Title = "Close audit gap",
+            OwnerUserId = "owner@example.com",
+            Status = "open",
+            IsMandatory = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new GovernanceOperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.TransitionManagementReviewAsync(
+            reviewId,
+            new TransitionManagementReviewRequest("closed", "Ready to close"),
+            "director@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(GovernanceCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.ManagementReviewOpenActionsBlockClose, result.ErrorCode);
+    }
 }

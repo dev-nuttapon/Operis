@@ -152,6 +152,10 @@ Detailed implementation spec:
 
 ## Phase 26: Evidence Completeness Rules
 
+Companion spec:
+
+* [PHASE26_EVIDENCE_COMPLETENESS_SPEC.md](/Users/nuttapon/Github-dev/Operis/docs/cmmi-l3/PHASE26_EVIDENCE_COMPLETENESS_SPEC.md)
+
 - Goal
   - Detect missing required evidence for each project and process area.
 - In Scope
@@ -200,6 +204,10 @@ Detailed implementation spec:
 
 ## Phase 27: Management Review Cadence
 
+Companion spec:
+
+* [PHASE27_MANAGEMENT_REVIEW_CADENCE_SPEC.md](/Users/nuttapon/Github-dev/Operis/docs/cmmi-l3/PHASE27_MANAGEMENT_REVIEW_CADENCE_SPEC.md)
+
 - Goal
   - Institutionalize management review as a governed recurring process.
 - In Scope
@@ -245,6 +253,9 @@ Detailed implementation spec:
   - decisions and actions are retained with audit history
 
 ## Phase 28: Training & Competency
+
+- Companion Spec
+  - [PHASE28_TRAINING_COMPETENCY_SPEC.md](/Users/nuttapon/Github-dev/Operis/docs/cmmi-l3/PHASE28_TRAINING_COMPETENCY_SPEC.md)
 
 - Goal
   - Track required training and competency readiness by role and user.

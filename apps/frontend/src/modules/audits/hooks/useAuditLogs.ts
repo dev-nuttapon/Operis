@@ -3,12 +3,18 @@ import {
   closeAuditFinding,
   createAuditFinding,
   createAuditPlan,
+  createEvidenceRule,
   createEvidenceExport,
+  evaluateEvidenceRules,
   getAuditPlan,
+  getEvidenceRuleResult,
   getEvidenceExport,
   listAuditEvents,
   listAuditPlans,
+  listEvidenceRuleResults,
+  listEvidenceRules,
   listEvidenceExports,
+  updateEvidenceRule,
   updateAuditFinding,
   updateAuditPlan,
 } from "../api/auditsApi";
@@ -17,9 +23,14 @@ import type {
   CloseAuditFindingInput,
   CreateAuditFindingInput,
   CreateAuditPlanInput,
+  CreateEvidenceRuleInput,
   CreateEvidenceExportInput,
+  EvaluateEvidenceRulesInput,
+  EvidenceRuleListInput,
+  EvidenceRuleResultListInput,
   EvidenceExportListInput,
   ListAuditEventsInput,
+  UpdateEvidenceRuleInput,
   UpdateAuditFindingInput,
   UpdateAuditPlanInput,
 } from "../types/audits";
@@ -62,6 +73,30 @@ export function useEvidenceExport(exportId: string | null, enabled = true) {
     queryKey: ["audits", "export", exportId],
     queryFn: ({ signal }) => (exportId ? getEvidenceExport(exportId, signal) : Promise.resolve(null)),
     enabled: enabled && Boolean(exportId),
+  });
+}
+
+export function useEvidenceRules(filters: EvidenceRuleListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["audits", "evidence-rules", filters],
+    queryFn: ({ signal }) => listEvidenceRules(filters, signal),
+    enabled,
+  });
+}
+
+export function useEvidenceRuleResults(filters: EvidenceRuleResultListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["audits", "evidence-results", filters],
+    queryFn: ({ signal }) => listEvidenceRuleResults(filters, signal),
+    enabled,
+  });
+}
+
+export function useEvidenceRuleResult(resultId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["audits", "evidence-result", resultId],
+    queryFn: ({ signal }) => (resultId ? getEvidenceRuleResult(resultId, signal) : Promise.resolve(null)),
+    enabled: enabled && Boolean(resultId),
   });
 }
 
@@ -116,6 +151,30 @@ export function useCreateEvidenceExport() {
   const invalidate = useInvalidateAudits();
   return useMutation({
     mutationFn: (input: CreateEvidenceExportInput) => createEvidenceExport(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateEvidenceRule() {
+  const invalidate = useInvalidateAudits();
+  return useMutation({
+    mutationFn: (input: CreateEvidenceRuleInput) => createEvidenceRule(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateEvidenceRule() {
+  const invalidate = useInvalidateAudits();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateEvidenceRuleInput }) => updateEvidenceRule(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useEvaluateEvidenceRules() {
+  const invalidate = useInvalidateAudits();
+  return useMutation({
+    mutationFn: (input: EvaluateEvidenceRulesInput) => evaluateEvidenceRules(input),
     onSuccess: invalidate,
   });
 }

@@ -67,6 +67,14 @@ public sealed class GovernanceModule : IModule
         group.MapPut("/tailoring-records/{tailoringRecordId:guid}/approve", ApproveTailoringRecordAsync);
         group.MapPut("/tailoring-records/{tailoringRecordId:guid}/apply", ApplyTailoringRecordAsync);
         group.MapPut("/tailoring-records/{tailoringRecordId:guid}/archive", ArchiveTailoringRecordAsync);
+        group.MapGet("/compliance-dashboard", GetComplianceDashboardAsync);
+        group.MapGet("/compliance-dashboard/drilldown", GetComplianceDrilldownAsync);
+        group.MapPut("/compliance-dashboard/preferences", UpdateComplianceDashboardPreferencesAsync);
+        group.MapGet("/management-reviews", ListManagementReviewsAsync);
+        group.MapGet("/management-reviews/{id:guid}", GetManagementReviewAsync);
+        group.MapPost("/management-reviews", CreateManagementReviewAsync);
+        group.MapPut("/management-reviews/{id:guid}", UpdateManagementReviewAsync);
+        group.MapPost("/management-reviews/{id:guid}/transition", TransitionManagementReviewAsync);
         group.MapGet("/raci-maps", ListRaciMapsAsync);
         group.MapPost("/raci-maps", CreateRaciMapAsync);
         group.MapPut("/raci-maps/{id:guid}", UpdateRaciMapAsync);
@@ -248,6 +256,84 @@ public sealed class GovernanceModule : IModule
     private static async Task<IResult> ArchiveTailoringRecordAsync(ClaimsPrincipal principal, Guid tailoringRecordId, IGovernanceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.TailoringManage, "You do not have permission to manage tailoring records.", () => commands.ArchiveTailoringRecordAsync(tailoringRecordId, cancellationToken));
 
+    private static async Task<IResult> GetComplianceDashboardAsync(ClaimsPrincipal principal, [AsParameters] ComplianceDashboardQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksAnyPermission(principal, permissionMatrix, Permissions.Governance.ComplianceRead, Permissions.Governance.ComplianceManage))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read compliance dashboard data.");
+        }
+
+        return Results.Ok(await queries.GetComplianceDashboardAsync(query, ResolveActor(principal), cancellationToken));
+    }
+
+    private static async Task<IResult> GetComplianceDrilldownAsync(ClaimsPrincipal principal, [AsParameters] ComplianceDashboardDrilldownQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksAnyPermission(principal, permissionMatrix, Permissions.Governance.ComplianceRead, Permissions.Governance.ComplianceManage))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read compliance dashboard data.");
+        }
+
+        return Results.Ok(await queries.GetComplianceDrilldownAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> UpdateComplianceDashboardPreferencesAsync(ClaimsPrincipal principal, UpdateComplianceDashboardPreferencesRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.ComplianceManage))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to manage compliance dashboard preferences.");
+        }
+
+        var userId = ResolveActor(principal) ?? "unknown";
+        var result = await commands.UpdateComplianceDashboardPreferencesAsync(request, userId, ResolveActor(principal), cancellationToken);
+        return result.Status switch
+        {
+            GovernanceCommandStatus.Success => Results.Ok(result.Value),
+            GovernanceCommandStatus.ValidationError => BadRequestWithCode(result.ErrorMessage, result.ErrorCode),
+            GovernanceCommandStatus.NotFound => NotFoundWithCode(result.ErrorMessage, result.ErrorCode),
+            GovernanceCommandStatus.Conflict => ConflictWithCode(result.ErrorMessage, result.ErrorCode),
+            _ => ProblemWithCode("Request failed.", result.ErrorMessage, result.ErrorCode, StatusCodes.Status500InternalServerError, ApiErrorCodes.InternalFailure)
+        };
+    }
+
+    private static async Task<IResult> ListManagementReviewsAsync(ClaimsPrincipal principal, [AsParameters] ManagementReviewListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksAnyPermission(principal, permissionMatrix, Permissions.Governance.ManagementReviewRead, Permissions.Governance.ManagementReviewManage, Permissions.Governance.ManagementReviewApprove))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read management reviews.");
+        }
+
+        return Results.Ok(await queries.ListManagementReviewsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> GetManagementReviewAsync(ClaimsPrincipal principal, Guid id, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksAnyPermission(principal, permissionMatrix, Permissions.Governance.ManagementReviewRead, Permissions.Governance.ManagementReviewManage, Permissions.Governance.ManagementReviewApprove))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read management reviews.");
+        }
+
+        var item = await queries.GetManagementReviewAsync(id, cancellationToken);
+        return item is null ? NotFoundWithCode() : Results.Ok(item);
+    }
+
+    private static async Task<IResult> CreateManagementReviewAsync(ClaimsPrincipal principal, CreateManagementReviewRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.ManagementReviewManage, "You do not have permission to manage management reviews.", () => commands.CreateManagementReviewAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateManagementReviewAsync(ClaimsPrincipal principal, Guid id, UpdateManagementReviewRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.ManagementReviewManage, "You do not have permission to manage management reviews.", () => commands.UpdateManagementReviewAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> TransitionManagementReviewAsync(ClaimsPrincipal principal, Guid id, TransitionManagementReviewRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        var targetStatus = request.TargetStatus.Trim().ToLowerInvariant();
+        var needsApprove = targetStatus is "closed" or "archived";
+        if (needsApprove)
+        {
+            return await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.ManagementReviewApprove, "You do not have permission to approve management reviews.", () => commands.TransitionManagementReviewAsync(id, request, ResolveActor(principal), cancellationToken));
+        }
+
+        return await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.ManagementReviewManage, "You do not have permission to manage management reviews.", () => commands.TransitionManagementReviewAsync(id, request, ResolveActor(principal), cancellationToken));
+    }
+
     private static async Task<IResult> ListRaciMapsAsync(ClaimsPrincipal principal, [AsParameters] RaciMapListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
     {
         if (LacksPermission(principal, permissionMatrix, Permissions.Governance.RaciRead))
@@ -406,6 +492,9 @@ public sealed class GovernanceModule : IModule
         ?? principal.FindFirstValue("preferred_username")
         ?? principal.FindFirstValue("sub")
         ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    private static bool LacksAnyPermission(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, params string[] permissions) =>
+        !permissions.Any(permission => permissionMatrix.HasPermission(principal, permission));
 
     private static bool LacksPermission(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission) =>
         !permissionMatrix.HasPermission(principal, permission);

@@ -3,6 +3,7 @@ import { Layout, Menu, Button, Typography, Flex, theme, Avatar, Dropdown, Grid, 
 import type { MenuProps } from 'antd';
 import {
   FileTextOutlined,
+  BookOutlined,
   AlertOutlined,
   MenuOutlined,
   BulbOutlined,
@@ -98,6 +99,11 @@ export function MainLayout() {
     permissions.governance.designReviewManage,
     permissions.governance.integrationReviewRead,
     permissions.governance.integrationReviewManage,
+    permissions.governance.complianceRead,
+    permissions.governance.complianceManage,
+    permissions.governance.managementReviewRead,
+    permissions.governance.managementReviewManage,
+    permissions.governance.managementReviewApprove,
   );
   const hasRequirementsAccess = permissionState.hasAnyPermission(
     permissions.requirements.read,
@@ -138,6 +144,8 @@ export function MainLayout() {
     permissions.auditLogs.read,
     permissions.auditLogs.export,
     permissions.auditLogs.manage,
+    permissions.audits.evidenceRead,
+    permissions.audits.evidenceManage,
   );
   const hasMetricsAccess = permissionState.hasAnyPermission(
     permissions.metrics.read,
@@ -165,6 +173,11 @@ export function MainLayout() {
   const hasKnowledgeAccess = permissionState.hasAnyPermission(
     permissions.knowledge.read,
     permissions.knowledge.manage,
+  );
+  const hasLearningAccess = permissionState.hasAnyPermission(
+    permissions.learning.read,
+    permissions.learning.manage,
+    permissions.learning.approve,
   );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
@@ -327,6 +340,20 @@ export function MainLayout() {
             { key: '/app/governance/architecture-records', label: 'Architecture Register' },
             { key: '/app/governance/design-reviews', label: 'Design Review' },
             { key: '/app/governance/integration-reviews', label: 'Integration Review' },
+            { key: '/app/governance/compliance-dashboard', label: 'Compliance Dashboard' },
+            { key: '/app/governance/management-reviews', label: 'Management Reviews' },
+          ],
+        }]
+      : []),
+    ...(hasLearningAccess
+      ? [{
+          key: '/app/learning-group',
+          icon: <BookOutlined />,
+          label: 'Learning & Competency',
+          children: [
+            { key: '/app/learning/training-catalog', label: 'Training Catalog' },
+            { key: '/app/learning/role-training-matrix', label: 'Role Training Matrix' },
+            { key: '/app/learning/completions', label: 'Training Completions' },
           ],
         }]
       : []),
@@ -386,6 +413,7 @@ export function MainLayout() {
             { key: '/app/audit-logs', label: 'Audit Log' },
             { key: '/app/evidence-exports', label: 'Evidence Export' },
             { key: '/app/audit-plans', label: 'Process Audit Plan & Findings' },
+            { key: '/app/audits/evidence-completeness', label: 'Evidence Completeness' },
           ],
         }]
       : []),
@@ -638,6 +666,7 @@ export function MainLayout() {
     if (path.includes('admin/activity-logs')) return tr('common.activity_logs');
     if (path.includes('/app/audit-plans')) return 'Process Audit Plan & Findings';
     if (path.includes('/app/evidence-exports')) return 'Evidence Export';
+    if (path.includes('/app/audits/evidence-completeness')) return 'Evidence Completeness';
     if (path.includes('/app/audit-logs')) return 'Audit Log';
     if (path.includes('/app/governance/raci-maps')) return 'RACI Map';
     if (path.includes('/app/governance/approval-evidence')) return 'Approval Evidence Log';
@@ -647,6 +676,10 @@ export function MainLayout() {
     if (path.includes('/app/governance/architecture-records')) return 'Architecture Register';
     if (path.includes('/app/governance/design-reviews')) return 'Design Review';
     if (path.includes('/app/governance/integration-reviews')) return 'Integration Review';
+    if (path.includes('/app/governance/management-reviews')) return 'Management Reviews';
+    if (path.includes('/app/learning/training-catalog')) return 'Training Catalog';
+    if (path.includes('/app/learning/role-training-matrix')) return 'Role Training Matrix';
+    if (path.includes('/app/learning/completions')) return 'Training Completions';
     if (path.includes('/app/metrics/dashboard')) return 'Metrics Dashboard';
     if (path.includes('/app/metrics/schedules')) return 'Data Collection Schedule';
     if (path.includes('/app/metrics/definitions')) return 'Metric Definitions';
@@ -1050,9 +1083,14 @@ function getOpenKeys(path: string) {
     path.startsWith('/app/governance/retention-policies') ||
     path.startsWith('/app/governance/architecture-records') ||
     path.startsWith('/app/governance/design-reviews') ||
-    path.startsWith('/app/governance/integration-reviews')
+    path.startsWith('/app/governance/integration-reviews') ||
+    path.startsWith('/app/governance/management-reviews')
   ) {
     return ['/app/governance-operations'];
+  }
+
+  if (path.startsWith('/app/learning/')) {
+    return ['/app/learning-group'];
   }
 
   if (path.startsWith('/app/requirements')) {
@@ -1075,7 +1113,7 @@ function getOpenKeys(path: string) {
     return ['/app/verification-group'];
   }
 
-  if (path.startsWith('/app/audit-logs') || path.startsWith('/app/evidence-exports') || path.startsWith('/app/audit-plans')) {
+  if (path.startsWith('/app/audit-logs') || path.startsWith('/app/evidence-exports') || path.startsWith('/app/audit-plans') || path.startsWith('/app/audits/evidence-completeness')) {
     return ['/app/audits-group'];
   }
 
@@ -1158,6 +1196,18 @@ function getSelectedMenuKey(path: string) {
     return '/app/requirements/baselines';
   }
 
+  if (path.startsWith('/app/learning/role-training-matrix')) {
+    return '/app/learning/role-training-matrix';
+  }
+
+  if (path.startsWith('/app/learning/completions')) {
+    return '/app/learning/completions';
+  }
+
+  if (path.startsWith('/app/learning/training-catalog')) {
+    return '/app/learning/training-catalog';
+  }
+
   if (path.startsWith('/app/requirements/traceability')) {
     return '/app/requirements/traceability';
   }
@@ -1216,6 +1266,10 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/evidence-exports')) {
     return '/app/evidence-exports';
+  }
+
+  if (path.startsWith('/app/audits/evidence-completeness')) {
+    return '/app/audits/evidence-completeness';
   }
 
   if (path.startsWith('/app/audit-logs')) {

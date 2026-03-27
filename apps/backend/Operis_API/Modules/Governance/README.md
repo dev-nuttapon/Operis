@@ -6,6 +6,8 @@ Purpose:
 * enforces Phase 1 workflow transitions and governance audit evidence
 * owns Phase 13 RACI maps, approval evidence logs, workflow override logs, SLA rules, and retention policies
 * owns Phase 20 architecture records, design reviews, and integration reviews
+* owns Phase 25 compliance dashboard snapshots and user dashboard preferences
+* owns Phase 27 management reviews, review agenda items, and follow-up actions
 
 Public surface:
 
@@ -32,8 +34,15 @@ Owned data:
 * architecture_records
 * design_reviews
 * integration_reviews
+* compliance_snapshots
+* compliance_dashboard_preferences
+* management_reviews
+* management_review_items
+* management_review_actions
 
 Notes:
 
 * endpoints stay thin and delegate orchestration to `Application/`
 * project ownership remains in the users module; governance reads project existence only
+* compliance dashboard scoring is read-heavy and aggregates owned and read-only upstream process data into snapshot records
+* management review close is blocked until mandatory follow-up actions are closed and minutes are recorded

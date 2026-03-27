@@ -10,7 +10,11 @@ import {
   archiveStakeholder,
   archiveTailoringRecord,
   baselineProjectPlan,
+  createManagementReview,
   createArchitectureRecord,
+  getComplianceDashboard,
+  getComplianceDrilldown,
+  getManagementReview,
   createDesignReview,
   createIntegrationReview,
   createRaciMap,
@@ -30,6 +34,7 @@ import {
   getQaChecklist,
   listApprovalEvidence,
   listArchitectureRecords,
+  listManagementReviews,
   listDesignReviews,
   listIntegrationReviews,
   listProcessAssets,
@@ -45,6 +50,9 @@ import {
   submitProjectPlanReview,
   submitTailoringRecord,
   supersedeProjectPlan,
+  transitionManagementReview,
+  updateComplianceDashboardPreferences,
+  updateManagementReview,
   updateArchitectureRecord,
   updateDesignReview,
   updateIntegrationReview,
@@ -60,9 +68,13 @@ import {
 } from "../api/governanceApi";
 import type {
   ArchitectureRecordFormInput,
+  ComplianceDashboardInput,
+  ComplianceDashboardPreferenceInput,
   DesignReviewFormInput,
   GovernanceListInput,
   IntegrationReviewFormInput,
+  ManagementReviewFormInput,
+  ManagementReviewTransitionInput,
   ProcessAssetFormInput,
   ProcessAssetVersionFormInput,
   ProjectPlanFormInput,
@@ -143,6 +155,38 @@ export function useRaciMaps(input?: GovernanceListInput, enabled = true) {
     queryKey: ["governance", "raci-maps", input],
     queryFn: ({ signal }) => listRaciMaps(input, signal),
     enabled,
+  });
+}
+
+export function useComplianceDashboard(input?: ComplianceDashboardInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "compliance-dashboard", input],
+    queryFn: ({ signal }) => getComplianceDashboard(input, signal),
+    enabled,
+  });
+}
+
+export function useComplianceDrilldown(input: { issueType: string; projectId?: string; processArea?: string } | null, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "compliance-dashboard", "drilldown", input],
+    queryFn: ({ signal }) => (input ? getComplianceDrilldown(input, signal) : Promise.resolve(null)),
+    enabled: enabled && Boolean(input),
+  });
+}
+
+export function useManagementReviews(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "management-reviews", input],
+    queryFn: ({ signal }) => listManagementReviews(input, signal),
+    enabled,
+  });
+}
+
+export function useManagementReview(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "management-review", id],
+    queryFn: ({ signal }) => (id ? getManagementReview(id, signal) : Promise.resolve(null)),
+    enabled: enabled && Boolean(id),
   });
 }
 
@@ -229,6 +273,38 @@ export function useCreateArchitectureRecord() {
   const invalidate = useInvalidateGovernance();
   return useMutation({
     mutationFn: (input: ArchitectureRecordFormInput) => createArchitectureRecord(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateComplianceDashboardPreferences() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: ComplianceDashboardPreferenceInput) => updateComplianceDashboardPreferences(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateManagementReview() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: ManagementReviewFormInput) => createManagementReview(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateManagementReview() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: ManagementReviewFormInput }) => updateManagementReview(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useTransitionManagementReview() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: ManagementReviewTransitionInput }) => transitionManagementReview(id, input),
     onSuccess: invalidate,
   });
 }

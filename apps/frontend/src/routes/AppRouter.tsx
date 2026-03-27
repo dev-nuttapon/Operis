@@ -94,6 +94,24 @@ const DesignReviewPage = lazy(() =>
 const IntegrationReviewPage = lazy(() =>
   import("../modules/governance/pages/IntegrationReviewPage").then((module) => ({ default: module.IntegrationReviewPage }))
 );
+const ComplianceDashboardPage = lazy(() =>
+  import("../modules/governance/pages/ComplianceDashboardPage").then((module) => ({ default: module.ComplianceDashboardPage }))
+);
+const ManagementReviewPage = lazy(() =>
+  import("../modules/governance/pages/ManagementReviewPage").then((module) => ({ default: module.ManagementReviewPage }))
+);
+const ManagementReviewDetailPage = lazy(() =>
+  import("../modules/governance/pages/ManagementReviewDetailPage").then((module) => ({ default: module.ManagementReviewDetailPage }))
+);
+const TrainingCatalogPage = lazy(() =>
+  import("../modules/learning/pages/TrainingCatalogPage").then((module) => ({ default: module.TrainingCatalogPage }))
+);
+const RoleTrainingMatrixPage = lazy(() =>
+  import("../modules/learning/pages/RoleTrainingMatrixPage").then((module) => ({ default: module.RoleTrainingMatrixPage }))
+);
+const TrainingCompletionsPage = lazy(() =>
+  import("../modules/learning/pages/TrainingCompletionsPage").then((module) => ({ default: module.TrainingCompletionsPage }))
+);
 const RequirementRegisterPage = lazy(() =>
   import("../modules/requirements/pages/RequirementRegisterPage").then((module) => ({ default: module.RequirementRegisterPage }))
 );
@@ -159,6 +177,12 @@ const EvidenceExportsPage = lazy(() =>
 );
 const AuditPlansPage = lazy(() =>
   import("../modules/audits/pages/AuditPlansPage").then((module) => ({ default: module.AuditPlansPage }))
+);
+const EvidenceCompletenessPage = lazy(() =>
+  import("../modules/audits/pages/EvidenceCompletenessPage").then((module) => ({ default: module.EvidenceCompletenessPage }))
+);
+const EvidenceCompletenessDetailPage = lazy(() =>
+  import("../modules/audits/pages/EvidenceCompletenessDetailPage").then((module) => ({ default: module.EvidenceCompletenessDetailPage }))
 );
 const MetricDefinitionsPage = lazy(() =>
   import("../modules/metrics/pages/MetricDefinitionsPage").then((module) => ({ default: module.MetricDefinitionsPage }))
@@ -432,6 +456,12 @@ export function AppRouter() {
               <Route path="governance/architecture-records" element={<AuthorizedRoute anyOf={[permissions.governance.architectureRead, permissions.governance.architectureManage]}><ArchitectureRegisterPage /></AuthorizedRoute>} />
               <Route path="governance/design-reviews" element={<AuthorizedRoute anyOf={[permissions.governance.designReviewRead, permissions.governance.designReviewManage]}><DesignReviewPage /></AuthorizedRoute>} />
               <Route path="governance/integration-reviews" element={<AuthorizedRoute anyOf={[permissions.governance.integrationReviewRead, permissions.governance.integrationReviewManage]}><IntegrationReviewPage /></AuthorizedRoute>} />
+              <Route path="governance/compliance-dashboard" element={<AuthorizedRoute anyOf={[permissions.governance.complianceRead, permissions.governance.complianceManage]}><ComplianceDashboardPage /></AuthorizedRoute>} />
+              <Route path="governance/management-reviews" element={<AuthorizedRoute anyOf={[permissions.governance.managementReviewRead, permissions.governance.managementReviewManage, permissions.governance.managementReviewApprove]}><ManagementReviewPage /></AuthorizedRoute>} />
+              <Route path="governance/management-reviews/:reviewId" element={<AuthorizedRoute anyOf={[permissions.governance.managementReviewRead, permissions.governance.managementReviewManage, permissions.governance.managementReviewApprove]}><ManagementReviewDetailPage /></AuthorizedRoute>} />
+              <Route path="learning/training-catalog" element={<AuthorizedRoute anyOf={[permissions.learning.read, permissions.learning.manage, permissions.learning.approve]}><TrainingCatalogPage /></AuthorizedRoute>} />
+              <Route path="learning/role-training-matrix" element={<AuthorizedRoute anyOf={[permissions.learning.read, permissions.learning.manage, permissions.learning.approve]}><RoleTrainingMatrixPage /></AuthorizedRoute>} />
+              <Route path="learning/completions" element={<AuthorizedRoute anyOf={[permissions.learning.read, permissions.learning.manage, permissions.learning.approve]}><TrainingCompletionsPage /></AuthorizedRoute>} />
               <Route path="requirements" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementRegisterPage /></AuthorizedRoute>} />
               <Route path="requirements/:requirementId" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementDetailPage /></AuthorizedRoute>} />
               <Route path="requirements/baselines" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.baseline]}><RequirementBaselinesPage /></AuthorizedRoute>} />
@@ -455,6 +485,8 @@ export function AppRouter() {
               <Route path="audit-logs" element={<AuthorizedRoute permission={permissions.auditLogs.read}><AuditLogsPage /></AuthorizedRoute>} />
               <Route path="evidence-exports" element={<AuthorizedRoute anyOf={[permissions.auditLogs.read, permissions.auditLogs.export]}><EvidenceExportsPage /></AuthorizedRoute>} />
               <Route path="audit-plans" element={<AuthorizedRoute anyOf={[permissions.auditLogs.read, permissions.auditLogs.manage]}><AuditPlansPage /></AuthorizedRoute>} />
+              <Route path="audits/evidence-completeness" element={<AuthorizedRoute anyOf={[permissions.audits.evidenceRead, permissions.audits.evidenceManage]}><EvidenceCompletenessPage /></AuthorizedRoute>} />
+              <Route path="audits/evidence-completeness/:resultId" element={<AuthorizedRoute anyOf={[permissions.audits.evidenceRead, permissions.audits.evidenceManage]}><EvidenceCompletenessDetailPage /></AuthorizedRoute>} />
               <Route path="metrics/definitions" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><MetricDefinitionsPage /></AuthorizedRoute>} />
               <Route path="metrics/schedules" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><DataCollectionSchedulePage /></AuthorizedRoute>} />
               <Route path="metrics/dashboard" element={<AuthorizedRoute permission={permissions.metrics.read}><MetricsDashboardPage /></AuthorizedRoute>} />

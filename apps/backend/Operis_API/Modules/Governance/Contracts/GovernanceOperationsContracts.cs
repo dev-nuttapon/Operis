@@ -65,6 +65,223 @@ public sealed record IntegrationReviewListQuery(
     int Page = 1,
     int PageSize = 25);
 
+public sealed record ComplianceDashboardQuery(
+    Guid? ProjectId,
+    string? ProcessArea,
+    int? PeriodDays,
+    bool? ShowOnlyAtRisk);
+
+public sealed record ComplianceDashboardDrilldownQuery(
+    Guid? ProjectId,
+    string? ProcessArea,
+    string? IssueType);
+
+public sealed record ManagementReviewListQuery(
+    string? Search,
+    string? Status,
+    Guid? ProjectId,
+    string? FacilitatorUserId,
+    DateOnly? ScheduledFrom,
+    DateOnly? ScheduledTo,
+    int Page = 1,
+    int PageSize = 25);
+
+public sealed record UpdateComplianceDashboardPreferencesRequest(
+    Guid? DefaultProjectId,
+    string? DefaultProcessArea,
+    int DefaultPeriodDays,
+    bool DefaultShowOnlyAtRisk);
+
+public sealed record ComplianceDashboardPreferenceResponse(
+    Guid Id,
+    string UserId,
+    Guid? DefaultProjectId,
+    string? DefaultProcessArea,
+    int DefaultPeriodDays,
+    bool DefaultShowOnlyAtRisk,
+    DateTimeOffset UpdatedAt);
+
+public sealed record ComplianceDashboardFiltersResponse(
+    Guid? ProjectId,
+    string? ProcessArea,
+    int PeriodDays,
+    bool ShowOnlyAtRisk);
+
+public sealed record ComplianceDashboardSummaryResponse(
+    int ProjectsInGoodStanding,
+    int ProjectsWithMissingArtifacts,
+    int OverdueApprovals,
+    int StaleBaselines,
+    int OpenCapa,
+    int OpenAuditFindings,
+    int OpenSecurityItems);
+
+public sealed record ComplianceProjectReadinessResponse(
+    Guid ProjectId,
+    string ProjectCode,
+    string ProjectName,
+    string ProjectStatus,
+    string? ProjectPhase,
+    int ReadinessScore,
+    string ReadinessState,
+    int MissingArtifactCount,
+    int OverdueApprovalCount,
+    int StaleBaselineCount,
+    int OpenCapaCount,
+    int OpenAuditFindingCount,
+    int OpenSecurityItemCount);
+
+public sealed record ComplianceProcessAreaResponse(
+    string ProcessArea,
+    string Label,
+    int ProjectCount,
+    int AtRiskProjectCount,
+    int MissingArtifactCount,
+    int OverdueApprovalCount,
+    int StaleBaselineCount,
+    int OpenCapaCount,
+    int OpenAuditFindingCount,
+    int OpenSecurityItemCount);
+
+public sealed record ComplianceDashboardResponse(
+    ComplianceDashboardSummaryResponse Summary,
+    IReadOnlyList<ComplianceProjectReadinessResponse> Projects,
+    IReadOnlyList<ComplianceProcessAreaResponse> ProcessAreas,
+    DateTimeOffset GeneratedAt,
+    ComplianceDashboardFiltersResponse Filters);
+
+public sealed record ComplianceDrilldownRowResponse(
+    string IssueType,
+    string EntityType,
+    string EntityId,
+    string Title,
+    string Module,
+    string Route,
+    string Status,
+    string Scope,
+    string? DueAt,
+    string? Metadata);
+
+public sealed record ComplianceDrilldownResponse(
+    string IssueType,
+    Guid? ProjectId,
+    string? ProcessArea,
+    DateTimeOffset GeneratedAt,
+    IReadOnlyList<ComplianceDrilldownRowResponse> Rows);
+
+public sealed record ManagementReviewItemResponse(
+    Guid Id,
+    string ItemType,
+    string Title,
+    string? Summary,
+    string? Decision,
+    string? OwnerUserId,
+    DateTimeOffset? DueAt,
+    string Status,
+    DateTimeOffset UpdatedAt);
+
+public sealed record ManagementReviewActionResponse(
+    Guid Id,
+    string Title,
+    string? Description,
+    string OwnerUserId,
+    DateTimeOffset? DueAt,
+    string Status,
+    bool IsMandatory,
+    string? LinkedEntityType,
+    string? LinkedEntityId,
+    DateTimeOffset? ClosedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record ManagementReviewListItemResponse(
+    Guid Id,
+    Guid? ProjectId,
+    string? ProjectName,
+    string ReviewCode,
+    string Title,
+    string ReviewPeriod,
+    DateTimeOffset ScheduledAt,
+    string FacilitatorUserId,
+    string Status,
+    int OpenActionCount,
+    DateTimeOffset UpdatedAt);
+
+public sealed record ManagementReviewDetailResponse(
+    Guid Id,
+    Guid? ProjectId,
+    string? ProjectName,
+    string ReviewCode,
+    string Title,
+    string ReviewPeriod,
+    DateTimeOffset ScheduledAt,
+    string FacilitatorUserId,
+    string Status,
+    string? AgendaSummary,
+    string? MinutesSummary,
+    string? DecisionSummary,
+    string? EscalationEntityType,
+    string? EscalationEntityId,
+    string? ClosedBy,
+    DateTimeOffset? ClosedAt,
+    IReadOnlyList<ManagementReviewItemResponse> Items,
+    IReadOnlyList<ManagementReviewActionResponse> Actions,
+    IReadOnlyList<WorkflowOverrideLogResponse> History,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record ManagementReviewItemInput(
+    string ItemType,
+    string Title,
+    string? Summary,
+    string? Decision,
+    string? OwnerUserId,
+    DateTimeOffset? DueAt,
+    string? Status);
+
+public sealed record ManagementReviewActionInput(
+    string Title,
+    string? Description,
+    string OwnerUserId,
+    DateTimeOffset? DueAt,
+    string? Status,
+    bool IsMandatory,
+    string? LinkedEntityType,
+    string? LinkedEntityId);
+
+public sealed record CreateManagementReviewRequest(
+    Guid? ProjectId,
+    string ReviewCode,
+    string Title,
+    string ReviewPeriod,
+    DateTimeOffset ScheduledAt,
+    string FacilitatorUserId,
+    string? AgendaSummary,
+    string? MinutesSummary,
+    string? DecisionSummary,
+    string? EscalationEntityType,
+    string? EscalationEntityId,
+    IReadOnlyList<ManagementReviewItemInput>? Items,
+    IReadOnlyList<ManagementReviewActionInput>? Actions);
+
+public sealed record UpdateManagementReviewRequest(
+    Guid? ProjectId,
+    string ReviewCode,
+    string Title,
+    string ReviewPeriod,
+    DateTimeOffset ScheduledAt,
+    string FacilitatorUserId,
+    string? AgendaSummary,
+    string? MinutesSummary,
+    string? DecisionSummary,
+    string? EscalationEntityType,
+    string? EscalationEntityId,
+    IReadOnlyList<ManagementReviewItemInput>? Items,
+    IReadOnlyList<ManagementReviewActionInput>? Actions);
+
+public sealed record TransitionManagementReviewRequest(
+    string TargetStatus,
+    string? Reason);
+
 public sealed record RaciMapResponse(
     Guid Id,
     string ProcessCode,

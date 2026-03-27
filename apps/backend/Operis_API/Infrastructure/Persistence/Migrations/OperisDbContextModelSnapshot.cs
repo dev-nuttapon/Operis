@@ -309,6 +309,246 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.ToTable("evidence_exports", (string)null);
                 });
 
+            modelBuilder.Entity("Operis_API.Modules.Audits.Infrastructure.EvidenceMissingItemEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ArtifactType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("artifact_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("DetectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("detected_at");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("Metadata")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("metadata");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("module");
+
+                    b.Property<string>("ProcessArea")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("process_area");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("reason_code");
+
+                    b.Property<Guid>("ResultId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("result_id");
+
+                    b.Property<string>("Route")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("route");
+
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rule_id");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("scope");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RuleId");
+
+                    b.HasIndex("ResultId", "ProcessArea");
+
+                    b.HasIndex("ProjectId", "ProcessArea", "ReasonCode");
+
+                    b.ToTable("evidence_missing_items", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Audits.Infrastructure.EvidenceRuleEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ArtifactType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("artifact_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ExpressionType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("expression_type");
+
+                    b.Property<string>("ProcessArea")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("process_area");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("RuleCode")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("rule_code");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RuleCode")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "ProcessArea", "ArtifactType");
+
+                    b.ToTable("evidence_rules", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Audits.Infrastructure.EvidenceRuleResultEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("EvaluatedRuleCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("evaluated_rule_count");
+
+                    b.Property<int>("MissingItemCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("missing_item_count");
+
+                    b.Property<string>("ProcessArea")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("process_area");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("ScopeRef")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("scope_ref");
+
+                    b.Property<string>("ScopeType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("scope_type");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("SupersededByResultId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("superseded_by_result_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompletedAt");
+
+                    b.HasIndex("ProjectId", "ProcessArea", "Status");
+
+                    b.HasIndex("ScopeType", "ScopeRef", "Status");
+
+                    b.ToTable("evidence_rule_results", (string)null);
+                });
+
             modelBuilder.Entity("Operis_API.Modules.ChangeControl.Infrastructure.BaselineRegistryEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1503,6 +1743,151 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.ToTable("architecture_records", (string)null);
                 });
 
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ComplianceDashboardPreferenceEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DefaultPeriodDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("default_period_days");
+
+                    b.Property<string>("DefaultProcessArea")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("default_process_area");
+
+                    b.Property<Guid?>("DefaultProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("default_project_id");
+
+                    b.Property<bool>("DefaultShowOnlyAtRisk")
+                        .HasColumnType("boolean")
+                        .HasColumnName("default_show_only_at_risk");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefaultProjectId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("compliance_dashboard_preferences", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ComplianceSnapshotEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DetailsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details_json");
+
+                    b.Property<DateTimeOffset>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("generated_at");
+
+                    b.Property<string>("GeneratedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("generated_by");
+
+                    b.Property<int>("MissingArtifactCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("missing_artifact_count");
+
+                    b.Property<int>("OpenAuditFindingCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("open_audit_finding_count");
+
+                    b.Property<int>("OpenCapaCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("open_capa_count");
+
+                    b.Property<int>("OpenSecurityItemCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("open_security_item_count");
+
+                    b.Property<int>("OverdueApprovalCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("overdue_approval_count");
+
+                    b.Property<DateTimeOffset>("PeriodEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_end");
+
+                    b.Property<DateTimeOffset>("PeriodStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_start");
+
+                    b.Property<string>("ProcessArea")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("process_area");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<int>("ReadinessScore")
+                        .HasColumnType("integer")
+                        .HasColumnName("readiness_score");
+
+                    b.Property<int>("StaleBaselineCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("stale_baseline_count");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("SupersededBySnapshotId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("superseded_by_snapshot_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GeneratedAt");
+
+                    b.HasIndex("PeriodStart", "PeriodEnd");
+
+                    b.HasIndex("ProjectId", "ProcessArea", "Status");
+
+                    b.ToTable("compliance_snapshots", (string)null);
+                });
+
             modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.DesignReviewEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1645,6 +2030,241 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("ScopeRef", "IntegrationType", "Status");
 
                     b.ToTable("integration_reviews", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ManagementReviewActionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("description");
+
+                    b.Property<DateTimeOffset?>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<bool>("IsMandatory")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_mandatory");
+
+                    b.Property<string>("LinkedEntityId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("linked_entity_id");
+
+                    b.Property<string>("LinkedEntityType")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("linked_entity_type");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<Guid>("ReviewId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("review_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("ReviewId", "Status", "IsMandatory");
+
+                    b.ToTable("management_review_actions", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ManagementReviewEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AgendaSummary")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("agenda_summary");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<string>("ClosedBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("closed_by");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DecisionSummary")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("decision_summary");
+
+                    b.Property<string>("EscalationEntityId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("escalation_entity_id");
+
+                    b.Property<string>("EscalationEntityType")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("escalation_entity_type");
+
+                    b.Property<string>("FacilitatorUserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("facilitator_user_id");
+
+                    b.Property<string>("MinutesSummary")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("minutes_summary");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("ReviewCode")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("review_code");
+
+                    b.Property<string>("ReviewPeriod")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("review_period");
+
+                    b.Property<DateTimeOffset>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("scheduled_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FacilitatorUserId");
+
+                    b.HasIndex("ReviewCode")
+                        .IsUnique();
+
+                    b.HasIndex("ProjectId", "Status", "ScheduledAt");
+
+                    b.ToTable("management_reviews", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ManagementReviewItemEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Decision")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("decision");
+
+                    b.Property<DateTimeOffset?>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<string>("ItemType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("item_type");
+
+                    b.Property<string>("OwnerUserId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<Guid>("ReviewId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("review_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("summary");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewId", "ItemType", "Status");
+
+                    b.ToTable("management_review_items", (string)null);
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ProcessAssetEntity", b =>
@@ -2374,6 +2994,279 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasIndex("ProjectId", "LessonType", "Status");
 
                     b.ToTable("lessons_learned", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Learning.Infrastructure.CompetencyReviewEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("PlannedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("planned_at");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("ReviewPeriod")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("review_period");
+
+                    b.Property<string>("ReviewerUserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("reviewer_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("summary");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "Status");
+
+                    b.HasIndex("UserId", "Status", "PlannedAt");
+
+                    b.ToTable("competency_reviews", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Learning.Infrastructure.RoleTrainingRequirementEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("course_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid>("ProjectRoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_role_id");
+
+                    b.Property<int>("RenewalIntervalMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("renewal_interval_months");
+
+                    b.Property<int>("RequiredWithinDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("required_within_days");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId", "ProjectRoleId")
+                        .IsUnique();
+
+                    b.HasIndex("ProjectRoleId", "Status");
+
+                    b.ToTable("role_training_requirements", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Learning.Infrastructure.TrainingCompletionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("assigned_at");
+
+                    b.Property<DateTimeOffset?>("CompletionDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completion_date");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("course_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<string>("EvidenceRef")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("evidence_ref");
+
+                    b.Property<DateTimeOffset?>("ExpiryDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expiry_date");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_id");
+
+                    b.Property<Guid>("ProjectRoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_role_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ProjectRoleId");
+
+                    b.HasIndex("Status", "DueAt");
+
+                    b.HasIndex("UserId", "Status");
+
+                    b.HasIndex("CourseId", "ProjectRoleId", "ProjectId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("training_completions", (string)null);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Learning.Infrastructure.TrainingCourseEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("activated_at");
+
+                    b.Property<string>("AudienceScope")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("audience_scope");
+
+                    b.Property<string>("CourseCode")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("course_code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeliveryMode")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("delivery_mode");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTimeOffset?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retired_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("ValidityMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("validity_months");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseCode")
+                        .IsUnique()
+                        .HasFilter("\"course_code\" IS NOT NULL");
+
+                    b.HasIndex("Status", "Title");
+
+                    b.ToTable("training_courses", (string)null);
                 });
 
             modelBuilder.Entity("Operis_API.Modules.Meetings.Infrastructure.DecisionEntity", b =>
@@ -7621,6 +8514,42 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Operis_API.Modules.Audits.Infrastructure.EvidenceMissingItemEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Operis_API.Modules.Audits.Infrastructure.EvidenceRuleResultEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ResultId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Audits.Infrastructure.EvidenceRuleEntity", null)
+                        .WithMany()
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Audits.Infrastructure.EvidenceRuleEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Audits.Infrastructure.EvidenceRuleResultEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
             modelBuilder.Entity("Operis_API.Modules.ChangeControl.Infrastructure.BaselineRegistryEntity", b =>
                 {
                     b.HasOne("Operis_API.Modules.ChangeControl.Infrastructure.ChangeRequestEntity", null)
@@ -7755,11 +8684,54 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ComplianceDashboardPreferenceEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("DefaultProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ComplianceSnapshotEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.DesignReviewEntity", b =>
                 {
                     b.HasOne("Operis_API.Modules.Governance.Infrastructure.ArchitectureRecordEntity", null)
                         .WithMany()
                         .HasForeignKey("ArchitectureRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ManagementReviewActionEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Governance.Infrastructure.ManagementReviewEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ManagementReviewEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Governance.Infrastructure.ManagementReviewItemEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Governance.Infrastructure.ManagementReviewEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -7810,6 +8782,50 @@ namespace Operis_API.Infrastructure.Persistence.Migrations
                     b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
                         .WithMany()
                         .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Learning.Infrastructure.CompetencyReviewEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Learning.Infrastructure.RoleTrainingRequirementEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Learning.Infrastructure.TrainingCourseEntity", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectRoleEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectRoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Operis_API.Modules.Learning.Infrastructure.TrainingCompletionEntity", b =>
+                {
+                    b.HasOne("Operis_API.Modules.Learning.Infrastructure.TrainingCourseEntity", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Operis_API.Modules.Users.Infrastructure.ProjectRoleEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectRoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

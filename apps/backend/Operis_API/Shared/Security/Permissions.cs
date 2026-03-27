@@ -47,6 +47,12 @@ public static class Permissions
         public const string Manage = "audit_logs.manage";
     }
 
+    public static class Audits
+    {
+        public const string EvidenceRead = "audits.evidence.read";
+        public const string EvidenceManage = "audits.evidence.manage";
+    }
+
     public static class ActivityLogs
     {
         public const string Read = "activity_logs.read";
@@ -97,6 +103,11 @@ public static class Permissions
         public const string DesignReviewManage = "governance.design_review.manage";
         public const string IntegrationReviewRead = "governance.integration_review.read";
         public const string IntegrationReviewManage = "governance.integration_review.manage";
+        public const string ComplianceRead = "governance.compliance.read";
+        public const string ComplianceManage = "governance.compliance.manage";
+        public const string ManagementReviewRead = "governance.management_reviews.read";
+        public const string ManagementReviewManage = "governance.management_reviews.manage";
+        public const string ManagementReviewApprove = "governance.management_reviews.approve";
     }
 
     public static class Requirements
@@ -184,6 +195,13 @@ public static class Permissions
         public const string Manage = "knowledge.manage";
     }
 
+    public static class Learning
+    {
+        public const string Read = "learning.training.read";
+        public const string Manage = "learning.training.manage";
+        public const string Approve = "learning.training.approve";
+    }
+
     public static readonly IReadOnlyList<string> All =
     [
         Admin.PermissionMatrixRead,
@@ -213,6 +231,8 @@ public static class Permissions
         AuditLogs.Read,
         AuditLogs.Export,
         AuditLogs.Manage,
+        Audits.EvidenceRead,
+        Audits.EvidenceManage,
         Documents.Read,
         Documents.Upload,
         Documents.ManageVersions,
@@ -247,6 +267,11 @@ public static class Permissions
         Governance.DesignReviewManage,
         Governance.IntegrationReviewRead,
         Governance.IntegrationReviewManage,
+        Governance.ComplianceRead,
+        Governance.ComplianceManage,
+        Governance.ManagementReviewRead,
+        Governance.ManagementReviewManage,
+        Governance.ManagementReviewApprove,
         Requirements.Read,
         Requirements.Manage,
         Requirements.Approve,
@@ -286,6 +311,9 @@ public static class Permissions
         Operations.Approve,
         Knowledge.Read,
         Knowledge.Manage,
+        Learning.Read,
+        Learning.Manage,
+        Learning.Approve,
         Notifications.Read,
         Notifications.Manage
     ];
@@ -319,6 +347,8 @@ public static class Permissions
             AuditLogs.Read => "Read Audit Logs",
             AuditLogs.Export => "Export Audit Logs",
             AuditLogs.Manage => "Manage Audit Plans and Findings",
+            Audits.EvidenceRead => "Read Evidence Completeness",
+            Audits.EvidenceManage => "Manage Evidence Completeness",
             Documents.Read => "Read Documents",
             Documents.Upload => "Upload Documents",
             Documents.ManageVersions => "Manage Document Versions",
@@ -353,6 +383,11 @@ public static class Permissions
             Governance.DesignReviewManage => "Manage Design Reviews",
             Governance.IntegrationReviewRead => "Read Integration Reviews",
             Governance.IntegrationReviewManage => "Manage Integration Reviews",
+            Governance.ComplianceRead => "Read Compliance Dashboard",
+            Governance.ComplianceManage => "Manage Compliance Dashboard",
+            Governance.ManagementReviewRead => "Read Management Reviews",
+            Governance.ManagementReviewManage => "Manage Management Reviews",
+            Governance.ManagementReviewApprove => "Approve Management Reviews",
             Requirements.Read => "Read Requirements",
             Requirements.Manage => "Manage Requirements",
             Requirements.Approve => "Approve Requirements",
@@ -392,6 +427,9 @@ public static class Permissions
             Operations.Approve => "Approve Access Reviews",
             Knowledge.Read => "Read Lessons Learned",
             Knowledge.Manage => "Manage Lessons Learned",
+            Learning.Read => "Read Training and Competency",
+            Learning.Manage => "Manage Training and Competency",
+            Learning.Approve => "Approve Training Catalog",
             Notifications.Read => "Read Notifications",
             Notifications.Manage => "Manage Notification Queue",
             _ => permission

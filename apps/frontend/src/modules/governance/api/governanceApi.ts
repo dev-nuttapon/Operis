@@ -3,6 +3,11 @@ import type {
   ApprovalEvidenceLog,
   ArchitectureRecord,
   ArchitectureRecordFormInput,
+  ComplianceDashboard,
+  ComplianceDashboardInput,
+  ComplianceDashboardPreference,
+  ComplianceDashboardPreferenceInput,
+  ComplianceDrilldown,
   DesignReview,
   DesignReviewFormInput,
   GovernanceListInput,
@@ -10,6 +15,10 @@ import type {
   GovernanceMutationResponse,
   IntegrationReview,
   IntegrationReviewFormInput,
+  ManagementReviewDetail,
+  ManagementReviewFormInput,
+  ManagementReviewListItem,
+  ManagementReviewTransitionInput,
   ProcessAsset,
   ProcessAssetFormInput,
   ProcessAssetListItem,
@@ -59,6 +68,9 @@ function toQuery(input?: GovernanceListInput) {
   if (input?.reviewType) params.set("reviewType", input.reviewType);
   if (input?.reviewedBy) params.set("reviewedBy", input.reviewedBy);
   if (input?.integrationType) params.set("integrationType", input.integrationType);
+  if (input?.facilitatorUserId) params.set("facilitatorUserId", input.facilitatorUserId);
+  if (input?.scheduledFrom) params.set("scheduledFrom", input.scheduledFrom);
+  if (input?.scheduledTo) params.set("scheduledTo", input.scheduledTo);
   const query = params.toString();
   return query ? `?${query}` : "";
 }
@@ -193,3 +205,38 @@ export const createIntegrationReview = (input: IntegrationReviewFormInput) =>
   apiRequest<IntegrationReview>("/api/v1/governance/integration-reviews", { method: "POST", body: input });
 export const updateIntegrationReview = (id: string, input: IntegrationReviewFormInput) =>
   apiRequest<IntegrationReview>(`/api/v1/governance/integration-reviews/${id}`, { method: "PUT", body: input });
+
+export const getComplianceDashboard = (input?: ComplianceDashboardInput, signal?: AbortSignal) => {
+  const params = new URLSearchParams();
+  if (input?.projectId) params.set("projectId", input.projectId);
+  if (input?.processArea) params.set("processArea", input.processArea);
+  if (input?.periodDays) params.set("periodDays", String(input.periodDays));
+  if (typeof input?.showOnlyAtRisk === "boolean") params.set("showOnlyAtRisk", String(input.showOnlyAtRisk));
+  const query = params.toString();
+  return apiRequest<ComplianceDashboard>(`/api/v1/governance/compliance-dashboard${query ? `?${query}` : ""}`, { signal });
+};
+
+export const getComplianceDrilldown = (
+  input: { issueType: string; projectId?: string; processArea?: string },
+  signal?: AbortSignal,
+) => {
+  const params = new URLSearchParams();
+  params.set("issueType", input.issueType);
+  if (input.projectId) params.set("projectId", input.projectId);
+  if (input.processArea) params.set("processArea", input.processArea);
+  return apiRequest<ComplianceDrilldown>(`/api/v1/governance/compliance-dashboard/drilldown?${params.toString()}`, { signal });
+};
+
+export const updateComplianceDashboardPreferences = (input: ComplianceDashboardPreferenceInput) =>
+  apiRequest<ComplianceDashboardPreference>("/api/v1/governance/compliance-dashboard/preferences", { method: "PUT", body: input });
+
+export const listManagementReviews = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<ManagementReviewListItem>>(`/api/v1/governance/management-reviews${toQuery(input)}`, { signal });
+export const getManagementReview = (id: string, signal?: AbortSignal) =>
+  apiRequest<ManagementReviewDetail>(`/api/v1/governance/management-reviews/${id}`, { signal });
+export const createManagementReview = (input: ManagementReviewFormInput) =>
+  apiRequest<ManagementReviewDetail>("/api/v1/governance/management-reviews", { method: "POST", body: input });
+export const updateManagementReview = (id: string, input: ManagementReviewFormInput) =>
+  apiRequest<ManagementReviewDetail>(`/api/v1/governance/management-reviews/${id}`, { method: "PUT", body: input });
+export const transitionManagementReview = (id: string, input: ManagementReviewTransitionInput) =>
+  apiRequest<ManagementReviewDetail>(`/api/v1/governance/management-reviews/${id}/transition`, { method: "POST", body: input });

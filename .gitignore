@@ -16,7 +16,7 @@ node_modules/
 .pnp.js
 
 # Build outputs
-/dist/
+dist/
 /build/
 /.next/
 /out/

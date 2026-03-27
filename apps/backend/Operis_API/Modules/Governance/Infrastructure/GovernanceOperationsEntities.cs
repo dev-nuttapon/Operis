@@ -107,3 +107,91 @@ public sealed class IntegrationReviewEntity
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+public sealed class ComplianceSnapshotEntity
+{
+    public Guid Id { get; init; }
+    public Guid ProjectId { get; set; }
+    public string ProcessArea { get; set; } = "overall";
+    public DateTimeOffset PeriodStart { get; set; }
+    public DateTimeOffset PeriodEnd { get; set; }
+    public int ReadinessScore { get; set; }
+    public string Status { get; set; } = "published";
+    public int MissingArtifactCount { get; set; }
+    public int OverdueApprovalCount { get; set; }
+    public int StaleBaselineCount { get; set; }
+    public int OpenCapaCount { get; set; }
+    public int OpenAuditFindingCount { get; set; }
+    public int OpenSecurityItemCount { get; set; }
+    public string DetailsJson { get; set; } = "{}";
+    public DateTimeOffset GeneratedAt { get; set; }
+    public string GeneratedBy { get; set; } = "system";
+    public Guid? SupersededBySnapshotId { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class ComplianceDashboardPreferenceEntity
+{
+    public Guid Id { get; init; }
+    public string UserId { get; set; } = string.Empty;
+    public Guid? DefaultProjectId { get; set; }
+    public string? DefaultProcessArea { get; set; }
+    public int DefaultPeriodDays { get; set; } = 30;
+    public bool DefaultShowOnlyAtRisk { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class ManagementReviewEntity
+{
+    public Guid Id { get; init; }
+    public Guid? ProjectId { get; set; }
+    public string ReviewCode { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string ReviewPeriod { get; set; } = string.Empty;
+    public DateTimeOffset ScheduledAt { get; set; }
+    public string FacilitatorUserId { get; set; } = string.Empty;
+    public string Status { get; set; } = "draft";
+    public string? AgendaSummary { get; set; }
+    public string? MinutesSummary { get; set; }
+    public string? DecisionSummary { get; set; }
+    public string? EscalationEntityType { get; set; }
+    public string? EscalationEntityId { get; set; }
+    public string? ClosedBy { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class ManagementReviewItemEntity
+{
+    public Guid Id { get; init; }
+    public Guid ReviewId { get; set; }
+    public string ItemType { get; set; } = "agenda";
+    public string Title { get; set; } = string.Empty;
+    public string? Summary { get; set; }
+    public string? Decision { get; set; }
+    public string? OwnerUserId { get; set; }
+    public DateTimeOffset? DueAt { get; set; }
+    public string Status { get; set; } = "open";
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class ManagementReviewActionEntity
+{
+    public Guid Id { get; init; }
+    public Guid ReviewId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string OwnerUserId { get; set; } = string.Empty;
+    public DateTimeOffset? DueAt { get; set; }
+    public string Status { get; set; } = "open";
+    public bool IsMandatory { get; set; }
+    public string? LinkedEntityType { get; set; }
+    public string? LinkedEntityId { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}

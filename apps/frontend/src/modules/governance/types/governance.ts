@@ -36,6 +36,214 @@ export interface GovernanceListInput extends PaginationInput {
   reviewType?: string;
   reviewedBy?: string;
   integrationType?: string;
+  facilitatorUserId?: string;
+  scheduledFrom?: string;
+  scheduledTo?: string;
+}
+
+export interface ComplianceDashboardInput {
+  projectId?: string;
+  processArea?: string;
+  periodDays?: number;
+  showOnlyAtRisk?: boolean;
+}
+
+export interface ComplianceDashboardPreferenceInput {
+  defaultProjectId?: string;
+  defaultProcessArea?: string;
+  defaultPeriodDays: number;
+  defaultShowOnlyAtRisk: boolean;
+}
+
+export interface ComplianceDashboardFilters {
+  projectId?: string | null;
+  processArea?: string | null;
+  periodDays: number;
+  showOnlyAtRisk: boolean;
+}
+
+export interface ComplianceDashboardSummary {
+  projectsInGoodStanding: number;
+  projectsWithMissingArtifacts: number;
+  overdueApprovals: number;
+  staleBaselines: number;
+  openCapa: number;
+  openAuditFindings: number;
+  openSecurityItems: number;
+}
+
+export interface ComplianceProjectReadiness {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  projectStatus: string;
+  projectPhase?: string | null;
+  readinessScore: number;
+  readinessState: string;
+  missingArtifactCount: number;
+  overdueApprovalCount: number;
+  staleBaselineCount: number;
+  openCapaCount: number;
+  openAuditFindingCount: number;
+  openSecurityItemCount: number;
+}
+
+export interface ComplianceProcessArea {
+  processArea: string;
+  label: string;
+  projectCount: number;
+  atRiskProjectCount: number;
+  missingArtifactCount: number;
+  overdueApprovalCount: number;
+  staleBaselineCount: number;
+  openCapaCount: number;
+  openAuditFindingCount: number;
+  openSecurityItemCount: number;
+}
+
+export interface ComplianceDashboard {
+  summary: ComplianceDashboardSummary;
+  projects: ComplianceProjectReadiness[];
+  processAreas: ComplianceProcessArea[];
+  generatedAt: string;
+  filters: ComplianceDashboardFilters;
+}
+
+export interface ComplianceDrilldownRow {
+  issueType: string;
+  entityType: string;
+  entityId: string;
+  title: string;
+  module: string;
+  route: string;
+  status: string;
+  scope: string;
+  dueAt?: string | null;
+  metadata?: string | null;
+}
+
+export interface ComplianceDrilldown {
+  issueType: string;
+  projectId?: string | null;
+  processArea?: string | null;
+  generatedAt: string;
+  rows: ComplianceDrilldownRow[];
+}
+
+export interface ComplianceDashboardPreference {
+  id: string;
+  userId: string;
+  defaultProjectId?: string | null;
+  defaultProcessArea?: string | null;
+  defaultPeriodDays: number;
+  defaultShowOnlyAtRisk: boolean;
+  updatedAt: string;
+}
+
+export interface ManagementReviewItemInput {
+  itemType: string;
+  title: string;
+  summary?: string | null;
+  decision?: string | null;
+  ownerUserId?: string | null;
+  dueAt?: string | null;
+  status?: string | null;
+}
+
+export interface ManagementReviewActionInput {
+  title: string;
+  description?: string | null;
+  ownerUserId: string;
+  dueAt?: string | null;
+  status?: string | null;
+  isMandatory: boolean;
+  linkedEntityType?: string | null;
+  linkedEntityId?: string | null;
+}
+
+export interface ManagementReviewListItem {
+  id: string;
+  projectId?: string | null;
+  projectName?: string | null;
+  reviewCode: string;
+  title: string;
+  reviewPeriod: string;
+  scheduledAt: string;
+  facilitatorUserId: string;
+  status: string;
+  openActionCount: number;
+  updatedAt: string;
+}
+
+export interface ManagementReviewItem {
+  id: string;
+  itemType: string;
+  title: string;
+  summary?: string | null;
+  decision?: string | null;
+  ownerUserId?: string | null;
+  dueAt?: string | null;
+  status: string;
+  updatedAt: string;
+}
+
+export interface ManagementReviewAction {
+  id: string;
+  title: string;
+  description?: string | null;
+  ownerUserId: string;
+  dueAt?: string | null;
+  status: string;
+  isMandatory: boolean;
+  linkedEntityType?: string | null;
+  linkedEntityId?: string | null;
+  closedAt?: string | null;
+  updatedAt: string;
+}
+
+export interface ManagementReviewDetail {
+  id: string;
+  projectId?: string | null;
+  projectName?: string | null;
+  reviewCode: string;
+  title: string;
+  reviewPeriod: string;
+  scheduledAt: string;
+  facilitatorUserId: string;
+  status: string;
+  agendaSummary?: string | null;
+  minutesSummary?: string | null;
+  decisionSummary?: string | null;
+  escalationEntityType?: string | null;
+  escalationEntityId?: string | null;
+  closedBy?: string | null;
+  closedAt?: string | null;
+  items: ManagementReviewItem[];
+  actions: ManagementReviewAction[];
+  history: WorkflowOverrideLog[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ManagementReviewFormInput {
+  projectId?: string | null;
+  reviewCode: string;
+  title: string;
+  reviewPeriod: string;
+  scheduledAt: string;
+  facilitatorUserId: string;
+  agendaSummary?: string | null;
+  minutesSummary?: string | null;
+  decisionSummary?: string | null;
+  escalationEntityType?: string | null;
+  escalationEntityId?: string | null;
+  items?: ManagementReviewItemInput[];
+  actions?: ManagementReviewActionInput[];
+}
+
+export interface ManagementReviewTransitionInput {
+  targetStatus: string;
+  reason?: string | null;
 }
 
 export interface ProcessAssetVersionSummary {

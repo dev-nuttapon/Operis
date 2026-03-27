@@ -10,5 +10,7 @@ public interface IAuditComplianceCommands
     Task<AuditComplianceCommandResult<AuditFindingItem>> UpdateAuditFindingAsync(Guid auditFindingId, UpdateAuditFindingRequest request, string? actorUserId, CancellationToken cancellationToken);
     Task<AuditComplianceCommandResult<AuditFindingItem>> CloseAuditFindingAsync(Guid auditFindingId, CloseAuditFindingRequest request, string? actorUserId, CancellationToken cancellationToken);
     Task<AuditComplianceCommandResult<EvidenceExportDetailResponse>> CreateEvidenceExportAsync(CreateEvidenceExportRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<AuditComplianceCommandResult<EvidenceRuleDetailResponse>> CreateEvidenceRuleAsync(CreateEvidenceRuleRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<AuditComplianceCommandResult<EvidenceRuleDetailResponse>> UpdateEvidenceRuleAsync(Guid ruleId, UpdateEvidenceRuleRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<AuditComplianceCommandResult<EvidenceRuleResultDetailResponse>> EvaluateEvidenceRulesAsync(EvaluateEvidenceRulesRequest request, string? actorUserId, CancellationToken cancellationToken);
 }
-

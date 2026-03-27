@@ -145,6 +145,13 @@ Public entry:
 * [apps/frontend/src/modules/knowledge/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/knowledge/index.ts)
 * [apps/frontend/src/modules/knowledge/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/knowledge/README.md)
 
+## learning
+
+Public entry:
+
+* [apps/frontend/src/modules/learning/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/learning/index.ts)
+* [apps/frontend/src/modules/learning/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/learning/README.md)
+
 ---
 
 # Backend Public Surfaces
@@ -184,6 +191,7 @@ Notes:
 
 * `GET /audit-events` projects from immutable `audit_logs`
 * audit plans, findings, and evidence export workflows remain owned by the `Audits` module
+* evidence completeness rules, evaluator runs, and missing evidence registers are also owned by `Audits`
 
 ## activities
 
@@ -238,12 +246,35 @@ Module entry:
 * [apps/backend/Operis_API/Modules/Governance/GovernanceModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Governance/GovernanceModule.cs)
 * [apps/backend/Operis_API/Modules/Governance/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Governance/README.md)
 
+## learning
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Learning/LearningModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Learning/LearningModule.cs)
+* [apps/backend/Operis_API/Modules/Learning/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Learning/README.md)
+
+Application surfaces:
+
+* learning queries
+* learning commands
+
+Notes:
+
+* training catalog, role-training requirements, completions, and competency reviews are owned by `Learning`
+* project, role, and assignment reads still come from `Users`-owned data through persistence reads inside `Learning` queries
+
 Application surfaces:
 
 * governance queries
 * governance commands
 * governance operations queries
 * governance operations commands
+
+Notes:
+
+* governance owns compliance dashboard snapshot generation and saved dashboard preferences
+* governance owns management review cadence records, agenda items, and follow-up actions
+* cross-module compliance reads stay query-only; governance does not take ownership of upstream project, requirements, verification, change control, audit, or operations tables
 
 ## requirements
 

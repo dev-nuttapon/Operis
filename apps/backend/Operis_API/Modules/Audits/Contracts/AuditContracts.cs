@@ -137,6 +137,76 @@ public sealed record EvidenceExportDetailResponse(
     string? FailureReason,
     IReadOnlyList<BusinessAuditEventItem> History);
 
+public sealed record EvidenceRuleListItem(
+    Guid Id,
+    string RuleCode,
+    string Title,
+    string ProcessArea,
+    string ArtifactType,
+    Guid? ProjectId,
+    string Status,
+    string ExpressionType,
+    DateTimeOffset UpdatedAt);
+
+public sealed record EvidenceRuleDetailResponse(
+    Guid Id,
+    string RuleCode,
+    string Title,
+    string ProcessArea,
+    string ArtifactType,
+    Guid? ProjectId,
+    string Status,
+    string ExpressionType,
+    string? Reason,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    IReadOnlyList<BusinessAuditEventItem> History);
+
+public sealed record EvidenceMissingItemResponse(
+    Guid Id,
+    Guid RuleId,
+    Guid? ProjectId,
+    string? ProjectCode,
+    string ProcessArea,
+    string ArtifactType,
+    string ReasonCode,
+    string Title,
+    string Module,
+    string Route,
+    string Scope,
+    string? EntityType,
+    string? EntityId,
+    string? Metadata,
+    DateTimeOffset DetectedAt);
+
+public sealed record EvidenceRuleResultListItem(
+    Guid Id,
+    string ScopeType,
+    string ScopeRef,
+    Guid? ProjectId,
+    string? ProjectCode,
+    string? ProcessArea,
+    string Status,
+    int EvaluatedRuleCount,
+    int MissingItemCount,
+    DateTimeOffset StartedAt,
+    DateTimeOffset CompletedAt);
+
+public sealed record EvidenceRuleResultDetailResponse(
+    Guid Id,
+    string ScopeType,
+    string ScopeRef,
+    Guid? ProjectId,
+    string? ProjectCode,
+    string? ProcessArea,
+    string Status,
+    int EvaluatedRuleCount,
+    int MissingItemCount,
+    DateTimeOffset StartedAt,
+    DateTimeOffset CompletedAt,
+    IReadOnlyList<EvidenceMissingItemResponse> MissingItems,
+    IReadOnlyList<BusinessAuditEventItem> History);
+
 public sealed record CreateAuditPlanRequest(
     Guid ProjectId,
     string Title,
@@ -180,6 +250,32 @@ public sealed record CreateEvidenceExportRequest(
     DateTimeOffset? To,
     IReadOnlyList<string>? IncludedArtifactTypes);
 
+public sealed record CreateEvidenceRuleRequest(
+    string RuleCode,
+    string Title,
+    string ProcessArea,
+    string ArtifactType,
+    Guid? ProjectId,
+    string Status,
+    string ExpressionType,
+    string? Reason);
+
+public sealed record UpdateEvidenceRuleRequest(
+    string RuleCode,
+    string Title,
+    string ProcessArea,
+    string ArtifactType,
+    Guid? ProjectId,
+    string Status,
+    string ExpressionType,
+    string? Reason);
+
+public sealed record EvaluateEvidenceRulesRequest(
+    Guid? ProjectId,
+    string? ProcessArea,
+    string? ScopeType,
+    string? ScopeRef);
+
 public sealed record AuditEventListQuery(
     Guid? ProjectId,
     string? EntityType,
@@ -202,5 +298,22 @@ public sealed record EvidenceExportListQuery(
     string? ScopeType,
     string? Status,
     string? RequestedBy,
+    int Page = 1,
+    int PageSize = 25);
+
+public sealed record EvidenceRuleListQuery(
+    string? Search,
+    string? Status,
+    string? ProcessArea,
+    string? ArtifactType,
+    Guid? ProjectId,
+    int Page = 1,
+    int PageSize = 25);
+
+public sealed record EvidenceRuleResultListQuery(
+    string? ScopeType,
+    string? Status,
+    string? ProcessArea,
+    Guid? ProjectId,
     int Page = 1,
     int PageSize = 25);
