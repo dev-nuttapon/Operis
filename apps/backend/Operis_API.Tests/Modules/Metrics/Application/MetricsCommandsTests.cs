@@ -88,6 +88,60 @@ public sealed class MetricsCommandsTests
         Assert.Equal(ApiErrorCodes.TrendMetricRequired, result.ErrorCode);
     }
 
+    [Fact]
+    public async Task OverridePerformanceGateAsync_WithoutReason_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var gateId = Guid.NewGuid();
+        dbContext.PerformanceGateResults.Add(new PerformanceGateResultEntity
+        {
+            Id = gateId,
+            ScopeRef = "platform:api",
+            EvaluatedAt = DateTimeOffset.UtcNow,
+            Result = "failed",
+            Reason = "Latency threshold breached",
+            EvaluatedByUserId = "qa@example.com",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new MetricsCommands(dbContext, new FakeAuditLogWriter(), new FakeBusinessAuditEventWriter(), new MetricsQueries(dbContext));
+        var result = await sut.OverridePerformanceGateAsync(gateId, new OverridePerformanceGateRequest(""), "compliance@example.com", CancellationToken.None);
+
+        Assert.Equal(MetricsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.PerformanceGateOverrideReasonRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task UpdateSlowOperationReviewAsync_CloseWithoutVerification_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var reviewId = Guid.NewGuid();
+        dbContext.SlowOperationReviews.Add(new SlowOperationReviewEntity
+        {
+            Id = reviewId,
+            OperationType = "query",
+            OperationKey = "documents.list",
+            ObservedLatencyMs = 1840,
+            Status = "verified",
+            OwnerUserId = "perf.owner@example.com",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new MetricsCommands(dbContext, new FakeAuditLogWriter(), new FakeBusinessAuditEventWriter(), new MetricsQueries(dbContext));
+        var result = await sut.UpdateSlowOperationReviewAsync(
+            reviewId,
+            new UpdateSlowOperationReviewRequest("query", "documents.list", 920, 48, "perf.owner@example.com", null, "closed"),
+            "perf.owner@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(MetricsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.SlowOperationVerificationRequired, result.ErrorCode);
+    }
+
     private static Guid SeedProject(Operis_API.Infrastructure.Persistence.OperisDbContext dbContext)
     {
         var projectId = Guid.NewGuid();

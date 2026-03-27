@@ -47,6 +47,26 @@ public sealed class MetricsModule : IModule
         trends.MapGet("/{trendReportId:guid}", GetTrendReportAsync);
         trends.MapPut("/{trendReportId:guid}", UpdateTrendReportAsync);
 
+        var performanceBaselines = endpoints.MapGroup("/api/v1/performance-baselines").WithTags("Metrics").RequireAuthorization();
+        performanceBaselines.MapGet("/", ListPerformanceBaselinesAsync);
+        performanceBaselines.MapPost("/", CreatePerformanceBaselineAsync);
+        performanceBaselines.MapPut("/{performanceBaselineId:guid}", UpdatePerformanceBaselineAsync);
+
+        var capacityReviews = endpoints.MapGroup("/api/v1/capacity-reviews").WithTags("Metrics").RequireAuthorization();
+        capacityReviews.MapGet("/", ListCapacityReviewsAsync);
+        capacityReviews.MapPost("/", CreateCapacityReviewAsync);
+        capacityReviews.MapPut("/{capacityReviewId:guid}", UpdateCapacityReviewAsync);
+
+        var slowOperations = endpoints.MapGroup("/api/v1/slow-operations").WithTags("Metrics").RequireAuthorization();
+        slowOperations.MapGet("/", ListSlowOperationReviewsAsync);
+        slowOperations.MapPost("/", CreateSlowOperationReviewAsync);
+        slowOperations.MapPut("/{slowOperationReviewId:guid}", UpdateSlowOperationReviewAsync);
+
+        var performanceGates = endpoints.MapGroup("/api/v1/performance-gates").WithTags("Metrics").RequireAuthorization();
+        performanceGates.MapGet("/", ListPerformanceGatesAsync);
+        performanceGates.MapPost("/evaluate", EvaluatePerformanceGateAsync);
+        performanceGates.MapPut("/{performanceGateId:guid}/override", OverridePerformanceGateAsync);
+
         return endpoints;
     }
 
@@ -149,6 +169,70 @@ public sealed class MetricsModule : IModule
 
     private static async Task<IResult> UpdateTrendReportAsync(ClaimsPrincipal principal, Guid trendReportId, UpdateTrendReportRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage trend reports.", () => commands.UpdateTrendReportAsync(trendReportId, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListPerformanceBaselinesAsync(ClaimsPrincipal principal, [AsParameters] PerformanceBaselineListQuery query, IMetricsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Metrics.Read))
+        {
+            return Forbidden("You do not have permission to read performance baselines.");
+        }
+
+        return Results.Ok(await queries.ListPerformanceBaselinesAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreatePerformanceBaselineAsync(ClaimsPrincipal principal, CreatePerformanceBaselineRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage performance baselines.", () => commands.CreatePerformanceBaselineAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdatePerformanceBaselineAsync(ClaimsPrincipal principal, Guid performanceBaselineId, UpdatePerformanceBaselineRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage performance baselines.", () => commands.UpdatePerformanceBaselineAsync(performanceBaselineId, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListCapacityReviewsAsync(ClaimsPrincipal principal, [AsParameters] CapacityReviewListQuery query, IMetricsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Metrics.Read))
+        {
+            return Forbidden("You do not have permission to read capacity reviews.");
+        }
+
+        return Results.Ok(await queries.ListCapacityReviewsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateCapacityReviewAsync(ClaimsPrincipal principal, CreateCapacityReviewRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage capacity reviews.", () => commands.CreateCapacityReviewAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateCapacityReviewAsync(ClaimsPrincipal principal, Guid capacityReviewId, UpdateCapacityReviewRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage capacity reviews.", () => commands.UpdateCapacityReviewAsync(capacityReviewId, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListSlowOperationReviewsAsync(ClaimsPrincipal principal, [AsParameters] SlowOperationReviewListQuery query, IMetricsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Metrics.Read))
+        {
+            return Forbidden("You do not have permission to read slow operation reviews.");
+        }
+
+        return Results.Ok(await queries.ListSlowOperationReviewsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateSlowOperationReviewAsync(ClaimsPrincipal principal, CreateSlowOperationReviewRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage slow operation reviews.", () => commands.CreateSlowOperationReviewAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateSlowOperationReviewAsync(ClaimsPrincipal principal, Guid slowOperationReviewId, UpdateSlowOperationReviewRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage slow operation reviews.", () => commands.UpdateSlowOperationReviewAsync(slowOperationReviewId, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListPerformanceGatesAsync(ClaimsPrincipal principal, [AsParameters] PerformanceGateListQuery query, IMetricsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Metrics.Read))
+        {
+            return Forbidden("You do not have permission to read performance gates.");
+        }
+
+        return Results.Ok(await queries.ListPerformanceGatesAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> EvaluatePerformanceGateAsync(ClaimsPrincipal principal, EvaluatePerformanceGateRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to evaluate performance gates.", () => commands.EvaluatePerformanceGateAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> OverridePerformanceGateAsync(ClaimsPrincipal principal, Guid performanceGateId, OverridePerformanceGateRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.OverrideQualityGates, "You do not have permission to override performance gates.", () => commands.OverridePerformanceGateAsync(performanceGateId, request, ResolveActor(principal), cancellationToken));
 
     private static async Task<IResult> ExecuteAsync<T>(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission, string forbiddenDetail, Func<Task<MetricsCommandResult<T>>> action, int successStatusCode = StatusCodes.Status200OK)
     {

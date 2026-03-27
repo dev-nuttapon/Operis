@@ -384,6 +384,10 @@ export function MainLayout() {
             { key: '/app/metrics/quality-gates', label: 'Quality Gate Status' },
             { key: '/app/metrics/reviews', label: 'Metrics Review Log' },
             { key: '/app/metrics/trend-reports', label: 'Trend Analysis Report' },
+            { key: '/app/metrics/performance-baselines', label: 'Performance Baseline' },
+            { key: '/app/metrics/capacity-reviews', label: 'Capacity Review' },
+            { key: '/app/metrics/slow-operations', label: 'Slow Query / API Review' },
+            { key: '/app/metrics/performance-gates', label: 'Performance Regression Gate' },
           ],
         }]
       : []),
@@ -420,6 +424,11 @@ export function MainLayout() {
             { key: '/app/operations/access-recertifications', label: 'Access Recertification' },
             { key: '/app/operations/security-reviews', label: 'Security Review' },
             { key: '/app/operations/external-dependencies', label: 'External Dependency Register' },
+            { key: '/app/operations/security-incidents', label: 'Security Incident Register' },
+            { key: '/app/operations/vulnerabilities', label: 'Vulnerability & Patch Register' },
+            { key: '/app/operations/secret-rotations', label: 'Secret Rotation Register' },
+            { key: '/app/operations/privileged-access', label: 'Privileged Access Log' },
+            { key: '/app/operations/classification-policies', label: 'Data Classification Policy' },
             { key: '/app/operations/suppliers', label: 'Supplier Register' },
             { key: '/app/operations/supplier-agreements', label: 'SLA/Contract Evidence' },
             { key: '/app/operations/configuration-audits', label: 'Configuration Audit Log' },
@@ -616,6 +625,10 @@ export function MainLayout() {
     if (path.includes('/app/metrics/quality-gates')) return 'Quality Gate Status';
     if (path.includes('/app/metrics/reviews')) return 'Metrics Review Log';
     if (path.includes('/app/metrics/trend-reports')) return 'Trend Analysis Report';
+    if (path.includes('/app/metrics/performance-baselines')) return 'Performance Baseline';
+    if (path.includes('/app/metrics/capacity-reviews')) return 'Capacity Review';
+    if (path.includes('/app/metrics/slow-operations')) return 'Slow Query / API Review';
+    if (path.includes('/app/metrics/performance-gates')) return 'Performance Regression Gate';
     if (path.includes('/app/releases/checklists')) return 'Deployment Checklist';
     if (path.includes('/app/releases/notes')) return 'Release Notes';
     if (path.includes('/app/releases')) return 'Release Register';
@@ -625,6 +638,11 @@ export function MainLayout() {
     if (path.includes('/app/operations/access-recertifications')) return 'Access Recertification';
     if (path.includes('/app/operations/security-reviews')) return 'Security Review';
     if (path.includes('/app/operations/external-dependencies')) return 'External Dependency Register';
+    if (path.includes('/app/operations/security-incidents')) return 'Security Incident Register';
+    if (path.includes('/app/operations/vulnerabilities')) return 'Vulnerability & Patch Register';
+    if (path.includes('/app/operations/secret-rotations')) return 'Secret Rotation Register';
+    if (path.includes('/app/operations/privileged-access')) return 'Privileged Access Log';
+    if (path.includes('/app/operations/classification-policies')) return 'Data Classification Policy';
     if (path.includes('/app/operations/suppliers')) return 'Supplier Register';
     if (path.includes('/app/operations/supplier-agreements')) return 'SLA/Contract Evidence';
     if (path.includes('/app/operations/configuration-audits')) return 'Configuration Audit Log';

@@ -100,6 +100,73 @@ export interface AccessRecertification {
   completedAt: string | null;
 }
 
+export interface SecurityIncident {
+  id: string;
+  projectId: string | null;
+  projectName: string | null;
+  code: string;
+  title: string;
+  severity: string;
+  reportedAt: string;
+  ownerUserId: string;
+  status: string;
+  resolutionSummary: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface VulnerabilityRecord {
+  id: string;
+  assetRef: string;
+  title: string;
+  severity: string;
+  identifiedAt: string;
+  patchDueAt: string | null;
+  ownerUserId: string;
+  status: string;
+  verificationSummary: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface SecretRotation {
+  id: string;
+  secretScope: string;
+  plannedAt: string;
+  rotatedAt: string | null;
+  verifiedBy: string | null;
+  verifiedAt: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface PrivilegedAccessEvent {
+  id: string;
+  requestedBy: string;
+  approvedBy: string | null;
+  usedBy: string | null;
+  requestedAt: string;
+  approvedAt: string | null;
+  usedAt: string | null;
+  reviewedAt: string | null;
+  status: string;
+  reason: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface ClassificationPolicy {
+  id: string;
+  policyCode: string;
+  classificationLevel: string;
+  scope: string;
+  status: string;
+  handlingRule: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 export interface OperationsListInput {
   scopeType?: string;
   scopeRef?: string;
@@ -110,10 +177,18 @@ export interface OperationsListInput {
   ownerUserId?: string;
   agreementType?: string;
   criticality?: string;
+  severity?: string;
   status?: string;
   plannedBefore?: string;
   reviewDueBefore?: string;
   effectiveToBefore?: string;
+  verifiedBy?: string;
+  requestedBy?: string;
+  approvedBy?: string;
+  usedBy?: string;
+  classificationLevel?: string;
+  scope?: string;
+  projectId?: string;
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
@@ -207,3 +282,64 @@ export interface CreateSupplierAgreementInput {
 }
 
 export interface UpdateSupplierAgreementInput extends CreateSupplierAgreementInput {}
+
+export interface CreateSecurityIncidentInput {
+  projectId?: string | null;
+  code: string;
+  title: string;
+  severity: string;
+  reportedAt: string;
+  ownerUserId: string;
+  status: string;
+  resolutionSummary?: string | null;
+}
+
+export interface UpdateSecurityIncidentInput extends CreateSecurityIncidentInput {}
+
+export interface CreateVulnerabilityInput {
+  assetRef: string;
+  title: string;
+  severity: string;
+  identifiedAt: string;
+  patchDueAt?: string | null;
+  ownerUserId: string;
+  status: string;
+  verificationSummary?: string | null;
+}
+
+export interface UpdateVulnerabilityInput extends CreateVulnerabilityInput {}
+
+export interface CreateSecretRotationInput {
+  secretScope: string;
+  plannedAt: string;
+  rotatedAt?: string | null;
+  verifiedBy?: string | null;
+  verifiedAt?: string | null;
+  status: string;
+}
+
+export interface UpdateSecretRotationInput extends CreateSecretRotationInput {}
+
+export interface CreatePrivilegedAccessEventInput {
+  requestedBy: string;
+  approvedBy?: string | null;
+  usedBy?: string | null;
+  requestedAt: string;
+  approvedAt?: string | null;
+  usedAt?: string | null;
+  reviewedAt?: string | null;
+  status: string;
+  reason: string;
+}
+
+export interface UpdatePrivilegedAccessEventInput extends CreatePrivilegedAccessEventInput {}
+
+export interface CreateClassificationPolicyInput {
+  policyCode: string;
+  classificationLevel: string;
+  scope: string;
+  status: string;
+  handlingRule?: string | null;
+}
+
+export interface UpdateClassificationPolicyInput extends CreateClassificationPolicyInput {}

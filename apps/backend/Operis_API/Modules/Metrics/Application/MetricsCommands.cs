@@ -19,6 +19,10 @@ public sealed class MetricsCommands(
     private static readonly string[] ScheduleStatuses = ["draft", "active", "archived"];
     private static readonly string[] MetricReviewStatuses = ["planned", "reviewed", "actions_tracked", "closed"];
     private static readonly string[] TrendReportStatuses = ["draft", "approved", "archived"];
+    private static readonly string[] PerformanceBaselineStatuses = ["draft", "approved", "active", "superseded"];
+    private static readonly string[] CapacityReviewStatuses = ["planned", "reviewed", "actioned", "closed"];
+    private static readonly string[] SlowOperationStatuses = ["open", "investigating", "optimized", "verified", "closed"];
+    private static readonly string[] PerformanceGateStatuses = ["pending", "passed", "failed", "overridden"];
 
     public async Task<MetricsCommandResult<MetricDefinitionCommandResponse>> CreateMetricDefinitionAsync(CreateMetricDefinitionRequest request, string? actorUserId, CancellationToken cancellationToken)
     {
@@ -383,6 +387,253 @@ public sealed class MetricsCommands(
         return Success((await queries.GetTrendReportAsync(entity.Id, cancellationToken))!);
     }
 
+    public async Task<MetricsCommandResult<PerformanceBaselineCommandResponse>> CreatePerformanceBaselineAsync(CreatePerformanceBaselineRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        if (!request.TargetValue.HasValue)
+        {
+            return Validation<PerformanceBaselineCommandResponse>(ApiErrorCodes.MetricTargetRequired, "Performance baseline target value is required.");
+        }
+
+        if (!request.ThresholdValue.HasValue)
+        {
+            return Validation<PerformanceBaselineCommandResponse>(ApiErrorCodes.MetricThresholdRequired, "Performance baseline threshold value is required.");
+        }
+
+        var entity = new PerformanceBaselineEntity
+        {
+            Id = Guid.NewGuid(),
+            ScopeType = request.ScopeType.Trim().ToLowerInvariant(),
+            ScopeRef = request.ScopeRef.Trim(),
+            MetricName = request.MetricName.Trim(),
+            TargetValue = request.TargetValue.Value,
+            ThresholdValue = request.ThresholdValue.Value,
+            Status = "draft",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.PerformanceBaselines.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("create", "performance_baseline", entity.Id, 201, new { entity.ScopeType, entity.MetricName, entity.Status });
+        await AppendBusinessAsync("performance_baseline_created", "performance_baseline", entity.Id, $"Created performance baseline {entity.MetricName}", actorUserId, null, new { entity.Status }, cancellationToken);
+        return Success(new PerformanceBaselineCommandResponse(entity.Id, entity.Status));
+    }
+
+    public async Task<MetricsCommandResult<PerformanceBaselineCommandResponse>> UpdatePerformanceBaselineAsync(Guid performanceBaselineId, UpdatePerformanceBaselineRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.PerformanceBaselines.SingleOrDefaultAsync(x => x.Id == performanceBaselineId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<PerformanceBaselineCommandResponse>(ApiErrorCodes.ResourceNotFound, "Performance baseline not found.");
+        }
+
+        if (!request.TargetValue.HasValue)
+        {
+            return Validation<PerformanceBaselineCommandResponse>(ApiErrorCodes.MetricTargetRequired, "Performance baseline target value is required.");
+        }
+
+        if (!request.ThresholdValue.HasValue)
+        {
+            return Validation<PerformanceBaselineCommandResponse>(ApiErrorCodes.MetricThresholdRequired, "Performance baseline threshold value is required.");
+        }
+
+        var nextStatus = NormalizePerformanceBaselineStatus(request.Status);
+        if (!IsValidTransition(entity.Status, nextStatus, PerformanceBaselineStatuses))
+        {
+            return Validation<PerformanceBaselineCommandResponse>(ApiErrorCodes.InvalidWorkflowTransition, "Performance baseline transition is invalid.");
+        }
+
+        dbContext.Entry(entity).CurrentValues.SetValues(entity with
+        {
+            ScopeType = request.ScopeType.Trim().ToLowerInvariant(),
+            ScopeRef = request.ScopeRef.Trim(),
+            MetricName = request.MetricName.Trim(),
+            TargetValue = request.TargetValue.Value,
+            ThresholdValue = request.ThresholdValue.Value,
+            Status = nextStatus,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("update", "performance_baseline", entity.Id, 200, new { entity.MetricName, Status = nextStatus });
+        await AppendBusinessAsync("performance_baseline_updated", "performance_baseline", entity.Id, $"Updated performance baseline {entity.MetricName}", actorUserId, null, new { Status = nextStatus }, cancellationToken);
+        return Success(new PerformanceBaselineCommandResponse(entity.Id, nextStatus));
+    }
+
+    public async Task<MetricsCommandResult<CapacityReviewItem>> CreateCapacityReviewAsync(CreateCapacityReviewRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = new CapacityReviewEntity
+        {
+            Id = Guid.NewGuid(),
+            ScopeRef = request.ScopeRef.Trim(),
+            ReviewPeriod = request.ReviewPeriod.Trim(),
+            ReviewedBy = request.ReviewedBy.Trim(),
+            Summary = request.Summary.Trim(),
+            ActionCount = Math.Max(0, request.ActionCount),
+            Status = "planned",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.CapacityReviews.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("create", "capacity_review", entity.Id, 201, new { entity.ScopeRef, entity.Status });
+        await AppendBusinessAsync("capacity_review_created", "capacity_review", entity.Id, $"Created capacity review for {entity.ScopeRef}", actorUserId, null, new { entity.Status }, cancellationToken);
+        return Success(new CapacityReviewItem(entity.Id, entity.ScopeRef, entity.ReviewPeriod, entity.ReviewedBy, entity.Status, entity.Summary, entity.ActionCount, entity.UpdatedAt));
+    }
+
+    public async Task<MetricsCommandResult<CapacityReviewItem>> UpdateCapacityReviewAsync(Guid capacityReviewId, UpdateCapacityReviewRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.CapacityReviews.SingleOrDefaultAsync(x => x.Id == capacityReviewId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<CapacityReviewItem>(ApiErrorCodes.ResourceNotFound, "Capacity review not found.");
+        }
+
+        var nextStatus = NormalizeCapacityReviewStatus(request.Status);
+        if (!IsValidTransition(entity.Status, nextStatus, CapacityReviewStatuses))
+        {
+            return Validation<CapacityReviewItem>(ApiErrorCodes.InvalidWorkflowTransition, "Capacity review transition is invalid.");
+        }
+
+        dbContext.Entry(entity).CurrentValues.SetValues(entity with
+        {
+            ScopeRef = request.ScopeRef.Trim(),
+            ReviewPeriod = request.ReviewPeriod.Trim(),
+            ReviewedBy = request.ReviewedBy.Trim(),
+            Summary = request.Summary.Trim(),
+            ActionCount = Math.Max(0, request.ActionCount),
+            Status = nextStatus,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("update", "capacity_review", entity.Id, 200, new { entity.ScopeRef, Status = nextStatus });
+        await AppendBusinessAsync("capacity_review_updated", "capacity_review", entity.Id, $"Updated capacity review for {entity.ScopeRef}", actorUserId, null, new { Status = nextStatus }, cancellationToken);
+        return Success(new CapacityReviewItem(entity.Id, request.ScopeRef.Trim(), request.ReviewPeriod.Trim(), request.ReviewedBy.Trim(), nextStatus, request.Summary.Trim(), Math.Max(0, request.ActionCount), DateTimeOffset.UtcNow));
+    }
+
+    public async Task<MetricsCommandResult<SlowOperationReviewItem>> CreateSlowOperationReviewAsync(CreateSlowOperationReviewRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = new SlowOperationReviewEntity
+        {
+            Id = Guid.NewGuid(),
+            OperationType = request.OperationType.Trim().ToLowerInvariant(),
+            OperationKey = request.OperationKey.Trim(),
+            ObservedLatencyMs = Math.Max(0, request.ObservedLatencyMs),
+            FrequencyPerHour = request.FrequencyPerHour,
+            Status = NormalizeSlowOperationStatus(request.Status),
+            OwnerUserId = request.OwnerUserId.Trim(),
+            OptimizationSummary = NormalizeOptional(request.OptimizationSummary, 4000),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.SlowOperationReviews.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("create", "slow_operation_review", entity.Id, 201, new { entity.OperationType, entity.Status });
+        await AppendBusinessAsync("slow_operation_review_created", "slow_operation_review", entity.Id, $"Created slow operation review {entity.OperationKey}", actorUserId, null, new { entity.Status }, cancellationToken);
+        return Success(new SlowOperationReviewItem(entity.Id, entity.OperationType, entity.OperationKey, entity.ObservedLatencyMs, entity.FrequencyPerHour, entity.Status, entity.OwnerUserId, entity.OptimizationSummary, entity.UpdatedAt));
+    }
+
+    public async Task<MetricsCommandResult<SlowOperationReviewItem>> UpdateSlowOperationReviewAsync(Guid slowOperationReviewId, UpdateSlowOperationReviewRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.SlowOperationReviews.SingleOrDefaultAsync(x => x.Id == slowOperationReviewId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<SlowOperationReviewItem>(ApiErrorCodes.ResourceNotFound, "Slow operation review not found.");
+        }
+
+        var nextStatus = NormalizeSlowOperationStatus(request.Status);
+        if (!IsValidTransition(entity.Status, nextStatus, SlowOperationStatuses))
+        {
+            return Validation<SlowOperationReviewItem>(ApiErrorCodes.InvalidWorkflowTransition, "Slow operation review transition is invalid.");
+        }
+
+        var optimizationSummary = NormalizeOptional(request.OptimizationSummary, 4000);
+        if (nextStatus == "closed" && entity.Status != "verified")
+        {
+            return Validation<SlowOperationReviewItem>(ApiErrorCodes.SlowOperationVerificationRequired, "Slow operation cannot close without verification.");
+        }
+
+        if (nextStatus is "verified" or "closed" && string.IsNullOrWhiteSpace(optimizationSummary))
+        {
+            return Validation<SlowOperationReviewItem>(ApiErrorCodes.SlowOperationVerificationRequired, "Optimization verification summary is required before verification or closure.");
+        }
+
+        dbContext.Entry(entity).CurrentValues.SetValues(entity with
+        {
+            OperationType = request.OperationType.Trim().ToLowerInvariant(),
+            OperationKey = request.OperationKey.Trim(),
+            ObservedLatencyMs = Math.Max(0, request.ObservedLatencyMs),
+            FrequencyPerHour = request.FrequencyPerHour,
+            Status = nextStatus,
+            OwnerUserId = request.OwnerUserId.Trim(),
+            OptimizationSummary = optimizationSummary,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("update", "slow_operation_review", entity.Id, 200, new { entity.OperationType, Status = nextStatus });
+        await AppendBusinessAsync("slow_operation_review_updated", "slow_operation_review", entity.Id, $"Updated slow operation review {entity.OperationKey}", actorUserId, null, new { Status = nextStatus }, cancellationToken);
+        return Success(new SlowOperationReviewItem(entity.Id, request.OperationType.Trim().ToLowerInvariant(), request.OperationKey.Trim(), Math.Max(0, request.ObservedLatencyMs), request.FrequencyPerHour, nextStatus, request.OwnerUserId.Trim(), optimizationSummary, DateTimeOffset.UtcNow));
+    }
+
+    public async Task<MetricsCommandResult<PerformanceGateItem>> EvaluatePerformanceGateAsync(EvaluatePerformanceGateRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var result = NormalizePerformanceGateResult(request.Result);
+        var entity = new PerformanceGateResultEntity
+        {
+            Id = Guid.NewGuid(),
+            ScopeRef = request.ScopeRef.Trim(),
+            EvaluatedAt = DateTimeOffset.UtcNow,
+            Result = result,
+            Reason = NormalizeOptional(request.Reason, 2000),
+            EvidenceRef = NormalizeOptional(request.EvidenceRef, 512),
+            EvaluatedByUserId = actorUserId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.PerformanceGateResults.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("evaluate", "performance_gate_result", entity.Id, 201, new { entity.ScopeRef, entity.Result });
+        await AppendBusinessAsync("performance_gate_evaluated", "performance_gate_result", entity.Id, $"Evaluated performance gate for {entity.ScopeRef}", actorUserId, entity.Reason, new { entity.Result }, cancellationToken);
+        return Success(new PerformanceGateItem(entity.Id, entity.ScopeRef, entity.EvaluatedAt, entity.Result, entity.Reason, entity.OverrideReason, entity.EvidenceRef, entity.EvaluatedByUserId, entity.OverriddenByUserId));
+    }
+
+    public async Task<MetricsCommandResult<PerformanceGateOverrideResponse>> OverridePerformanceGateAsync(Guid performanceGateId, OverridePerformanceGateRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.PerformanceGateResults.SingleOrDefaultAsync(x => x.Id == performanceGateId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<PerformanceGateOverrideResponse>(ApiErrorCodes.ResourceNotFound, "Performance gate not found.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return Validation<PerformanceGateOverrideResponse>(ApiErrorCodes.PerformanceGateOverrideReasonRequired, "Performance gate override reason is required.");
+        }
+
+        if (entity.Result != "failed")
+        {
+            return Validation<PerformanceGateOverrideResponse>(ApiErrorCodes.InvalidWorkflowTransition, "Only failed performance gates can be overridden.");
+        }
+
+        dbContext.Entry(entity).CurrentValues.SetValues(entity with
+        {
+            Result = "overridden",
+            OverrideReason = request.Reason.Trim(),
+            OverriddenByUserId = actorUserId,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("override", "performance_gate_result", entity.Id, 200, new { Result = "overridden" }, request.Reason.Trim());
+        await AppendBusinessAsync("performance_gate_overridden", "performance_gate_result", entity.Id, $"Overrode performance gate for {entity.ScopeRef}", actorUserId, request.Reason.Trim(), new { Result = "overridden" }, cancellationToken);
+        return Success(new PerformanceGateOverrideResponse(entity.Id, "overridden", request.Reason.Trim()));
+    }
+
     private async Task<MetricsCommandResult<TrendReportItem>?> ValidateTrendReportAsync(Guid projectId, Guid? metricDefinitionId, DateOnly? periodFrom, DateOnly? periodTo, CancellationToken cancellationToken)
     {
         if (!await dbContext.Projects.AnyAsync(x => x.Id == projectId, cancellationToken))
@@ -447,6 +698,38 @@ public sealed class MetricsCommands(
         "approved" => "approved",
         "archived" => "archived",
         _ => "draft"
+    };
+
+    private static string NormalizePerformanceBaselineStatus(string status) => status.Trim().ToLowerInvariant() switch
+    {
+        "approved" => "approved",
+        "active" => "active",
+        "superseded" => "superseded",
+        _ => "draft"
+    };
+
+    private static string NormalizeCapacityReviewStatus(string status) => status.Trim().ToLowerInvariant() switch
+    {
+        "reviewed" => "reviewed",
+        "actioned" => "actioned",
+        "closed" => "closed",
+        _ => "planned"
+    };
+
+    private static string NormalizeSlowOperationStatus(string status) => status.Trim().ToLowerInvariant() switch
+    {
+        "investigating" => "investigating",
+        "optimized" => "optimized",
+        "verified" => "verified",
+        "closed" => "closed",
+        _ => "open"
+    };
+
+    private static string NormalizePerformanceGateResult(string result) => result.Trim().ToLowerInvariant() switch
+    {
+        "passed" => "passed",
+        "failed" => "failed",
+        _ => "pending"
     };
 
     private static string? NormalizeOptional(string? value, int maxLength) =>

@@ -12,4 +12,8 @@ public interface IMetricsQueries
     Task<PagedResult<MetricReviewItem>> ListMetricReviewsAsync(MetricReviewListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<TrendReportItem>> ListTrendReportsAsync(TrendReportListQuery query, CancellationToken cancellationToken);
     Task<TrendReportItem?> GetTrendReportAsync(Guid trendReportId, CancellationToken cancellationToken);
+    Task<PagedResult<PerformanceBaselineItem>> ListPerformanceBaselinesAsync(PerformanceBaselineListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<CapacityReviewItem>> ListCapacityReviewsAsync(CapacityReviewListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<SlowOperationReviewItem>> ListSlowOperationReviewsAsync(SlowOperationReviewListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<PerformanceGateItem>> ListPerformanceGatesAsync(PerformanceGateListQuery query, CancellationToken cancellationToken);
 }

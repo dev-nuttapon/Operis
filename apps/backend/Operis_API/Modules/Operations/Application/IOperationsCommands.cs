@@ -20,4 +20,14 @@ public interface IOperationsCommands
     Task<OperationsCommandResult<AccessRecertificationResponse>> UpdateAccessRecertificationAsync(Guid id, UpdateAccessRecertificationRequest request, string? actor, CancellationToken cancellationToken);
     Task<OperationsCommandResult<AccessRecertificationDecisionResponse>> AddAccessRecertificationDecisionAsync(Guid id, AddAccessRecertificationDecisionRequest request, string? actor, CancellationToken cancellationToken);
     Task<OperationsCommandResult<AccessRecertificationResponse>> CompleteAccessRecertificationAsync(Guid id, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<SecurityIncidentResponse>> CreateSecurityIncidentAsync(CreateSecurityIncidentRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<SecurityIncidentResponse>> UpdateSecurityIncidentAsync(Guid id, UpdateSecurityIncidentRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<VulnerabilityResponse>> CreateVulnerabilityAsync(CreateVulnerabilityRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<VulnerabilityResponse>> UpdateVulnerabilityAsync(Guid id, UpdateVulnerabilityRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<SecretRotationResponse>> CreateSecretRotationAsync(CreateSecretRotationRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<SecretRotationResponse>> UpdateSecretRotationAsync(Guid id, UpdateSecretRotationRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<PrivilegedAccessEventResponse>> CreatePrivilegedAccessEventAsync(CreatePrivilegedAccessEventRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<PrivilegedAccessEventResponse>> UpdatePrivilegedAccessEventAsync(Guid id, UpdatePrivilegedAccessEventRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<ClassificationPolicyResponse>> CreateClassificationPolicyAsync(CreateClassificationPolicyRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<ClassificationPolicyResponse>> UpdateClassificationPolicyAsync(Guid id, UpdateClassificationPolicyRequest request, string? actor, CancellationToken cancellationToken);
 }

@@ -13,4 +13,12 @@ public interface IMetricsCommands
     Task<MetricsCommandResult<MetricReviewItem>> UpdateMetricReviewAsync(Guid metricReviewId, UpdateMetricReviewRequest request, string? actorUserId, CancellationToken cancellationToken);
     Task<MetricsCommandResult<TrendReportItem>> CreateTrendReportAsync(CreateTrendReportRequest request, string? actorUserId, CancellationToken cancellationToken);
     Task<MetricsCommandResult<TrendReportItem>> UpdateTrendReportAsync(Guid trendReportId, UpdateTrendReportRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<PerformanceBaselineCommandResponse>> CreatePerformanceBaselineAsync(CreatePerformanceBaselineRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<PerformanceBaselineCommandResponse>> UpdatePerformanceBaselineAsync(Guid performanceBaselineId, UpdatePerformanceBaselineRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<CapacityReviewItem>> CreateCapacityReviewAsync(CreateCapacityReviewRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<CapacityReviewItem>> UpdateCapacityReviewAsync(Guid capacityReviewId, UpdateCapacityReviewRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<SlowOperationReviewItem>> CreateSlowOperationReviewAsync(CreateSlowOperationReviewRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<SlowOperationReviewItem>> UpdateSlowOperationReviewAsync(Guid slowOperationReviewId, UpdateSlowOperationReviewRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<PerformanceGateItem>> EvaluatePerformanceGateAsync(EvaluatePerformanceGateRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<PerformanceGateOverrideResponse>> OverridePerformanceGateAsync(Guid performanceGateId, OverridePerformanceGateRequest request, string? actorUserId, CancellationToken cancellationToken);
 }

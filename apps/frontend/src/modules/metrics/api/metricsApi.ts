@@ -4,8 +4,14 @@ import type {
   CreateMetricCollectionScheduleInput,
   CreateMetricDefinitionInput,
   CreateMetricReviewInput,
+  CreatePerformanceBaselineInput,
+  CreateCapacityReviewInput,
+  CreateSlowOperationReviewInput,
   CreateTrendReportInput,
   EvaluateQualityGateInput,
+  EvaluatePerformanceGateInput,
+  CapacityReviewItem,
+  CapacityReviewListInput,
   MetricCollectionScheduleItem,
   MetricCollectionScheduleListInput,
   MetricDefinitionItem,
@@ -15,10 +21,20 @@ import type {
   MetricResultsResponse,
   MetricResultListInput,
   OverrideQualityGateInput,
+  OverridePerformanceGateInput,
+  PerformanceBaselineItem,
+  PerformanceBaselineListInput,
+  PerformanceGateItem,
+  PerformanceGateListInput,
   QualityGateListInput,
   QualityGateResultItem,
+  SlowOperationReviewItem,
+  SlowOperationReviewListInput,
   TrendReportItem,
   TrendReportListInput,
+  UpdatePerformanceBaselineInput,
+  UpdateCapacityReviewInput,
+  UpdateSlowOperationReviewInput,
   UpdateMetricReviewInput,
   UpdateMetricDefinitionInput,
   UpdateTrendReportInput,
@@ -98,4 +114,52 @@ export function createTrendReport(input: CreateTrendReportInput) {
 
 export function updateTrendReport(trendReportId: string, input: UpdateTrendReportInput) {
   return apiRequest<TrendReportItem>(`/api/v1/trend-reports/${trendReportId}`, { method: "PUT", body: input });
+}
+
+export function listPerformanceBaselines(input: PerformanceBaselineListInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<PerformanceBaselineItem>>(`/api/v1/performance-baselines${buildQuery({ ...input })}`, { signal });
+}
+
+export function createPerformanceBaseline(input: CreatePerformanceBaselineInput) {
+  return apiRequest("/api/v1/performance-baselines", { method: "POST", body: input });
+}
+
+export function updatePerformanceBaseline(performanceBaselineId: string, input: UpdatePerformanceBaselineInput) {
+  return apiRequest(`/api/v1/performance-baselines/${performanceBaselineId}`, { method: "PUT", body: input });
+}
+
+export function listCapacityReviews(input: CapacityReviewListInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<CapacityReviewItem>>(`/api/v1/capacity-reviews${buildQuery({ ...input })}`, { signal });
+}
+
+export function createCapacityReview(input: CreateCapacityReviewInput) {
+  return apiRequest<CapacityReviewItem>("/api/v1/capacity-reviews", { method: "POST", body: input });
+}
+
+export function updateCapacityReview(capacityReviewId: string, input: UpdateCapacityReviewInput) {
+  return apiRequest<CapacityReviewItem>(`/api/v1/capacity-reviews/${capacityReviewId}`, { method: "PUT", body: input });
+}
+
+export function listSlowOperationReviews(input: SlowOperationReviewListInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<SlowOperationReviewItem>>(`/api/v1/slow-operations${buildQuery({ ...input })}`, { signal });
+}
+
+export function createSlowOperationReview(input: CreateSlowOperationReviewInput) {
+  return apiRequest<SlowOperationReviewItem>("/api/v1/slow-operations", { method: "POST", body: input });
+}
+
+export function updateSlowOperationReview(slowOperationReviewId: string, input: UpdateSlowOperationReviewInput) {
+  return apiRequest<SlowOperationReviewItem>(`/api/v1/slow-operations/${slowOperationReviewId}`, { method: "PUT", body: input });
+}
+
+export function listPerformanceGates(input: PerformanceGateListInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<PerformanceGateItem>>(`/api/v1/performance-gates${buildQuery({ ...input })}`, { signal });
+}
+
+export function evaluatePerformanceGate(input: EvaluatePerformanceGateInput) {
+  return apiRequest<PerformanceGateItem>("/api/v1/performance-gates/evaluate", { method: "POST", body: input });
+}
+
+export function overridePerformanceGate(performanceGateId: string, input: OverridePerformanceGateInput) {
+  return apiRequest<PerformanceGateItem>(`/api/v1/performance-gates/${performanceGateId}/override`, { method: "PUT", body: input });
 }

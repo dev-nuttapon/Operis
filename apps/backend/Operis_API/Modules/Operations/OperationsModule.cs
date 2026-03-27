@@ -33,6 +33,32 @@ public sealed class OperationsModule : IModule
         accessRecertifications.MapPost("/{id:guid}/decisions", AddAccessRecertificationDecisionAsync);
         accessRecertifications.MapPut("/{id:guid}/complete", CompleteAccessRecertificationAsync);
 
+        var securityIncidents = endpoints.MapGroup("/api/v1/security-incidents").WithTags("Operations").RequireAuthorization();
+        securityIncidents.MapGet("/", ListSecurityIncidentsAsync);
+        securityIncidents.MapPost("/", CreateSecurityIncidentAsync);
+        securityIncidents.MapGet("/{id:guid}", GetSecurityIncidentAsync);
+        securityIncidents.MapPut("/{id:guid}", UpdateSecurityIncidentAsync);
+
+        var vulnerabilities = endpoints.MapGroup("/api/v1/vulnerabilities").WithTags("Operations").RequireAuthorization();
+        vulnerabilities.MapGet("/", ListVulnerabilitiesAsync);
+        vulnerabilities.MapPost("/", CreateVulnerabilityAsync);
+        vulnerabilities.MapPut("/{id:guid}", UpdateVulnerabilityAsync);
+
+        var secretRotations = endpoints.MapGroup("/api/v1/secret-rotations").WithTags("Operations").RequireAuthorization();
+        secretRotations.MapGet("/", ListSecretRotationsAsync);
+        secretRotations.MapPost("/", CreateSecretRotationAsync);
+        secretRotations.MapPut("/{id:guid}", UpdateSecretRotationAsync);
+
+        var privilegedAccessEvents = endpoints.MapGroup("/api/v1/privileged-access-events").WithTags("Operations").RequireAuthorization();
+        privilegedAccessEvents.MapGet("/", ListPrivilegedAccessEventsAsync);
+        privilegedAccessEvents.MapPost("/", CreatePrivilegedAccessEventAsync);
+        privilegedAccessEvents.MapPut("/{id:guid}", UpdatePrivilegedAccessEventAsync);
+
+        var classificationPolicies = endpoints.MapGroup("/api/v1/classification-policies").WithTags("Operations").RequireAuthorization();
+        classificationPolicies.MapGet("/", ListClassificationPoliciesAsync);
+        classificationPolicies.MapPost("/", CreateClassificationPolicyAsync);
+        classificationPolicies.MapPut("/{id:guid}", UpdateClassificationPolicyAsync);
+
         var securityReviews = endpoints.MapGroup("/api/v1/security-reviews").WithTags("Operations").RequireAuthorization();
         securityReviews.MapGet("/", ListSecurityReviewsAsync);
         securityReviews.MapPost("/", CreateSecurityReviewAsync);
@@ -114,6 +140,99 @@ public sealed class OperationsModule : IModule
 
     private static async Task<IResult> CompleteAccessRecertificationAsync(ClaimsPrincipal principal, Guid id, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Approve, "You do not have permission to complete access recertifications.", () => commands.CompleteAccessRecertificationAsync(id, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListSecurityIncidentsAsync(ClaimsPrincipal principal, [AsParameters] SecurityIncidentListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read security incidents.");
+        }
+
+        return Results.Ok(await queries.ListSecurityIncidentsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> GetSecurityIncidentAsync(ClaimsPrincipal principal, Guid id, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read security incidents.");
+        }
+
+        var detail = await queries.GetSecurityIncidentAsync(id, cancellationToken);
+        return detail is null
+            ? Results.NotFound(ApiProblemDetailsFactory.Create(StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound, "Security incident not found.", "Security incident not found."))
+            : Results.Ok(detail);
+    }
+
+    private static async Task<IResult> CreateSecurityIncidentAsync(ClaimsPrincipal principal, CreateSecurityIncidentRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage security incidents.", () => commands.CreateSecurityIncidentAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateSecurityIncidentAsync(ClaimsPrincipal principal, Guid id, UpdateSecurityIncidentRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage security incidents.", () => commands.UpdateSecurityIncidentAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListVulnerabilitiesAsync(ClaimsPrincipal principal, [AsParameters] VulnerabilityListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read vulnerabilities.");
+        }
+
+        return Results.Ok(await queries.ListVulnerabilitiesAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateVulnerabilityAsync(ClaimsPrincipal principal, CreateVulnerabilityRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage vulnerabilities.", () => commands.CreateVulnerabilityAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateVulnerabilityAsync(ClaimsPrincipal principal, Guid id, UpdateVulnerabilityRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage vulnerabilities.", () => commands.UpdateVulnerabilityAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListSecretRotationsAsync(ClaimsPrincipal principal, [AsParameters] SecretRotationListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read secret rotations.");
+        }
+
+        return Results.Ok(await queries.ListSecretRotationsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateSecretRotationAsync(ClaimsPrincipal principal, CreateSecretRotationRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage secret rotations.", () => commands.CreateSecretRotationAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateSecretRotationAsync(ClaimsPrincipal principal, Guid id, UpdateSecretRotationRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage secret rotations.", () => commands.UpdateSecretRotationAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListPrivilegedAccessEventsAsync(ClaimsPrincipal principal, [AsParameters] PrivilegedAccessEventListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read privileged access events.");
+        }
+
+        return Results.Ok(await queries.ListPrivilegedAccessEventsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreatePrivilegedAccessEventAsync(ClaimsPrincipal principal, CreatePrivilegedAccessEventRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage privileged access events.", () => commands.CreatePrivilegedAccessEventAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdatePrivilegedAccessEventAsync(ClaimsPrincipal principal, Guid id, UpdatePrivilegedAccessEventRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage privileged access events.", () => commands.UpdatePrivilegedAccessEventAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListClassificationPoliciesAsync(ClaimsPrincipal principal, [AsParameters] ClassificationPolicyListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read classification policies.");
+        }
+
+        return Results.Ok(await queries.ListClassificationPoliciesAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateClassificationPolicyAsync(ClaimsPrincipal principal, CreateClassificationPolicyRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage classification policies.", () => commands.CreateClassificationPolicyAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateClassificationPolicyAsync(ClaimsPrincipal principal, Guid id, UpdateClassificationPolicyRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage classification policies.", () => commands.UpdateClassificationPolicyAsync(id, request, ResolveActor(principal), cancellationToken));
 
     private static async Task<IResult> ListSecurityReviewsAsync(ClaimsPrincipal principal, [AsParameters] SecurityReviewListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
     {

@@ -5,6 +5,7 @@ Purpose:
 * owns Phase 12 access reviews, security reviews, external dependency register, and configuration audit UI
 * owns Phase 16 supplier register and supplier agreement evidence UI
 * owns Phase 19 access recertification schedule and subject decision UI
+* owns Phase 21 security incident, vulnerability, secret rotation, privileged access, and classification policy UI
 
 Public surface:
 
@@ -19,3 +20,4 @@ Notes:
 * pages stay thin and use `Page -> Hook -> API -> HTTP client`
 * external dependencies trace to supplier ownership and governing agreements through the same module surface
 * recertification completion stays behind backend pending-decision validation
+* security operations screens reuse the same operations permission surface for read/manage access

@@ -175,6 +175,18 @@ const MetricReviewsPage = lazy(() =>
 const TrendReportsPage = lazy(() =>
   import("../modules/metrics/pages/TrendReportsPage").then((module) => ({ default: module.TrendReportsPage }))
 );
+const PerformanceBaselinePage = lazy(() =>
+  import("../modules/metrics/pages/PerformanceBaselinePage").then((module) => ({ default: module.PerformanceBaselinePage }))
+);
+const CapacityReviewPage = lazy(() =>
+  import("../modules/metrics/pages/CapacityReviewPage").then((module) => ({ default: module.CapacityReviewPage }))
+);
+const SlowOperationReviewPage = lazy(() =>
+  import("../modules/metrics/pages/SlowOperationReviewPage").then((module) => ({ default: module.SlowOperationReviewPage }))
+);
+const PerformanceRegressionGatePage = lazy(() =>
+  import("../modules/metrics/pages/PerformanceRegressionGatePage").then((module) => ({ default: module.PerformanceRegressionGatePage }))
+);
 const ReleaseRegisterPage = lazy(() =>
   import("../modules/releases/pages/ReleaseRegisterPage").then((module) => ({ default: module.ReleaseRegisterPage }))
 );
@@ -216,6 +228,21 @@ const SupplierRegisterPage = lazy(() =>
 );
 const SupplierAgreementsPage = lazy(() =>
   import("../modules/operations/pages/SupplierAgreementsPage").then((module) => ({ default: module.SupplierAgreementsPage }))
+);
+const SecurityIncidentRegisterPage = lazy(() =>
+  import("../modules/operations/pages/SecurityIncidentRegisterPage").then((module) => ({ default: module.SecurityIncidentRegisterPage }))
+);
+const VulnerabilityRegisterPage = lazy(() =>
+  import("../modules/operations/pages/VulnerabilityRegisterPage").then((module) => ({ default: module.VulnerabilityRegisterPage }))
+);
+const SecretRotationRegisterPage = lazy(() =>
+  import("../modules/operations/pages/SecretRotationRegisterPage").then((module) => ({ default: module.SecretRotationRegisterPage }))
+);
+const PrivilegedAccessLogPage = lazy(() =>
+  import("../modules/operations/pages/PrivilegedAccessLogPage").then((module) => ({ default: module.PrivilegedAccessLogPage }))
+);
+const ClassificationPolicyPage = lazy(() =>
+  import("../modules/operations/pages/ClassificationPolicyPage").then((module) => ({ default: module.ClassificationPolicyPage }))
 );
 const LessonsLearnedPage = lazy(() =>
   import("../modules/knowledge/pages/LessonsLearnedPage").then((module) => ({ default: module.LessonsLearnedPage }))
@@ -402,6 +429,10 @@ export function AppRouter() {
               <Route path="metrics/quality-gates" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage, permissions.metrics.overrideQualityGates]}><QualityGatesPage /></AuthorizedRoute>} />
               <Route path="metrics/reviews" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><MetricReviewsPage /></AuthorizedRoute>} />
               <Route path="metrics/trend-reports" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><TrendReportsPage /></AuthorizedRoute>} />
+              <Route path="metrics/performance-baselines" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><PerformanceBaselinePage /></AuthorizedRoute>} />
+              <Route path="metrics/capacity-reviews" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><CapacityReviewPage /></AuthorizedRoute>} />
+              <Route path="metrics/slow-operations" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><SlowOperationReviewPage /></AuthorizedRoute>} />
+              <Route path="metrics/performance-gates" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage, permissions.metrics.overrideQualityGates]}><PerformanceRegressionGatePage /></AuthorizedRoute>} />
               <Route path="releases" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseRegisterPage /></AuthorizedRoute>} />
               <Route path="releases/checklists" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage]}><DeploymentChecklistPage /></AuthorizedRoute>} />
               <Route path="releases/notes" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseNotesPage /></AuthorizedRoute>} />
@@ -413,6 +444,11 @@ export function AppRouter() {
               <Route path="operations/access-recertifications" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><AccessRecertificationsPage /></AuthorizedRoute>} />
               <Route path="operations/security-reviews" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SecurityReviewsPage /></AuthorizedRoute>} />
               <Route path="operations/external-dependencies" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ExternalDependenciesPage /></AuthorizedRoute>} />
+              <Route path="operations/security-incidents" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SecurityIncidentRegisterPage /></AuthorizedRoute>} />
+              <Route path="operations/vulnerabilities" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><VulnerabilityRegisterPage /></AuthorizedRoute>} />
+              <Route path="operations/secret-rotations" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SecretRotationRegisterPage /></AuthorizedRoute>} />
+              <Route path="operations/privileged-access" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><PrivilegedAccessLogPage /></AuthorizedRoute>} />
+              <Route path="operations/classification-policies" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ClassificationPolicyPage /></AuthorizedRoute>} />
               <Route path="operations/suppliers" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierRegisterPage /></AuthorizedRoute>} />
               <Route path="operations/supplier-agreements" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierAgreementsPage /></AuthorizedRoute>} />
               <Route path="operations/configuration-audits" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ConfigurationAuditsPage /></AuthorizedRoute>} />

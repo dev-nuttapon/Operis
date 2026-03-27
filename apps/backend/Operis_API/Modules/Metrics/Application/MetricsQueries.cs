@@ -312,6 +312,160 @@ public sealed class MetricsQueries(OperisDbContext dbContext) : IMetricsQueries
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<PagedResult<PerformanceBaselineItem>> ListPerformanceBaselinesAsync(PerformanceBaselineListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery = dbContext.PerformanceBaselines.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(query.ScopeType))
+        {
+            baseQuery = baseQuery.Where(x => x.ScopeType == query.ScopeType.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.MetricName))
+        {
+            baseQuery = baseQuery.Where(x => x.MetricName == query.MetricName.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            baseQuery = baseQuery.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim();
+            baseQuery = baseQuery.Where(x => EF.Functions.ILike(x.ScopeRef, $"%{search}%") || EF.Functions.ILike(x.MetricName, $"%{search}%"));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var items = await baseQuery
+            .OrderBy(x => x.ScopeType)
+            .ThenBy(x => x.MetricName)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new PerformanceBaselineItem(x.Id, x.ScopeType, x.ScopeRef, x.MetricName, x.TargetValue, x.ThresholdValue, x.Status, x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<PerformanceBaselineItem>(items, total, page, pageSize);
+    }
+
+    public async Task<PagedResult<CapacityReviewItem>> ListCapacityReviewsAsync(CapacityReviewListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery = dbContext.CapacityReviews.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(query.ScopeRef))
+        {
+            baseQuery = baseQuery.Where(x => x.ScopeRef == query.ScopeRef.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            baseQuery = baseQuery.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ReviewedBy))
+        {
+            baseQuery = baseQuery.Where(x => x.ReviewedBy == query.ReviewedBy.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim();
+            baseQuery = baseQuery.Where(x =>
+                EF.Functions.ILike(x.ScopeRef, $"%{search}%") ||
+                EF.Functions.ILike(x.ReviewPeriod, $"%{search}%") ||
+                EF.Functions.ILike(x.ReviewedBy, $"%{search}%"));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var items = await baseQuery
+            .OrderByDescending(x => x.UpdatedAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new CapacityReviewItem(x.Id, x.ScopeRef, x.ReviewPeriod, x.ReviewedBy, x.Status, x.Summary, x.ActionCount, x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<CapacityReviewItem>(items, total, page, pageSize);
+    }
+
+    public async Task<PagedResult<SlowOperationReviewItem>> ListSlowOperationReviewsAsync(SlowOperationReviewListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery = dbContext.SlowOperationReviews.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(query.OperationType))
+        {
+            baseQuery = baseQuery.Where(x => x.OperationType == query.OperationType.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.OwnerUserId))
+        {
+            baseQuery = baseQuery.Where(x => x.OwnerUserId == query.OwnerUserId.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            baseQuery = baseQuery.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim();
+            baseQuery = baseQuery.Where(x =>
+                EF.Functions.ILike(x.OperationKey, $"%{search}%") ||
+                EF.Functions.ILike(x.OperationType, $"%{search}%") ||
+                EF.Functions.ILike(x.OwnerUserId, $"%{search}%"));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var items = await baseQuery
+            .OrderByDescending(x => x.ObservedLatencyMs)
+            .ThenByDescending(x => x.UpdatedAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new SlowOperationReviewItem(x.Id, x.OperationType, x.OperationKey, x.ObservedLatencyMs, x.FrequencyPerHour, x.Status, x.OwnerUserId, x.OptimizationSummary, x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<SlowOperationReviewItem>(items, total, page, pageSize);
+    }
+
+    public async Task<PagedResult<PerformanceGateItem>> ListPerformanceGatesAsync(PerformanceGateListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery = dbContext.PerformanceGateResults.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(query.ScopeRef))
+        {
+            baseQuery = baseQuery.Where(x => x.ScopeRef == query.ScopeRef.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Result))
+        {
+            baseQuery = baseQuery.Where(x => x.Result == query.Result.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim();
+            baseQuery = baseQuery.Where(x =>
+                EF.Functions.ILike(x.ScopeRef, $"%{search}%") ||
+                (x.Reason != null && EF.Functions.ILike(x.Reason, $"%{search}%")) ||
+                (x.OverrideReason != null && EF.Functions.ILike(x.OverrideReason, $"%{search}%")));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var items = await baseQuery
+            .OrderByDescending(x => x.EvaluatedAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new PerformanceGateItem(x.Id, x.ScopeRef, x.EvaluatedAt, x.Result, x.Reason, x.OverrideReason, x.EvidenceRef, x.EvaluatedByUserId, x.OverriddenByUserId))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<PerformanceGateItem>(items, total, page, pageSize);
+    }
+
     private static (int Page, int PageSize, int Skip) NormalizePaging(int? page, int? pageSize)
     {
         var normalizedPage = Math.Max(page.GetValueOrDefault(1), 1);

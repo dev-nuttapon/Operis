@@ -531,6 +531,418 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
             After: after));
     }
 
+    public async Task<OperationsCommandResult<SecurityIncidentResponse>> CreateSecurityIncidentAsync(CreateSecurityIncidentRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var code = Required(request.Code, 128);
+        var title = Required(request.Title, 512);
+        var severity = NormalizeIncidentSeverity(request.Severity);
+        var ownerUserId = Required(request.OwnerUserId, 128);
+        if (code is null || title is null || severity is null || ownerUserId is null)
+        {
+            return Validation<SecurityIncidentResponse>("Code, title, severity, and owner are required.");
+        }
+
+        if (await dbContext.SecurityIncidents.AnyAsync(x => x.Code == code, cancellationToken))
+        {
+            return Validation<SecurityIncidentResponse>("Security incident code already exists.", ApiErrorCodes.SecurityIncidentCodeDuplicate);
+        }
+
+        if (request.ProjectId.HasValue && !await dbContext.Projects.AnyAsync(x => x.Id == request.ProjectId.Value, cancellationToken))
+        {
+            return NotFound<SecurityIncidentResponse>();
+        }
+
+        var entity = new SecurityIncidentEntity
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = request.ProjectId,
+            Code = code,
+            Title = title,
+            Severity = severity,
+            ReportedAt = request.ReportedAt,
+            OwnerUserId = ownerUserId,
+            Status = NormalizeIncidentStatus(request.Status),
+            ResolutionSummary = Optional(request.ResolutionSummary, 4000),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.SecurityIncidents.Add(entity);
+        AppendAudit("create", "security_incident", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(await ToResponseAsync(entity, cancellationToken), created: true);
+    }
+
+    public async Task<OperationsCommandResult<SecurityIncidentResponse>> UpdateSecurityIncidentAsync(Guid id, UpdateSecurityIncidentRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.SecurityIncidents.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<SecurityIncidentResponse>();
+
+        var code = Required(request.Code, 128);
+        var title = Required(request.Title, 512);
+        var severity = NormalizeIncidentSeverity(request.Severity);
+        var ownerUserId = Required(request.OwnerUserId, 128);
+        if (code is null || title is null || severity is null || ownerUserId is null)
+        {
+            return Validation<SecurityIncidentResponse>("Code, title, severity, and owner are required.");
+        }
+
+        if (await dbContext.SecurityIncidents.AnyAsync(x => x.Id != id && x.Code == code, cancellationToken))
+        {
+            return Validation<SecurityIncidentResponse>("Security incident code already exists.", ApiErrorCodes.SecurityIncidentCodeDuplicate);
+        }
+
+        if (request.ProjectId.HasValue && !await dbContext.Projects.AnyAsync(x => x.Id == request.ProjectId.Value, cancellationToken))
+        {
+            return NotFound<SecurityIncidentResponse>();
+        }
+
+        var nextStatus = NormalizeIncidentStatus(request.Status);
+        if (!IsValidIncidentTransition(entity.Status, nextStatus))
+        {
+            return Validation<SecurityIncidentResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        var resolutionSummary = Optional(request.ResolutionSummary, 4000);
+        if (nextStatus == "closed" && resolutionSummary is null)
+        {
+            return Validation<SecurityIncidentResponse>("Security incident closure requires resolution summary.", ApiErrorCodes.SecurityIncidentResolutionRequired);
+        }
+
+        entity.ProjectId = request.ProjectId;
+        entity.Code = code;
+        entity.Title = title;
+        entity.Severity = severity;
+        entity.ReportedAt = request.ReportedAt;
+        entity.OwnerUserId = ownerUserId;
+        entity.Status = nextStatus;
+        entity.ResolutionSummary = resolutionSummary;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("update", "security_incident", entity.Id.ToString(), StatusCodes.Status200OK, resolutionSummary, entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(await ToResponseAsync(entity, cancellationToken));
+    }
+
+    public async Task<OperationsCommandResult<VulnerabilityResponse>> CreateVulnerabilityAsync(CreateVulnerabilityRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var assetRef = Required(request.AssetRef, 256);
+        var title = Required(request.Title, 512);
+        var severity = NormalizeIncidentSeverity(request.Severity);
+        var ownerUserId = Required(request.OwnerUserId, 128);
+        if (assetRef is null || title is null || severity is null || ownerUserId is null)
+        {
+            return Validation<VulnerabilityResponse>("Asset, title, severity, and owner are required.");
+        }
+
+        var entity = new VulnerabilityRecordEntity
+        {
+            Id = Guid.NewGuid(),
+            AssetRef = assetRef,
+            Title = title,
+            Severity = severity,
+            IdentifiedAt = request.IdentifiedAt,
+            PatchDueAt = request.PatchDueAt,
+            OwnerUserId = ownerUserId,
+            Status = NormalizeVulnerabilityStatus(request.Status),
+            VerificationSummary = Optional(request.VerificationSummary, 4000),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.VulnerabilityRecords.Add(entity);
+        AppendAudit("create", "vulnerability_record", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<VulnerabilityResponse>> UpdateVulnerabilityAsync(Guid id, UpdateVulnerabilityRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.VulnerabilityRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<VulnerabilityResponse>();
+
+        var assetRef = Required(request.AssetRef, 256);
+        var title = Required(request.Title, 512);
+        var severity = NormalizeIncidentSeverity(request.Severity);
+        var ownerUserId = Required(request.OwnerUserId, 128);
+        if (assetRef is null || title is null || severity is null || ownerUserId is null)
+        {
+            return Validation<VulnerabilityResponse>("Asset, title, severity, and owner are required.");
+        }
+
+        var nextStatus = NormalizeVulnerabilityStatus(request.Status);
+        if (!IsValidVulnerabilityTransition(entity.Status, nextStatus))
+        {
+            return Validation<VulnerabilityResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.AssetRef = assetRef;
+        entity.Title = title;
+        entity.Severity = severity;
+        entity.IdentifiedAt = request.IdentifiedAt;
+        entity.PatchDueAt = request.PatchDueAt;
+        entity.OwnerUserId = ownerUserId;
+        entity.Status = nextStatus;
+        entity.VerificationSummary = Optional(request.VerificationSummary, 4000);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("update", "vulnerability_record", entity.Id.ToString(), StatusCodes.Status200OK, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity));
+    }
+
+    public async Task<OperationsCommandResult<SecretRotationResponse>> CreateSecretRotationAsync(CreateSecretRotationRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var secretScope = Required(request.SecretScope, 256);
+        if (secretScope is null)
+        {
+            return Validation<SecretRotationResponse>("Secret scope is required.");
+        }
+
+        var status = NormalizeSecretRotationStatus(request.Status);
+        if (status == "verified" && (Required(request.VerifiedBy, 128) is null || request.VerifiedAt is null || request.RotatedAt is null))
+        {
+            return Validation<SecretRotationResponse>("Secret rotation verification requires verifier and verification time.", ApiErrorCodes.SecretRotationVerificationRequired);
+        }
+
+        var entity = new SecretRotationEntity
+        {
+            Id = Guid.NewGuid(),
+            SecretScope = secretScope,
+            PlannedAt = request.PlannedAt,
+            RotatedAt = request.RotatedAt,
+            VerifiedBy = Optional(request.VerifiedBy, 128),
+            VerifiedAt = request.VerifiedAt,
+            Status = status,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.SecretRotations.Add(entity);
+        AppendAudit("create", "secret_rotation", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<SecretRotationResponse>> UpdateSecretRotationAsync(Guid id, UpdateSecretRotationRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.SecretRotations.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<SecretRotationResponse>();
+
+        var secretScope = Required(request.SecretScope, 256);
+        if (secretScope is null)
+        {
+            return Validation<SecretRotationResponse>("Secret scope is required.");
+        }
+
+        var nextStatus = NormalizeSecretRotationStatus(request.Status);
+        if (!IsValidSecretRotationTransition(entity.Status, nextStatus))
+        {
+            return Validation<SecretRotationResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        var verifiedBy = Optional(request.VerifiedBy, 128);
+        if (nextStatus == "verified" && (verifiedBy is null || request.VerifiedAt is null || request.RotatedAt is null))
+        {
+            return Validation<SecretRotationResponse>("Secret rotation verification requires verifier and verification time.", ApiErrorCodes.SecretRotationVerificationRequired);
+        }
+
+        entity.SecretScope = secretScope;
+        entity.PlannedAt = request.PlannedAt;
+        entity.RotatedAt = request.RotatedAt;
+        entity.VerifiedBy = verifiedBy;
+        entity.VerifiedAt = request.VerifiedAt;
+        entity.Status = nextStatus;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("update", "secret_rotation", entity.Id.ToString(), StatusCodes.Status200OK, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity));
+    }
+
+    public async Task<OperationsCommandResult<PrivilegedAccessEventResponse>> CreatePrivilegedAccessEventAsync(CreatePrivilegedAccessEventRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var requestedBy = Required(request.RequestedBy, 128);
+        var reason = Required(request.Reason, 2000);
+        if (requestedBy is null || reason is null)
+        {
+            return Validation<PrivilegedAccessEventResponse>("Requester and reason are required.");
+        }
+
+        var status = NormalizePrivilegedAccessStatus(request.Status);
+        if (status is "used" or "reviewed" or "closed" && Required(request.ApprovedBy, 128) is null)
+        {
+            return Validation<PrivilegedAccessEventResponse>("Privileged access use requires approved request.", ApiErrorCodes.PrivilegedAccessApprovalRequired);
+        }
+
+        var entity = new PrivilegedAccessEventEntity
+        {
+            Id = Guid.NewGuid(),
+            RequestedBy = requestedBy,
+            ApprovedBy = Optional(request.ApprovedBy, 128),
+            UsedBy = Optional(request.UsedBy, 128),
+            RequestedAt = request.RequestedAt,
+            ApprovedAt = request.ApprovedAt,
+            UsedAt = request.UsedAt,
+            ReviewedAt = request.ReviewedAt,
+            Status = status,
+            Reason = reason,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.PrivilegedAccessEvents.Add(entity);
+        AppendAudit("create", "privileged_access_event", entity.Id.ToString(), StatusCodes.Status201Created, reason, entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<PrivilegedAccessEventResponse>> UpdatePrivilegedAccessEventAsync(Guid id, UpdatePrivilegedAccessEventRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.PrivilegedAccessEvents.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<PrivilegedAccessEventResponse>();
+
+        var requestedBy = Required(request.RequestedBy, 128);
+        var reason = Required(request.Reason, 2000);
+        if (requestedBy is null || reason is null)
+        {
+            return Validation<PrivilegedAccessEventResponse>("Requester and reason are required.");
+        }
+
+        var nextStatus = NormalizePrivilegedAccessStatus(request.Status);
+        if (nextStatus is "used" or "reviewed" or "closed" && Required(request.ApprovedBy, 128) is null)
+        {
+            return Validation<PrivilegedAccessEventResponse>("Privileged access use requires approved request.", ApiErrorCodes.PrivilegedAccessApprovalRequired);
+        }
+
+        if (!IsValidPrivilegedAccessTransition(entity.Status, nextStatus))
+        {
+            return Validation<PrivilegedAccessEventResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.RequestedBy = requestedBy;
+        entity.ApprovedBy = Optional(request.ApprovedBy, 128);
+        entity.UsedBy = Optional(request.UsedBy, 128);
+        entity.RequestedAt = request.RequestedAt;
+        entity.ApprovedAt = request.ApprovedAt;
+        entity.UsedAt = request.UsedAt;
+        entity.ReviewedAt = request.ReviewedAt;
+        entity.Status = nextStatus;
+        entity.Reason = reason;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("update", "privileged_access_event", entity.Id.ToString(), StatusCodes.Status200OK, reason, entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity));
+    }
+
+    public async Task<OperationsCommandResult<ClassificationPolicyResponse>> CreateClassificationPolicyAsync(CreateClassificationPolicyRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var policyCode = Required(request.PolicyCode, 128);
+        var classificationLevel = Required(request.ClassificationLevel, 64);
+        var scope = Required(request.Scope, 256);
+        if (policyCode is null || classificationLevel is null || scope is null)
+        {
+            return Validation<ClassificationPolicyResponse>("Policy code, classification level, and scope are required.");
+        }
+
+        var entity = new DataClassificationPolicyEntity
+        {
+            Id = Guid.NewGuid(),
+            PolicyCode = policyCode,
+            ClassificationLevel = classificationLevel.ToLowerInvariant(),
+            Scope = scope,
+            Status = NormalizeClassificationPolicyStatus(request.Status),
+            HandlingRule = Optional(request.HandlingRule, 2000),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.DataClassificationPolicies.Add(entity);
+        AppendAudit("create", "classification_policy", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<ClassificationPolicyResponse>> UpdateClassificationPolicyAsync(Guid id, UpdateClassificationPolicyRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.DataClassificationPolicies.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<ClassificationPolicyResponse>();
+
+        var policyCode = Required(request.PolicyCode, 128);
+        var classificationLevel = Required(request.ClassificationLevel, 64);
+        var scope = Required(request.Scope, 256);
+        if (policyCode is null || classificationLevel is null || scope is null)
+        {
+            return Validation<ClassificationPolicyResponse>("Policy code, classification level, and scope are required.");
+        }
+
+        var nextStatus = NormalizeClassificationPolicyStatus(request.Status);
+        if (!IsValidClassificationPolicyTransition(entity.Status, nextStatus))
+        {
+            return Validation<ClassificationPolicyResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.PolicyCode = policyCode;
+        entity.ClassificationLevel = classificationLevel.ToLowerInvariant();
+        entity.Scope = scope;
+        entity.Status = nextStatus;
+        entity.HandlingRule = Optional(request.HandlingRule, 2000);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("update", "classification_policy", entity.Id.ToString(), StatusCodes.Status200OK, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity));
+    }
+
+    private static string? NormalizeIncidentSeverity(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "low" => "low",
+        "medium" => "medium",
+        "high" => "high",
+        "critical" => "critical",
+        _ => null
+    };
+
+    private static string NormalizeIncidentStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "assessed" => "assessed",
+        "contained" => "contained",
+        "resolved" => "resolved",
+        "closed" => "closed",
+        _ => "reported"
+    };
+
+    private static string NormalizeVulnerabilityStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "assessed" => "assessed",
+        "scheduled" => "scheduled",
+        "patched" => "patched",
+        "verified" => "verified",
+        "closed" => "closed",
+        _ => "open"
+    };
+
+    private static string NormalizeSecretRotationStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "rotated" => "rotated",
+        "verified" => "verified",
+        "archived" => "archived",
+        _ => "planned"
+    };
+
+    private static string NormalizePrivilegedAccessStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "approved" => "approved",
+        "used" => "used",
+        "reviewed" => "reviewed",
+        "closed" => "closed",
+        _ => "requested"
+    };
+
+    private static string NormalizeClassificationPolicyStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "approved" => "approved",
+        "active" => "active",
+        "archived" => "archived",
+        _ => "draft"
+    };
+
     private static OperationsCommandResult<T> Success<T>(T value, bool created = false) => new(OperationsCommandStatus.Success, value);
     private static OperationsCommandResult<T> NotFound<T>() => new(OperationsCommandStatus.NotFound, default, "Resource not found.", ApiErrorCodes.ResourceNotFound);
     private static OperationsCommandResult<T> Validation<T>(string message, string? code = null) => new(OperationsCommandStatus.ValidationError, default, message, code ?? ApiErrorCodes.RequestValidationFailed);
@@ -547,6 +959,10 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
     private static AccessReviewResponse ToResponse(AccessReviewEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.ReviewCycle, x.ReviewedBy, x.Status, x.Decision, x.DecisionRationale, x.CreatedAt, x.UpdatedAt);
     private static SecurityReviewResponse ToResponse(SecurityReviewEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.ControlsReviewed, x.FindingsSummary, x.Status, x.CreatedAt, x.UpdatedAt);
     private static AccessRecertificationDecisionResponse ToResponse(AccessRecertificationDecisionEntity x) => new(x.Id, x.ScheduleId, x.SubjectUserId, x.Decision, x.Reason, x.DecidedBy, x.DecidedAt);
+    private static VulnerabilityResponse ToResponse(VulnerabilityRecordEntity x) => new(x.Id, x.AssetRef, x.Title, x.Severity, x.IdentifiedAt, x.PatchDueAt, x.OwnerUserId, x.Status, x.VerificationSummary, x.CreatedAt, x.UpdatedAt);
+    private static SecretRotationResponse ToResponse(SecretRotationEntity x) => new(x.Id, x.SecretScope, x.PlannedAt, x.RotatedAt, x.VerifiedBy, x.VerifiedAt, x.Status, x.CreatedAt, x.UpdatedAt);
+    private static PrivilegedAccessEventResponse ToResponse(PrivilegedAccessEventEntity x) => new(x.Id, x.RequestedBy, x.ApprovedBy, x.UsedBy, x.RequestedAt, x.ApprovedAt, x.UsedAt, x.ReviewedAt, x.Status, x.Reason, x.CreatedAt, x.UpdatedAt);
+    private static ClassificationPolicyResponse ToResponse(DataClassificationPolicyEntity x) => new(x.Id, x.PolicyCode, x.ClassificationLevel, x.Scope, x.Status, x.HandlingRule, x.CreatedAt, x.UpdatedAt);
     private async Task<ExternalDependencyResponse> ToResponseAsync(ExternalDependencyEntity x, CancellationToken cancellationToken)
     {
         string? supplierName = null;
@@ -559,6 +975,32 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         }
 
         return new ExternalDependencyResponse(x.Id, x.Name, x.DependencyType, x.SupplierId, supplierName, x.OwnerUserId, x.Criticality, x.Status, x.ReviewDueAt, x.CreatedAt, x.UpdatedAt);
+    }
+
+    private async Task<SecurityIncidentResponse> ToResponseAsync(SecurityIncidentEntity x, CancellationToken cancellationToken)
+    {
+        string? projectName = null;
+        if (x.ProjectId.HasValue)
+        {
+            projectName = await dbContext.Projects
+                .Where(y => y.Id == x.ProjectId.Value)
+                .Select(y => y.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        return new SecurityIncidentResponse(
+            x.Id,
+            x.ProjectId,
+            projectName,
+            x.Code,
+            x.Title,
+            x.Severity,
+            x.ReportedAt,
+            x.OwnerUserId,
+            x.Status,
+            x.ResolutionSummary,
+            x.CreatedAt,
+            x.UpdatedAt);
     }
 
     private static ConfigurationAuditResponse ToResponse(ConfigurationAuditEntity x) => new(x.Id, x.ScopeRef, x.PlannedAt, x.Status, x.FindingCount, x.CreatedAt, x.UpdatedAt);
@@ -614,6 +1056,79 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
             ("approved", "approved") => true,
             ("approved", "completed") => true,
             ("completed", "completed") => true,
+            _ => false
+        };
+
+    private static bool IsValidIncidentTransition(string current, string next) =>
+        (current, next) switch
+        {
+            ("reported", "reported") => true,
+            ("reported", "assessed") => true,
+            ("assessed", "assessed") => true,
+            ("assessed", "contained") => true,
+            ("contained", "contained") => true,
+            ("contained", "resolved") => true,
+            ("resolved", "resolved") => true,
+            ("resolved", "closed") => true,
+            ("closed", "closed") => true,
+            _ => false
+        };
+
+    private static bool IsValidVulnerabilityTransition(string current, string next) =>
+        (current, next) switch
+        {
+            ("open", "open") => true,
+            ("open", "assessed") => true,
+            ("assessed", "assessed") => true,
+            ("assessed", "scheduled") => true,
+            ("scheduled", "scheduled") => true,
+            ("scheduled", "patched") => true,
+            ("patched", "patched") => true,
+            ("patched", "verified") => true,
+            ("verified", "verified") => true,
+            ("verified", "closed") => true,
+            ("closed", "closed") => true,
+            _ => false
+        };
+
+    private static bool IsValidSecretRotationTransition(string current, string next) =>
+        (current, next) switch
+        {
+            ("planned", "planned") => true,
+            ("planned", "rotated") => true,
+            ("rotated", "rotated") => true,
+            ("rotated", "verified") => true,
+            ("verified", "verified") => true,
+            ("verified", "archived") => true,
+            ("archived", "archived") => true,
+            _ => false
+        };
+
+    private static bool IsValidPrivilegedAccessTransition(string current, string next) =>
+        (current, next) switch
+        {
+            ("requested", "requested") => true,
+            ("requested", "approved") => true,
+            ("approved", "approved") => true,
+            ("approved", "used") => true,
+            ("used", "used") => true,
+            ("used", "reviewed") => true,
+            ("reviewed", "reviewed") => true,
+            ("reviewed", "closed") => true,
+            ("closed", "closed") => true,
+            _ => false
+        };
+
+    private static bool IsValidClassificationPolicyTransition(string current, string next) =>
+        (current, next) switch
+        {
+            ("draft", "draft") => true,
+            ("draft", "approved") => true,
+            ("approved", "approved") => true,
+            ("approved", "active") => true,
+            ("active", "active") => true,
+            ("active", "archived") => true,
+            ("archived", "archived") => true,
             _ => false
         };
 

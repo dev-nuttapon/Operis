@@ -104,3 +104,74 @@ public sealed class AccessRecertificationDecisionEntity
     public DateTimeOffset DecidedAt { get; set; }
     public DateTimeOffset CreatedAt { get; init; }
 }
+
+public sealed class SecurityIncidentEntity
+{
+    public Guid Id { get; init; }
+    public Guid? ProjectId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public DateTimeOffset ReportedAt { get; set; }
+    public string OwnerUserId { get; set; } = string.Empty;
+    public string Status { get; set; } = "reported";
+    public string? ResolutionSummary { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class VulnerabilityRecordEntity
+{
+    public Guid Id { get; init; }
+    public string AssetRef { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public DateTimeOffset IdentifiedAt { get; set; }
+    public DateTimeOffset? PatchDueAt { get; set; }
+    public string OwnerUserId { get; set; } = string.Empty;
+    public string Status { get; set; } = "open";
+    public string? VerificationSummary { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class SecretRotationEntity
+{
+    public Guid Id { get; init; }
+    public string SecretScope { get; set; } = string.Empty;
+    public DateTimeOffset PlannedAt { get; set; }
+    public DateTimeOffset? RotatedAt { get; set; }
+    public string? VerifiedBy { get; set; }
+    public DateTimeOffset? VerifiedAt { get; set; }
+    public string Status { get; set; } = "planned";
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class PrivilegedAccessEventEntity
+{
+    public Guid Id { get; init; }
+    public string RequestedBy { get; set; } = string.Empty;
+    public string? ApprovedBy { get; set; }
+    public string? UsedBy { get; set; }
+    public DateTimeOffset RequestedAt { get; set; }
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public DateTimeOffset? UsedAt { get; set; }
+    public DateTimeOffset? ReviewedAt { get; set; }
+    public string Status { get; set; } = "requested";
+    public string Reason { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class DataClassificationPolicyEntity
+{
+    public Guid Id { get; init; }
+    public string PolicyCode { get; set; } = string.Empty;
+    public string ClassificationLevel { get; set; } = string.Empty;
+    public string Scope { get; set; } = string.Empty;
+    public string Status { get; set; } = "draft";
+    public string? HandlingRule { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}

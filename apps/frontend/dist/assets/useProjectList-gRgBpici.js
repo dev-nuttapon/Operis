@@ -1,0 +1,1 @@
+import{u as s}from"./query-vendor-D2wyIPfx.js";import{T as o}from"./index-OZ2GF4H-.js";function m(e,r=!0){return s({queryKey:["projects","list",e],queryFn:({signal:t})=>o(e,t),enabled:r,staleTime:15e3})}export{m as u};

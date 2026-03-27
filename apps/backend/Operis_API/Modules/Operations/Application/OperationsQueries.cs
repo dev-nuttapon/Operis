@@ -312,6 +312,198 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
             schedule.CompletedAt);
     }
 
+    public async Task<PagedResult<SecurityIncidentResponse>> ListSecurityIncidentsAsync(SecurityIncidentListQuery query, CancellationToken cancellationToken)
+    {
+        var source =
+            from incident in dbContext.SecurityIncidents.AsNoTracking()
+            join project in dbContext.Projects.AsNoTracking() on incident.ProjectId equals project.Id into projectJoin
+            from project in projectJoin.DefaultIfEmpty()
+            select new { incident, project };
+
+        if (query.ProjectId.HasValue) source = source.Where(x => x.incident.ProjectId == query.ProjectId.Value);
+        if (!string.IsNullOrWhiteSpace(query.Severity)) source = source.Where(x => x.incident.Severity == query.Severity.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.OwnerUserId)) source = source.Where(x => x.incident.OwnerUserId == query.OwnerUserId.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.incident.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.incident.Code, search) ||
+                EF.Functions.ILike(x.incident.Title, search) ||
+                EF.Functions.ILike(x.incident.OwnerUserId, search) ||
+                (x.project != null && EF.Functions.ILike(x.project.Name, search)));
+        }
+
+        var descending = !string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "code" => descending ? source.OrderByDescending(x => x.incident.Code) : source.OrderBy(x => x.incident.Code),
+            "title" => descending ? source.OrderByDescending(x => x.incident.Title) : source.OrderBy(x => x.incident.Title),
+            _ => descending ? source.OrderByDescending(x => x.incident.ReportedAt) : source.OrderBy(x => x.incident.ReportedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new SecurityIncidentResponse(
+                x.incident.Id,
+                x.incident.ProjectId,
+                x.project != null ? x.project.Name : null,
+                x.incident.Code,
+                x.incident.Title,
+                x.incident.Severity,
+                x.incident.ReportedAt,
+                x.incident.OwnerUserId,
+                x.incident.Status,
+                x.incident.ResolutionSummary,
+                x.incident.CreatedAt,
+                x.incident.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<SecurityIncidentResponse?> GetSecurityIncidentAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await (
+            from incident in dbContext.SecurityIncidents.AsNoTracking()
+            join project in dbContext.Projects.AsNoTracking() on incident.ProjectId equals project.Id into projectJoin
+            from project in projectJoin.DefaultIfEmpty()
+            where incident.Id == id
+            select new SecurityIncidentResponse(
+                incident.Id,
+                incident.ProjectId,
+                project != null ? project.Name : null,
+                incident.Code,
+                incident.Title,
+                incident.Severity,
+                incident.ReportedAt,
+                incident.OwnerUserId,
+                incident.Status,
+                incident.ResolutionSummary,
+                incident.CreatedAt,
+                incident.UpdatedAt))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<PagedResult<VulnerabilityResponse>> ListVulnerabilitiesAsync(VulnerabilityListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.VulnerabilityRecords.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.Severity)) source = source.Where(x => x.Severity == query.Severity.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.OwnerUserId)) source = source.Where(x => x.OwnerUserId == query.OwnerUserId.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.AssetRef, search) ||
+                EF.Functions.ILike(x.Title, search) ||
+                EF.Functions.ILike(x.OwnerUserId, search));
+        }
+
+        var descending = !string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "patchdueat" => descending ? source.OrderByDescending(x => x.PatchDueAt) : source.OrderBy(x => x.PatchDueAt),
+            "assetref" => descending ? source.OrderByDescending(x => x.AssetRef) : source.OrderBy(x => x.AssetRef),
+            _ => descending ? source.OrderByDescending(x => x.IdentifiedAt) : source.OrderBy(x => x.IdentifiedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new VulnerabilityResponse(x.Id, x.AssetRef, x.Title, x.Severity, x.IdentifiedAt, x.PatchDueAt, x.OwnerUserId, x.Status, x.VerificationSummary, x.CreatedAt, x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<SecretRotationResponse>> ListSecretRotationsAsync(SecretRotationListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.SecretRotations.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.SecretScope)) source = source.Where(x => x.SecretScope == query.SecretScope.Trim());
+        if (!string.IsNullOrWhiteSpace(query.VerifiedBy)) source = source.Where(x => x.VerifiedBy == query.VerifiedBy.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.SecretScope, search) ||
+                (x.VerifiedBy != null && EF.Functions.ILike(x.VerifiedBy, search)));
+        }
+
+        var descending = string.Equals(query.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "secretscope" => descending ? source.OrderByDescending(x => x.SecretScope) : source.OrderBy(x => x.SecretScope),
+            "verifiedat" => descending ? source.OrderByDescending(x => x.VerifiedAt) : source.OrderBy(x => x.VerifiedAt),
+            _ => descending ? source.OrderByDescending(x => x.PlannedAt) : source.OrderBy(x => x.PlannedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new SecretRotationResponse(x.Id, x.SecretScope, x.PlannedAt, x.RotatedAt, x.VerifiedBy, x.VerifiedAt, x.Status, x.CreatedAt, x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<PrivilegedAccessEventResponse>> ListPrivilegedAccessEventsAsync(PrivilegedAccessEventListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.PrivilegedAccessEvents.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.RequestedBy)) source = source.Where(x => x.RequestedBy == query.RequestedBy.Trim());
+        if (!string.IsNullOrWhiteSpace(query.ApprovedBy)) source = source.Where(x => x.ApprovedBy == query.ApprovedBy.Trim());
+        if (!string.IsNullOrWhiteSpace(query.UsedBy)) source = source.Where(x => x.UsedBy == query.UsedBy.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.RequestedBy, search) ||
+                (x.ApprovedBy != null && EF.Functions.ILike(x.ApprovedBy, search)) ||
+                (x.UsedBy != null && EF.Functions.ILike(x.UsedBy, search)) ||
+                EF.Functions.ILike(x.Reason, search));
+        }
+
+        var descending = !string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "usedat" => descending ? source.OrderByDescending(x => x.UsedAt) : source.OrderBy(x => x.UsedAt),
+            "requestedby" => descending ? source.OrderByDescending(x => x.RequestedBy) : source.OrderBy(x => x.RequestedBy),
+            _ => descending ? source.OrderByDescending(x => x.RequestedAt) : source.OrderBy(x => x.RequestedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new PrivilegedAccessEventResponse(x.Id, x.RequestedBy, x.ApprovedBy, x.UsedBy, x.RequestedAt, x.ApprovedAt, x.UsedAt, x.ReviewedAt, x.Status, x.Reason, x.CreatedAt, x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<ClassificationPolicyResponse>> ListClassificationPoliciesAsync(ClassificationPolicyListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.DataClassificationPolicies.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.ClassificationLevel)) source = source.Where(x => x.ClassificationLevel == query.ClassificationLevel.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Scope)) source = source.Where(x => x.Scope == query.Scope.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.PolicyCode, search) ||
+                EF.Functions.ILike(x.Scope, search) ||
+                (x.HandlingRule != null && EF.Functions.ILike(x.HandlingRule, search)));
+        }
+
+        var descending = string.Equals(query.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "classificationlevel" => descending ? source.OrderByDescending(x => x.ClassificationLevel) : source.OrderBy(x => x.ClassificationLevel),
+            _ => descending ? source.OrderByDescending(x => x.PolicyCode) : source.OrderBy(x => x.PolicyCode)
+        };
+
+        return await PageAsync(
+            source.Select(x => new ClassificationPolicyResponse(x.Id, x.PolicyCode, x.ClassificationLevel, x.Scope, x.Status, x.HandlingRule, x.CreatedAt, x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
     private static IQueryable<T> ApplyOrdering<T, TDate, TString>(IQueryable<T> source, string? sortBy, string? sortOrder, Expression<Func<T, TDate>> dateSelector, Expression<Func<T, TString>> stringSelector)
     {
         var descending = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);

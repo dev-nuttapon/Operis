@@ -108,6 +108,48 @@ public sealed record TrendReportItem(
     string? RecommendedAction,
     DateTimeOffset UpdatedAt);
 
+public sealed record PerformanceBaselineItem(
+    Guid Id,
+    string ScopeType,
+    string ScopeRef,
+    string MetricName,
+    decimal TargetValue,
+    decimal ThresholdValue,
+    string Status,
+    DateTimeOffset UpdatedAt);
+
+public sealed record CapacityReviewItem(
+    Guid Id,
+    string ScopeRef,
+    string ReviewPeriod,
+    string ReviewedBy,
+    string Status,
+    string Summary,
+    int ActionCount,
+    DateTimeOffset UpdatedAt);
+
+public sealed record SlowOperationReviewItem(
+    Guid Id,
+    string OperationType,
+    string OperationKey,
+    int ObservedLatencyMs,
+    int? FrequencyPerHour,
+    string Status,
+    string OwnerUserId,
+    string? OptimizationSummary,
+    DateTimeOffset UpdatedAt);
+
+public sealed record PerformanceGateItem(
+    Guid Id,
+    string ScopeRef,
+    DateTimeOffset EvaluatedAt,
+    string Result,
+    string? Reason,
+    string? OverrideReason,
+    string? EvidenceRef,
+    string? EvaluatedByUserId,
+    string? OverriddenByUserId);
+
 public sealed record CreateMetricDefinitionRequest(
     string Code,
     string Name,
@@ -147,6 +189,14 @@ public sealed record CreateMetricReviewRequest(Guid ProjectId, string ReviewPeri
 public sealed record UpdateMetricReviewRequest(string ReviewPeriod, string ReviewedBy, string Status, string? Summary, int OpenActionCount = 0);
 public sealed record CreateTrendReportRequest(Guid ProjectId, Guid? MetricDefinitionId, DateOnly? PeriodFrom, DateOnly? PeriodTo, string Status, string? ReportRef, string? TrendDirection, decimal? Variance, string? RecommendedAction);
 public sealed record UpdateTrendReportRequest(Guid ProjectId, Guid? MetricDefinitionId, DateOnly? PeriodFrom, DateOnly? PeriodTo, string Status, string? ReportRef, string? TrendDirection, decimal? Variance, string? RecommendedAction);
+public sealed record CreatePerformanceBaselineRequest(string ScopeType, string ScopeRef, string MetricName, decimal? TargetValue, decimal? ThresholdValue);
+public sealed record UpdatePerformanceBaselineRequest(string ScopeType, string ScopeRef, string MetricName, decimal? TargetValue, decimal? ThresholdValue, string Status);
+public sealed record CreateCapacityReviewRequest(string ScopeRef, string ReviewPeriod, string ReviewedBy, string Summary, int ActionCount = 0);
+public sealed record UpdateCapacityReviewRequest(string ScopeRef, string ReviewPeriod, string ReviewedBy, string Summary, int ActionCount = 0, string Status = "planned");
+public sealed record CreateSlowOperationReviewRequest(string OperationType, string OperationKey, int ObservedLatencyMs, int? FrequencyPerHour, string OwnerUserId, string? OptimizationSummary, string Status = "open");
+public sealed record UpdateSlowOperationReviewRequest(string OperationType, string OperationKey, int ObservedLatencyMs, int? FrequencyPerHour, string OwnerUserId, string? OptimizationSummary, string Status);
+public sealed record EvaluatePerformanceGateRequest(string ScopeRef, string Result, string? Reason, string? EvidenceRef);
+public sealed record OverridePerformanceGateRequest(string Reason);
 
 public sealed record MetricDefinitionListQuery(
     [FromQuery] string? Search,
@@ -198,12 +248,52 @@ public sealed record TrendReportListQuery(
     [FromQuery] int Page = 1,
     [FromQuery] int PageSize = 25);
 
+public sealed record PerformanceBaselineListQuery(
+    [FromQuery] string? ScopeType,
+    [FromQuery] string? MetricName,
+    [FromQuery] string? Status,
+    [FromQuery] string? Search,
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 25);
+
+public sealed record CapacityReviewListQuery(
+    [FromQuery] string? ScopeRef,
+    [FromQuery] string? Status,
+    [FromQuery] string? ReviewedBy,
+    [FromQuery] string? Search,
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 25);
+
+public sealed record SlowOperationReviewListQuery(
+    [FromQuery] string? OperationType,
+    [FromQuery] string? OwnerUserId,
+    [FromQuery] string? Status,
+    [FromQuery] string? Search,
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 50);
+
+public sealed record PerformanceGateListQuery(
+    [FromQuery] string? ScopeRef,
+    [FromQuery] string? Result,
+    [FromQuery] string? Search,
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 25);
+
 public sealed record MetricDefinitionCommandResponse(
     Guid Id,
     string Code,
     string Status);
 
 public sealed record QualityGateOverrideResponse(
+    Guid Id,
+    string Result,
+    string OverrideReason);
+
+public sealed record PerformanceBaselineCommandResponse(
+    Guid Id,
+    string Status);
+
+public sealed record PerformanceGateOverrideResponse(
     Guid Id,
     string Result,
     string OverrideReason);

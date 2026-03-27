@@ -177,4 +177,87 @@ public sealed class OperationsCommandsTests
         Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
         Assert.Equal(ApiErrorCodes.AccessRecertificationPendingDecisions, result.ErrorCode);
     }
+
+    [Fact]
+    public async Task UpdatePrivilegedAccessEventAsync_UseWithoutApproval_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var eventId = Guid.NewGuid();
+        dbContext.PrivilegedAccessEvents.Add(new PrivilegedAccessEventEntity
+        {
+            Id = eventId,
+            RequestedBy = "requester@example.com",
+            RequestedAt = DateTimeOffset.UtcNow,
+            Status = "requested",
+            Reason = "Break glass for incident triage",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.UpdatePrivilegedAccessEventAsync(
+            eventId,
+            new UpdatePrivilegedAccessEventRequest("requester@example.com", null, "operator@example.com", DateTimeOffset.UtcNow, null, DateTimeOffset.UtcNow, null, "used", "Break glass for incident triage"),
+            "security@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.PrivilegedAccessApprovalRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task UpdateSecurityIncidentAsync_CloseWithoutResolutionSummary_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var incidentId = Guid.NewGuid();
+        dbContext.SecurityIncidents.Add(new SecurityIncidentEntity
+        {
+            Id = incidentId,
+            Code = "SEC-001",
+            Title = "Credential misuse",
+            Severity = "high",
+            ReportedAt = DateTimeOffset.UtcNow.AddHours(-4),
+            OwnerUserId = "owner@example.com",
+            Status = "resolved",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.UpdateSecurityIncidentAsync(
+            incidentId,
+            new UpdateSecurityIncidentRequest(null, "SEC-001", "Credential misuse", "high", DateTimeOffset.UtcNow.AddHours(-4), "owner@example.com", "closed", ""),
+            "security@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.SecurityIncidentResolutionRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task UpdateSecretRotationAsync_VerifyWithoutVerifier_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var rotationId = Guid.NewGuid();
+        dbContext.SecretRotations.Add(new SecretRotationEntity
+        {
+            Id = rotationId,
+            SecretScope = "keycloak/admin-client",
+            PlannedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            RotatedAt = DateTimeOffset.UtcNow.AddHours(-2),
+            Status = "rotated",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.UpdateSecretRotationAsync(
+            rotationId,
+            new UpdateSecretRotationRequest("keycloak/admin-client", DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddHours(-2), "", DateTimeOffset.UtcNow, "verified"),
+            "security@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.SecretRotationVerificationRequired, result.ErrorCode);
+    }
 }

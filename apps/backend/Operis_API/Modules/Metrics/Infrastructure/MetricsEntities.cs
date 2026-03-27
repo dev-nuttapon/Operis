@@ -81,3 +81,58 @@ public sealed record TrendReportEntity
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 }
+
+public sealed record PerformanceBaselineEntity
+{
+    public Guid Id { get; init; }
+    public string ScopeType { get; init; } = string.Empty;
+    public string ScopeRef { get; init; } = string.Empty;
+    public string MetricName { get; init; } = string.Empty;
+    public decimal TargetValue { get; init; }
+    public decimal ThresholdValue { get; init; }
+    public string Status { get; init; } = "draft";
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+}
+
+public sealed record CapacityReviewEntity
+{
+    public Guid Id { get; init; }
+    public string ScopeRef { get; init; } = string.Empty;
+    public string ReviewPeriod { get; init; } = string.Empty;
+    public string ReviewedBy { get; init; } = string.Empty;
+    public string Status { get; init; } = "planned";
+    public string Summary { get; init; } = string.Empty;
+    public int ActionCount { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+}
+
+public sealed record SlowOperationReviewEntity
+{
+    public Guid Id { get; init; }
+    public string OperationType { get; init; } = string.Empty;
+    public string OperationKey { get; init; } = string.Empty;
+    public int ObservedLatencyMs { get; init; }
+    public int? FrequencyPerHour { get; init; }
+    public string Status { get; init; } = "open";
+    public string OwnerUserId { get; init; } = string.Empty;
+    public string? OptimizationSummary { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+}
+
+public sealed record PerformanceGateResultEntity
+{
+    public Guid Id { get; init; }
+    public string ScopeRef { get; init; } = string.Empty;
+    public DateTimeOffset EvaluatedAt { get; init; }
+    public string Result { get; init; } = "pending";
+    public string? Reason { get; init; }
+    public string? OverrideReason { get; init; }
+    public string? EvidenceRef { get; init; }
+    public string? EvaluatedByUserId { get; init; }
+    public string? OverriddenByUserId { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+}

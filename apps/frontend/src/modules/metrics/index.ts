@@ -2,4 +2,8 @@ export * from "./api/metricsApi";
 export * from "./hooks/useMetrics";
 export * from "./pages/MetricReviewsPage";
 export * from "./pages/TrendReportsPage";
+export * from "./pages/PerformanceBaselinePage";
+export * from "./pages/CapacityReviewPage";
+export * from "./pages/SlowOperationReviewPage";
+export * from "./pages/PerformanceRegressionGatePage";
 export type * from "./types/metrics";

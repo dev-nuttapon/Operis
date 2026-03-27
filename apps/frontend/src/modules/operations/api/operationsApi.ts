@@ -5,25 +5,40 @@ import type {
   AccessReview,
   AddAccessRecertificationDecisionInput,
   ApproveAccessReviewInput,
+  ClassificationPolicy,
   ConfigurationAudit,
   CreateAccessRecertificationInput,
   CreateAccessReviewInput,
+  CreateClassificationPolicyInput,
   CreateConfigurationAuditInput,
   CreateExternalDependencyInput,
+  CreatePrivilegedAccessEventInput,
+  CreateSecretRotationInput,
+  CreateSecurityIncidentInput,
   CreateSecurityReviewInput,
   CreateSupplierAgreementInput,
   CreateSupplierInput,
+  CreateVulnerabilityInput,
   ExternalDependency,
   OperationsListInput,
+  PrivilegedAccessEvent,
+  SecretRotation,
+  SecurityIncident,
   SecurityReview,
   Supplier,
   SupplierAgreement,
+  UpdateClassificationPolicyInput,
   UpdateAccessRecertificationInput,
   UpdateAccessReviewInput,
   UpdateExternalDependencyInput,
+  UpdatePrivilegedAccessEventInput,
+  UpdateSecretRotationInput,
+  UpdateSecurityIncidentInput,
   UpdateSupplierAgreementInput,
   UpdateSupplierInput,
   UpdateSecurityReviewInput,
+  UpdateVulnerabilityInput,
+  VulnerabilityRecord,
 } from "../types/operations";
 
 function toQuery(input?: OperationsListInput) {
@@ -37,10 +52,18 @@ function toQuery(input?: OperationsListInput) {
   if (input?.ownerUserId) params.set("ownerUserId", input.ownerUserId);
   if (input?.agreementType) params.set("agreementType", input.agreementType);
   if (input?.criticality) params.set("criticality", input.criticality);
+  if (input?.severity) params.set("severity", input.severity);
   if (input?.status) params.set("status", input.status);
   if (input?.plannedBefore) params.set("plannedBefore", input.plannedBefore);
   if (input?.reviewDueBefore) params.set("reviewDueBefore", input.reviewDueBefore);
   if (input?.effectiveToBefore) params.set("effectiveToBefore", input.effectiveToBefore);
+  if (input?.verifiedBy) params.set("verifiedBy", input.verifiedBy);
+  if (input?.requestedBy) params.set("requestedBy", input.requestedBy);
+  if (input?.approvedBy) params.set("approvedBy", input.approvedBy);
+  if (input?.usedBy) params.set("usedBy", input.usedBy);
+  if (input?.classificationLevel) params.set("classificationLevel", input.classificationLevel);
+  if (input?.scope) params.set("scope", input.scope);
+  if (input?.projectId) params.set("projectId", input.projectId);
   if (input?.search) params.set("search", input.search);
   if (input?.sortBy) params.set("sortBy", input.sortBy);
   if (input?.sortOrder) params.set("sortOrder", input.sortOrder);
@@ -61,6 +84,24 @@ export const listAccessRecertifications = (input?: OperationsListInput, signal?:
 
 export const getAccessRecertification = (id: string, signal?: AbortSignal) =>
   apiRequest<AccessRecertification>(`/api/v1/access-recertifications/${id}`, { signal });
+
+export const listSecurityIncidents = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<SecurityIncident>>(`/api/v1/security-incidents${toQuery(input)}`, { signal });
+
+export const getSecurityIncident = (id: string, signal?: AbortSignal) =>
+  apiRequest<SecurityIncident>(`/api/v1/security-incidents/${id}`, { signal });
+
+export const listVulnerabilities = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<VulnerabilityRecord>>(`/api/v1/vulnerabilities${toQuery(input)}`, { signal });
+
+export const listSecretRotations = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<SecretRotation>>(`/api/v1/secret-rotations${toQuery(input)}`, { signal });
+
+export const listPrivilegedAccessEvents = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<PrivilegedAccessEvent>>(`/api/v1/privileged-access-events${toQuery(input)}`, { signal });
+
+export const listClassificationPolicies = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<ClassificationPolicy>>(`/api/v1/classification-policies${toQuery(input)}`, { signal });
 
 export const listExternalDependencies = (input?: OperationsListInput, signal?: AbortSignal) =>
   apiRequest<PaginatedResult<ExternalDependency>>(`/api/v1/external-dependencies${toQuery(input)}`, { signal });
@@ -97,6 +138,36 @@ export const addAccessRecertificationDecision = (id: string, input: AddAccessRec
 
 export const completeAccessRecertification = (id: string) =>
   apiRequest<AccessRecertification>(`/api/v1/access-recertifications/${id}/complete`, { method: "PUT" });
+
+export const createSecurityIncident = (input: CreateSecurityIncidentInput) =>
+  apiRequest<SecurityIncident>("/api/v1/security-incidents", { method: "POST", body: input });
+
+export const updateSecurityIncident = (id: string, input: UpdateSecurityIncidentInput) =>
+  apiRequest<SecurityIncident>(`/api/v1/security-incidents/${id}`, { method: "PUT", body: input });
+
+export const createVulnerability = (input: CreateVulnerabilityInput) =>
+  apiRequest<VulnerabilityRecord>("/api/v1/vulnerabilities", { method: "POST", body: input });
+
+export const updateVulnerability = (id: string, input: UpdateVulnerabilityInput) =>
+  apiRequest<VulnerabilityRecord>(`/api/v1/vulnerabilities/${id}`, { method: "PUT", body: input });
+
+export const createSecretRotation = (input: CreateSecretRotationInput) =>
+  apiRequest<SecretRotation>("/api/v1/secret-rotations", { method: "POST", body: input });
+
+export const updateSecretRotation = (id: string, input: UpdateSecretRotationInput) =>
+  apiRequest<SecretRotation>(`/api/v1/secret-rotations/${id}`, { method: "PUT", body: input });
+
+export const createPrivilegedAccessEvent = (input: CreatePrivilegedAccessEventInput) =>
+  apiRequest<PrivilegedAccessEvent>("/api/v1/privileged-access-events", { method: "POST", body: input });
+
+export const updatePrivilegedAccessEvent = (id: string, input: UpdatePrivilegedAccessEventInput) =>
+  apiRequest<PrivilegedAccessEvent>(`/api/v1/privileged-access-events/${id}`, { method: "PUT", body: input });
+
+export const createClassificationPolicy = (input: CreateClassificationPolicyInput) =>
+  apiRequest<ClassificationPolicy>("/api/v1/classification-policies", { method: "POST", body: input });
+
+export const updateClassificationPolicy = (id: string, input: UpdateClassificationPolicyInput) =>
+  apiRequest<ClassificationPolicy>(`/api/v1/classification-policies/${id}`, { method: "PUT", body: input });
 
 export const createSecurityReview = (input: CreateSecurityReviewInput) =>
   apiRequest<SecurityReview>("/api/v1/security-reviews", { method: "POST", body: input });

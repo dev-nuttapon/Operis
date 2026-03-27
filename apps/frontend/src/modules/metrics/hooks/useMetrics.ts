@@ -3,31 +3,55 @@ import {
   createMetricCollectionSchedule,
   createMetricDefinition,
   createMetricReview,
+  createPerformanceBaseline,
+  createCapacityReview,
+  createSlowOperationReview,
   createTrendReport,
   evaluateQualityGate,
+  evaluatePerformanceGate,
   getTrendReport,
+  listCapacityReviews,
   listMetricCollectionSchedules,
   listMetricDefinitions,
   listMetricReviews,
   listMetricResults,
+  listPerformanceBaselines,
+  listPerformanceGates,
   listQualityGates,
+  listSlowOperationReviews,
   listTrendReports,
+  overridePerformanceGate,
   overrideQualityGate,
+  updatePerformanceBaseline,
+  updateCapacityReview,
+  updateSlowOperationReview,
   updateMetricReview,
   updateMetricDefinition,
   updateTrendReport,
 } from "../api/metricsApi";
 import type {
+  CapacityReviewListInput,
   CreateMetricCollectionScheduleInput,
   CreateMetricDefinitionInput,
   CreateMetricReviewInput,
+  CreatePerformanceBaselineInput,
+  CreateCapacityReviewInput,
+  CreateSlowOperationReviewInput,
   CreateTrendReportInput,
   EvaluateQualityGateInput,
+  EvaluatePerformanceGateInput,
+  PerformanceBaselineListInput,
+  PerformanceGateListInput,
   MetricCollectionScheduleListInput,
   MetricDefinitionListInput,
   MetricReviewListInput,
   MetricResultListInput,
   OverrideQualityGateInput,
+  OverridePerformanceGateInput,
+  SlowOperationReviewListInput,
+  UpdatePerformanceBaselineInput,
+  UpdateCapacityReviewInput,
+  UpdateSlowOperationReviewInput,
   QualityGateListInput,
   TrendReportListInput,
   UpdateMetricReviewInput,
@@ -88,6 +112,38 @@ export function useTrendReport(id: string | undefined, enabled = true) {
     queryKey: ["metrics", "trend-reports", id],
     queryFn: ({ signal }) => getTrendReport(id!, signal),
     enabled: enabled && Boolean(id),
+  });
+}
+
+export function usePerformanceBaselines(input: PerformanceBaselineListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["metrics", "performance-baselines", input],
+    queryFn: ({ signal }) => listPerformanceBaselines(input, signal),
+    enabled,
+  });
+}
+
+export function useCapacityReviews(input: CapacityReviewListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["metrics", "capacity-reviews", input],
+    queryFn: ({ signal }) => listCapacityReviews(input, signal),
+    enabled,
+  });
+}
+
+export function useSlowOperationReviews(input: SlowOperationReviewListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["metrics", "slow-operations", input],
+    queryFn: ({ signal }) => listSlowOperationReviews(input, signal),
+    enabled,
+  });
+}
+
+export function usePerformanceGates(input: PerformanceGateListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["metrics", "performance-gates", input],
+    queryFn: ({ signal }) => listPerformanceGates(input, signal),
+    enabled,
   });
 }
 
@@ -166,6 +222,70 @@ export function useUpdateTrendReport() {
   const invalidate = useInvalidateMetrics();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateTrendReportInput }) => updateTrendReport(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreatePerformanceBaseline() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: (input: CreatePerformanceBaselineInput) => createPerformanceBaseline(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdatePerformanceBaseline() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdatePerformanceBaselineInput }) => updatePerformanceBaseline(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateCapacityReview() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: (input: CreateCapacityReviewInput) => createCapacityReview(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateCapacityReview() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateCapacityReviewInput }) => updateCapacityReview(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateSlowOperationReview() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: (input: CreateSlowOperationReviewInput) => createSlowOperationReview(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateSlowOperationReview() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateSlowOperationReviewInput }) => updateSlowOperationReview(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useEvaluatePerformanceGate() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: (input: EvaluatePerformanceGateInput) => evaluatePerformanceGate(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useOverridePerformanceGate() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: OverridePerformanceGateInput }) => overridePerformanceGate(id, input),
     onSuccess: invalidate,
   });
 }
