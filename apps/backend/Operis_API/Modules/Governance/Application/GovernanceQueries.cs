@@ -295,11 +295,14 @@ public sealed class GovernanceQueries(OperisDbContext dbContext, IAuditLogWriter
 
     public async Task<PagedResult<TailoringRecordListItemResponse>> ListTailoringRecordsAsync(GovernanceListQuery query, CancellationToken cancellationToken)
     {
+        var now = DateTimeOffset.UtcNow;
         var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
         var source =
             from tailoring in dbContext.Set<TailoringRecordEntity>().AsNoTracking()
             join project in dbContext.Projects.AsNoTracking() on tailoring.ProjectId equals project.Id
-            select new { Tailoring = tailoring, ProjectName = project.Name };
+            join criteria in dbContext.TailoringCriteria.AsNoTracking() on tailoring.TailoringCriteriaId equals criteria.Id into criteriaJoin
+            from criteria in criteriaJoin.DefaultIfEmpty()
+            select new { Tailoring = tailoring, ProjectName = project.Name, CriteriaTitle = criteria != null ? criteria.Title : null };
 
         if (query.ProjectId.HasValue)
         {
@@ -334,10 +337,17 @@ public sealed class GovernanceQueries(OperisDbContext dbContext, IAuditLogWriter
                 x.Tailoring.Id,
                 x.Tailoring.ProjectId,
                 x.ProjectName,
+                x.Tailoring.TailoringCriteriaId,
+                x.CriteriaTitle,
+                x.Tailoring.TailoringReviewCycleId,
                 x.Tailoring.RequestedChange,
+                x.Tailoring.StandardReference,
+                x.Tailoring.DeviationReason,
+                x.Tailoring.ReviewDueAt,
                 x.Tailoring.Status,
                 x.Tailoring.RequesterUserId,
                 x.Tailoring.ApproverUserId,
+                (x.Tailoring.Status == "draft" || x.Tailoring.Status == "submitted") && x.Tailoring.ReviewDueAt != null && x.Tailoring.ReviewDueAt < now,
                 x.Tailoring.UpdatedAt))
             .ToListAsync(cancellationToken);
 
@@ -350,15 +360,26 @@ public sealed class GovernanceQueries(OperisDbContext dbContext, IAuditLogWriter
         var item = await (
             from tailoring in dbContext.Set<TailoringRecordEntity>().AsNoTracking()
             join project in dbContext.Projects.AsNoTracking() on tailoring.ProjectId equals project.Id
+            join criteria in dbContext.TailoringCriteria.AsNoTracking() on tailoring.TailoringCriteriaId equals criteria.Id into criteriaJoin
+            from criteria in criteriaJoin.DefaultIfEmpty()
+            join review in dbContext.TailoringReviewCycles.AsNoTracking() on tailoring.TailoringReviewCycleId equals review.Id into reviewJoin
+            from review in reviewJoin.DefaultIfEmpty()
             where tailoring.Id == tailoringRecordId
             select new TailoringRecordResponse(
                 tailoring.Id,
                 tailoring.ProjectId,
                 project.Name,
+                tailoring.TailoringCriteriaId,
+                criteria != null ? criteria.Title : null,
+                tailoring.TailoringReviewCycleId,
+                review != null ? review.Title : null,
                 tailoring.RequesterUserId,
                 tailoring.RequestedChange,
+                tailoring.StandardReference,
+                tailoring.DeviationReason,
                 tailoring.Reason,
                 tailoring.ImpactSummary,
+                tailoring.ReviewDueAt,
                 tailoring.Status,
                 tailoring.ApproverUserId,
                 tailoring.ApprovedAt,
@@ -374,6 +395,138 @@ public sealed class GovernanceQueries(OperisDbContext dbContext, IAuditLogWriter
         }
 
         await WriteReadAuditAsync("tailoring_record", new { tailoringRecordId }, cancellationToken);
+        return item;
+    }
+
+    public async Task<PagedResult<TailoringCriteriaResponse>> ListTailoringCriteriaAsync(GovernanceListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var source = dbContext.TailoringCriteria.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            source = source.Where(x => x.Status == query.Status.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.CriterionCode, search) ||
+                EF.Functions.ILike(x.StandardReference, search) ||
+                EF.Functions.ILike(x.Title, search));
+        }
+
+        var total = await source.CountAsync(cancellationToken);
+        var items = await source
+            .OrderBy(x => x.StandardReference)
+            .ThenBy(x => x.CriterionCode)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new TailoringCriteriaResponse(
+                x.Id,
+                x.CriterionCode,
+                x.StandardReference,
+                x.Title,
+                x.Description,
+                x.Status,
+                dbContext.TailoringRecords.Count(record => record.TailoringCriteriaId == x.Id),
+                x.CreatedAt,
+                x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        await WriteReadAuditAsync("tailoring_criteria", new { total, page, pageSize, query.Status, query.Search }, cancellationToken);
+        return new PagedResult<TailoringCriteriaResponse>(items, total, page, pageSize);
+    }
+
+    public async Task<PagedResult<TailoringReviewCycleResponse>> ListTailoringReviewCyclesAsync(GovernanceListQuery query, CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var source =
+            from review in dbContext.TailoringReviewCycles.AsNoTracking()
+            join project in dbContext.Projects.AsNoTracking() on review.ProjectId equals project.Id
+            select new { Review = review, ProjectName = project.Name };
+
+        if (query.ProjectId.HasValue)
+        {
+            source = source.Where(x => x.Review.ProjectId == query.ProjectId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            source = source.Where(x => x.Review.Status == query.Status.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.Review.ReviewCode, search) ||
+                EF.Functions.ILike(x.Review.Title, search) ||
+                EF.Functions.ILike(x.ProjectName, search));
+        }
+
+        var total = await source.CountAsync(cancellationToken);
+        var items = await source
+            .OrderByDescending(x => x.Review.ReviewDueAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new TailoringReviewCycleResponse(
+                x.Review.Id,
+                x.Review.ProjectId,
+                x.ProjectName,
+                x.Review.ReviewCode,
+                x.Review.Title,
+                x.Review.OwnerUserId,
+                x.Review.ReviewDueAt,
+                x.Review.Status,
+                x.Review.ApproverUserId,
+                x.Review.ApprovedAt,
+                x.Review.DecisionReason,
+                dbContext.TailoringRecords.Count(record => record.TailoringReviewCycleId == x.Review.Id),
+                dbContext.TailoringRecords.Count(record => record.TailoringReviewCycleId == x.Review.Id && (record.Status == "draft" || record.Status == "submitted")),
+                (x.Review.Status == "draft" || x.Review.Status == "submitted") && x.Review.ReviewDueAt < now,
+                x.Review.CreatedAt,
+                x.Review.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        await WriteReadAuditAsync("tailoring_review_cycle", new { total, page, pageSize, query.ProjectId, query.Status }, cancellationToken);
+        return new PagedResult<TailoringReviewCycleResponse>(items, total, page, pageSize);
+    }
+
+    public async Task<TailoringReviewCycleResponse?> GetTailoringReviewCycleAsync(Guid tailoringReviewCycleId, CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var item = await (
+            from review in dbContext.TailoringReviewCycles.AsNoTracking()
+            join project in dbContext.Projects.AsNoTracking() on review.ProjectId equals project.Id
+            where review.Id == tailoringReviewCycleId
+            select new TailoringReviewCycleResponse(
+                review.Id,
+                review.ProjectId,
+                project.Name,
+                review.ReviewCode,
+                review.Title,
+                review.OwnerUserId,
+                review.ReviewDueAt,
+                review.Status,
+                review.ApproverUserId,
+                review.ApprovedAt,
+                review.DecisionReason,
+                dbContext.TailoringRecords.Count(record => record.TailoringReviewCycleId == review.Id),
+                dbContext.TailoringRecords.Count(record => record.TailoringReviewCycleId == review.Id && (record.Status == "draft" || record.Status == "submitted")),
+                (review.Status == "draft" || review.Status == "submitted") && review.ReviewDueAt < now,
+                review.CreatedAt,
+                review.UpdatedAt))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (item is null)
+        {
+            return null;
+        }
+
+        await WriteReadAuditAsync("tailoring_review_cycle", new { tailoringReviewCycleId }, cancellationToken);
         return item;
     }
 

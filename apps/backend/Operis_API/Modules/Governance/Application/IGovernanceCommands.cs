@@ -36,4 +36,9 @@ public interface IGovernanceCommands
     Task<GovernanceCommandResult<GovernanceMutationResponse>> ApproveTailoringRecordAsync(Guid tailoringRecordId, string actor, TailoringDecisionRequest request, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<GovernanceMutationResponse>> ApplyTailoringRecordAsync(Guid tailoringRecordId, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<GovernanceMutationResponse>> ArchiveTailoringRecordAsync(Guid tailoringRecordId, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<TailoringCriteriaResponse>> CreateTailoringCriteriaAsync(TailoringCriteriaRequest request, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<TailoringCriteriaResponse>> UpdateTailoringCriteriaAsync(Guid tailoringCriteriaId, TailoringCriteriaRequest request, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<TailoringReviewCycleResponse>> CreateTailoringReviewCycleAsync(CreateTailoringReviewCycleRequest request, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<TailoringReviewCycleResponse>> UpdateTailoringReviewCycleAsync(Guid tailoringReviewCycleId, UpdateTailoringReviewCycleRequest request, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<GovernanceMutationResponse>> TransitionTailoringReviewCycleAsync(Guid tailoringReviewCycleId, string actor, TransitionTailoringReviewCycleRequest request, CancellationToken cancellationToken);
 }

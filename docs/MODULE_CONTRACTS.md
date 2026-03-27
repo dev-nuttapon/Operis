@@ -275,6 +275,7 @@ Notes:
 * governance owns compliance dashboard snapshot generation and saved dashboard preferences
 * governance owns management review cadence records, agenda items, and follow-up actions
 * governance owns policy registers, policy acknowledgement campaigns, and policy attestation records
+* governance owns tailoring criteria libraries and tailoring review cycles while keeping tailoring deviation records in the same module
 * cross-module compliance reads stay query-only; governance does not take ownership of upstream project, requirements, verification, change control, audit, or operations tables
 
 ## requirements

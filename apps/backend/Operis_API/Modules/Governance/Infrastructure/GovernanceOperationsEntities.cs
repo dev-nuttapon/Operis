@@ -243,3 +243,31 @@ public sealed class PolicyAcknowledgementEntity
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+public sealed class TailoringCriteriaEntity
+{
+    public Guid Id { get; init; }
+    public string CriterionCode { get; set; } = string.Empty;
+    public string StandardReference { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Status { get; set; } = "draft";
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class TailoringReviewCycleEntity
+{
+    public Guid Id { get; init; }
+    public Guid ProjectId { get; set; }
+    public string ReviewCode { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string OwnerUserId { get; set; } = string.Empty;
+    public DateTimeOffset ReviewDueAt { get; set; }
+    public string Status { get; set; } = "draft";
+    public string? ApproverUserId { get; set; }
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public string? DecisionReason { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}

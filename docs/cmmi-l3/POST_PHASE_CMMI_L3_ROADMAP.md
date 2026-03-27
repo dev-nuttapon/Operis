@@ -357,6 +357,10 @@ Companion spec:
 
 ## Phase 30: Tailoring Governance Hardening
 
+Companion spec:
+
+* [PHASE30_TAILORING_GOVERNANCE_HARDENING_SPEC.md](/Users/nuttapon/Github-dev/Operis/docs/cmmi-l3/PHASE30_TAILORING_GOVERNANCE_HARDENING_SPEC.md)
+
 - Goal
   - Govern project tailoring deviations against standard process more strictly.
 - In Scope

@@ -505,14 +505,22 @@ export interface TailoringRecordListItem {
   id: string;
   projectId: string;
   projectName: string;
+  tailoringCriteriaId?: string | null;
+  tailoringCriteriaTitle?: string | null;
+  tailoringReviewCycleId?: string | null;
   requestedChange: string;
+  standardReference: string;
+  deviationReason: string;
+  reviewDueAt?: string | null;
   status: string;
   requesterUserId: string;
   approverUserId?: string | null;
+  requiresApprovalAttention: boolean;
   updatedAt: string;
 }
 
 export interface TailoringRecord extends TailoringRecordListItem {
+  tailoringReviewTitle?: string | null;
   reason: string;
   impactSummary: string;
   approvedAt?: string | null;
@@ -525,9 +533,74 @@ export interface TailoringRecordFormInput {
   projectId: string;
   requesterUserId: string;
   requestedChange: string;
+  standardReference: string;
+  deviationReason: string;
   reason: string;
   impactSummary: string;
+  reviewDueAt?: string | null;
+  tailoringCriteriaId?: string | null;
+  tailoringReviewCycleId?: string | null;
   impactedProcessAssetId?: string | null;
+}
+
+export interface TailoringCriteria {
+  id: string;
+  criterionCode: string;
+  standardReference: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  linkedDeviationCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TailoringCriteriaFormInput {
+  criterionCode: string;
+  standardReference: string;
+  title: string;
+  description?: string | null;
+  status: string;
+}
+
+export interface TailoringReviewCycle {
+  id: string;
+  projectId: string;
+  projectName: string;
+  reviewCode: string;
+  title: string;
+  ownerUserId: string;
+  reviewDueAt: string;
+  status: string;
+  approverUserId?: string | null;
+  approvedAt?: string | null;
+  decisionReason?: string | null;
+  deviationCount: number;
+  openDeviationCount: number;
+  isExpired: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TailoringReviewCycleFormInput {
+  projectId: string;
+  reviewCode: string;
+  title: string;
+  ownerUserId: string;
+  reviewDueAt?: string | null;
+  decisionReason?: string | null;
+}
+
+export interface TailoringReviewCycleUpdateInput {
+  title: string;
+  ownerUserId: string;
+  reviewDueAt?: string | null;
+  decisionReason?: string | null;
+}
+
+export interface TailoringReviewTransitionInput {
+  targetStatus: string;
+  reason?: string | null;
 }
 
 export interface GovernanceMutationResponse {

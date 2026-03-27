@@ -70,6 +70,12 @@ const StakeholderRegisterPage = lazy(() =>
 const TailoringRecordPage = lazy(() =>
   import("../modules/governance/pages/TailoringRecordPage").then((module) => ({ default: module.TailoringRecordPage }))
 );
+const TailoringCriteriaPage = lazy(() =>
+  import("../modules/governance/pages/TailoringCriteriaPage").then((module) => ({ default: module.TailoringCriteriaPage }))
+);
+const TailoringReviewPage = lazy(() =>
+  import("../modules/governance/pages/TailoringReviewPage").then((module) => ({ default: module.TailoringReviewPage }))
+);
 const RaciMapPage = lazy(() =>
   import("../modules/governance/pages/RaciMapPage").then((module) => ({ default: module.RaciMapPage }))
 );
@@ -454,6 +460,8 @@ export function AppRouter() {
               <Route path="project-plans" element={<AuthorizedRoute anyOf={[permissions.governance.projectPlanRead, permissions.governance.projectPlanManage, permissions.governance.projectPlanApprove]}><ProjectPlanPage /></AuthorizedRoute>} />
               <Route path="stakeholders" element={<AuthorizedRoute anyOf={[permissions.governance.stakeholderRead, permissions.governance.stakeholderManage]}><StakeholderRegisterPage /></AuthorizedRoute>} />
               <Route path="tailoring-records" element={<AuthorizedRoute anyOf={[permissions.governance.tailoringRead, permissions.governance.tailoringManage, permissions.governance.tailoringApprove]}><TailoringRecordPage /></AuthorizedRoute>} />
+              <Route path="governance/tailoring-criteria" element={<AuthorizedRoute anyOf={[permissions.governance.tailoringRead, permissions.governance.tailoringManage, permissions.governance.tailoringApprove]}><TailoringCriteriaPage /></AuthorizedRoute>} />
+              <Route path="projects/tailoring-reviews" element={<AuthorizedRoute anyOf={[permissions.governance.tailoringRead, permissions.governance.tailoringManage, permissions.governance.tailoringApprove]}><TailoringReviewPage /></AuthorizedRoute>} />
               <Route path="governance/raci-maps" element={<AuthorizedRoute anyOf={[permissions.governance.raciRead, permissions.governance.raciManage]}><RaciMapPage /></AuthorizedRoute>} />
               <Route path="governance/approval-evidence" element={<AuthorizedRoute permission={permissions.governance.approvalEvidenceRead}><ApprovalEvidenceLogPage /></AuthorizedRoute>} />
               <Route path="governance/workflow-overrides" element={<AuthorizedRoute permission={permissions.governance.overrideLogRead}><WorkflowOverrideLogPage /></AuthorizedRoute>} />

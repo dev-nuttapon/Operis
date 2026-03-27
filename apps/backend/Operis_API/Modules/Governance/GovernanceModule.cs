@@ -67,6 +67,14 @@ public sealed class GovernanceModule : IModule
         group.MapPut("/tailoring-records/{tailoringRecordId:guid}/approve", ApproveTailoringRecordAsync);
         group.MapPut("/tailoring-records/{tailoringRecordId:guid}/apply", ApplyTailoringRecordAsync);
         group.MapPut("/tailoring-records/{tailoringRecordId:guid}/archive", ArchiveTailoringRecordAsync);
+        group.MapGet("/tailoring-criteria", ListTailoringCriteriaAsync);
+        group.MapPost("/tailoring-criteria", CreateTailoringCriteriaAsync);
+        group.MapPut("/tailoring-criteria/{tailoringCriteriaId:guid}", UpdateTailoringCriteriaAsync);
+        group.MapGet("/tailoring-reviews", ListTailoringReviewCyclesAsync);
+        group.MapGet("/tailoring-reviews/{tailoringReviewCycleId:guid}", GetTailoringReviewCycleAsync);
+        group.MapPost("/tailoring-reviews", CreateTailoringReviewCycleAsync);
+        group.MapPut("/tailoring-reviews/{tailoringReviewCycleId:guid}", UpdateTailoringReviewCycleAsync);
+        group.MapPost("/tailoring-reviews/{tailoringReviewCycleId:guid}/transition", TransitionTailoringReviewCycleAsync);
         group.MapGet("/compliance-dashboard", GetComplianceDashboardAsync);
         group.MapGet("/compliance-dashboard/drilldown", GetComplianceDrilldownAsync);
         group.MapPut("/compliance-dashboard/preferences", UpdateComplianceDashboardPreferencesAsync);
@@ -265,6 +273,44 @@ public sealed class GovernanceModule : IModule
 
     private static async Task<IResult> ArchiveTailoringRecordAsync(ClaimsPrincipal principal, Guid tailoringRecordId, IGovernanceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.TailoringManage, "You do not have permission to manage tailoring records.", () => commands.ArchiveTailoringRecordAsync(tailoringRecordId, cancellationToken));
+
+    private static async Task<IResult> ListTailoringCriteriaAsync(ClaimsPrincipal principal, [AsParameters] GovernanceListQuery query, IGovernanceQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.TailoringRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read tailoring criteria.");
+        }
+
+        return Results.Ok(await queries.ListTailoringCriteriaAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateTailoringCriteriaAsync(ClaimsPrincipal principal, TailoringCriteriaRequest request, IGovernanceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.TailoringManage, "You do not have permission to manage tailoring criteria.", () => commands.CreateTailoringCriteriaAsync(request, cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateTailoringCriteriaAsync(ClaimsPrincipal principal, Guid tailoringCriteriaId, TailoringCriteriaRequest request, IGovernanceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.TailoringManage, "You do not have permission to manage tailoring criteria.", () => commands.UpdateTailoringCriteriaAsync(tailoringCriteriaId, request, cancellationToken));
+
+    private static async Task<IResult> ListTailoringReviewCyclesAsync(ClaimsPrincipal principal, [AsParameters] GovernanceListQuery query, IGovernanceQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.TailoringRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read tailoring review cycles.");
+        }
+
+        return Results.Ok(await queries.ListTailoringReviewCyclesAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> GetTailoringReviewCycleAsync(ClaimsPrincipal principal, Guid tailoringReviewCycleId, IGovernanceQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ReadSingleAsync(principal, permissionMatrix, Permissions.Governance.TailoringRead, "You do not have permission to read tailoring review cycles.", () => queries.GetTailoringReviewCycleAsync(tailoringReviewCycleId, cancellationToken));
+
+    private static async Task<IResult> CreateTailoringReviewCycleAsync(ClaimsPrincipal principal, CreateTailoringReviewCycleRequest request, IGovernanceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.TailoringManage, "You do not have permission to manage tailoring review cycles.", () => commands.CreateTailoringReviewCycleAsync(request, cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateTailoringReviewCycleAsync(ClaimsPrincipal principal, Guid tailoringReviewCycleId, UpdateTailoringReviewCycleRequest request, IGovernanceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.TailoringManage, "You do not have permission to manage tailoring review cycles.", () => commands.UpdateTailoringReviewCycleAsync(tailoringReviewCycleId, request, cancellationToken));
+
+    private static async Task<IResult> TransitionTailoringReviewCycleAsync(ClaimsPrincipal principal, Guid tailoringReviewCycleId, TransitionTailoringReviewCycleRequest request, IGovernanceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.TailoringApprove, "You do not have permission to approve tailoring review cycles.", () => commands.TransitionTailoringReviewCycleAsync(tailoringReviewCycleId, ResolveActor(principal) ?? "unknown", request, cancellationToken));
 
     private static async Task<IResult> GetComplianceDashboardAsync(ClaimsPrincipal principal, [AsParameters] ComplianceDashboardQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
     {

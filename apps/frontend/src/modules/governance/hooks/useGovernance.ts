@@ -28,13 +28,16 @@ import {
   createRetentionPolicy,
   createSlaRule,
   createStakeholder,
+  createTailoringCriteria,
   createTailoringRecord,
+  createTailoringReviewCycle,
   deprecateProcessAsset,
   deprecateQaChecklist,
   getArchitectureRecord,
   getProcessAsset,
   getProjectPlan,
   getQaChecklist,
+  getTailoringReviewCycle,
   listApprovalEvidence,
   listArchitectureRecords,
   listManagementReviews,
@@ -50,12 +53,15 @@ import {
   listRetentionPolicies,
   listSlaRules,
   listStakeholders,
+  listTailoringCriteria,
   listTailoringRecords,
+  listTailoringReviewCycles,
   listWorkflowOverrides,
   submitProcessAssetVersionReview,
   submitProjectPlanReview,
   submitTailoringRecord,
   supersedeProjectPlan,
+  transitionTailoringReviewCycle,
   transitionManagementReview,
   transitionPolicy,
   transitionPolicyCampaign,
@@ -74,7 +80,9 @@ import {
   updateRetentionPolicy,
   updateSlaRule,
   updateStakeholder,
+  updateTailoringCriteria,
   updateTailoringRecord,
+  updateTailoringReviewCycle,
 } from "../api/governanceApi";
 import type {
   ArchitectureRecordFormInput,
@@ -98,7 +106,11 @@ import type {
   RetentionPolicyFormInput,
   SlaRuleFormInput,
   StakeholderFormInput,
+  TailoringCriteriaFormInput,
   TailoringRecordFormInput,
+  TailoringReviewCycleFormInput,
+  TailoringReviewCycleUpdateInput,
+  TailoringReviewTransitionInput,
 } from "../types/governance";
 
 export function useProcessAssets(input?: GovernanceListInput, enabled = true) {
@@ -162,6 +174,30 @@ export function useTailoringRecords(input?: GovernanceListInput, enabled = true)
     queryKey: ["governance", "tailoring-records", input],
     queryFn: ({ signal }) => listTailoringRecords(input, signal),
     enabled,
+  });
+}
+
+export function useTailoringCriteria(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "tailoring-criteria", input],
+    queryFn: ({ signal }) => listTailoringCriteria(input, signal),
+    enabled,
+  });
+}
+
+export function useTailoringReviewCycles(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "tailoring-review-cycles", input],
+    queryFn: ({ signal }) => listTailoringReviewCycles(input, signal),
+    enabled,
+  });
+}
+
+export function useTailoringReviewCycle(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "tailoring-review-cycle", id],
+    queryFn: ({ signal }) => (id ? getTailoringReviewCycle(id, signal) : Promise.resolve(null)),
+    enabled: enabled && Boolean(id),
   });
 }
 
@@ -629,6 +665,48 @@ export function useUpdateTailoringRecord() {
     mutationFn: ({ id, input }: { id: string; input: TailoringRecordFormInput }) => updateTailoringRecord(id, input),
     onSuccess: invalidate,
   });
+}
+
+export function useCreateTailoringCriteria() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: TailoringCriteriaFormInput) => createTailoringCriteria(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateTailoringCriteria() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: TailoringCriteriaFormInput }) => updateTailoringCriteria(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateTailoringReviewCycle() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: TailoringReviewCycleFormInput) => createTailoringReviewCycle(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateTailoringReviewCycle() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: TailoringReviewCycleUpdateInput }) => updateTailoringReviewCycle(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useTailoringReviewCycleActions() {
+  const invalidate = useInvalidateGovernance();
+  return {
+    transition: useMutation({
+      mutationFn: ({ id, input }: { id: string; input: TailoringReviewTransitionInput }) => transitionTailoringReviewCycle(id, input),
+      onSuccess: invalidate,
+    }),
+  };
 }
 
 export function useTailoringActions() {

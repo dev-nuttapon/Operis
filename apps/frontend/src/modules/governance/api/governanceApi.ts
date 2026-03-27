@@ -45,9 +45,15 @@ import type {
   SlaRuleFormInput,
   Stakeholder,
   StakeholderFormInput,
+  TailoringCriteria,
+  TailoringCriteriaFormInput,
   TailoringRecord,
   TailoringRecordFormInput,
   TailoringRecordListItem,
+  TailoringReviewCycle,
+  TailoringReviewCycleFormInput,
+  TailoringReviewCycleUpdateInput,
+  TailoringReviewTransitionInput,
   WorkflowOverrideLog,
 } from "../types/governance";
 
@@ -167,6 +173,22 @@ export const applyTailoringRecord = (id: string) =>
   apiRequest<GovernanceMutationResponse>(`/api/v1/governance/tailoring-records/${id}/apply`, { method: "PUT" });
 export const archiveTailoringRecord = (id: string) =>
   apiRequest<GovernanceMutationResponse>(`/api/v1/governance/tailoring-records/${id}/archive`, { method: "PUT" });
+export const listTailoringCriteria = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<TailoringCriteria>>(`/api/v1/governance/tailoring-criteria${toQuery(input)}`, { signal });
+export const createTailoringCriteria = (input: TailoringCriteriaFormInput) =>
+  apiRequest<TailoringCriteria>("/api/v1/governance/tailoring-criteria", { method: "POST", body: input });
+export const updateTailoringCriteria = (id: string, input: TailoringCriteriaFormInput) =>
+  apiRequest<TailoringCriteria>(`/api/v1/governance/tailoring-criteria/${id}`, { method: "PUT", body: input });
+export const listTailoringReviewCycles = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<TailoringReviewCycle>>(`/api/v1/governance/tailoring-reviews${toQuery(input)}`, { signal });
+export const getTailoringReviewCycle = (id: string, signal?: AbortSignal) =>
+  apiRequest<TailoringReviewCycle>(`/api/v1/governance/tailoring-reviews/${id}`, { signal });
+export const createTailoringReviewCycle = (input: TailoringReviewCycleFormInput) =>
+  apiRequest<TailoringReviewCycle>("/api/v1/governance/tailoring-reviews", { method: "POST", body: input });
+export const updateTailoringReviewCycle = (id: string, input: TailoringReviewCycleUpdateInput) =>
+  apiRequest<TailoringReviewCycle>(`/api/v1/governance/tailoring-reviews/${id}`, { method: "PUT", body: input });
+export const transitionTailoringReviewCycle = (id: string, input: TailoringReviewTransitionInput) =>
+  apiRequest<GovernanceMutationResponse>(`/api/v1/governance/tailoring-reviews/${id}/transition`, { method: "POST", body: input });
 
 export const listRaciMaps = (input?: GovernanceListInput, signal?: AbortSignal) =>
   apiRequest<GovernanceListResult<RaciMap>>(`/api/v1/governance/raci-maps${toQuery(input)}`, { signal });

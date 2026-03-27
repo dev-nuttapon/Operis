@@ -112,6 +112,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<PolicyEntity> Policies => Set<PolicyEntity>();
     public DbSet<PolicyCampaignEntity> PolicyCampaigns => Set<PolicyCampaignEntity>();
     public DbSet<PolicyAcknowledgementEntity> PolicyAcknowledgements => Set<PolicyAcknowledgementEntity>();
+    public DbSet<TailoringCriteriaEntity> TailoringCriteria => Set<TailoringCriteriaEntity>();
+    public DbSet<TailoringReviewCycleEntity> TailoringReviewCycles => Set<TailoringReviewCycleEntity>();
     public DbSet<RequirementEntity> Requirements => Set<RequirementEntity>();
     public DbSet<RequirementVersionEntity> RequirementVersions => Set<RequirementVersionEntity>();
     public DbSet<RequirementBaselineEntity> RequirementBaselines => Set<RequirementBaselineEntity>();
@@ -1909,10 +1911,15 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.TailoringCriteriaId).HasColumnName("tailoring_criteria_id");
+            entity.Property(x => x.TailoringReviewCycleId).HasColumnName("tailoring_review_cycle_id");
             entity.Property(x => x.RequesterUserId).HasColumnName("requester_user_id").HasMaxLength(64);
             entity.Property(x => x.RequestedChange).HasColumnName("requested_change").HasMaxLength(4000);
+            entity.Property(x => x.StandardReference).HasColumnName("standard_reference").HasMaxLength(256);
+            entity.Property(x => x.DeviationReason).HasColumnName("deviation_reason").HasMaxLength(2000);
             entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
             entity.Property(x => x.ImpactSummary).HasColumnName("impact_summary").HasMaxLength(4000);
+            entity.Property(x => x.ReviewDueAt).HasColumnName("review_due_at");
             entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
             entity.Property(x => x.ApproverUserId).HasColumnName("approver_user_id").HasMaxLength(128);
             entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
@@ -1922,8 +1929,48 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne<ProcessAssetEntity>().WithMany().HasForeignKey(x => x.ImpactedProcessAssetId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<TailoringCriteriaEntity>().WithMany().HasForeignKey(x => x.TailoringCriteriaId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<TailoringReviewCycleEntity>().WithMany().HasForeignKey(x => x.TailoringReviewCycleId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => new { x.ProjectId, x.Status });
             entity.HasIndex(x => new { x.RequesterUserId, x.Status });
+            entity.HasIndex(x => new { x.TailoringReviewCycleId, x.Status });
+        });
+
+        modelBuilder.Entity<TailoringCriteriaEntity>(entity =>
+        {
+            entity.ToTable("tailoring_criteria");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.CriterionCode).HasColumnName("criterion_code").HasMaxLength(64);
+            entity.Property(x => x.StandardReference).HasColumnName("standard_reference").HasMaxLength(256);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(256);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(4000);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.CriterionCode).IsUnique();
+            entity.HasIndex(x => new { x.StandardReference, x.Status });
+        });
+
+        modelBuilder.Entity<TailoringReviewCycleEntity>(entity =>
+        {
+            entity.ToTable("tailoring_review_cycles");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.ReviewCode).HasColumnName("review_code").HasMaxLength(64);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(256);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(128);
+            entity.Property(x => x.ReviewDueAt).HasColumnName("review_due_at");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ApproverUserId).HasColumnName("approver_user_id").HasMaxLength(128);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.DecisionReason).HasColumnName("decision_reason").HasMaxLength(2000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => x.ReviewCode).IsUnique();
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.ReviewDueAt });
         });
 
         modelBuilder.Entity<RaciMapEntity>(entity =>

@@ -8,6 +8,7 @@ Purpose:
 * owns Phase 25 compliance dashboard screens for readiness summary, process-area drilldown, and saved dashboard preferences
 * owns Phase 27 management review screens for cadence tracking, follow-up actions, and close approval
 * owns Phase 29 policy screens for policy register, acknowledgement campaigns, and user attestations
+* owns Phase 30 tailoring hardening screens for tailoring criteria and project tailoring reviews
 
 Public surface:
 

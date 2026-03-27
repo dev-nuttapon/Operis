@@ -317,6 +317,8 @@ export function MainLayout() {
             { key: '/app/project-plans', label: 'Project Plan' },
             { key: '/app/stakeholders', label: 'Stakeholder Register' },
             { key: '/app/tailoring-records', label: 'Tailoring Record' },
+            { key: '/app/governance/tailoring-criteria', label: 'Tailoring Criteria' },
+            { key: '/app/projects/tailoring-reviews', label: 'Tailoring Reviews' },
           ],
         }]
       : []),
@@ -696,6 +698,8 @@ export function MainLayout() {
     if (path.includes('/app/governance/management-reviews')) return 'Management Reviews';
     if (path.includes('/app/governance/policies')) return 'Policy Register';
     if (path.includes('/app/governance/policy-acknowledgements')) return 'Policy Acknowledgements';
+    if (path.includes('/app/governance/tailoring-criteria')) return 'Tailoring Criteria';
+    if (path.includes('/app/projects/tailoring-reviews')) return 'Tailoring Reviews';
     if (path.includes('/app/learning/training-catalog')) return 'Training Catalog';
     if (path.includes('/app/learning/role-training-matrix')) return 'Role Training Matrix';
     if (path.includes('/app/learning/completions')) return 'Training Completions';
@@ -1089,7 +1093,9 @@ function getOpenKeys(path: string) {
     path.startsWith('/app/qa-review-checklists') ||
     path.startsWith('/app/project-plans') ||
     path.startsWith('/app/stakeholders') ||
-    path.startsWith('/app/tailoring-records')
+    path.startsWith('/app/tailoring-records') ||
+    path.startsWith('/app/governance/tailoring-criteria') ||
+    path.startsWith('/app/projects/tailoring-reviews')
   ) {
     return ['/app/governance'];
   }
@@ -1229,6 +1235,14 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/governance/policies')) {
     return '/app/governance/policies';
+  }
+
+  if (path.startsWith('/app/projects/tailoring-reviews')) {
+    return '/app/projects/tailoring-reviews';
+  }
+
+  if (path.startsWith('/app/governance/tailoring-criteria')) {
+    return '/app/governance/tailoring-criteria';
   }
 
   if (path.startsWith('/app/learning/completions')) {

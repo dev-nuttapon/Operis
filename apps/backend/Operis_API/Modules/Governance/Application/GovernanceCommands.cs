@@ -515,7 +515,18 @@ public sealed class GovernanceCommands(
 
     public async Task<GovernanceCommandResult<TailoringRecordResponse>> CreateTailoringRecordAsync(CreateTailoringRecordRequest request, CancellationToken cancellationToken)
     {
-        var validation = await ValidateTailoringRequestAsync(request.ProjectId, request.RequestedChange, request.Reason, request.ImpactSummary, request.ImpactedProcessAssetId, cancellationToken);
+        var validation = await ValidateTailoringRequestAsync(
+            request.ProjectId,
+            request.RequestedChange,
+            request.StandardReference,
+            request.DeviationReason,
+            request.Reason,
+            request.ImpactSummary,
+            request.ReviewDueAt,
+            request.TailoringCriteriaId,
+            request.TailoringReviewCycleId,
+            request.ImpactedProcessAssetId,
+            cancellationToken);
         if (validation is not null)
         {
             return validation;
@@ -526,10 +537,15 @@ public sealed class GovernanceCommands(
         {
             Id = Guid.NewGuid(),
             ProjectId = request.ProjectId,
+            TailoringCriteriaId = request.TailoringCriteriaId,
+            TailoringReviewCycleId = request.TailoringReviewCycleId,
             RequesterUserId = request.RequesterUserId.Trim(),
             RequestedChange = request.RequestedChange.Trim(),
+            StandardReference = request.StandardReference.Trim(),
+            DeviationReason = request.DeviationReason.Trim(),
             Reason = request.Reason.Trim(),
             ImpactSummary = request.ImpactSummary.Trim(),
+            ReviewDueAt = request.ReviewDueAt,
             ImpactedProcessAssetId = request.ImpactedProcessAssetId,
             Status = "draft",
             CreatedAt = now,
@@ -550,15 +566,31 @@ public sealed class GovernanceCommands(
             return NotFound<TailoringRecordResponse>("Tailoring record not found.", ApiErrorCodes.TailoringRecordNotFound);
         }
 
-        var validation = await ValidateTailoringRequestAsync(entity.ProjectId, request.RequestedChange, request.Reason, request.ImpactSummary, request.ImpactedProcessAssetId, cancellationToken);
+        var validation = await ValidateTailoringRequestAsync(
+            entity.ProjectId,
+            request.RequestedChange,
+            request.StandardReference,
+            request.DeviationReason,
+            request.Reason,
+            request.ImpactSummary,
+            request.ReviewDueAt,
+            request.TailoringCriteriaId,
+            request.TailoringReviewCycleId,
+            request.ImpactedProcessAssetId,
+            cancellationToken);
         if (validation is not null)
         {
             return validation;
         }
 
         entity.RequestedChange = request.RequestedChange.Trim();
+        entity.StandardReference = request.StandardReference.Trim();
+        entity.DeviationReason = request.DeviationReason.Trim();
         entity.Reason = request.Reason.Trim();
         entity.ImpactSummary = request.ImpactSummary.Trim();
+        entity.ReviewDueAt = request.ReviewDueAt;
+        entity.TailoringCriteriaId = request.TailoringCriteriaId;
+        entity.TailoringReviewCycleId = request.TailoringReviewCycleId;
         entity.ImpactedProcessAssetId = request.ImpactedProcessAssetId;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -667,6 +699,144 @@ public sealed class GovernanceCommands(
         return new GovernanceCommandResult<GovernanceMutationResponse>(GovernanceCommandStatus.Success, new GovernanceMutationResponse(entity.Id, entity.Status, entity.UpdatedAt, entity.ApproverUserId, entity.ApprovedAt));
     }
 
+    public async Task<GovernanceCommandResult<TailoringCriteriaResponse>> CreateTailoringCriteriaAsync(TailoringCriteriaRequest request, CancellationToken cancellationToken)
+    {
+        var validation = ValidateTailoringCriteriaRequest(request.CriterionCode, request.StandardReference, request.Title);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var entity = new TailoringCriteriaEntity
+        {
+            Id = Guid.NewGuid(),
+            CriterionCode = request.CriterionCode.Trim(),
+            StandardReference = request.StandardReference.Trim(),
+            Title = request.Title.Trim(),
+            Description = TrimOrNull(request.Description),
+            Status = NormalizeLifecycleStatus(request.Status, "draft"),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.TailoringCriteria.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await WriteAuditAsync("create", "tailoring_criteria", entity.Id.ToString(), StatusCodes.Status201Created, null, new { entity.CriterionCode, entity.Status }, cancellationToken);
+        return new GovernanceCommandResult<TailoringCriteriaResponse>(GovernanceCommandStatus.Success, await LoadTailoringCriteriaAsync(entity.Id, cancellationToken));
+    }
+
+    public async Task<GovernanceCommandResult<TailoringCriteriaResponse>> UpdateTailoringCriteriaAsync(Guid tailoringCriteriaId, TailoringCriteriaRequest request, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.TailoringCriteria.SingleOrDefaultAsync(x => x.Id == tailoringCriteriaId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<TailoringCriteriaResponse>("Tailoring criteria not found.", ApiErrorCodes.TailoringCriteriaNotFound);
+        }
+
+        var validation = ValidateTailoringCriteriaRequest(request.CriterionCode, request.StandardReference, request.Title);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        entity.CriterionCode = request.CriterionCode.Trim();
+        entity.StandardReference = request.StandardReference.Trim();
+        entity.Title = request.Title.Trim();
+        entity.Description = TrimOrNull(request.Description);
+        entity.Status = NormalizeLifecycleStatus(request.Status, entity.Status);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await WriteAuditAsync("update", "tailoring_criteria", entity.Id.ToString(), StatusCodes.Status200OK, null, new { entity.CriterionCode, entity.Status }, cancellationToken);
+        return new GovernanceCommandResult<TailoringCriteriaResponse>(GovernanceCommandStatus.Success, await LoadTailoringCriteriaAsync(entity.Id, cancellationToken));
+    }
+
+    public async Task<GovernanceCommandResult<TailoringReviewCycleResponse>> CreateTailoringReviewCycleAsync(CreateTailoringReviewCycleRequest request, CancellationToken cancellationToken)
+    {
+        var validation = await ValidateTailoringReviewCycleRequestAsync(request.ProjectId, request.ReviewCode, request.Title, request.OwnerUserId, request.ReviewDueAt, cancellationToken);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var entity = new TailoringReviewCycleEntity
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = request.ProjectId,
+            ReviewCode = request.ReviewCode.Trim(),
+            Title = request.Title.Trim(),
+            OwnerUserId = request.OwnerUserId.Trim(),
+            ReviewDueAt = request.ReviewDueAt!.Value,
+            Status = "draft",
+            DecisionReason = TrimOrNull(request.DecisionReason),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.TailoringReviewCycles.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await WriteAuditAsync("create", "tailoring_review_cycle", entity.Id.ToString(), StatusCodes.Status201Created, null, new { entity.ProjectId, entity.Status }, cancellationToken);
+        return new GovernanceCommandResult<TailoringReviewCycleResponse>(GovernanceCommandStatus.Success, await LoadTailoringReviewCycleAsync(entity.Id, cancellationToken));
+    }
+
+    public async Task<GovernanceCommandResult<TailoringReviewCycleResponse>> UpdateTailoringReviewCycleAsync(Guid tailoringReviewCycleId, UpdateTailoringReviewCycleRequest request, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.TailoringReviewCycles.SingleOrDefaultAsync(x => x.Id == tailoringReviewCycleId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<TailoringReviewCycleResponse>("Tailoring review cycle not found.", ApiErrorCodes.TailoringReviewNotFound);
+        }
+
+        var validation = await ValidateTailoringReviewCycleRequestAsync(entity.ProjectId, entity.ReviewCode, request.Title, request.OwnerUserId, request.ReviewDueAt, cancellationToken);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        entity.Title = request.Title.Trim();
+        entity.OwnerUserId = request.OwnerUserId.Trim();
+        entity.ReviewDueAt = request.ReviewDueAt!.Value;
+        entity.DecisionReason = TrimOrNull(request.DecisionReason);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await WriteAuditAsync("update", "tailoring_review_cycle", entity.Id.ToString(), StatusCodes.Status200OK, null, new { entity.ProjectId, entity.Status }, cancellationToken);
+        return new GovernanceCommandResult<TailoringReviewCycleResponse>(GovernanceCommandStatus.Success, await LoadTailoringReviewCycleAsync(entity.Id, cancellationToken));
+    }
+
+    public async Task<GovernanceCommandResult<GovernanceMutationResponse>> TransitionTailoringReviewCycleAsync(Guid tailoringReviewCycleId, string actor, TransitionTailoringReviewCycleRequest request, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.TailoringReviewCycles.SingleOrDefaultAsync(x => x.Id == tailoringReviewCycleId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<GovernanceMutationResponse>("Tailoring review cycle not found.", ApiErrorCodes.TailoringReviewNotFound);
+        }
+
+        var targetStatus = request.TargetStatus.Trim().ToLowerInvariant();
+        if (!IsAllowedTailoringReviewTransition(entity.Status, targetStatus))
+        {
+            return ValidationError<GovernanceMutationResponse>("Tailoring review transition is not allowed.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        if ((targetStatus is "approved" or "rejected") && string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return ValidationError<GovernanceMutationResponse>("Deviation reason is required.", ApiErrorCodes.TailoringDeviationReasonRequired);
+        }
+
+        entity.Status = targetStatus;
+        entity.DecisionReason = TrimOrNull(request.Reason) ?? entity.DecisionReason;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        if (targetStatus is "approved" or "rejected")
+        {
+            entity.ApproverUserId = actor;
+            entity.ApprovedAt = entity.UpdatedAt;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await WriteAuditAsync("transition", "tailoring_review_cycle", entity.Id.ToString(), StatusCodes.Status200OK, null, new { entity.Status, entity.ApproverUserId }, cancellationToken, request.Reason);
+        return new GovernanceCommandResult<GovernanceMutationResponse>(GovernanceCommandStatus.Success, new GovernanceMutationResponse(entity.Id, entity.Status, entity.UpdatedAt, entity.ApproverUserId, entity.ApprovedAt));
+    }
+
     private async Task<GovernanceCommandResult<GovernanceMutationResponse>> TransitionChecklistAsync(Guid qaChecklistId, string fromStatus, string toStatus, string action, CancellationToken cancellationToken)
     {
         var entity = await dbContext.Set<QaChecklistEntity>().SingleOrDefaultAsync(x => x.Id == qaChecklistId, cancellationToken);
@@ -740,7 +910,26 @@ public sealed class GovernanceCommands(
         await new GovernanceQueries(dbContext, auditLogWriter).GetTailoringRecordAsync(tailoringId, cancellationToken)
         ?? throw new InvalidOperationException("Expected tailoring record to exist.");
 
-    private async Task<GovernanceCommandResult<TailoringRecordResponse>?> ValidateTailoringRequestAsync(Guid projectId, string requestedChange, string reason, string impactSummary, Guid? impactedProcessAssetId, CancellationToken cancellationToken)
+    private async Task<TailoringCriteriaResponse> LoadTailoringCriteriaAsync(Guid tailoringCriteriaId, CancellationToken cancellationToken) =>
+        (await new GovernanceQueries(dbContext, auditLogWriter).ListTailoringCriteriaAsync(new GovernanceListQuery(null, null, null, null, 1, 200), cancellationToken))
+            .Items.Single(x => x.Id == tailoringCriteriaId);
+
+    private async Task<TailoringReviewCycleResponse> LoadTailoringReviewCycleAsync(Guid tailoringReviewCycleId, CancellationToken cancellationToken) =>
+        await new GovernanceQueries(dbContext, auditLogWriter).GetTailoringReviewCycleAsync(tailoringReviewCycleId, cancellationToken)
+        ?? throw new InvalidOperationException("Expected tailoring review cycle to exist.");
+
+    private async Task<GovernanceCommandResult<TailoringRecordResponse>?> ValidateTailoringRequestAsync(
+        Guid projectId,
+        string requestedChange,
+        string standardReference,
+        string deviationReason,
+        string reason,
+        string impactSummary,
+        DateTimeOffset? reviewDueAt,
+        Guid? tailoringCriteriaId,
+        Guid? tailoringReviewCycleId,
+        Guid? impactedProcessAssetId,
+        CancellationToken cancellationToken)
     {
         if (!await dbContext.Projects.AnyAsync(x => x.Id == projectId && x.DeletedAt == null, cancellationToken))
         {
@@ -752,13 +941,84 @@ public sealed class GovernanceCommands(
             return ValidationError<TailoringRecordResponse>("Requested change, reason, and impact summary are required.", ApiErrorCodes.RequestValidationFailed);
         }
 
+        if (string.IsNullOrWhiteSpace(standardReference))
+        {
+            return ValidationError<TailoringRecordResponse>("Standard reference is required.", ApiErrorCodes.TailoringStandardReferenceRequired);
+        }
+
+        if (string.IsNullOrWhiteSpace(deviationReason))
+        {
+            return ValidationError<TailoringRecordResponse>("Deviation reason is required.", ApiErrorCodes.TailoringDeviationReasonRequired);
+        }
+
+        if (!reviewDueAt.HasValue)
+        {
+            return ValidationError<TailoringRecordResponse>("Review due date is required.", ApiErrorCodes.TailoringReviewDueDateRequired);
+        }
+
         if (impactedProcessAssetId.HasValue && !await dbContext.Set<ProcessAssetEntity>().AnyAsync(x => x.Id == impactedProcessAssetId.Value, cancellationToken))
         {
             return NotFound<TailoringRecordResponse>("Process asset not found.", ApiErrorCodes.ProcessAssetNotFound);
         }
 
+        if (tailoringCriteriaId.HasValue && !await dbContext.TailoringCriteria.AnyAsync(x => x.Id == tailoringCriteriaId.Value, cancellationToken))
+        {
+            return NotFound<TailoringRecordResponse>("Tailoring criteria not found.", ApiErrorCodes.TailoringCriteriaNotFound);
+        }
+
+        if (tailoringReviewCycleId.HasValue && !await dbContext.TailoringReviewCycles.AnyAsync(x => x.Id == tailoringReviewCycleId.Value, cancellationToken))
+        {
+            return NotFound<TailoringRecordResponse>("Tailoring review cycle not found.", ApiErrorCodes.TailoringReviewNotFound);
+        }
+
         return null;
     }
+
+    private static GovernanceCommandResult<TailoringCriteriaResponse>? ValidateTailoringCriteriaRequest(string criterionCode, string standardReference, string title)
+    {
+        if (string.IsNullOrWhiteSpace(standardReference))
+        {
+            return ValidationError<TailoringCriteriaResponse>("Standard reference is required.", ApiErrorCodes.TailoringStandardReferenceRequired);
+        }
+
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(criterionCode))
+        {
+            return ValidationError<TailoringCriteriaResponse>("Criterion code and title are required.", ApiErrorCodes.RequestValidationFailed);
+        }
+
+        return null;
+    }
+
+    private async Task<GovernanceCommandResult<TailoringReviewCycleResponse>?> ValidateTailoringReviewCycleRequestAsync(Guid projectId, string reviewCode, string title, string ownerUserId, DateTimeOffset? reviewDueAt, CancellationToken cancellationToken)
+    {
+        if (!await dbContext.Projects.AnyAsync(x => x.Id == projectId && x.DeletedAt == null, cancellationToken))
+        {
+            return NotFound<TailoringReviewCycleResponse>("Project not found.", ApiErrorCodes.ProjectNotFound);
+        }
+
+        if (string.IsNullOrWhiteSpace(reviewCode) || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(ownerUserId))
+        {
+            return ValidationError<TailoringReviewCycleResponse>("Review code, title, and owner are required.", ApiErrorCodes.RequestValidationFailed);
+        }
+
+        if (!reviewDueAt.HasValue)
+        {
+            return ValidationError<TailoringReviewCycleResponse>("Review due date is required.", ApiErrorCodes.TailoringReviewDueDateRequired);
+        }
+
+        return null;
+    }
+
+    private static bool IsAllowedTailoringReviewTransition(string currentStatus, string targetStatus) =>
+        (currentStatus, targetStatus) switch
+        {
+            ("draft", "submitted") => true,
+            ("draft", "expired") => true,
+            ("submitted", "approved") => true,
+            ("submitted", "rejected") => true,
+            ("submitted", "expired") => true,
+            _ => false
+        };
 
     private static GovernanceCommandResult<ProcessAssetResponse>? ValidateProcessAssetRequest(string code, string name, string category, string ownerUserId, string versionTitle, string versionSummary)
     {
@@ -829,6 +1089,8 @@ public sealed class GovernanceCommands(
 
     private GovernanceCommandResult<GovernanceMutationResponse> Success(ProcessAssetVersionEntity version) =>
         new(GovernanceCommandStatus.Success, new GovernanceMutationResponse(version.Id, version.Status, version.UpdatedAt, version.ApprovedBy, version.ApprovedAt));
+
+    private static string NormalizeLifecycleStatus(string? value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim().ToLowerInvariant();
 
     private static string? TrimOrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

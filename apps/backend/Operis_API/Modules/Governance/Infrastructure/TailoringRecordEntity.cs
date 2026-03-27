@@ -4,10 +4,15 @@ public sealed class TailoringRecordEntity
 {
     public Guid Id { get; init; }
     public Guid ProjectId { get; set; }
+    public Guid? TailoringCriteriaId { get; set; }
+    public Guid? TailoringReviewCycleId { get; set; }
     public string RequesterUserId { get; set; } = string.Empty;
     public string RequestedChange { get; set; } = string.Empty;
+    public string StandardReference { get; set; } = string.Empty;
+    public string DeviationReason { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
     public string ImpactSummary { get; set; } = string.Empty;
+    public DateTimeOffset? ReviewDueAt { get; set; }
     public string Status { get; set; } = "draft";
     public string? ApproverUserId { get; set; }
     public DateTimeOffset? ApprovedAt { get; set; }

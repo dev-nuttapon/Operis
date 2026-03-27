@@ -9,6 +9,7 @@ Purpose:
 * owns Phase 25 compliance dashboard snapshots and user dashboard preferences
 * owns Phase 27 management reviews, review agenda items, and follow-up actions
 * owns Phase 29 policy registers, acknowledgement campaigns, and user attestation records
+* owns Phase 30 tailoring criteria, tailoring review cycles, and hardened deviation metadata for tailoring records
 
 Public surface:
 
@@ -43,6 +44,8 @@ Owned data:
 * policies
 * policy_campaigns
 * policy_acknowledgements
+* tailoring_criteria
+* tailoring_review_cycles
 
 Notes:
 

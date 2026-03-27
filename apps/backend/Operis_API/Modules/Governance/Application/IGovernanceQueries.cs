@@ -15,4 +15,7 @@ public interface IGovernanceQueries
     Task<StakeholderResponse?> GetStakeholderAsync(Guid stakeholderId, CancellationToken cancellationToken);
     Task<PagedResult<TailoringRecordListItemResponse>> ListTailoringRecordsAsync(GovernanceListQuery query, CancellationToken cancellationToken);
     Task<TailoringRecordResponse?> GetTailoringRecordAsync(Guid tailoringRecordId, CancellationToken cancellationToken);
+    Task<PagedResult<TailoringCriteriaResponse>> ListTailoringCriteriaAsync(GovernanceListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<TailoringReviewCycleResponse>> ListTailoringReviewCyclesAsync(GovernanceListQuery query, CancellationToken cancellationToken);
+    Task<TailoringReviewCycleResponse?> GetTailoringReviewCycleAsync(Guid tailoringReviewCycleId, CancellationToken cancellationToken);
 }

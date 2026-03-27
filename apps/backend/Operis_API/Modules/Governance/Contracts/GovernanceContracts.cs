@@ -227,10 +227,17 @@ public sealed record TailoringRecordResponse(
     Guid Id,
     Guid ProjectId,
     string ProjectName,
+    Guid? TailoringCriteriaId,
+    string? TailoringCriteriaTitle,
+    Guid? TailoringReviewCycleId,
+    string? TailoringReviewTitle,
     string RequesterUserId,
     string RequestedChange,
+    string StandardReference,
+    string DeviationReason,
     string Reason,
     string ImpactSummary,
+    DateTimeOffset? ReviewDueAt,
     string Status,
     string? ApproverUserId,
     DateTimeOffset? ApprovedAt,
@@ -243,26 +250,95 @@ public sealed record TailoringRecordListItemResponse(
     Guid Id,
     Guid ProjectId,
     string ProjectName,
+    Guid? TailoringCriteriaId,
+    string? TailoringCriteriaTitle,
+    Guid? TailoringReviewCycleId,
     string RequestedChange,
+    string StandardReference,
+    string DeviationReason,
+    DateTimeOffset? ReviewDueAt,
     string Status,
     string RequesterUserId,
     string? ApproverUserId,
+    bool RequiresApprovalAttention,
     DateTimeOffset UpdatedAt);
 
 public sealed record CreateTailoringRecordRequest(
     Guid ProjectId,
     string RequesterUserId,
     string RequestedChange,
+    string StandardReference,
+    string DeviationReason,
     string Reason,
     string ImpactSummary,
+    DateTimeOffset? ReviewDueAt,
+    Guid? TailoringCriteriaId,
+    Guid? TailoringReviewCycleId,
     Guid? ImpactedProcessAssetId);
 
 public sealed record UpdateTailoringRecordRequest(
     string RequestedChange,
+    string StandardReference,
+    string DeviationReason,
     string Reason,
     string ImpactSummary,
+    DateTimeOffset? ReviewDueAt,
+    Guid? TailoringCriteriaId,
+    Guid? TailoringReviewCycleId,
     Guid? ImpactedProcessAssetId);
 
 public sealed record TailoringDecisionRequest(string Decision, string Reason);
+
+public sealed record TailoringCriteriaResponse(
+    Guid Id,
+    string CriterionCode,
+    string StandardReference,
+    string Title,
+    string? Description,
+    string Status,
+    int LinkedDeviationCount,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record TailoringCriteriaRequest(
+    string CriterionCode,
+    string StandardReference,
+    string Title,
+    string? Description,
+    string Status);
+
+public sealed record TailoringReviewCycleResponse(
+    Guid Id,
+    Guid ProjectId,
+    string ProjectName,
+    string ReviewCode,
+    string Title,
+    string OwnerUserId,
+    DateTimeOffset ReviewDueAt,
+    string Status,
+    string? ApproverUserId,
+    DateTimeOffset? ApprovedAt,
+    string? DecisionReason,
+    int DeviationCount,
+    int OpenDeviationCount,
+    bool IsExpired,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record CreateTailoringReviewCycleRequest(
+    Guid ProjectId,
+    string ReviewCode,
+    string Title,
+    string OwnerUserId,
+    DateTimeOffset? ReviewDueAt,
+    string? DecisionReason);
+
+public sealed record UpdateTailoringReviewCycleRequest(
+    string Title,
+    string OwnerUserId,
+    DateTimeOffset? ReviewDueAt,
+    string? DecisionReason);
+
+public sealed record TransitionTailoringReviewCycleRequest(string TargetStatus, string? Reason);
 
 public sealed record GovernanceMutationResponse(Guid Id, string Status, DateTimeOffset UpdatedAt, string? ApprovedBy = null, DateTimeOffset? ApprovedAt = null);
