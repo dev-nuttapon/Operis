@@ -11,6 +11,7 @@ Companion documents for first-version delivery:
 - `docs/cmmi-l3/PHASE_TRANSITION_MATRIX.md`
 - `docs/cmmi-l3/PHASE_TEST_SPEC.md`
 - `docs/cmmi-l3/PHASE_OPERATIONS_RUNBOOK.md`
+- `docs/cmmi-l3/POST_PHASE_CMMI_L3_ROADMAP.md`
 
 Legend:
 - C: Create
