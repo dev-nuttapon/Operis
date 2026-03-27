@@ -45,6 +45,17 @@ public sealed class OperationsModuleHandlerTests
         Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
     }
 
+    [Fact]
+    public async Task ReleaseLegalHoldAsync_WithoutApprovePermission_ReturnsForbidden()
+    {
+        var result = await InvokeReleaseLegalHoldAsync(CreateComplianceReaderPrincipal(), new FakeOperationsCommands());
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+    }
+
     private static async Task<IResult> InvokeApproveAccessReviewAsync(ClaimsPrincipal principal, IOperationsCommands commands)
     {
         var method = typeof(OperationsModule).GetMethod("ApproveAccessReviewAsync", BindingFlags.NonPublic | BindingFlags.Static)
@@ -69,6 +80,15 @@ public sealed class OperationsModuleHandlerTests
             ?? throw new InvalidOperationException("OperationsModule.GetSecurityIncidentAsync was not found.");
 
         var task = (Task<IResult>)method.Invoke(null, [principal, Guid.NewGuid(), queries, new PermissionMatrix(), CancellationToken.None])!;
+        return await task;
+    }
+
+    private static async Task<IResult> InvokeReleaseLegalHoldAsync(ClaimsPrincipal principal, IOperationsCommands commands)
+    {
+        var method = typeof(OperationsModule).GetMethod("ReleaseLegalHoldAsync", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("OperationsModule.ReleaseLegalHoldAsync was not found.");
+
+        var task = (Task<IResult>)method.Invoke(null, [principal, Guid.NewGuid(), new ReleaseLegalHoldRequest("case closed"), commands, new PermissionMatrix(), CancellationToken.None])!;
         return await task;
     }
 
@@ -116,6 +136,13 @@ public sealed class OperationsModuleHandlerTests
         public Task<OperationsCommandResult<PrivilegedAccessEventResponse>> UpdatePrivilegedAccessEventAsync(Guid id, UpdatePrivilegedAccessEventRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<OperationsCommandResult<ClassificationPolicyResponse>> CreateClassificationPolicyAsync(CreateClassificationPolicyRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<OperationsCommandResult<ClassificationPolicyResponse>> UpdateClassificationPolicyAsync(Guid id, UpdateClassificationPolicyRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<BackupEvidenceResponse>> CreateBackupEvidenceAsync(CreateBackupEvidenceRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<RestoreVerificationResponse>> CreateRestoreVerificationAsync(CreateRestoreVerificationRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<DrDrillResponse>> CreateDrDrillAsync(CreateDrDrillRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<DrDrillResponse>> UpdateDrDrillAsync(Guid id, UpdateDrDrillRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<LegalHoldResponse>> CreateLegalHoldAsync(CreateLegalHoldRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<LegalHoldResponse>> ReleaseLegalHoldAsync(Guid id, ReleaseLegalHoldRequest request, string? actor, CancellationToken cancellationToken) =>
+            Task.FromResult(new OperationsCommandResult<LegalHoldResponse>(OperationsCommandStatus.Success, new LegalHoldResponse(id, "document", "DOC-1", DateTimeOffset.UtcNow.AddDays(-1), "legal@example.com", "released", "Preserve evidence", DateTimeOffset.UtcNow, actor, request.Reason, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow)));
     }
 
     private sealed class FakeOperationsQueries : IOperationsQueries
@@ -136,5 +163,9 @@ public sealed class OperationsModuleHandlerTests
         public Task<PagedResult<SecretRotationResponse>> ListSecretRotationsAsync(SecretRotationListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<PagedResult<PrivilegedAccessEventResponse>> ListPrivilegedAccessEventsAsync(PrivilegedAccessEventListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<PagedResult<ClassificationPolicyResponse>> ListClassificationPoliciesAsync(ClassificationPolicyListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<PagedResult<BackupEvidenceResponse>> ListBackupEvidenceAsync(BackupEvidenceListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<PagedResult<RestoreVerificationResponse>> ListRestoreVerificationsAsync(RestoreVerificationListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<PagedResult<DrDrillResponse>> ListDrDrillsAsync(DrDrillListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<PagedResult<LegalHoldResponse>> ListLegalHoldsAsync(LegalHoldListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }

@@ -110,6 +110,8 @@ namespace Operis_API.Shared.Contracts;
     public const string SecurityIncidentCodeDuplicate = "security_incident_code_duplicate";
     public const string PerformanceGateOverrideReasonRequired = "performance_gate_override_reason_required";
     public const string SlowOperationVerificationRequired = "slow_operation_verification_required";
+    public const string RestoreBackupReferenceRequired = "restore_backup_reference_required";
+    public const string LegalHoldReleaseReasonRequired = "legal_hold_release_reason_required";
     public const string SlaTargetRequired = "sla_target_required";
     public const string SlaEscalationPolicyRequired = "sla_escalation_policy_required";
     public const string OverrideLogMutationForbidden = "override_log_mutation_forbidden";

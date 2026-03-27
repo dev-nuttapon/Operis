@@ -5,28 +5,38 @@ import type {
   AccessReview,
   AddAccessRecertificationDecisionInput,
   ApproveAccessReviewInput,
+  BackupEvidence,
   ClassificationPolicy,
   ConfigurationAudit,
+  CreateBackupEvidenceInput,
   CreateAccessRecertificationInput,
   CreateAccessReviewInput,
   CreateClassificationPolicyInput,
   CreateConfigurationAuditInput,
+  CreateDrDrillInput,
   CreateExternalDependencyInput,
+  CreateLegalHoldInput,
   CreatePrivilegedAccessEventInput,
+  CreateRestoreVerificationInput,
   CreateSecretRotationInput,
   CreateSecurityIncidentInput,
   CreateSecurityReviewInput,
   CreateSupplierAgreementInput,
   CreateSupplierInput,
   CreateVulnerabilityInput,
+  DrDrill,
   ExternalDependency,
+  LegalHold,
   OperationsListInput,
   PrivilegedAccessEvent,
+  ReleaseLegalHoldInput,
+  RestoreVerification,
   SecretRotation,
   SecurityIncident,
   SecurityReview,
   Supplier,
   SupplierAgreement,
+  UpdateDrDrillInput,
   UpdateClassificationPolicyInput,
   UpdateAccessRecertificationInput,
   UpdateAccessReviewInput,
@@ -62,8 +72,12 @@ function toQuery(input?: OperationsListInput) {
   if (input?.approvedBy) params.set("approvedBy", input.approvedBy);
   if (input?.usedBy) params.set("usedBy", input.usedBy);
   if (input?.classificationLevel) params.set("classificationLevel", input.classificationLevel);
+  if (input?.backupScope) params.set("backupScope", input.backupScope);
+  if (input?.backupEvidenceId) params.set("backupEvidenceId", input.backupEvidenceId);
   if (input?.scope) params.set("scope", input.scope);
   if (input?.projectId) params.set("projectId", input.projectId);
+  if (input?.executedAfter) params.set("executedAfter", input.executedAfter);
+  if (input?.plannedAfter) params.set("plannedAfter", input.plannedAfter);
   if (input?.search) params.set("search", input.search);
   if (input?.sortBy) params.set("sortBy", input.sortBy);
   if (input?.sortOrder) params.set("sortOrder", input.sortOrder);
@@ -108,6 +122,18 @@ export const listExternalDependencies = (input?: OperationsListInput, signal?: A
 
 export const listConfigurationAudits = (input?: OperationsListInput, signal?: AbortSignal) =>
   apiRequest<PaginatedResult<ConfigurationAudit>>(`/api/v1/configuration-audits${toQuery(input)}`, { signal });
+
+export const listBackupEvidence = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<BackupEvidence>>(`/api/v1/backup-evidence${toQuery(input)}`, { signal });
+
+export const listRestoreVerifications = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<RestoreVerification>>(`/api/v1/restore-verifications${toQuery(input)}`, { signal });
+
+export const listDrDrills = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<DrDrill>>(`/api/v1/dr-drills${toQuery(input)}`, { signal });
+
+export const listLegalHolds = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<LegalHold>>(`/api/v1/legal-holds${toQuery(input)}`, { signal });
 
 export const listSuppliers = (input?: OperationsListInput, signal?: AbortSignal) =>
   apiRequest<PaginatedResult<Supplier>>(`/api/v1/suppliers${toQuery(input)}`, { signal });
@@ -183,6 +209,24 @@ export const updateExternalDependency = (id: string, input: UpdateExternalDepend
 
 export const createConfigurationAudit = (input: CreateConfigurationAuditInput) =>
   apiRequest<ConfigurationAudit>("/api/v1/configuration-audits", { method: "POST", body: input });
+
+export const createBackupEvidence = (input: CreateBackupEvidenceInput) =>
+  apiRequest<BackupEvidence>("/api/v1/backup-evidence", { method: "POST", body: input });
+
+export const createRestoreVerification = (input: CreateRestoreVerificationInput) =>
+  apiRequest<RestoreVerification>("/api/v1/restore-verifications", { method: "POST", body: input });
+
+export const createDrDrill = (input: CreateDrDrillInput) =>
+  apiRequest<DrDrill>("/api/v1/dr-drills", { method: "POST", body: input });
+
+export const updateDrDrill = (id: string, input: UpdateDrDrillInput) =>
+  apiRequest<DrDrill>(`/api/v1/dr-drills/${id}`, { method: "PUT", body: input });
+
+export const createLegalHold = (input: CreateLegalHoldInput) =>
+  apiRequest<LegalHold>("/api/v1/legal-holds", { method: "POST", body: input });
+
+export const releaseLegalHold = (id: string, input: ReleaseLegalHoldInput) =>
+  apiRequest<LegalHold>(`/api/v1/legal-holds/${id}/release`, { method: "PUT", body: input });
 
 export const createSupplier = (input: CreateSupplierInput) =>
   apiRequest<Supplier>("/api/v1/suppliers", { method: "POST", body: input });

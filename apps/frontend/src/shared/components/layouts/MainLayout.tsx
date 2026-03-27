@@ -429,6 +429,10 @@ export function MainLayout() {
             { key: '/app/operations/secret-rotations', label: 'Secret Rotation Register' },
             { key: '/app/operations/privileged-access', label: 'Privileged Access Log' },
             { key: '/app/operations/classification-policies', label: 'Data Classification Policy' },
+            { key: '/app/operations/backup-evidence', label: 'Backup Evidence' },
+            { key: '/app/operations/restore-verifications', label: 'Restore Verification' },
+            { key: '/app/operations/dr-drills', label: 'DR Drill Log' },
+            { key: '/app/operations/legal-holds', label: 'Legal Hold Register' },
             { key: '/app/operations/suppliers', label: 'Supplier Register' },
             { key: '/app/operations/supplier-agreements', label: 'SLA/Contract Evidence' },
             { key: '/app/operations/configuration-audits', label: 'Configuration Audit Log' },
@@ -643,6 +647,10 @@ export function MainLayout() {
     if (path.includes('/app/operations/secret-rotations')) return 'Secret Rotation Register';
     if (path.includes('/app/operations/privileged-access')) return 'Privileged Access Log';
     if (path.includes('/app/operations/classification-policies')) return 'Data Classification Policy';
+    if (path.includes('/app/operations/backup-evidence')) return 'Backup Evidence';
+    if (path.includes('/app/operations/restore-verifications')) return 'Restore Verification';
+    if (path.includes('/app/operations/dr-drills')) return 'DR Drill Log';
+    if (path.includes('/app/operations/legal-holds')) return 'Legal Hold Register';
     if (path.includes('/app/operations/suppliers')) return 'Supplier Register';
     if (path.includes('/app/operations/supplier-agreements')) return 'SLA/Contract Evidence';
     if (path.includes('/app/operations/configuration-audits')) return 'Configuration Audit Log';

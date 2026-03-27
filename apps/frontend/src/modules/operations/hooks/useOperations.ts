@@ -4,11 +4,15 @@ import {
   completeAccessRecertification,
   createAccessRecertification,
   approveAccessReview,
+  createBackupEvidence,
   createClassificationPolicy,
   createAccessReview,
   createConfigurationAudit,
+  createDrDrill,
   createExternalDependency,
+  createLegalHold,
   createPrivilegedAccessEvent,
+  createRestoreVerification,
   createSecretRotation,
   createSecurityIncident,
   createSecurityReview,
@@ -20,19 +24,25 @@ import {
   getSupplier,
   listAccessRecertifications,
   listAccessReviews,
+  listBackupEvidence,
   listClassificationPolicies,
   listConfigurationAudits,
+  listDrDrills,
   listExternalDependencies,
+  listLegalHolds,
   listPrivilegedAccessEvents,
+  listRestoreVerifications,
   listSecretRotations,
   listSecurityIncidents,
   listSecurityReviews,
   listSupplierAgreements,
   listSuppliers,
   listVulnerabilities,
+  releaseLegalHold,
   updateClassificationPolicy,
   updateAccessRecertification,
   updateAccessReview,
+  updateDrDrill,
   updateExternalDependency,
   updatePrivilegedAccessEvent,
   updateSecretRotation,
@@ -45,12 +55,16 @@ import {
 import type {
   AddAccessRecertificationDecisionInput,
   ApproveAccessReviewInput,
+  CreateBackupEvidenceInput,
   CreateAccessRecertificationInput,
   CreateAccessReviewInput,
   CreateClassificationPolicyInput,
   CreateConfigurationAuditInput,
+  CreateDrDrillInput,
   CreateExternalDependencyInput,
+  CreateLegalHoldInput,
   CreatePrivilegedAccessEventInput,
+  CreateRestoreVerificationInput,
   CreateSecretRotationInput,
   CreateSecurityIncidentInput,
   CreateSecurityReviewInput,
@@ -58,6 +72,8 @@ import type {
   CreateSupplierInput,
   CreateVulnerabilityInput,
   OperationsListInput,
+  ReleaseLegalHoldInput,
+  UpdateDrDrillInput,
   UpdateClassificationPolicyInput,
   UpdateAccessRecertificationInput,
   UpdateAccessReviewInput,
@@ -174,6 +190,42 @@ export function useConfigurationAudits(input: OperationsListInput, enabled = tru
   return useQuery({
     queryKey: ["operations", "configuration-audits", input],
     queryFn: ({ signal }) => listConfigurationAudits(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useBackupEvidence(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "backup-evidence", input],
+    queryFn: ({ signal }) => listBackupEvidence(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useRestoreVerifications(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "restore-verifications", input],
+    queryFn: ({ signal }) => listRestoreVerifications(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useDrDrills(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "dr-drills", input],
+    queryFn: ({ signal }) => listDrDrills(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useLegalHolds(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "legal-holds", input],
+    queryFn: ({ signal }) => listLegalHolds(input, signal),
     staleTime: 15_000,
     enabled,
   });
@@ -385,6 +437,54 @@ export function useCreateConfigurationAudit() {
   const invalidate = useInvalidateOperations();
   return useMutation({
     mutationFn: (input: CreateConfigurationAuditInput) => createConfigurationAudit(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateBackupEvidence() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateBackupEvidenceInput) => createBackupEvidence(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateRestoreVerification() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateRestoreVerificationInput) => createRestoreVerification(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateDrDrill() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateDrDrillInput) => createDrDrill(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateDrDrill() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateDrDrillInput }) => updateDrDrill(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateLegalHold() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateLegalHoldInput) => createLegalHold(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useReleaseLegalHold() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: ReleaseLegalHoldInput }) => releaseLegalHold(id, input),
     onSuccess: invalidate,
   });
 }

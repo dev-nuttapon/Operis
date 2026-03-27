@@ -244,6 +244,18 @@ const PrivilegedAccessLogPage = lazy(() =>
 const ClassificationPolicyPage = lazy(() =>
   import("../modules/operations/pages/ClassificationPolicyPage").then((module) => ({ default: module.ClassificationPolicyPage }))
 );
+const BackupEvidencePage = lazy(() =>
+  import("../modules/operations/pages/BackupEvidencePage").then((module) => ({ default: module.BackupEvidencePage }))
+);
+const RestoreVerificationPage = lazy(() =>
+  import("../modules/operations/pages/RestoreVerificationPage").then((module) => ({ default: module.RestoreVerificationPage }))
+);
+const DrDrillLogPage = lazy(() =>
+  import("../modules/operations/pages/DrDrillLogPage").then((module) => ({ default: module.DrDrillLogPage }))
+);
+const LegalHoldRegisterPage = lazy(() =>
+  import("../modules/operations/pages/LegalHoldRegisterPage").then((module) => ({ default: module.LegalHoldRegisterPage }))
+);
 const LessonsLearnedPage = lazy(() =>
   import("../modules/knowledge/pages/LessonsLearnedPage").then((module) => ({ default: module.LessonsLearnedPage }))
 );
@@ -449,6 +461,10 @@ export function AppRouter() {
               <Route path="operations/secret-rotations" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SecretRotationRegisterPage /></AuthorizedRoute>} />
               <Route path="operations/privileged-access" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><PrivilegedAccessLogPage /></AuthorizedRoute>} />
               <Route path="operations/classification-policies" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ClassificationPolicyPage /></AuthorizedRoute>} />
+              <Route path="operations/backup-evidence" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><BackupEvidencePage /></AuthorizedRoute>} />
+              <Route path="operations/restore-verifications" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><RestoreVerificationPage /></AuthorizedRoute>} />
+              <Route path="operations/dr-drills" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><DrDrillLogPage /></AuthorizedRoute>} />
+              <Route path="operations/legal-holds" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><LegalHoldRegisterPage /></AuthorizedRoute>} />
               <Route path="operations/suppliers" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierRegisterPage /></AuthorizedRoute>} />
               <Route path="operations/supplier-agreements" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierAgreementsPage /></AuthorizedRoute>} />
               <Route path="operations/configuration-audits" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ConfigurationAuditsPage /></AuthorizedRoute>} />

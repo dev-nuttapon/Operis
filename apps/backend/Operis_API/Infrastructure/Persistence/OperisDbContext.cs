@@ -52,6 +52,10 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<SecretRotationEntity> SecretRotations => Set<SecretRotationEntity>();
     public DbSet<PrivilegedAccessEventEntity> PrivilegedAccessEvents => Set<PrivilegedAccessEventEntity>();
     public DbSet<DataClassificationPolicyEntity> DataClassificationPolicies => Set<DataClassificationPolicyEntity>();
+    public DbSet<BackupEvidenceEntity> BackupEvidence => Set<BackupEvidenceEntity>();
+    public DbSet<RestoreVerificationEntity> RestoreVerifications => Set<RestoreVerificationEntity>();
+    public DbSet<DrDrillEntity> DrDrills => Set<DrDrillEntity>();
+    public DbSet<LegalHoldEntity> LegalHolds => Set<LegalHoldEntity>();
     public DbSet<UserOrgAssignmentEntity> UserOrgAssignments => Set<UserOrgAssignmentEntity>();
     public DbSet<ReportingLineEntity> ReportingLines => Set<ReportingLineEntity>();
     public DbSet<ProjectEntity> Projects => Set<ProjectEntity>();
@@ -718,6 +722,78 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasIndex(x => x.PolicyCode).IsUnique();
             entity.HasIndex(x => new { x.ClassificationLevel, x.Status });
+        });
+
+        modelBuilder.Entity<BackupEvidenceEntity>(entity =>
+        {
+            entity.ToTable("backup_evidence");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.BackupScope).HasColumnName("backup_scope").HasMaxLength(128);
+            entity.Property(x => x.ExecutedAt).HasColumnName("executed_at");
+            entity.Property(x => x.ExecutedBy).HasColumnName("executed_by").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.EvidenceRef).HasColumnName("evidence_ref").HasMaxLength(512);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(x => x.BackupScope);
+            entity.HasIndex(x => x.ExecutedAt);
+            entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => new { x.BackupScope, x.ExecutedAt });
+        });
+
+        modelBuilder.Entity<RestoreVerificationEntity>(entity =>
+        {
+            entity.ToTable("restore_verifications");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.BackupEvidenceId).HasColumnName("backup_evidence_id");
+            entity.Property(x => x.ExecutedAt).HasColumnName("executed_at");
+            entity.Property(x => x.ExecutedBy).HasColumnName("executed_by").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ResultSummary).HasColumnName("result_summary").HasMaxLength(4000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<BackupEvidenceEntity>().WithMany().HasForeignKey(x => x.BackupEvidenceId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.BackupEvidenceId);
+            entity.HasIndex(x => x.ExecutedAt);
+            entity.HasIndex(x => x.Status);
+        });
+
+        modelBuilder.Entity<DrDrillEntity>(entity =>
+        {
+            entity.ToTable("dr_drills");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScopeRef).HasColumnName("scope_ref").HasMaxLength(256);
+            entity.Property(x => x.PlannedAt).HasColumnName("planned_at");
+            entity.Property(x => x.ExecutedAt).HasColumnName("executed_at");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.FindingCount).HasColumnName("finding_count");
+            entity.Property(x => x.Summary).HasColumnName("summary").HasMaxLength(4000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.ScopeRef, x.PlannedAt });
+            entity.HasIndex(x => x.Status);
+        });
+
+        modelBuilder.Entity<LegalHoldEntity>(entity =>
+        {
+            entity.ToTable("legal_holds");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScopeType).HasColumnName("scope_type").HasMaxLength(64);
+            entity.Property(x => x.ScopeRef).HasColumnName("scope_ref").HasMaxLength(256);
+            entity.Property(x => x.PlacedAt).HasColumnName("placed_at");
+            entity.Property(x => x.PlacedBy).HasColumnName("placed_by").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
+            entity.Property(x => x.ReleasedAt).HasColumnName("released_at");
+            entity.Property(x => x.ReleasedBy).HasColumnName("released_by").HasMaxLength(128);
+            entity.Property(x => x.ReleaseReason).HasColumnName("release_reason").HasMaxLength(2000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.PlacedAt);
+            entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => new { x.Status, x.PlacedAt });
         });
 
         modelBuilder.Entity<PhaseApprovalRequestEntity>(entity =>

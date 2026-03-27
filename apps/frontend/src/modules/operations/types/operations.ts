@@ -167,6 +167,54 @@ export interface ClassificationPolicy {
   updatedAt: string | null;
 }
 
+export interface BackupEvidence {
+  id: string;
+  backupScope: string;
+  executedAt: string;
+  executedBy: string;
+  status: string;
+  evidenceRef: string | null;
+  createdAt: string;
+}
+
+export interface RestoreVerification {
+  id: string;
+  backupEvidenceId: string;
+  backupScope: string;
+  executedAt: string;
+  executedBy: string;
+  status: string;
+  resultSummary: string;
+  createdAt: string;
+}
+
+export interface DrDrill {
+  id: string;
+  scopeRef: string;
+  plannedAt: string;
+  executedAt: string | null;
+  status: string;
+  findingCount: number;
+  summary: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface LegalHold {
+  id: string;
+  scopeType: string;
+  scopeRef: string;
+  placedAt: string;
+  placedBy: string;
+  status: string;
+  reason: string;
+  releasedAt: string | null;
+  releasedBy: string | null;
+  releaseReason: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 export interface OperationsListInput {
   scopeType?: string;
   scopeRef?: string;
@@ -187,8 +235,12 @@ export interface OperationsListInput {
   approvedBy?: string;
   usedBy?: string;
   classificationLevel?: string;
+  backupScope?: string;
+  backupEvidenceId?: string;
   scope?: string;
   projectId?: string;
+  executedAfter?: string;
+  plannedAfter?: string;
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
@@ -221,6 +273,43 @@ export interface CreateSecurityReviewInput {
 }
 
 export interface UpdateSecurityReviewInput extends CreateSecurityReviewInput {}
+
+export interface CreateBackupEvidenceInput {
+  backupScope: string;
+  executedAt: string;
+  executedBy: string;
+  status: string;
+  evidenceRef?: string | null;
+}
+
+export interface CreateRestoreVerificationInput {
+  backupEvidenceId?: string | null;
+  executedAt: string;
+  executedBy: string;
+  status: string;
+  resultSummary: string;
+}
+
+export interface CreateDrDrillInput {
+  scopeRef: string;
+  plannedAt: string;
+  executedAt?: string | null;
+  status: string;
+  findingCount: number;
+  summary?: string | null;
+}
+
+export interface UpdateDrDrillInput extends CreateDrDrillInput {}
+
+export interface CreateLegalHoldInput {
+  scopeType: string;
+  scopeRef: string;
+  reason: string;
+}
+
+export interface ReleaseLegalHoldInput {
+  reason: string;
+}
 
 export interface CreateAccessRecertificationInput {
   scopeType: string;

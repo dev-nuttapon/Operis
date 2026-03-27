@@ -12,4 +12,8 @@ export * from "./pages/ClassificationPolicyPage";
 export * from "./pages/SupplierRegisterPage";
 export * from "./pages/SupplierAgreementsPage";
 export * from "./pages/ConfigurationAuditsPage";
+export * from "./pages/BackupEvidencePage";
+export * from "./pages/RestoreVerificationPage";
+export * from "./pages/DrDrillLogPage";
+export * from "./pages/LegalHoldRegisterPage";
 export type * from "./types/operations";

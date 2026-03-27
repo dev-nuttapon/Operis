@@ -12,6 +12,10 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
 {
     private static readonly string[] RecertificationStatuses = ["planned", "in_review", "approved", "completed"];
     private static readonly string[] RecertificationDecisions = ["kept", "revoked", "adjusted"];
+    private static readonly string[] BackupEvidenceStatuses = ["planned", "completed", "verified", "archived"];
+    private static readonly string[] RestoreVerificationStatuses = ["planned", "executed", "verified", "closed"];
+    private static readonly string[] DrDrillStatuses = ["planned", "executed", "findings_issued", "closed"];
+    private static readonly string[] LegalHoldStatuses = ["active", "released", "archived"];
 
     public async Task<OperationsCommandResult<AccessReviewResponse>> CreateAccessReviewAsync(CreateAccessReviewRequest request, string? actor, CancellationToken cancellationToken)
     {
@@ -890,6 +894,180 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         return Success(ToResponse(entity));
     }
 
+    public async Task<OperationsCommandResult<BackupEvidenceResponse>> CreateBackupEvidenceAsync(CreateBackupEvidenceRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var backupScope = Required(request.BackupScope, 128);
+        var executedBy = Required(request.ExecutedBy, 128);
+        if (backupScope is null || executedBy is null)
+        {
+            return Validation<BackupEvidenceResponse>("Backup scope and operator are required.");
+        }
+
+        var entity = new BackupEvidenceEntity
+        {
+            Id = Guid.NewGuid(),
+            BackupScope = backupScope,
+            ExecutedAt = request.ExecutedAt,
+            ExecutedBy = executedBy,
+            Status = NormalizeBackupEvidenceStatus(request.Status),
+            EvidenceRef = Optional(request.EvidenceRef, 512),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.BackupEvidence.Add(entity);
+        AppendAudit("create", "backup_evidence", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<RestoreVerificationResponse>> CreateRestoreVerificationAsync(CreateRestoreVerificationRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        if (!request.BackupEvidenceId.HasValue)
+        {
+            return Validation<RestoreVerificationResponse>("Restore verification requires backup reference.", ApiErrorCodes.RestoreBackupReferenceRequired);
+        }
+
+        var backup = await dbContext.BackupEvidence.FirstOrDefaultAsync(x => x.Id == request.BackupEvidenceId.Value, cancellationToken);
+        if (backup is null)
+        {
+            return Validation<RestoreVerificationResponse>("Restore verification requires backup reference.", ApiErrorCodes.RestoreBackupReferenceRequired);
+        }
+
+        var executedBy = Required(request.ExecutedBy, 128);
+        var resultSummary = Required(request.ResultSummary, 4000);
+        if (executedBy is null || resultSummary is null)
+        {
+            return Validation<RestoreVerificationResponse>("Operator and result summary are required.");
+        }
+
+        var entity = new RestoreVerificationEntity
+        {
+            Id = Guid.NewGuid(),
+            BackupEvidenceId = backup.Id,
+            ExecutedAt = request.ExecutedAt,
+            ExecutedBy = executedBy,
+            Status = NormalizeRestoreVerificationStatus(request.Status),
+            ResultSummary = resultSummary,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.RestoreVerifications.Add(entity);
+        AppendAudit("create", "restore_verification", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity, backup.BackupScope), created: true);
+    }
+
+    public async Task<OperationsCommandResult<DrDrillResponse>> CreateDrDrillAsync(CreateDrDrillRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var scopeRef = Required(request.ScopeRef, 256);
+        if (scopeRef is null)
+        {
+            return Validation<DrDrillResponse>("Scope reference is required.");
+        }
+
+        var entity = new DrDrillEntity
+        {
+            Id = Guid.NewGuid(),
+            ScopeRef = scopeRef,
+            PlannedAt = request.PlannedAt,
+            ExecutedAt = request.ExecutedAt,
+            Status = NormalizeDrDrillStatus(request.Status),
+            FindingCount = Math.Max(0, request.FindingCount),
+            Summary = Optional(request.Summary, 4000),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.DrDrills.Add(entity);
+        AppendAudit("create", "dr_drill", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<DrDrillResponse>> UpdateDrDrillAsync(Guid id, UpdateDrDrillRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.DrDrills.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<DrDrillResponse>();
+
+        var scopeRef = Required(request.ScopeRef, 256);
+        if (scopeRef is null)
+        {
+            return Validation<DrDrillResponse>("Scope reference is required.");
+        }
+
+        var nextStatus = NormalizeDrDrillStatus(request.Status);
+        if (!IsValidLinearTransition(entity.Status, nextStatus, DrDrillStatuses))
+        {
+            return Validation<DrDrillResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.ScopeRef = scopeRef;
+        entity.PlannedAt = request.PlannedAt;
+        entity.ExecutedAt = request.ExecutedAt;
+        entity.Status = nextStatus;
+        entity.FindingCount = Math.Max(0, request.FindingCount);
+        entity.Summary = Optional(request.Summary, 4000);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("update", "dr_drill", entity.Id.ToString(), StatusCodes.Status200OK, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity));
+    }
+
+    public async Task<OperationsCommandResult<LegalHoldResponse>> CreateLegalHoldAsync(CreateLegalHoldRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var scopeType = Required(request.ScopeType, 64);
+        var scopeRef = Required(request.ScopeRef, 256);
+        var reason = Required(request.Reason, 2000);
+        if (scopeType is null || scopeRef is null || reason is null)
+        {
+            return Validation<LegalHoldResponse>("Scope and reason are required.");
+        }
+
+        var entity = new LegalHoldEntity
+        {
+            Id = Guid.NewGuid(),
+            ScopeType = scopeType.ToLowerInvariant(),
+            ScopeRef = scopeRef,
+            PlacedAt = DateTimeOffset.UtcNow,
+            PlacedBy = actor ?? "system",
+            Status = "active",
+            Reason = reason,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.LegalHolds.Add(entity);
+        AppendAudit("create", "legal_hold", entity.Id.ToString(), StatusCodes.Status201Created, reason, entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<LegalHoldResponse>> ReleaseLegalHoldAsync(Guid id, ReleaseLegalHoldRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.LegalHolds.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<LegalHoldResponse>();
+
+        var reason = Required(request.Reason, 2000);
+        if (reason is null)
+        {
+            return Validation<LegalHoldResponse>("Legal hold release requires rationale.", ApiErrorCodes.LegalHoldReleaseReasonRequired);
+        }
+
+        if (!IsValidLinearTransition(entity.Status, "released", LegalHoldStatuses))
+        {
+            return Validation<LegalHoldResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.Status = "released";
+        entity.ReleasedAt = DateTimeOffset.UtcNow;
+        entity.ReleasedBy = actor ?? "system";
+        entity.ReleaseReason = reason;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("release", "legal_hold", entity.Id.ToString(), StatusCodes.Status200OK, reason, entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity));
+    }
+
     private static string? NormalizeIncidentSeverity(string? value) => value?.Trim().ToLowerInvariant() switch
     {
         "low" => "low",
@@ -942,6 +1120,29 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         "archived" => "archived",
         _ => "draft"
     };
+    private static string NormalizeBackupEvidenceStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "completed" => "completed",
+        "verified" => "verified",
+        "archived" => "archived",
+        _ => "planned"
+    };
+
+    private static string NormalizeRestoreVerificationStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "executed" => "executed",
+        "verified" => "verified",
+        "closed" => "closed",
+        _ => "planned"
+    };
+
+    private static string NormalizeDrDrillStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "executed" => "executed",
+        "findings_issued" => "findings_issued",
+        "closed" => "closed",
+        _ => "planned"
+    };
 
     private static OperationsCommandResult<T> Success<T>(T value, bool created = false) => new(OperationsCommandStatus.Success, value);
     private static OperationsCommandResult<T> NotFound<T>() => new(OperationsCommandStatus.NotFound, default, "Resource not found.", ApiErrorCodes.ResourceNotFound);
@@ -963,6 +1164,10 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
     private static SecretRotationResponse ToResponse(SecretRotationEntity x) => new(x.Id, x.SecretScope, x.PlannedAt, x.RotatedAt, x.VerifiedBy, x.VerifiedAt, x.Status, x.CreatedAt, x.UpdatedAt);
     private static PrivilegedAccessEventResponse ToResponse(PrivilegedAccessEventEntity x) => new(x.Id, x.RequestedBy, x.ApprovedBy, x.UsedBy, x.RequestedAt, x.ApprovedAt, x.UsedAt, x.ReviewedAt, x.Status, x.Reason, x.CreatedAt, x.UpdatedAt);
     private static ClassificationPolicyResponse ToResponse(DataClassificationPolicyEntity x) => new(x.Id, x.PolicyCode, x.ClassificationLevel, x.Scope, x.Status, x.HandlingRule, x.CreatedAt, x.UpdatedAt);
+    private static BackupEvidenceResponse ToResponse(BackupEvidenceEntity x) => new(x.Id, x.BackupScope, x.ExecutedAt, x.ExecutedBy, x.Status, x.EvidenceRef, x.CreatedAt);
+    private static RestoreVerificationResponse ToResponse(RestoreVerificationEntity x, string backupScope) => new(x.Id, x.BackupEvidenceId, backupScope, x.ExecutedAt, x.ExecutedBy, x.Status, x.ResultSummary, x.CreatedAt);
+    private static DrDrillResponse ToResponse(DrDrillEntity x) => new(x.Id, x.ScopeRef, x.PlannedAt, x.ExecutedAt, x.Status, x.FindingCount, x.Summary, x.CreatedAt, x.UpdatedAt);
+    private static LegalHoldResponse ToResponse(LegalHoldEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.PlacedAt, x.PlacedBy, x.Status, x.Reason, x.ReleasedAt, x.ReleasedBy, x.ReleaseReason, x.CreatedAt, x.UpdatedAt);
     private async Task<ExternalDependencyResponse> ToResponseAsync(ExternalDependencyEntity x, CancellationToken cancellationToken)
     {
         string? supplierName = null;
@@ -1131,6 +1336,13 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
             ("archived", "archived") => true,
             _ => false
         };
+
+    private static bool IsValidLinearTransition(string current, string next, IReadOnlyList<string> statuses)
+    {
+        var currentIndex = Array.IndexOf(statuses.ToArray(), current);
+        var nextIndex = Array.IndexOf(statuses.ToArray(), next);
+        return currentIndex >= 0 && nextIndex >= 0 && nextIndex >= currentIndex && nextIndex - currentIndex <= 1;
+    }
 
     private static string? SerializeSubjects(IEnumerable<string>? subjectUserIds)
     {

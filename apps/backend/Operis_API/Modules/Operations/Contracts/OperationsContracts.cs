@@ -25,6 +25,12 @@ public sealed record CreatePrivilegedAccessEventRequest(string RequestedBy, stri
 public sealed record UpdatePrivilegedAccessEventRequest(string RequestedBy, string? ApprovedBy, string? UsedBy, DateTimeOffset RequestedAt, DateTimeOffset? ApprovedAt, DateTimeOffset? UsedAt, DateTimeOffset? ReviewedAt, string Status, string Reason);
 public sealed record CreateClassificationPolicyRequest(string PolicyCode, string ClassificationLevel, string Scope, string Status, string? HandlingRule);
 public sealed record UpdateClassificationPolicyRequest(string PolicyCode, string ClassificationLevel, string Scope, string Status, string? HandlingRule);
+public sealed record CreateBackupEvidenceRequest(string BackupScope, DateTimeOffset ExecutedAt, string ExecutedBy, string Status, string? EvidenceRef);
+public sealed record CreateRestoreVerificationRequest(Guid? BackupEvidenceId, DateTimeOffset ExecutedAt, string ExecutedBy, string Status, string ResultSummary);
+public sealed record CreateDrDrillRequest(string ScopeRef, DateTimeOffset PlannedAt, DateTimeOffset? ExecutedAt, string Status, int FindingCount, string? Summary);
+public sealed record UpdateDrDrillRequest(string ScopeRef, DateTimeOffset PlannedAt, DateTimeOffset? ExecutedAt, string Status, int FindingCount, string? Summary);
+public sealed record CreateLegalHoldRequest(string ScopeType, string ScopeRef, string Reason);
+public sealed record ReleaseLegalHoldRequest(string Reason);
 
 public sealed record AccessReviewResponse(Guid Id, string ScopeType, string ScopeRef, string ReviewCycle, string? ReviewedBy, string Status, string? Decision, string? DecisionRationale, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 public sealed record SecurityReviewResponse(Guid Id, string ScopeType, string ScopeRef, string ControlsReviewed, string? FindingsSummary, string Status, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
@@ -39,3 +45,7 @@ public sealed record VulnerabilityResponse(Guid Id, string AssetRef, string Titl
 public sealed record SecretRotationResponse(Guid Id, string SecretScope, DateTimeOffset PlannedAt, DateTimeOffset? RotatedAt, string? VerifiedBy, DateTimeOffset? VerifiedAt, string Status, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 public sealed record PrivilegedAccessEventResponse(Guid Id, string RequestedBy, string? ApprovedBy, string? UsedBy, DateTimeOffset RequestedAt, DateTimeOffset? ApprovedAt, DateTimeOffset? UsedAt, DateTimeOffset? ReviewedAt, string Status, string Reason, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 public sealed record ClassificationPolicyResponse(Guid Id, string PolicyCode, string ClassificationLevel, string Scope, string Status, string? HandlingRule, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+public sealed record BackupEvidenceResponse(Guid Id, string BackupScope, DateTimeOffset ExecutedAt, string ExecutedBy, string Status, string? EvidenceRef, DateTimeOffset CreatedAt);
+public sealed record RestoreVerificationResponse(Guid Id, Guid BackupEvidenceId, string BackupScope, DateTimeOffset ExecutedAt, string ExecutedBy, string Status, string ResultSummary, DateTimeOffset CreatedAt);
+public sealed record DrDrillResponse(Guid Id, string ScopeRef, DateTimeOffset PlannedAt, DateTimeOffset? ExecutedAt, string Status, int FindingCount, string? Summary, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+public sealed record LegalHoldResponse(Guid Id, string ScopeType, string ScopeRef, DateTimeOffset PlacedAt, string PlacedBy, string Status, string Reason, DateTimeOffset? ReleasedAt, string? ReleasedBy, string? ReleaseReason, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);

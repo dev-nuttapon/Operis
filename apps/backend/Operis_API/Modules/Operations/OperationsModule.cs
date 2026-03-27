@@ -59,6 +59,24 @@ public sealed class OperationsModule : IModule
         classificationPolicies.MapPost("/", CreateClassificationPolicyAsync);
         classificationPolicies.MapPut("/{id:guid}", UpdateClassificationPolicyAsync);
 
+        var backupEvidence = endpoints.MapGroup("/api/v1/backup-evidence").WithTags("Operations").RequireAuthorization();
+        backupEvidence.MapGet("/", ListBackupEvidenceAsync);
+        backupEvidence.MapPost("/", CreateBackupEvidenceAsync);
+
+        var restoreVerifications = endpoints.MapGroup("/api/v1/restore-verifications").WithTags("Operations").RequireAuthorization();
+        restoreVerifications.MapGet("/", ListRestoreVerificationsAsync);
+        restoreVerifications.MapPost("/", CreateRestoreVerificationAsync);
+
+        var drDrills = endpoints.MapGroup("/api/v1/dr-drills").WithTags("Operations").RequireAuthorization();
+        drDrills.MapGet("/", ListDrDrillsAsync);
+        drDrills.MapPost("/", CreateDrDrillAsync);
+        drDrills.MapPut("/{id:guid}", UpdateDrDrillAsync);
+
+        var legalHolds = endpoints.MapGroup("/api/v1/legal-holds").WithTags("Operations").RequireAuthorization();
+        legalHolds.MapGet("/", ListLegalHoldsAsync);
+        legalHolds.MapPost("/", CreateLegalHoldAsync);
+        legalHolds.MapPut("/{id:guid}/release", ReleaseLegalHoldAsync);
+
         var securityReviews = endpoints.MapGroup("/api/v1/security-reviews").WithTags("Operations").RequireAuthorization();
         securityReviews.MapGet("/", ListSecurityReviewsAsync);
         securityReviews.MapPost("/", CreateSecurityReviewAsync);
@@ -233,6 +251,64 @@ public sealed class OperationsModule : IModule
 
     private static async Task<IResult> UpdateClassificationPolicyAsync(ClaimsPrincipal principal, Guid id, UpdateClassificationPolicyRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage classification policies.", () => commands.UpdateClassificationPolicyAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListBackupEvidenceAsync(ClaimsPrincipal principal, [AsParameters] BackupEvidenceListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read backup evidence.");
+        }
+
+        return Results.Ok(await queries.ListBackupEvidenceAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateBackupEvidenceAsync(ClaimsPrincipal principal, CreateBackupEvidenceRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage backup evidence.", () => commands.CreateBackupEvidenceAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> ListRestoreVerificationsAsync(ClaimsPrincipal principal, [AsParameters] RestoreVerificationListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read restore verifications.");
+        }
+
+        return Results.Ok(await queries.ListRestoreVerificationsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateRestoreVerificationAsync(ClaimsPrincipal principal, CreateRestoreVerificationRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage restore verifications.", () => commands.CreateRestoreVerificationAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> ListDrDrillsAsync(ClaimsPrincipal principal, [AsParameters] DrDrillListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read DR drills.");
+        }
+
+        return Results.Ok(await queries.ListDrDrillsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateDrDrillAsync(ClaimsPrincipal principal, CreateDrDrillRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage DR drills.", () => commands.CreateDrDrillAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateDrDrillAsync(ClaimsPrincipal principal, Guid id, UpdateDrDrillRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage DR drills.", () => commands.UpdateDrDrillAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListLegalHoldsAsync(ClaimsPrincipal principal, [AsParameters] LegalHoldListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read legal holds.");
+        }
+
+        return Results.Ok(await queries.ListLegalHoldsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateLegalHoldAsync(ClaimsPrincipal principal, CreateLegalHoldRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage legal holds.", () => commands.CreateLegalHoldAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> ReleaseLegalHoldAsync(ClaimsPrincipal principal, Guid id, ReleaseLegalHoldRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Approve, "You do not have permission to release legal holds.", () => commands.ReleaseLegalHoldAsync(id, request, ResolveActor(principal), cancellationToken));
 
     private static async Task<IResult> ListSecurityReviewsAsync(ClaimsPrincipal principal, [AsParameters] SecurityReviewListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
     {

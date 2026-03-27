@@ -15,6 +15,10 @@ public sealed record VulnerabilityListQuery(string? Severity, string? OwnerUserI
 public sealed record SecretRotationListQuery(string? SecretScope, string? VerifiedBy, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record PrivilegedAccessEventListQuery(string? RequestedBy, string? ApprovedBy, string? UsedBy, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record ClassificationPolicyListQuery(string? ClassificationLevel, string? Scope, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record BackupEvidenceListQuery(string? BackupScope, string? ExecutedBy, string? Status, DateTimeOffset? ExecutedAfter, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record RestoreVerificationListQuery(Guid? BackupEvidenceId, string? ExecutedBy, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record DrDrillListQuery(string? ScopeRef, string? Status, DateTimeOffset? PlannedAfter, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record LegalHoldListQuery(string? ScopeType, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 
 public interface IOperationsQueries
 {
@@ -33,4 +37,8 @@ public interface IOperationsQueries
     Task<PagedResult<SecretRotationResponse>> ListSecretRotationsAsync(SecretRotationListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<PrivilegedAccessEventResponse>> ListPrivilegedAccessEventsAsync(PrivilegedAccessEventListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ClassificationPolicyResponse>> ListClassificationPoliciesAsync(ClassificationPolicyListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<BackupEvidenceResponse>> ListBackupEvidenceAsync(BackupEvidenceListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<RestoreVerificationResponse>> ListRestoreVerificationsAsync(RestoreVerificationListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<DrDrillResponse>> ListDrDrillsAsync(DrDrillListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<LegalHoldResponse>> ListLegalHoldsAsync(LegalHoldListQuery query, CancellationToken cancellationToken);
 }

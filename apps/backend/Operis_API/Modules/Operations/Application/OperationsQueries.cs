@@ -504,6 +504,126 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
             cancellationToken);
     }
 
+    public async Task<PagedResult<BackupEvidenceResponse>> ListBackupEvidenceAsync(BackupEvidenceListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.BackupEvidence.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.BackupScope)) source = source.Where(x => x.BackupScope == query.BackupScope.Trim());
+        if (!string.IsNullOrWhiteSpace(query.ExecutedBy)) source = source.Where(x => x.ExecutedBy == query.ExecutedBy.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (query.ExecutedAfter.HasValue) source = source.Where(x => x.ExecutedAt >= query.ExecutedAfter.Value);
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.BackupScope, search) ||
+                EF.Functions.ILike(x.ExecutedBy, search) ||
+                (x.EvidenceRef != null && EF.Functions.ILike(x.EvidenceRef, search)));
+        }
+
+        var descending = !string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "backupscope" => descending ? source.OrderByDescending(x => x.BackupScope) : source.OrderBy(x => x.BackupScope),
+            _ => descending ? source.OrderByDescending(x => x.ExecutedAt) : source.OrderBy(x => x.ExecutedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new BackupEvidenceResponse(x.Id, x.BackupScope, x.ExecutedAt, x.ExecutedBy, x.Status, x.EvidenceRef, x.CreatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<RestoreVerificationResponse>> ListRestoreVerificationsAsync(RestoreVerificationListQuery query, CancellationToken cancellationToken)
+    {
+        var source =
+            from verification in dbContext.RestoreVerifications.AsNoTracking()
+            join backup in dbContext.BackupEvidence.AsNoTracking() on verification.BackupEvidenceId equals backup.Id
+            select new { verification, backup };
+
+        if (query.BackupEvidenceId.HasValue) source = source.Where(x => x.verification.BackupEvidenceId == query.BackupEvidenceId.Value);
+        if (!string.IsNullOrWhiteSpace(query.ExecutedBy)) source = source.Where(x => x.verification.ExecutedBy == query.ExecutedBy.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.verification.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.backup.BackupScope, search) ||
+                EF.Functions.ILike(x.verification.ExecutedBy, search) ||
+                EF.Functions.ILike(x.verification.ResultSummary, search));
+        }
+
+        var descending = !string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "backupscope" => descending ? source.OrderByDescending(x => x.backup.BackupScope) : source.OrderBy(x => x.backup.BackupScope),
+            _ => descending ? source.OrderByDescending(x => x.verification.ExecutedAt) : source.OrderBy(x => x.verification.ExecutedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new RestoreVerificationResponse(x.verification.Id, x.verification.BackupEvidenceId, x.backup.BackupScope, x.verification.ExecutedAt, x.verification.ExecutedBy, x.verification.Status, x.verification.ResultSummary, x.verification.CreatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<DrDrillResponse>> ListDrDrillsAsync(DrDrillListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.DrDrills.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.ScopeRef)) source = source.Where(x => x.ScopeRef == query.ScopeRef.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (query.PlannedAfter.HasValue) source = source.Where(x => x.PlannedAt >= query.PlannedAfter.Value);
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.ScopeRef, search) ||
+                (x.Summary != null && EF.Functions.ILike(x.Summary, search)));
+        }
+
+        var descending = !string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "scoperef" => descending ? source.OrderByDescending(x => x.ScopeRef) : source.OrderBy(x => x.ScopeRef),
+            _ => descending ? source.OrderByDescending(x => x.PlannedAt) : source.OrderBy(x => x.PlannedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new DrDrillResponse(x.Id, x.ScopeRef, x.PlannedAt, x.ExecutedAt, x.Status, x.FindingCount, x.Summary, x.CreatedAt, x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<LegalHoldResponse>> ListLegalHoldsAsync(LegalHoldListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.LegalHolds.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.ScopeType)) source = source.Where(x => x.ScopeType == query.ScopeType.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.ScopeRef, search) ||
+                EF.Functions.ILike(x.PlacedBy, search) ||
+                EF.Functions.ILike(x.Reason, search) ||
+                (x.ReleaseReason != null && EF.Functions.ILike(x.ReleaseReason, search)));
+        }
+
+        var descending = !string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "scoperef" => descending ? source.OrderByDescending(x => x.ScopeRef) : source.OrderBy(x => x.ScopeRef),
+            _ => descending ? source.OrderByDescending(x => x.PlacedAt) : source.OrderBy(x => x.PlacedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new LegalHoldResponse(x.Id, x.ScopeType, x.ScopeRef, x.PlacedAt, x.PlacedBy, x.Status, x.Reason, x.ReleasedAt, x.ReleasedBy, x.ReleaseReason, x.CreatedAt, x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
     private static IQueryable<T> ApplyOrdering<T, TDate, TString>(IQueryable<T> source, string? sortBy, string? sortOrder, Expression<Func<T, TDate>> dateSelector, Expression<Func<T, TString>> stringSelector)
     {
         var descending = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);

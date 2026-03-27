@@ -6,6 +6,7 @@ Purpose:
 * owns Phase 16 supplier register and supplier agreement evidence UI
 * owns Phase 19 access recertification schedule and subject decision UI
 * owns Phase 21 security incident, vulnerability, secret rotation, privileged access, and classification policy UI
+* owns Phase 23 backup evidence, restore verification, DR drill, and legal hold UI
 
 Public surface:
 
@@ -21,3 +22,4 @@ Notes:
 * external dependencies trace to supplier ownership and governing agreements through the same module surface
 * recertification completion stays behind backend pending-decision validation
 * security operations screens reuse the same operations permission surface for read/manage access
+* backup, restore, and legal hold flows keep evidence and release-rationale validation on the backend

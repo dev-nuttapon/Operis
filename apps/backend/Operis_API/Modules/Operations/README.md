@@ -6,6 +6,7 @@ Purpose:
 * owns Phase 16 suppliers and supplier agreement governance
 * owns Phase 19 access recertification schedules and subject decision workflow
 * owns Phase 21 security incidents, vulnerabilities, secret rotations, privileged access events, and classification policies
+* owns Phase 23 backup evidence, restore verification, DR drill records, and legal holds
 
 Public surface:
 
@@ -29,6 +30,10 @@ Owned data:
 * `secret_rotations`
 * `privileged_access_events`
 * `data_classification_policies`
+* `backup_evidence`
+* `restore_verifications`
+* `dr_drills`
+* `legal_holds`
 
 Notes:
 
@@ -36,3 +41,4 @@ Notes:
 * supplier archive rules and agreement evidence validation stay in `Application/`
 * recertification completion is blocked until all scoped subjects have decisions on record
 * incident closure, privileged access use, and secret rotation verification are enforced through stable backend validation codes
+* backup, restore, DR, and legal hold release validation stay in `Application/`

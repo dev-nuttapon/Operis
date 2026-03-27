@@ -260,4 +260,44 @@ public sealed class OperationsCommandsTests
         Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
         Assert.Equal(ApiErrorCodes.SecretRotationVerificationRequired, result.ErrorCode);
     }
+
+    [Fact]
+    public async Task CreateRestoreVerificationAsync_WithoutBackupReference_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+
+        var result = await sut.CreateRestoreVerificationAsync(
+            new CreateRestoreVerificationRequest(null, DateTimeOffset.UtcNow, "ops@example.com", "executed", "Restore proof completed"),
+            "ops@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.RestoreBackupReferenceRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task ReleaseLegalHoldAsync_WithoutReason_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var holdId = Guid.NewGuid();
+        dbContext.LegalHolds.Add(new LegalHoldEntity
+        {
+            Id = holdId,
+            ScopeType = "document",
+            ScopeRef = "DOC-2026-001",
+            PlacedAt = DateTimeOffset.UtcNow.AddDays(-2),
+            PlacedBy = "legal@example.com",
+            Status = "active",
+            Reason = "Preserve evidence",
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-2)
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.ReleaseLegalHoldAsync(holdId, new ReleaseLegalHoldRequest(""), "compliance@example.com", CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.LegalHoldReleaseReasonRequired, result.ErrorCode);
+    }
 }
