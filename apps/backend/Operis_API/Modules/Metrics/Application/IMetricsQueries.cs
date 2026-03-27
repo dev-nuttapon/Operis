@@ -9,4 +9,7 @@ public interface IMetricsQueries
     Task<PagedResult<MetricCollectionScheduleItem>> ListMetricCollectionSchedulesAsync(MetricCollectionScheduleListQuery query, CancellationToken cancellationToken);
     Task<MetricResultsResponse> ListMetricResultsAsync(MetricResultListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<QualityGateResultItem>> ListQualityGatesAsync(QualityGateListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<MetricReviewItem>> ListMetricReviewsAsync(MetricReviewListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<TrendReportItem>> ListTrendReportsAsync(TrendReportListQuery query, CancellationToken cancellationToken);
+    Task<TrendReportItem?> GetTrendReportAsync(Guid trendReportId, CancellationToken cancellationToken);
 }

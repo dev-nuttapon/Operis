@@ -81,6 +81,33 @@ public sealed record QualityGateResultItem(
     string? OverriddenByUserId,
     IReadOnlyList<MetricResultItem> Metrics);
 
+public sealed record MetricReviewItem(
+    Guid Id,
+    Guid ProjectId,
+    string ProjectName,
+    string ReviewPeriod,
+    string ReviewedBy,
+    string Status,
+    string? Summary,
+    int OpenActionCount,
+    DateTimeOffset UpdatedAt);
+
+public sealed record TrendReportItem(
+    Guid Id,
+    Guid ProjectId,
+    string ProjectName,
+    Guid MetricDefinitionId,
+    string MetricCode,
+    string MetricName,
+    DateOnly PeriodFrom,
+    DateOnly PeriodTo,
+    string Status,
+    string? ReportRef,
+    string? TrendDirection,
+    decimal? Variance,
+    string? RecommendedAction,
+    DateTimeOffset UpdatedAt);
+
 public sealed record CreateMetricDefinitionRequest(
     string Code,
     string Name,
@@ -116,6 +143,10 @@ public sealed record EvaluateQualityGateRequest(
     IReadOnlyList<EvaluateQualityGateMetricInput> MetricInputs);
 
 public sealed record OverrideQualityGateRequest(string Reason);
+public sealed record CreateMetricReviewRequest(Guid ProjectId, string ReviewPeriod, string ReviewedBy, string? Summary, int OpenActionCount = 0);
+public sealed record UpdateMetricReviewRequest(string ReviewPeriod, string ReviewedBy, string Status, string? Summary, int OpenActionCount = 0);
+public sealed record CreateTrendReportRequest(Guid ProjectId, Guid? MetricDefinitionId, DateOnly? PeriodFrom, DateOnly? PeriodTo, string Status, string? ReportRef, string? TrendDirection, decimal? Variance, string? RecommendedAction);
+public sealed record UpdateTrendReportRequest(Guid ProjectId, Guid? MetricDefinitionId, DateOnly? PeriodFrom, DateOnly? PeriodTo, string Status, string? ReportRef, string? TrendDirection, decimal? Variance, string? RecommendedAction);
 
 public sealed record MetricDefinitionListQuery(
     [FromQuery] string? Search,
@@ -146,6 +177,24 @@ public sealed record QualityGateListQuery(
     [FromQuery] Guid? ProjectId,
     [FromQuery] string? GateType,
     [FromQuery] string? Result,
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 25);
+
+public sealed record MetricReviewListQuery(
+    [FromQuery] Guid? ProjectId,
+    [FromQuery] string? Status,
+    [FromQuery] string? ReviewedBy,
+    [FromQuery] string? Search,
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 25);
+
+public sealed record TrendReportListQuery(
+    [FromQuery] Guid? ProjectId,
+    [FromQuery] Guid? MetricDefinitionId,
+    [FromQuery] string? Status,
+    [FromQuery] DateOnly? PeriodFrom,
+    [FromQuery] DateOnly? PeriodTo,
+    [FromQuery] string? Search,
     [FromQuery] int Page = 1,
     [FromQuery] int PageSize = 25);
 

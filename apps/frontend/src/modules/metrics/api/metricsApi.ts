@@ -3,17 +3,25 @@ import type { PaginatedResult } from "../../../shared/types/pagination";
 import type {
   CreateMetricCollectionScheduleInput,
   CreateMetricDefinitionInput,
+  CreateMetricReviewInput,
+  CreateTrendReportInput,
   EvaluateQualityGateInput,
   MetricCollectionScheduleItem,
   MetricCollectionScheduleListInput,
   MetricDefinitionItem,
   MetricDefinitionListInput,
+  MetricReviewItem,
+  MetricReviewListInput,
   MetricResultsResponse,
   MetricResultListInput,
   OverrideQualityGateInput,
   QualityGateListInput,
   QualityGateResultItem,
+  TrendReportItem,
+  TrendReportListInput,
+  UpdateMetricReviewInput,
   UpdateMetricDefinitionInput,
+  UpdateTrendReportInput,
 } from "../types/metrics";
 
 function buildQuery(input: Record<string, string | number | undefined | null>) {
@@ -62,4 +70,32 @@ export function evaluateQualityGate(input: EvaluateQualityGateInput) {
 
 export function overrideQualityGate(qualityGateId: string, input: OverrideQualityGateInput) {
   return apiRequest(`/api/v1/quality-gates/${qualityGateId}/override`, { method: "PUT", body: input });
+}
+
+export function listMetricReviews(input: MetricReviewListInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<MetricReviewItem>>(`/api/v1/metric-reviews${buildQuery({ ...input })}`, { signal });
+}
+
+export function createMetricReview(input: CreateMetricReviewInput) {
+  return apiRequest<MetricReviewItem>("/api/v1/metric-reviews", { method: "POST", body: input });
+}
+
+export function updateMetricReview(metricReviewId: string, input: UpdateMetricReviewInput) {
+  return apiRequest<MetricReviewItem>(`/api/v1/metric-reviews/${metricReviewId}`, { method: "PUT", body: input });
+}
+
+export function listTrendReports(input: TrendReportListInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<TrendReportItem>>(`/api/v1/trend-reports${buildQuery({ ...input })}`, { signal });
+}
+
+export function getTrendReport(trendReportId: string, signal?: AbortSignal) {
+  return apiRequest<TrendReportItem>(`/api/v1/trend-reports/${trendReportId}`, { signal });
+}
+
+export function createTrendReport(input: CreateTrendReportInput) {
+  return apiRequest<TrendReportItem>("/api/v1/trend-reports", { method: "POST", body: input });
+}
+
+export function updateTrendReport(trendReportId: string, input: UpdateTrendReportInput) {
+  return apiRequest<TrendReportItem>(`/api/v1/trend-reports/${trendReportId}`, { method: "PUT", body: input });
 }

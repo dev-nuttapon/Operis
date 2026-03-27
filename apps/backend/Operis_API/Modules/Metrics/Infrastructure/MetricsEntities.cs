@@ -52,3 +52,32 @@ public sealed record QualityGateResultEntity
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 }
+
+public sealed record MetricReviewEntity
+{
+    public Guid Id { get; init; }
+    public Guid ProjectId { get; init; }
+    public string ReviewPeriod { get; init; } = string.Empty;
+    public string ReviewedBy { get; init; } = string.Empty;
+    public string Status { get; init; } = "planned";
+    public string? Summary { get; init; }
+    public int OpenActionCount { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+}
+
+public sealed record TrendReportEntity
+{
+    public Guid Id { get; init; }
+    public Guid ProjectId { get; init; }
+    public Guid MetricDefinitionId { get; init; }
+    public DateOnly PeriodFrom { get; init; }
+    public DateOnly PeriodTo { get; init; }
+    public string Status { get; init; } = "draft";
+    public string? ReportRef { get; init; }
+    public string? TrendDirection { get; init; }
+    public decimal? Variance { get; init; }
+    public string? RecommendedAction { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+}

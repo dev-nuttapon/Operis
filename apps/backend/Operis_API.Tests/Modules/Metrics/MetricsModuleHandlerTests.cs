@@ -39,6 +39,10 @@ public sealed class MetricsModuleHandlerTests
         public Task<MetricsCommandResult<MetricDefinitionCommandResponse>> UpdateMetricDefinitionAsync(Guid metricDefinitionId, UpdateMetricDefinitionRequest request, string? actorUserId, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<MetricsCommandResult<MetricCollectionScheduleItem>> CreateMetricCollectionScheduleAsync(CreateMetricCollectionScheduleRequest request, string? actorUserId, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<MetricsCommandResult<QualityGateResultItem>> EvaluateQualityGateAsync(EvaluateQualityGateRequest request, string? actorUserId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<MetricsCommandResult<MetricReviewItem>> CreateMetricReviewAsync(CreateMetricReviewRequest request, string? actorUserId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<MetricsCommandResult<MetricReviewItem>> UpdateMetricReviewAsync(Guid metricReviewId, UpdateMetricReviewRequest request, string? actorUserId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<MetricsCommandResult<TrendReportItem>> CreateTrendReportAsync(CreateTrendReportRequest request, string? actorUserId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<MetricsCommandResult<TrendReportItem>> UpdateTrendReportAsync(Guid trendReportId, UpdateTrendReportRequest request, string? actorUserId, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<MetricsCommandResult<QualityGateOverrideResponse>> OverrideQualityGateAsync(Guid qualityGateResultId, OverrideQualityGateRequest request, string? actorUserId, CancellationToken cancellationToken) =>
             Task.FromResult(new MetricsCommandResult<QualityGateOverrideResponse>(MetricsCommandStatus.Success, new QualityGateOverrideResponse(qualityGateResultId, "overridden", request.Reason)));
     }

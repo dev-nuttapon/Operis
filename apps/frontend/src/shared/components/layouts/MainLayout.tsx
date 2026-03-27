@@ -369,6 +369,8 @@ export function MainLayout() {
             { key: '/app/metrics/dashboard', label: 'Metrics Dashboard' },
             { key: '/app/metrics/definitions', label: 'Metric Definitions' },
             { key: '/app/metrics/quality-gates', label: 'Quality Gate Status' },
+            { key: '/app/metrics/reviews', label: 'Metrics Review Log' },
+            { key: '/app/metrics/trend-reports', label: 'Trend Analysis Report' },
           ],
         }]
       : []),
@@ -585,6 +587,8 @@ export function MainLayout() {
     if (path.includes('/app/metrics/dashboard')) return 'Metrics Dashboard';
     if (path.includes('/app/metrics/definitions')) return 'Metric Definitions';
     if (path.includes('/app/metrics/quality-gates')) return 'Quality Gate Status';
+    if (path.includes('/app/metrics/reviews')) return 'Metrics Review Log';
+    if (path.includes('/app/metrics/trend-reports')) return 'Trend Analysis Report';
     if (path.includes('/app/releases/checklists')) return 'Deployment Checklist';
     if (path.includes('/app/releases/notes')) return 'Release Notes';
     if (path.includes('/app/releases')) return 'Release Register';

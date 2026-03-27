@@ -36,6 +36,17 @@ public sealed class MetricsModule : IModule
         gates.MapPost("/evaluate", EvaluateQualityGateAsync);
         gates.MapPut("/{qualityGateResultId:guid}/override", OverrideQualityGateAsync);
 
+        var reviews = endpoints.MapGroup("/api/v1/metric-reviews").WithTags("Metrics").RequireAuthorization();
+        reviews.MapGet("/", ListMetricReviewsAsync);
+        reviews.MapPost("/", CreateMetricReviewAsync);
+        reviews.MapPut("/{metricReviewId:guid}", UpdateMetricReviewAsync);
+
+        var trends = endpoints.MapGroup("/api/v1/trend-reports").WithTags("Metrics").RequireAuthorization();
+        trends.MapGet("/", ListTrendReportsAsync);
+        trends.MapPost("/", CreateTrendReportAsync);
+        trends.MapGet("/{trendReportId:guid}", GetTrendReportAsync);
+        trends.MapPut("/{trendReportId:guid}", UpdateTrendReportAsync);
+
         return endpoints;
     }
 
@@ -93,6 +104,51 @@ public sealed class MetricsModule : IModule
 
     private static async Task<IResult> OverrideQualityGateAsync(ClaimsPrincipal principal, Guid qualityGateResultId, OverrideQualityGateRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.OverrideQualityGates, "You do not have permission to override quality gates.", () => commands.OverrideQualityGateAsync(qualityGateResultId, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListMetricReviewsAsync(ClaimsPrincipal principal, [AsParameters] MetricReviewListQuery query, IMetricsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Metrics.Read))
+        {
+            return Forbidden("You do not have permission to read metric reviews.");
+        }
+
+        return Results.Ok(await queries.ListMetricReviewsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateMetricReviewAsync(ClaimsPrincipal principal, CreateMetricReviewRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage metric reviews.", () => commands.CreateMetricReviewAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateMetricReviewAsync(ClaimsPrincipal principal, Guid metricReviewId, UpdateMetricReviewRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage metric reviews.", () => commands.UpdateMetricReviewAsync(metricReviewId, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListTrendReportsAsync(ClaimsPrincipal principal, [AsParameters] TrendReportListQuery query, IMetricsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Metrics.Read))
+        {
+            return Forbidden("You do not have permission to read trend reports.");
+        }
+
+        return Results.Ok(await queries.ListTrendReportsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> GetTrendReportAsync(ClaimsPrincipal principal, Guid trendReportId, IMetricsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Metrics.Read))
+        {
+            return Forbidden("You do not have permission to read trend reports.");
+        }
+
+        var detail = await queries.GetTrendReportAsync(trendReportId, cancellationToken);
+        return detail is null
+            ? Results.NotFound(ApiProblemDetailsFactory.Create(StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound, "Trend report not found.", "Trend report not found."))
+            : Results.Ok(detail);
+    }
+
+    private static async Task<IResult> CreateTrendReportAsync(ClaimsPrincipal principal, CreateTrendReportRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage trend reports.", () => commands.CreateTrendReportAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateTrendReportAsync(ClaimsPrincipal principal, Guid trendReportId, UpdateTrendReportRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.Manage, "You do not have permission to manage trend reports.", () => commands.UpdateTrendReportAsync(trendReportId, request, ResolveActor(principal), cancellationToken));
 
     private static async Task<IResult> ExecuteAsync<T>(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission, string forbiddenDetail, Func<Task<MetricsCommandResult<T>>> action, int successStatusCode = StatusCodes.Status200OK)
     {

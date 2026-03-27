@@ -17,6 +17,8 @@ public sealed class MetricsCommands(
 {
     private static readonly string[] MetricStatuses = ["draft", "approved", "active", "deprecated"];
     private static readonly string[] ScheduleStatuses = ["draft", "active", "archived"];
+    private static readonly string[] MetricReviewStatuses = ["planned", "reviewed", "actions_tracked", "closed"];
+    private static readonly string[] TrendReportStatuses = ["draft", "approved", "archived"];
 
     public async Task<MetricsCommandResult<MetricDefinitionCommandResponse>> CreateMetricDefinitionAsync(CreateMetricDefinitionRequest request, string? actorUserId, CancellationToken cancellationToken)
     {
@@ -239,9 +241,182 @@ public sealed class MetricsCommands(
         return Success(new QualityGateOverrideResponse(entity.Id, "overridden", request.Reason.Trim()));
     }
 
+    public async Task<MetricsCommandResult<MetricReviewItem>> CreateMetricReviewAsync(CreateMetricReviewRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        if (!await dbContext.Projects.AnyAsync(x => x.Id == request.ProjectId, cancellationToken))
+        {
+            return NotFound<MetricReviewItem>(ApiErrorCodes.ProjectNotFound, "Project not found.");
+        }
+
+        var reviewPeriod = request.ReviewPeriod.Trim();
+        var reviewedBy = request.ReviewedBy.Trim();
+        if (string.IsNullOrWhiteSpace(reviewPeriod) || string.IsNullOrWhiteSpace(reviewedBy))
+        {
+            return Validation<MetricReviewItem>(ApiErrorCodes.RequestValidationFailed, "Review period and reviewer are required.");
+        }
+
+        var entity = new MetricReviewEntity
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = request.ProjectId,
+            ReviewPeriod = reviewPeriod,
+            ReviewedBy = reviewedBy,
+            Status = "planned",
+            Summary = string.IsNullOrWhiteSpace(request.Summary) ? null : request.Summary.Trim(),
+            OpenActionCount = Math.Max(0, request.OpenActionCount),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.MetricReviews.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("create", "metric_review", entity.Id, 201, new { entity.Status, entity.ReviewPeriod });
+        await AppendBusinessAsync("metric_review_created", "metric_review", entity.Id, $"Created metric review for {entity.ReviewPeriod}", actorUserId, null, new { entity.Status }, cancellationToken);
+        return Success(await BuildMetricReviewItemAsync(entity.Id, cancellationToken)
+            ?? new MetricReviewItem(entity.Id, entity.ProjectId, string.Empty, entity.ReviewPeriod, entity.ReviewedBy, entity.Status, entity.Summary, entity.OpenActionCount, entity.UpdatedAt));
+    }
+
+    public async Task<MetricsCommandResult<MetricReviewItem>> UpdateMetricReviewAsync(Guid metricReviewId, UpdateMetricReviewRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.MetricReviews.SingleOrDefaultAsync(x => x.Id == metricReviewId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<MetricReviewItem>(ApiErrorCodes.ResourceNotFound, "Metric review not found.");
+        }
+
+        var nextStatus = request.Status.Trim().ToLowerInvariant();
+        if (!MetricReviewStatuses.Contains(nextStatus) || !IsValidTransition(entity.Status, nextStatus, MetricReviewStatuses))
+        {
+            return Validation<MetricReviewItem>(ApiErrorCodes.InvalidWorkflowTransition, "Metric review transition is invalid.");
+        }
+
+        var openActionCount = Math.Max(0, request.OpenActionCount);
+        if (nextStatus == "closed" && openActionCount > 0)
+        {
+            return Validation<MetricReviewItem>(ApiErrorCodes.MetricReviewOpenActionsExist, "Metric review cannot close while open follow-up actions remain.");
+        }
+
+        dbContext.Entry(entity).CurrentValues.SetValues(entity with
+        {
+            ReviewPeriod = request.ReviewPeriod.Trim(),
+            ReviewedBy = request.ReviewedBy.Trim(),
+            Status = nextStatus,
+            Summary = string.IsNullOrWhiteSpace(request.Summary) ? null : request.Summary.Trim(),
+            OpenActionCount = openActionCount,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("update", "metric_review", entity.Id, 200, new { Status = nextStatus, OpenActionCount = openActionCount });
+        await AppendBusinessAsync("metric_review_updated", "metric_review", entity.Id, $"Updated metric review {entity.ReviewPeriod}", actorUserId, null, new { Status = nextStatus }, cancellationToken);
+        return Success((await BuildMetricReviewItemAsync(entity.Id, cancellationToken))!);
+    }
+
+    public async Task<MetricsCommandResult<TrendReportItem>> CreateTrendReportAsync(CreateTrendReportRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var validation = await ValidateTrendReportAsync(request.ProjectId, request.MetricDefinitionId, request.PeriodFrom, request.PeriodTo, cancellationToken);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        var entity = new TrendReportEntity
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = request.ProjectId,
+            MetricDefinitionId = request.MetricDefinitionId!.Value,
+            PeriodFrom = request.PeriodFrom!.Value,
+            PeriodTo = request.PeriodTo!.Value,
+            Status = NormalizeTrendStatus(request.Status),
+            ReportRef = NormalizeOptional(request.ReportRef, 512),
+            TrendDirection = NormalizeOptional(request.TrendDirection, 64),
+            Variance = request.Variance,
+            RecommendedAction = NormalizeOptional(request.RecommendedAction, 2000),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.TrendReports.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("create", "trend_report", entity.Id, 201, new { entity.Status, entity.MetricDefinitionId });
+        await AppendBusinessAsync("trend_report_created", "trend_report", entity.Id, $"Created trend report for metric {entity.MetricDefinitionId}", actorUserId, null, new { entity.Status }, cancellationToken);
+        return Success((await queries.GetTrendReportAsync(entity.Id, cancellationToken))!);
+    }
+
+    public async Task<MetricsCommandResult<TrendReportItem>> UpdateTrendReportAsync(Guid trendReportId, UpdateTrendReportRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.TrendReports.SingleOrDefaultAsync(x => x.Id == trendReportId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<TrendReportItem>(ApiErrorCodes.ResourceNotFound, "Trend report not found.");
+        }
+
+        var validation = await ValidateTrendReportAsync(request.ProjectId, request.MetricDefinitionId, request.PeriodFrom, request.PeriodTo, cancellationToken);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        var nextStatus = NormalizeTrendStatus(request.Status);
+        if (!IsValidTransition(entity.Status, nextStatus, TrendReportStatuses))
+        {
+            return Validation<TrendReportItem>(ApiErrorCodes.InvalidWorkflowTransition, "Trend report transition is invalid.");
+        }
+
+        dbContext.Entry(entity).CurrentValues.SetValues(entity with
+        {
+            ProjectId = request.ProjectId,
+            MetricDefinitionId = request.MetricDefinitionId!.Value,
+            PeriodFrom = request.PeriodFrom!.Value,
+            PeriodTo = request.PeriodTo!.Value,
+            Status = nextStatus,
+            ReportRef = NormalizeOptional(request.ReportRef, 512),
+            TrendDirection = NormalizeOptional(request.TrendDirection, 64),
+            Variance = request.Variance,
+            RecommendedAction = NormalizeOptional(request.RecommendedAction, 2000),
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("update", "trend_report", entity.Id, 200, new { Status = nextStatus, entity.MetricDefinitionId });
+        await AppendBusinessAsync("trend_report_updated", "trend_report", entity.Id, $"Updated trend report {entity.Id}", actorUserId, null, new { Status = nextStatus }, cancellationToken);
+        return Success((await queries.GetTrendReportAsync(entity.Id, cancellationToken))!);
+    }
+
+    private async Task<MetricsCommandResult<TrendReportItem>?> ValidateTrendReportAsync(Guid projectId, Guid? metricDefinitionId, DateOnly? periodFrom, DateOnly? periodTo, CancellationToken cancellationToken)
+    {
+        if (!await dbContext.Projects.AnyAsync(x => x.Id == projectId, cancellationToken))
+        {
+            return NotFound<TrendReportItem>(ApiErrorCodes.ProjectNotFound, "Project not found.");
+        }
+
+        if (!metricDefinitionId.HasValue)
+        {
+            return Validation<TrendReportItem>(ApiErrorCodes.TrendMetricRequired, "Trend report metric is required.");
+        }
+
+        if (!await dbContext.MetricDefinitions.AnyAsync(x => x.Id == metricDefinitionId.Value, cancellationToken))
+        {
+            return NotFound<TrendReportItem>(ApiErrorCodes.MetricDefinitionNotFound, "Metric definition not found.");
+        }
+
+        if (!periodFrom.HasValue || !periodTo.HasValue || periodTo.Value < periodFrom.Value)
+        {
+            return Validation<TrendReportItem>(ApiErrorCodes.TrendPeriodRequired, "Trend report period is required.");
+        }
+
+        return null;
+    }
+
     private async Task<QualityGateResultItem?> BuildQualityGateItemAsync(Guid id, CancellationToken cancellationToken)
     {
         var result = await queries.ListQualityGatesAsync(new QualityGateListQuery(null, null, null, 1, 100), cancellationToken);
+        return result.Items.SingleOrDefault(x => x.Id == id);
+    }
+
+    private async Task<MetricReviewItem?> BuildMetricReviewItemAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await queries.ListMetricReviewsAsync(new MetricReviewListQuery(null, null, null, null, 1, 100), cancellationToken);
         return result.Items.SingleOrDefault(x => x.Id == id);
     }
 
@@ -266,6 +441,20 @@ public sealed class MetricsCommands(
         var nextIndex = states.ToList().IndexOf(next.ToLowerInvariant());
         return currentIndex >= 0 && nextIndex >= 0 && nextIndex >= currentIndex && nextIndex - currentIndex <= 1;
     }
+
+    private static string NormalizeTrendStatus(string status) => status.Trim().ToLowerInvariant() switch
+    {
+        "approved" => "approved",
+        "archived" => "archived",
+        _ => "draft"
+    };
+
+    private static string? NormalizeOptional(string? value, int maxLength) =>
+        string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim().Length <= maxLength
+                ? value.Trim()
+                : value.Trim()[..maxLength];
 
     private static MetricsCommandResult<T> Success<T>(T value) => new(MetricsCommandStatus.Success, value);
     private static MetricsCommandResult<T> Validation<T>(string code, string message) => new(MetricsCommandStatus.ValidationError, default, code, message);

@@ -114,6 +114,51 @@ export interface QualityGateResultItem {
   metrics: MetricResultItem[];
 }
 
+export interface MetricReviewListInput extends PaginationInput {
+  projectId?: string;
+  status?: string;
+  reviewedBy?: string;
+  search?: string;
+}
+
+export interface MetricReviewItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  reviewPeriod: string;
+  reviewedBy: string;
+  status: string;
+  summary?: string | null;
+  openActionCount: number;
+  updatedAt: string;
+}
+
+export interface TrendReportListInput extends PaginationInput {
+  projectId?: string;
+  metricDefinitionId?: string;
+  status?: string;
+  periodFrom?: string;
+  periodTo?: string;
+  search?: string;
+}
+
+export interface TrendReportItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  metricDefinitionId: string;
+  metricCode: string;
+  metricName: string;
+  periodFrom: string;
+  periodTo: string;
+  status: string;
+  reportRef?: string | null;
+  trendDirection?: string | null;
+  variance?: number | null;
+  recommendedAction?: string | null;
+  updatedAt: string;
+}
+
 export interface CreateMetricDefinitionInput {
   code: string;
   name: string;
@@ -156,3 +201,29 @@ export interface EvaluateQualityGateInput {
 export interface OverrideQualityGateInput {
   reason: string;
 }
+
+export interface CreateMetricReviewInput {
+  projectId: string;
+  reviewPeriod: string;
+  reviewedBy: string;
+  summary?: string | null;
+  openActionCount?: number;
+}
+
+export interface UpdateMetricReviewInput extends CreateMetricReviewInput {
+  status: string;
+}
+
+export interface CreateTrendReportInput {
+  projectId: string;
+  metricDefinitionId?: string | null;
+  periodFrom?: string | null;
+  periodTo?: string | null;
+  status: string;
+  reportRef?: string | null;
+  trendDirection?: string | null;
+  variance?: number | null;
+  recommendedAction?: string | null;
+}
+
+export interface UpdateTrendReportInput extends CreateTrendReportInput {}

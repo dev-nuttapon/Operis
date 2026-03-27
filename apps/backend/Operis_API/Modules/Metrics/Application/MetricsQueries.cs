@@ -204,6 +204,114 @@ public sealed class MetricsQueries(OperisDbContext dbContext) : IMetricsQueries
         return new PagedResult<QualityGateResultItem>(items, total, page, pageSize);
     }
 
+    public async Task<PagedResult<MetricReviewItem>> ListMetricReviewsAsync(MetricReviewListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery =
+            from review in dbContext.MetricReviews.AsNoTracking()
+            join project in dbContext.Projects.AsNoTracking() on review.ProjectId equals project.Id
+            select new { Review = review, ProjectName = project.Name };
+
+        if (query.ProjectId.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.Review.ProjectId == query.ProjectId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            baseQuery = baseQuery.Where(x => x.Review.Status == query.Status.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ReviewedBy))
+        {
+            baseQuery = baseQuery.Where(x => x.Review.ReviewedBy == query.ReviewedBy.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim();
+            baseQuery = baseQuery.Where(x =>
+                EF.Functions.ILike(x.ProjectName, $"%{search}%") ||
+                EF.Functions.ILike(x.Review.ReviewPeriod, $"%{search}%") ||
+                EF.Functions.ILike(x.Review.ReviewedBy, $"%{search}%"));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var items = await baseQuery
+            .OrderByDescending(x => x.Review.UpdatedAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new MetricReviewItem(x.Review.Id, x.Review.ProjectId, x.ProjectName, x.Review.ReviewPeriod, x.Review.ReviewedBy, x.Review.Status, x.Review.Summary, x.Review.OpenActionCount, x.Review.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<MetricReviewItem>(items, total, page, pageSize);
+    }
+
+    public async Task<PagedResult<TrendReportItem>> ListTrendReportsAsync(TrendReportListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery =
+            from report in dbContext.TrendReports.AsNoTracking()
+            join project in dbContext.Projects.AsNoTracking() on report.ProjectId equals project.Id
+            join definition in dbContext.MetricDefinitions.AsNoTracking() on report.MetricDefinitionId equals definition.Id
+            select new { Report = report, ProjectName = project.Name, Definition = definition };
+
+        if (query.ProjectId.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.Report.ProjectId == query.ProjectId.Value);
+        }
+
+        if (query.MetricDefinitionId.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.Report.MetricDefinitionId == query.MetricDefinitionId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            baseQuery = baseQuery.Where(x => x.Report.Status == query.Status.Trim().ToLowerInvariant());
+        }
+
+        if (query.PeriodFrom.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.Report.PeriodFrom >= query.PeriodFrom.Value);
+        }
+
+        if (query.PeriodTo.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.Report.PeriodTo <= query.PeriodTo.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim();
+            baseQuery = baseQuery.Where(x =>
+                EF.Functions.ILike(x.ProjectName, $"%{search}%") ||
+                EF.Functions.ILike(x.Definition.Code, $"%{search}%") ||
+                EF.Functions.ILike(x.Definition.Name, $"%{search}%"));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var items = await baseQuery
+            .OrderByDescending(x => x.Report.UpdatedAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new TrendReportItem(x.Report.Id, x.Report.ProjectId, x.ProjectName, x.Report.MetricDefinitionId, x.Definition.Code, x.Definition.Name, x.Report.PeriodFrom, x.Report.PeriodTo, x.Report.Status, x.Report.ReportRef, x.Report.TrendDirection, x.Report.Variance, x.Report.RecommendedAction, x.Report.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<TrendReportItem>(items, total, page, pageSize);
+    }
+
+    public async Task<TrendReportItem?> GetTrendReportAsync(Guid trendReportId, CancellationToken cancellationToken)
+    {
+        return await (
+            from report in dbContext.TrendReports.AsNoTracking()
+            join project in dbContext.Projects.AsNoTracking() on report.ProjectId equals project.Id
+            join definition in dbContext.MetricDefinitions.AsNoTracking() on report.MetricDefinitionId equals definition.Id
+            where report.Id == trendReportId
+            select new TrendReportItem(report.Id, report.ProjectId, project.Name, report.MetricDefinitionId, definition.Code, definition.Name, report.PeriodFrom, report.PeriodTo, report.Status, report.ReportRef, report.TrendDirection, report.Variance, report.RecommendedAction, report.UpdatedAt))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     private static (int Page, int PageSize, int Skip) NormalizePaging(int? page, int? pageSize)
     {
         var normalizedPage = Math.Max(page.GetValueOrDefault(1), 1);

@@ -107,6 +107,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<MetricCollectionScheduleEntity> MetricCollectionSchedules => Set<MetricCollectionScheduleEntity>();
     public DbSet<MetricResultEntity> MetricResults => Set<MetricResultEntity>();
     public DbSet<QualityGateResultEntity> QualityGateResults => Set<QualityGateResultEntity>();
+    public DbSet<MetricReviewEntity> MetricReviews => Set<MetricReviewEntity>();
+    public DbSet<TrendReportEntity> TrendReports => Set<TrendReportEntity>();
     public DbSet<ReleaseEntity> Releases => Set<ReleaseEntity>();
     public DbSet<DeploymentChecklistEntity> DeploymentChecklists => Set<DeploymentChecklistEntity>();
     public DbSet<ReleaseNoteEntity> ReleaseNotes => Set<ReleaseNoteEntity>();
@@ -1061,6 +1063,45 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.ProjectId, x.GateType, x.EvaluatedAt });
             entity.HasIndex(x => new { x.Result, x.EvaluatedAt });
+        });
+
+        modelBuilder.Entity<MetricReviewEntity>(entity =>
+        {
+            entity.ToTable("metric_reviews");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.ReviewPeriod).HasColumnName("review_period").HasMaxLength(64);
+            entity.Property(x => x.ReviewedBy).HasColumnName("reviewed_by").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.Summary).HasColumnName("summary").HasMaxLength(4000);
+            entity.Property(x => x.OpenActionCount).HasColumnName("open_action_count");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Status });
+        });
+
+        modelBuilder.Entity<TrendReportEntity>(entity =>
+        {
+            entity.ToTable("trend_reports");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.MetricDefinitionId).HasColumnName("metric_definition_id");
+            entity.Property(x => x.PeriodFrom).HasColumnName("period_from");
+            entity.Property(x => x.PeriodTo).HasColumnName("period_to");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ReportRef).HasColumnName("report_ref").HasMaxLength(512);
+            entity.Property(x => x.TrendDirection).HasColumnName("trend_direction").HasMaxLength(64);
+            entity.Property(x => x.Variance).HasColumnName("variance").HasPrecision(18, 4);
+            entity.Property(x => x.RecommendedAction).HasColumnName("recommended_action").HasMaxLength(2000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<MetricDefinitionEntity>().WithMany().HasForeignKey(x => x.MetricDefinitionId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.ProjectId, x.MetricDefinitionId });
+            entity.HasIndex(x => x.Status);
         });
 
         modelBuilder.Entity<ReleaseEntity>(entity =>

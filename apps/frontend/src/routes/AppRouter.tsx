@@ -160,6 +160,12 @@ const MetricsDashboardPage = lazy(() =>
 const QualityGatesPage = lazy(() =>
   import("../modules/metrics/pages/QualityGatesPage").then((module) => ({ default: module.QualityGatesPage }))
 );
+const MetricReviewsPage = lazy(() =>
+  import("../modules/metrics/pages/MetricReviewsPage").then((module) => ({ default: module.MetricReviewsPage }))
+);
+const TrendReportsPage = lazy(() =>
+  import("../modules/metrics/pages/TrendReportsPage").then((module) => ({ default: module.TrendReportsPage }))
+);
 const ReleaseRegisterPage = lazy(() =>
   import("../modules/releases/pages/ReleaseRegisterPage").then((module) => ({ default: module.ReleaseRegisterPage }))
 );
@@ -376,6 +382,8 @@ export function AppRouter() {
               <Route path="metrics/definitions" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><MetricDefinitionsPage /></AuthorizedRoute>} />
               <Route path="metrics/dashboard" element={<AuthorizedRoute permission={permissions.metrics.read}><MetricsDashboardPage /></AuthorizedRoute>} />
               <Route path="metrics/quality-gates" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage, permissions.metrics.overrideQualityGates]}><QualityGatesPage /></AuthorizedRoute>} />
+              <Route path="metrics/reviews" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><MetricReviewsPage /></AuthorizedRoute>} />
+              <Route path="metrics/trend-reports" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><TrendReportsPage /></AuthorizedRoute>} />
               <Route path="releases" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseRegisterPage /></AuthorizedRoute>} />
               <Route path="releases/checklists" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage]}><DeploymentChecklistPage /></AuthorizedRoute>} />
               <Route path="releases/notes" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseNotesPage /></AuthorizedRoute>} />

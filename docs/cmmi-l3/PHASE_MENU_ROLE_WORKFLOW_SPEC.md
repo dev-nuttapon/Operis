@@ -1912,8 +1912,10 @@ Implementation note:
 #### Phase 17 Core Entities
 - `metric_reviews`
   - Required fields: `id`, `project_id`, `review_period`, `reviewed_by`, `status`, `summary`
+  - Optional fields: `open_action_count`
 - `trend_reports`
   - Required fields: `id`, `project_id`, `metric_definition_id`, `period_from`, `period_to`, `status`, `report_ref`
+  - Optional fields: `trend_direction`, `variance`, `recommended_action`
 
 #### Phase 17 UI Field Groups
 - Metrics Review Log
@@ -1928,6 +1930,7 @@ Implementation note:
 - `GET /trend-reports`
 - `POST /trend-reports`
 - `GET /trend-reports/{id}`
+- `PUT /trend-reports/{id}`
 
 #### Phase 17 Validation and Error Contract
 - Review cannot close while tracked actions remain open
@@ -3658,6 +3661,7 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
   - `reviewed_by`: string, required
   - `status`: enum(`planned`,`reviewed`,`actions_tracked`,`closed`), required, indexed
   - `summary`: string, optional, max 4000
+  - `open_action_count`: int, required, default 0
 - Indexes
   - index(`project_id`,`status`)
 
@@ -3670,6 +3674,9 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
   - `period_to`: date, required
   - `status`: enum(`draft`,`approved`,`archived`), required, indexed
   - `report_ref`: string, optional
+  - `trend_direction`: string, optional
+  - `variance`: decimal, optional
+  - `recommended_action`: string, optional
 - Indexes
   - index(`project_id`,`metric_definition_id`)
 
