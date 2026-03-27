@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Operis_API.Modules.Audits.Infrastructure;
 using Operis_API.Modules.ChangeControl.Infrastructure;
+using Operis_API.Modules.Defects.Infrastructure;
 using Operis_API.Modules.Documents.Infrastructure;
 using Operis_API.Modules.Governance.Infrastructure;
 using Operis_API.Modules.Meetings.Infrastructure;
@@ -40,6 +41,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<AccessReviewEntity> AccessReviews => Set<AccessReviewEntity>();
     public DbSet<SecurityReviewEntity> SecurityReviews => Set<SecurityReviewEntity>();
     public DbSet<ExternalDependencyEntity> ExternalDependencies => Set<ExternalDependencyEntity>();
+    public DbSet<SupplierEntity> Suppliers => Set<SupplierEntity>();
+    public DbSet<SupplierAgreementEntity> SupplierAgreements => Set<SupplierAgreementEntity>();
     public DbSet<ConfigurationAuditEntity> ConfigurationAudits => Set<ConfigurationAuditEntity>();
     public DbSet<UserOrgAssignmentEntity> UserOrgAssignments => Set<UserOrgAssignmentEntity>();
     public DbSet<ReportingLineEntity> ReportingLines => Set<ReportingLineEntity>();
@@ -82,6 +85,8 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<RequirementVersionEntity> RequirementVersions => Set<RequirementVersionEntity>();
     public DbSet<RequirementBaselineEntity> RequirementBaselines => Set<RequirementBaselineEntity>();
     public DbSet<TraceabilityLinkEntity> TraceabilityLinks => Set<TraceabilityLinkEntity>();
+    public DbSet<DefectEntity> Defects => Set<DefectEntity>();
+    public DbSet<NonConformanceEntity> NonConformances => Set<NonConformanceEntity>();
     public DbSet<RiskEntity> Risks => Set<RiskEntity>();
     public DbSet<RiskReviewEntity> RiskReviews => Set<RiskReviewEntity>();
     public DbSet<IssueEntity> Issues => Set<IssueEntity>();
@@ -501,6 +506,7 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.Id).HasColumnName("id");
             entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
             entity.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(128);
+            entity.Property(x => x.SupplierId).HasColumnName("supplier_id");
             entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
             entity.Property(x => x.Criticality).HasColumnName("criticality").HasMaxLength(32);
             entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
@@ -508,8 +514,45 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             entity.HasIndex(x => x.DependencyType);
+            entity.HasIndex(x => x.SupplierId);
             entity.HasIndex(x => x.OwnerUserId);
             entity.HasIndex(x => new { x.Criticality, x.Status, x.ReviewDueAt });
+        });
+
+        modelBuilder.Entity<SupplierEntity>(entity =>
+        {
+            entity.ToTable("suppliers");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.Name).HasColumnName("name").HasMaxLength(256);
+            entity.Property(x => x.SupplierType).HasColumnName("supplier_type").HasMaxLength(128);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.Criticality).HasColumnName("criticality").HasMaxLength(32);
+            entity.Property(x => x.ReviewDueAt).HasColumnName("review_due_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.Name).IsUnique();
+            entity.HasIndex(x => x.SupplierType);
+            entity.HasIndex(x => x.OwnerUserId);
+            entity.HasIndex(x => new { x.Criticality, x.Status });
+        });
+
+        modelBuilder.Entity<SupplierAgreementEntity>(entity =>
+        {
+            entity.ToTable("supplier_agreements");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.SupplierId).HasColumnName("supplier_id");
+            entity.Property(x => x.AgreementType).HasColumnName("agreement_type").HasMaxLength(128);
+            entity.Property(x => x.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(x => x.EffectiveTo).HasColumnName("effective_to");
+            entity.Property(x => x.SlaTerms).HasColumnName("sla_terms").HasMaxLength(2000);
+            entity.Property(x => x.EvidenceRef).HasColumnName("evidence_ref").HasMaxLength(512);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.SupplierId, x.Status });
         });
 
         modelBuilder.Entity<ConfigurationAuditEntity>(entity =>
@@ -1416,6 +1459,55 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => new { x.Status, x.SourceType, x.TargetType });
             entity.HasIndex(x => x.SourceId);
             entity.HasIndex(x => x.TargetId);
+        });
+
+        modelBuilder.Entity<DefectEntity>(entity =>
+        {
+            entity.ToTable("defects");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(4000);
+            entity.Property(x => x.Severity).HasColumnName("severity").HasMaxLength(32);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.DetectedInPhase).HasColumnName("detected_in_phase").HasMaxLength(64);
+            entity.Property(x => x.ResolutionSummary).HasColumnName("resolution_summary").HasMaxLength(4000);
+            entity.Property(x => x.CorrectiveActionRef).HasColumnName("corrective_action_ref").HasMaxLength(256);
+            entity.Property(x => x.AffectedArtifactRefsJson).HasColumnName("affected_artifact_refs_json").HasColumnType("jsonb");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique();
+            entity.HasIndex(x => new { x.ProjectId, x.Severity, x.Status });
+            entity.HasIndex(x => x.OwnerUserId);
+        });
+
+        modelBuilder.Entity<NonConformanceEntity>(entity =>
+        {
+            entity.ToTable("non_conformances");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.Code).HasColumnName("code").HasMaxLength(128);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(4000);
+            entity.Property(x => x.SourceType).HasColumnName("source_type").HasMaxLength(128);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CorrectiveActionRef).HasColumnName("corrective_action_ref").HasMaxLength(256);
+            entity.Property(x => x.RootCause).HasColumnName("root_cause").HasMaxLength(4000);
+            entity.Property(x => x.ResolutionSummary).HasColumnName("resolution_summary").HasMaxLength(4000);
+            entity.Property(x => x.AcceptedDisposition).HasColumnName("accepted_disposition").HasMaxLength(2000);
+            entity.Property(x => x.LinkedFindingRefsJson).HasColumnName("linked_finding_refs_json").HasColumnType("jsonb");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ProjectId, x.Code }).IsUnique();
+            entity.HasIndex(x => new { x.ProjectId, x.Status });
+            entity.HasIndex(x => x.OwnerUserId);
         });
 
         modelBuilder.Entity<RiskEntity>(entity =>

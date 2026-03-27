@@ -89,6 +89,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Releases.Read,
                 Permissions.Releases.Manage,
                 Permissions.Releases.Approve,
+                Permissions.Defects.Read,
+                Permissions.Defects.Manage,
                 Permissions.Operations.Read,
                 Permissions.Operations.Manage,
                 Permissions.Operations.Approve,
@@ -149,6 +151,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Releases.Read,
                 Permissions.Releases.Manage,
                 Permissions.Releases.Approve,
+                Permissions.Defects.Read,
+                Permissions.Defects.Manage,
                 Permissions.Operations.Read,
                 Permissions.Operations.Manage,
                 Permissions.Operations.Approve,
@@ -179,6 +183,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Verification.Export,
                 Permissions.Metrics.Read,
                 Permissions.Releases.Read,
+                Permissions.Defects.Read,
                 Permissions.Operations.Read,
                 Permissions.Notifications.Read
             ],
@@ -251,6 +256,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Releases.Read,
                 Permissions.Releases.Manage,
                 Permissions.Releases.Approve,
+                Permissions.Defects.Read,
+                Permissions.Defects.Manage,
                 Permissions.Operations.Read,
                 Permissions.Operations.Manage,
                 Permissions.Operations.Approve
@@ -294,6 +301,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Releases.Read,
                 Permissions.Releases.Manage,
                 Permissions.Releases.Approve,
+                Permissions.Defects.Read,
+                Permissions.Defects.Manage,
                 Permissions.Operations.Read
             ],
             ["operis:ba"] =
@@ -356,7 +365,18 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Verification.Read,
                 Permissions.Verification.Approve,
                 Permissions.Releases.Read,
-                Permissions.Releases.Approve
+                Permissions.Releases.Approve,
+                Permissions.Defects.Read,
+                Permissions.Defects.Manage
+            ],
+            ["operis:defect_manager"] =
+            [
+                Permissions.Defects.Read,
+                Permissions.Defects.Manage
+            ],
+            ["operis:defect_viewer"] =
+            [
+                Permissions.Defects.Read
             ],
             ["operis:release_manager"] =
             [

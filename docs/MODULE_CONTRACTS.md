@@ -124,6 +124,13 @@ Public entry:
 * [apps/frontend/src/modules/releases/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/releases/index.ts)
 * [apps/frontend/src/modules/releases/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/releases/README.md)
 
+## defects
+
+Public entry:
+
+* [apps/frontend/src/modules/defects/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/defects/index.ts)
+* [apps/frontend/src/modules/defects/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/defects/README.md)
+
 ## operations
 
 Public entry:
@@ -273,13 +280,17 @@ Application surfaces:
 * release queries
 * release commands
 
-* metric queries
-* metric commands
+## defects
 
-Notes:
+Module entry:
 
-* quality gate evaluation persists the measured metric results used for the decision
-* dashboard widgets are aggregated from a shared metrics query response instead of per-widget fan-out
+* [apps/backend/Operis_API/Modules/Defects/DefectsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Defects/DefectsModule.cs)
+* [apps/backend/Operis_API/Modules/Defects/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Defects/README.md)
+
+Application surfaces:
+
+* defect queries
+* defect commands
 
 ## operations
 

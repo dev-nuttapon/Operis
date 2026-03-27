@@ -35,6 +35,17 @@ public sealed class OperationsModule : IModule
         dependencies.MapPost("/", CreateExternalDependencyAsync);
         dependencies.MapPut("/{id:guid}", UpdateExternalDependencyAsync);
 
+        var suppliers = endpoints.MapGroup("/api/v1/suppliers").WithTags("Operations").RequireAuthorization();
+        suppliers.MapGet("/", ListSuppliersAsync);
+        suppliers.MapPost("/", CreateSupplierAsync);
+        suppliers.MapGet("/{id:guid}", GetSupplierAsync);
+        suppliers.MapPut("/{id:guid}", UpdateSupplierAsync);
+
+        var supplierAgreements = endpoints.MapGroup("/api/v1/supplier-agreements").WithTags("Operations").RequireAuthorization();
+        supplierAgreements.MapGet("/", ListSupplierAgreementsAsync);
+        supplierAgreements.MapPost("/", CreateSupplierAgreementAsync);
+        supplierAgreements.MapPut("/{id:guid}", UpdateSupplierAgreementAsync);
+
         var audits = endpoints.MapGroup("/api/v1/configuration-audits").WithTags("Operations").RequireAuthorization();
         audits.MapGet("/", ListConfigurationAuditsAsync);
         audits.MapPost("/", CreateConfigurationAuditAsync);
@@ -92,6 +103,51 @@ public sealed class OperationsModule : IModule
 
     private static async Task<IResult> UpdateExternalDependencyAsync(ClaimsPrincipal principal, Guid id, UpdateExternalDependencyRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage external dependencies.", () => commands.UpdateExternalDependencyAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListSuppliersAsync(ClaimsPrincipal principal, [AsParameters] SupplierListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read suppliers.");
+        }
+
+        return Results.Ok(await queries.ListSuppliersAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> GetSupplierAsync(ClaimsPrincipal principal, Guid id, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read suppliers.");
+        }
+
+        var detail = await queries.GetSupplierAsync(id, cancellationToken);
+        return detail is null
+            ? Results.NotFound(ApiProblemDetailsFactory.Create(StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound, "Supplier not found.", "Supplier not found."))
+            : Results.Ok(detail);
+    }
+
+    private static async Task<IResult> CreateSupplierAsync(ClaimsPrincipal principal, CreateSupplierRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage suppliers.", () => commands.CreateSupplierAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateSupplierAsync(ClaimsPrincipal principal, Guid id, UpdateSupplierRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage suppliers.", () => commands.UpdateSupplierAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListSupplierAgreementsAsync(ClaimsPrincipal principal, [AsParameters] SupplierAgreementListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read supplier agreements.");
+        }
+
+        return Results.Ok(await queries.ListSupplierAgreementsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateSupplierAgreementAsync(ClaimsPrincipal principal, CreateSupplierAgreementRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage supplier agreements.", () => commands.CreateSupplierAgreementAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateSupplierAgreementAsync(ClaimsPrincipal principal, Guid id, UpdateSupplierAgreementRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage supplier agreements.", () => commands.UpdateSupplierAgreementAsync(id, request, ResolveActor(principal), cancellationToken));
 
     private static async Task<IResult> ListConfigurationAuditsAsync(ClaimsPrincipal principal, [AsParameters] ConfigurationAuditListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
     {

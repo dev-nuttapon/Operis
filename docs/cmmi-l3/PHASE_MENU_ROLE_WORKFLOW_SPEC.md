@@ -1860,12 +1860,13 @@ Implementation note:
 #### Phase 16 Core Entities
 - `suppliers`
   - Required fields: `id`, `name`, `supplier_type`, `owner_user_id`, `status`, `criticality`
+  - Optional fields: `review_due_at`
 - `supplier_agreements`
   - Required fields: `id`, `supplier_id`, `agreement_type`, `effective_from`, `effective_to`, `status`, `evidence_ref`
 
 #### Phase 16 UI Field Groups
 - Supplier Register
-  - List fields: `name`, `type`, `owner`, `criticality`, `status`
+  - List fields: `name`, `type`, `owner`, `criticality`, `review due`, `status`
 - SLA/Contract Evidence
   - Fields: `supplier`, `agreement type`, `effective dates`, `SLA terms`, `evidence`, `status`
 
@@ -3617,6 +3618,7 @@ Assume PostgreSQL unless an implementation phase explicitly states otherwise.
   - `owner_user_id`: string, required, indexed
   - `status`: enum(`active`,`review_due`,`updated`,`archived`), required, indexed
   - `criticality`: enum(`low`,`medium`,`high`,`critical`), required, indexed
+  - `review_due_at`: datetime, optional, indexed
 - Indexes
   - unique(`name`)
   - index(`criticality`,`status`)

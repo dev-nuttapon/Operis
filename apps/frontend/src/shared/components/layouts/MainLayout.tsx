@@ -143,6 +143,10 @@ export function MainLayout() {
     permissions.releases.manage,
     permissions.releases.approve,
   );
+  const hasDefectsAccess = permissionState.hasAnyPermission(
+    permissions.defects.read,
+    permissions.defects.manage,
+  );
   const hasOperationsAccess = permissionState.hasAnyPermission(
     permissions.operations.read,
     permissions.operations.manage,
@@ -380,6 +384,17 @@ export function MainLayout() {
           ],
         }]
       : []),
+    ...(hasDefectsAccess
+      ? [{
+          key: '/app/defects-group',
+          icon: <AlertOutlined />,
+          label: 'Defects & NC',
+          children: [
+            { key: '/app/defects', label: 'Defect Log' },
+            { key: '/app/non-conformances', label: 'Non-Conformance Log' },
+          ],
+        }]
+      : []),
     ...(hasOperationsAccess
       ? [{
           key: '/app/operations-group',
@@ -389,6 +404,8 @@ export function MainLayout() {
             { key: '/app/operations/access-reviews', label: 'Access Review' },
             { key: '/app/operations/security-reviews', label: 'Security Review' },
             { key: '/app/operations/external-dependencies', label: 'External Dependency Register' },
+            { key: '/app/operations/suppliers', label: 'Supplier Register' },
+            { key: '/app/operations/supplier-agreements', label: 'SLA/Contract Evidence' },
             { key: '/app/operations/configuration-audits', label: 'Configuration Audit Log' },
           ],
         }]
@@ -571,9 +588,13 @@ export function MainLayout() {
     if (path.includes('/app/releases/checklists')) return 'Deployment Checklist';
     if (path.includes('/app/releases/notes')) return 'Release Notes';
     if (path.includes('/app/releases')) return 'Release Register';
+    if (path.includes('/app/non-conformances')) return 'Non-Conformance Log';
+    if (path.includes('/app/defects')) return 'Defect Log';
     if (path.includes('/app/operations/access-reviews')) return 'Access Review';
     if (path.includes('/app/operations/security-reviews')) return 'Security Review';
     if (path.includes('/app/operations/external-dependencies')) return 'External Dependency Register';
+    if (path.includes('/app/operations/suppliers')) return 'Supplier Register';
+    if (path.includes('/app/operations/supplier-agreements')) return 'SLA/Contract Evidence';
     if (path.includes('/app/operations/configuration-audits')) return 'Configuration Audit Log';
     return tr('common.dashboard');
   };

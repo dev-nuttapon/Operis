@@ -31,10 +31,38 @@ public sealed class ExternalDependencyEntity
     public Guid Id { get; init; }
     public string Name { get; set; } = string.Empty;
     public string DependencyType { get; set; } = string.Empty;
+    public Guid? SupplierId { get; set; }
     public string OwnerUserId { get; set; } = string.Empty;
     public string Criticality { get; set; } = string.Empty;
     public string Status { get; set; } = "Active";
     public DateTimeOffset? ReviewDueAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class SupplierEntity
+{
+    public Guid Id { get; init; }
+    public string Name { get; set; } = string.Empty;
+    public string SupplierType { get; set; } = string.Empty;
+    public string OwnerUserId { get; set; } = string.Empty;
+    public string Status { get; set; } = "Active";
+    public string Criticality { get; set; } = string.Empty;
+    public DateTimeOffset? ReviewDueAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class SupplierAgreementEntity
+{
+    public Guid Id { get; init; }
+    public Guid SupplierId { get; set; }
+    public string AgreementType { get; set; } = string.Empty;
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public string SlaTerms { get; set; } = string.Empty;
+    public string EvidenceRef { get; set; } = string.Empty;
+    public string Status { get; set; } = "Draft";
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; set; }
 }

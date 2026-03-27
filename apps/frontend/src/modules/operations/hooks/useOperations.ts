@@ -5,12 +5,19 @@ import {
   createConfigurationAudit,
   createExternalDependency,
   createSecurityReview,
+  createSupplier,
+  createSupplierAgreement,
+  getSupplier,
   listAccessReviews,
   listConfigurationAudits,
   listExternalDependencies,
   listSecurityReviews,
+  listSupplierAgreements,
+  listSuppliers,
   updateAccessReview,
   updateExternalDependency,
+  updateSupplier,
+  updateSupplierAgreement,
   updateSecurityReview,
 } from "../api/operationsApi";
 import type {
@@ -19,9 +26,13 @@ import type {
   CreateConfigurationAuditInput,
   CreateExternalDependencyInput,
   CreateSecurityReviewInput,
+  CreateSupplierAgreementInput,
+  CreateSupplierInput,
   OperationsListInput,
   UpdateAccessReviewInput,
   UpdateExternalDependencyInput,
+  UpdateSupplierAgreementInput,
+  UpdateSupplierInput,
   UpdateSecurityReviewInput,
 } from "../types/operations";
 
@@ -56,6 +67,33 @@ export function useConfigurationAudits(input: OperationsListInput, enabled = tru
   return useQuery({
     queryKey: ["operations", "configuration-audits", input],
     queryFn: ({ signal }) => listConfigurationAudits(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useSuppliers(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "suppliers", input],
+    queryFn: ({ signal }) => listSuppliers(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useSupplier(id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "suppliers", id],
+    queryFn: ({ signal }) => getSupplier(id!, signal),
+    staleTime: 15_000,
+    enabled: enabled && Boolean(id),
+  });
+}
+
+export function useSupplierAgreements(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "supplier-agreements", input],
+    queryFn: ({ signal }) => listSupplierAgreements(input, signal),
     staleTime: 15_000,
     enabled,
   });
@@ -128,6 +166,38 @@ export function useCreateConfigurationAudit() {
   const invalidate = useInvalidateOperations();
   return useMutation({
     mutationFn: (input: CreateConfigurationAuditInput) => createConfigurationAudit(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateSupplier() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateSupplierInput) => createSupplier(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateSupplier() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateSupplierInput }) => updateSupplier(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateSupplierAgreement() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateSupplierAgreementInput) => createSupplierAgreement(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateSupplierAgreement() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateSupplierAgreementInput }) => updateSupplierAgreement(id, input),
     onSuccess: invalidate,
   });
 }

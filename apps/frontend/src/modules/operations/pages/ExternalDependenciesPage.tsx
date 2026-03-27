@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import { permissions } from "../../../shared/authz/permissions";
 import { usePermissions } from "../../../shared/authz/usePermissions";
 import { getApiErrorPresentation } from "../../../shared/lib/apiClient";
-import { useCreateExternalDependency, useExternalDependencies, useUpdateExternalDependency } from "../hooks/useOperations";
+import { useCreateExternalDependency, useExternalDependencies, useSuppliers, useUpdateExternalDependency } from "../hooks/useOperations";
 import type { CreateExternalDependencyInput, ExternalDependency, UpdateExternalDependencyInput } from "../types/operations";
 
 const { Title, Paragraph } = Typography;
@@ -19,11 +19,13 @@ export function ExternalDependenciesPage() {
   const canRead = permissionState.hasPermission(permissions.operations.read);
   const canManage = permissionState.hasPermission(permissions.operations.manage);
   const [messageApi, contextHolder] = message.useMessage();
-  const [filters, setFilters] = useState({ search: "", dependencyType: undefined as string | undefined, criticality: undefined as string | undefined, status: undefined as string | undefined, page: 1, pageSize: 25 });
+  const [filters, setFilters] = useState({ search: "", dependencyType: undefined as string | undefined, supplierId: undefined as string | undefined, criticality: undefined as string | undefined, status: undefined as string | undefined, page: 1, pageSize: 25 });
   const [editing, setEditing] = useState<ExternalDependency | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [form] = Form.useForm<ExternalDependencyFormValues>();
   const query = useExternalDependencies({ ...filters, sortBy: "reviewDueAt", sortOrder: "asc" }, canRead);
+  const suppliersQuery = useSuppliers({ page: 1, pageSize: 100, sortBy: "name", sortOrder: "asc" }, canRead);
+  const supplierOptions = (suppliersQuery.data?.items ?? []).map((supplier) => ({ label: supplier.name, value: supplier.id }));
   const createMutation = useCreateExternalDependency();
   const updateMutation = useUpdateExternalDependency();
 
@@ -31,6 +33,7 @@ export function ExternalDependenciesPage() {
     () => [
       { title: "Name", dataIndex: "name" },
       { title: "Type", dataIndex: "dependencyType" },
+      { title: "Supplier", dataIndex: "supplierName", render: (value?: string | null) => value ?? "-" },
       { title: "Owner", dataIndex: "ownerUserId" },
       { title: "Criticality", dataIndex: "criticality", render: (value: string) => <Tag color={value === "critical" ? "red" : value === "high" ? "orange" : "blue"}>{value}</Tag> },
       { title: "Review Due", dataIndex: "reviewDueAt", render: (value) => value ? new Date(value).toLocaleDateString() : "-" },
@@ -98,6 +101,7 @@ export function ExternalDependenciesPage() {
           <Flex gap={12} wrap="wrap">
             <Input.Search allowClear placeholder="Search dependency or owner" style={{ width: 240 }} value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value, page: 1 }))} onSearch={(value) => setFilters((current) => ({ ...current, search: value, page: 1 }))} />
             <Select allowClear placeholder="Type" style={{ width: 180 }} options={["identity_provider", "cloud_service", "integration", "vendor"].map((value) => ({ label: value, value }))} value={filters.dependencyType} onChange={(value) => setFilters((current) => ({ ...current, dependencyType: value, page: 1 }))} />
+            <Select allowClear showSearch placeholder="Supplier" style={{ width: 220 }} options={supplierOptions} value={filters.supplierId} onChange={(value) => setFilters((current) => ({ ...current, supplierId: value, page: 1 }))} />
             <Select allowClear placeholder="Criticality" style={{ width: 180 }} options={["low", "medium", "high", "critical"].map((value) => ({ label: value, value }))} value={filters.criticality} onChange={(value) => setFilters((current) => ({ ...current, criticality: value, page: 1 }))} />
             <Select allowClear placeholder="Status" style={{ width: 180 }} options={["Active", "Review Due", "Updated", "Archived"].map((value) => ({ label: value, value }))} value={filters.status} onChange={(value) => setFilters((current) => ({ ...current, status: value, page: 1 }))} />
           </Flex>
@@ -108,17 +112,17 @@ export function ExternalDependenciesPage() {
       </Card>
 
       <Modal title="Create external dependency" open={createOpen} onOk={() => void submitCreate()} onCancel={() => { setCreateOpen(false); form.resetFields(); }} confirmLoading={createMutation.isPending} destroyOnHidden>
-        <ExternalDependencyForm form={form} />
+        <ExternalDependencyForm form={form} supplierOptions={supplierOptions} />
       </Modal>
 
       <Modal title="Edit external dependency" open={Boolean(editing)} onOk={() => void submitUpdate()} onCancel={() => { setEditing(null); form.resetFields(); }} confirmLoading={updateMutation.isPending} destroyOnHidden afterOpenChange={(open) => { if (open && editing) { form.setFieldsValue({ ...editing, reviewDueAt: editing.reviewDueAt ? dayjs(editing.reviewDueAt) : undefined }); } }}>
-        <ExternalDependencyForm form={form} />
+        <ExternalDependencyForm form={form} supplierOptions={supplierOptions} />
       </Modal>
     </Space>
   );
 }
 
-function ExternalDependencyForm({ form }: { form: FormInstance<ExternalDependencyFormValues> }) {
+function ExternalDependencyForm({ form, supplierOptions }: { form: FormInstance<ExternalDependencyFormValues>; supplierOptions: Array<{ label: string; value: string }> }) {
   return (
     <Form form={form} layout="vertical" initialValues={{ criticality: "medium", status: "Active" }}>
       <Form.Item label="Name" name="name" rules={[{ required: true, message: "Name is required." }]}>
@@ -126,6 +130,9 @@ function ExternalDependencyForm({ form }: { form: FormInstance<ExternalDependenc
       </Form.Item>
       <Form.Item label="Dependency Type" name="dependencyType" rules={[{ required: true, message: "Type is required." }]}>
         <Select options={["identity_provider", "cloud_service", "integration", "vendor"].map((value) => ({ label: value, value }))} />
+      </Form.Item>
+      <Form.Item label="Supplier" name="supplierId">
+        <Select allowClear showSearch options={supplierOptions} placeholder="Trace this dependency to a supplier" />
       </Form.Item>
       <Form.Item label="Owner User" name="ownerUserId" rules={[{ required: true, message: "Owner is required." }]}>
         <Input placeholder="platform-owner@example.com" />

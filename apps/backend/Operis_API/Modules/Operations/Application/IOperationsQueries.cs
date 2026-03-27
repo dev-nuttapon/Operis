@@ -5,8 +5,10 @@ namespace Operis_API.Modules.Operations.Application;
 
 public sealed record AccessReviewListQuery(string? ScopeType, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record SecurityReviewListQuery(string? ScopeType, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
-public sealed record ExternalDependencyListQuery(string? DependencyType, string? Criticality, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record ExternalDependencyListQuery(string? DependencyType, Guid? SupplierId, string? Criticality, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record ConfigurationAuditListQuery(string? Status, string? ScopeRef, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record SupplierListQuery(string? SupplierType, string? OwnerUserId, string? Criticality, string? Status, DateTimeOffset? ReviewDueBefore, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record SupplierAgreementListQuery(Guid? SupplierId, string? AgreementType, string? Status, DateOnly? EffectiveToBefore, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 
 public interface IOperationsQueries
 {
@@ -14,4 +16,7 @@ public interface IOperationsQueries
     Task<PagedResult<SecurityReviewResponse>> ListSecurityReviewsAsync(SecurityReviewListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ExternalDependencyResponse>> ListExternalDependenciesAsync(ExternalDependencyListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ConfigurationAuditResponse>> ListConfigurationAuditsAsync(ConfigurationAuditListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<SupplierResponse>> ListSuppliersAsync(SupplierListQuery query, CancellationToken cancellationToken);
+    Task<SupplierResponse?> GetSupplierAsync(Guid id, CancellationToken cancellationToken);
+    Task<PagedResult<SupplierAgreementResponse>> ListSupplierAgreementsAsync(SupplierAgreementListQuery query, CancellationToken cancellationToken);
 }

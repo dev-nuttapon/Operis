@@ -8,11 +8,17 @@ import type {
   CreateConfigurationAuditInput,
   CreateExternalDependencyInput,
   CreateSecurityReviewInput,
+  CreateSupplierAgreementInput,
+  CreateSupplierInput,
   ExternalDependency,
   OperationsListInput,
   SecurityReview,
+  Supplier,
+  SupplierAgreement,
   UpdateAccessReviewInput,
   UpdateExternalDependencyInput,
+  UpdateSupplierAgreementInput,
+  UpdateSupplierInput,
   UpdateSecurityReviewInput,
 } from "../types/operations";
 
@@ -21,8 +27,14 @@ function toQuery(input?: OperationsListInput) {
   if (input?.scopeType) params.set("scopeType", input.scopeType);
   if (input?.scopeRef) params.set("scopeRef", input.scopeRef);
   if (input?.dependencyType) params.set("dependencyType", input.dependencyType);
+  if (input?.supplierId) params.set("supplierId", input.supplierId);
+  if (input?.supplierType) params.set("supplierType", input.supplierType);
+  if (input?.ownerUserId) params.set("ownerUserId", input.ownerUserId);
+  if (input?.agreementType) params.set("agreementType", input.agreementType);
   if (input?.criticality) params.set("criticality", input.criticality);
   if (input?.status) params.set("status", input.status);
+  if (input?.reviewDueBefore) params.set("reviewDueBefore", input.reviewDueBefore);
+  if (input?.effectiveToBefore) params.set("effectiveToBefore", input.effectiveToBefore);
   if (input?.search) params.set("search", input.search);
   if (input?.sortBy) params.set("sortBy", input.sortBy);
   if (input?.sortOrder) params.set("sortOrder", input.sortOrder);
@@ -43,6 +55,15 @@ export const listExternalDependencies = (input?: OperationsListInput, signal?: A
 
 export const listConfigurationAudits = (input?: OperationsListInput, signal?: AbortSignal) =>
   apiRequest<PaginatedResult<ConfigurationAudit>>(`/api/v1/configuration-audits${toQuery(input)}`, { signal });
+
+export const listSuppliers = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<Supplier>>(`/api/v1/suppliers${toQuery(input)}`, { signal });
+
+export const getSupplier = (id: string, signal?: AbortSignal) =>
+  apiRequest<Supplier>(`/api/v1/suppliers/${id}`, { signal });
+
+export const listSupplierAgreements = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<SupplierAgreement>>(`/api/v1/supplier-agreements${toQuery(input)}`, { signal });
 
 export const createAccessReview = (input: CreateAccessReviewInput) =>
   apiRequest<AccessReview>("/api/v1/access-reviews", { method: "POST", body: input });
@@ -67,3 +88,15 @@ export const updateExternalDependency = (id: string, input: UpdateExternalDepend
 
 export const createConfigurationAudit = (input: CreateConfigurationAuditInput) =>
   apiRequest<ConfigurationAudit>("/api/v1/configuration-audits", { method: "POST", body: input });
+
+export const createSupplier = (input: CreateSupplierInput) =>
+  apiRequest<Supplier>("/api/v1/suppliers", { method: "POST", body: input });
+
+export const updateSupplier = (id: string, input: UpdateSupplierInput) =>
+  apiRequest<Supplier>(`/api/v1/suppliers/${id}`, { method: "PUT", body: input });
+
+export const createSupplierAgreement = (input: CreateSupplierAgreementInput) =>
+  apiRequest<SupplierAgreement>("/api/v1/supplier-agreements", { method: "POST", body: input });
+
+export const updateSupplierAgreement = (id: string, input: UpdateSupplierAgreementInput) =>
+  apiRequest<SupplierAgreement>(`/api/v1/supplier-agreements/${id}`, { method: "PUT", body: input });

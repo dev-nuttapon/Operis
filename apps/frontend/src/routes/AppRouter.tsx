@@ -169,6 +169,18 @@ const DeploymentChecklistPage = lazy(() =>
 const ReleaseNotesPage = lazy(() =>
   import("../modules/releases/pages/ReleaseNotesPage").then((module) => ({ default: module.ReleaseNotesPage }))
 );
+const DefectLogPage = lazy(() =>
+  import("../modules/defects/pages/DefectLogPage").then((module) => ({ default: module.DefectLogPage }))
+);
+const DefectDetailPage = lazy(() =>
+  import("../modules/defects/pages/DefectDetailPage").then((module) => ({ default: module.DefectDetailPage }))
+);
+const NonConformanceLogPage = lazy(() =>
+  import("../modules/defects/pages/NonConformanceLogPage").then((module) => ({ default: module.NonConformanceLogPage }))
+);
+const NonConformanceDetailPage = lazy(() =>
+  import("../modules/defects/pages/NonConformanceDetailPage").then((module) => ({ default: module.NonConformanceDetailPage }))
+);
 const AccessReviewsPage = lazy(() =>
   import("../modules/operations/pages/AccessReviewsPage").then((module) => ({ default: module.AccessReviewsPage }))
 );
@@ -180,6 +192,12 @@ const ExternalDependenciesPage = lazy(() =>
 );
 const ConfigurationAuditsPage = lazy(() =>
   import("../modules/operations/pages/ConfigurationAuditsPage").then((module) => ({ default: module.ConfigurationAuditsPage }))
+);
+const SupplierRegisterPage = lazy(() =>
+  import("../modules/operations/pages/SupplierRegisterPage").then((module) => ({ default: module.SupplierRegisterPage }))
+);
+const SupplierAgreementsPage = lazy(() =>
+  import("../modules/operations/pages/SupplierAgreementsPage").then((module) => ({ default: module.SupplierAgreementsPage }))
 );
 const InvitationAcceptPage = lazy(() =>
   import("../modules/users/pages/InvitationAcceptPage").then((module) => ({ default: module.InvitationAcceptPage }))
@@ -361,9 +379,15 @@ export function AppRouter() {
               <Route path="releases" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseRegisterPage /></AuthorizedRoute>} />
               <Route path="releases/checklists" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage]}><DeploymentChecklistPage /></AuthorizedRoute>} />
               <Route path="releases/notes" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseNotesPage /></AuthorizedRoute>} />
+              <Route path="defects" element={<AuthorizedRoute anyOf={[permissions.defects.read, permissions.defects.manage]}><DefectLogPage /></AuthorizedRoute>} />
+              <Route path="defects/:defectId" element={<AuthorizedRoute anyOf={[permissions.defects.read, permissions.defects.manage]}><DefectDetailPage /></AuthorizedRoute>} />
+              <Route path="non-conformances" element={<AuthorizedRoute anyOf={[permissions.defects.read, permissions.defects.manage]}><NonConformanceLogPage /></AuthorizedRoute>} />
+              <Route path="non-conformances/:nonConformanceId" element={<AuthorizedRoute anyOf={[permissions.defects.read, permissions.defects.manage]}><NonConformanceDetailPage /></AuthorizedRoute>} />
               <Route path="operations/access-reviews" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><AccessReviewsPage /></AuthorizedRoute>} />
               <Route path="operations/security-reviews" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SecurityReviewsPage /></AuthorizedRoute>} />
               <Route path="operations/external-dependencies" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ExternalDependenciesPage /></AuthorizedRoute>} />
+              <Route path="operations/suppliers" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierRegisterPage /></AuthorizedRoute>} />
+              <Route path="operations/supplier-agreements" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierAgreementsPage /></AuthorizedRoute>} />
               <Route path="operations/configuration-audits" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ConfigurationAuditsPage /></AuthorizedRoute>} />
               <Route path="admin/master" element={<Navigate to="/app/admin/master/divisions" replace />} />
                 <Route path="admin/master/catalog" element={<AuthorizedRoute anyOf={[permissions.masterData.read, permissions.masterData.managePermanentOrg, permissions.masterData.manageProjectStructures]}><MasterDataCatalogPage /></AuthorizedRoute>} />

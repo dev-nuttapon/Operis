@@ -153,6 +153,12 @@ public static class Permissions
         public const string Approve = "releases.approve";
     }
 
+    public static class Defects
+    {
+        public const string Read = "defects.read";
+        public const string Manage = "defects.manage";
+    }
+
     public static class Notifications
     {
         public const string Read = "notifications.read";
@@ -254,6 +260,8 @@ public static class Permissions
         Releases.Read,
         Releases.Manage,
         Releases.Approve,
+        Defects.Read,
+        Defects.Manage,
         Operations.Read,
         Operations.Manage,
         Operations.Approve,
@@ -349,6 +357,8 @@ public static class Permissions
             Releases.Read => "Read Releases",
             Releases.Manage => "Manage Releases and Checklists",
             Releases.Approve => "Approve, Release, and Publish Release Notes",
+            Defects.Read => "Read Defects and Non-Conformances",
+            Defects.Manage => "Manage Defects and Non-Conformances",
             Operations.Read => "Read Security and Dependency Reviews",
             Operations.Manage => "Manage Security and Dependency Reviews",
             Operations.Approve => "Approve Access Reviews",
