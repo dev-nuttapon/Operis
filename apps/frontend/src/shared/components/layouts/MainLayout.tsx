@@ -12,6 +12,7 @@ import {
   BellOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
+  AuditOutlined,
   LeftOutlined,
   RightOutlined,
   GlobalOutlined,
@@ -179,6 +180,11 @@ export function MainLayout() {
     permissions.learning.manage,
     permissions.learning.approve,
   );
+  const hasPolicyAccess = permissionState.hasAnyPermission(
+    permissions.governance.policyRead,
+    permissions.governance.policyManage,
+    permissions.governance.policyApprove,
+  );
   const displayName = user?.name || user?.email?.split('@')[0] || tr('common.user_fallback');
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
   const jobTitleLabel =
@@ -342,6 +348,17 @@ export function MainLayout() {
             { key: '/app/governance/integration-reviews', label: 'Integration Review' },
             { key: '/app/governance/compliance-dashboard', label: 'Compliance Dashboard' },
             { key: '/app/governance/management-reviews', label: 'Management Reviews' },
+          ],
+        }]
+      : []),
+    ...(hasPolicyAccess
+      ? [{
+          key: '/app/policies-group',
+          icon: <AuditOutlined />,
+          label: 'Policies',
+          children: [
+            { key: '/app/governance/policies', label: 'Policy Register' },
+            { key: '/app/governance/policy-acknowledgements', label: 'Policy Acknowledgements' },
           ],
         }]
       : []),
@@ -677,6 +694,8 @@ export function MainLayout() {
     if (path.includes('/app/governance/design-reviews')) return 'Design Review';
     if (path.includes('/app/governance/integration-reviews')) return 'Integration Review';
     if (path.includes('/app/governance/management-reviews')) return 'Management Reviews';
+    if (path.includes('/app/governance/policies')) return 'Policy Register';
+    if (path.includes('/app/governance/policy-acknowledgements')) return 'Policy Acknowledgements';
     if (path.includes('/app/learning/training-catalog')) return 'Training Catalog';
     if (path.includes('/app/learning/role-training-matrix')) return 'Role Training Matrix';
     if (path.includes('/app/learning/completions')) return 'Training Completions';
@@ -1089,6 +1108,10 @@ function getOpenKeys(path: string) {
     return ['/app/governance-operations'];
   }
 
+  if (path.startsWith('/app/governance/policies') || path.startsWith('/app/governance/policy-acknowledgements')) {
+    return ['/app/policies-group'];
+  }
+
   if (path.startsWith('/app/learning/')) {
     return ['/app/learning-group'];
   }
@@ -1198,6 +1221,14 @@ function getSelectedMenuKey(path: string) {
 
   if (path.startsWith('/app/learning/role-training-matrix')) {
     return '/app/learning/role-training-matrix';
+  }
+
+  if (path.startsWith('/app/governance/policy-acknowledgements')) {
+    return '/app/governance/policy-acknowledgements';
+  }
+
+  if (path.startsWith('/app/governance/policies')) {
+    return '/app/governance/policies';
   }
 
   if (path.startsWith('/app/learning/completions')) {

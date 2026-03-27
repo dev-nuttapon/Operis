@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Operis_API.Infrastructure.Persistence;
 using Operis_API.Modules.Governance.Contracts;
 using Operis_API.Modules.Governance.Infrastructure;
+using Operis_API.Modules.Users.Domain;
 using Operis_API.Shared.Auditing;
 using Operis_API.Shared.Contracts;
 
@@ -231,6 +232,308 @@ public sealed class GovernanceOperationsCommands(OperisDbContext dbContext, IAud
         WriteApprovalEvidenceIfNeeded("management_review", entity.Id, targetStatus, actor, request.Reason);
         await PersistWithAuditAsync("transition", "management_review", entity.Id.ToString(), StatusCodes.Status200OK, entity, cancellationToken);
         return await SuccessManagementReviewAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<GovernanceCommandResult<PolicyResponse>> CreatePolicyAsync(CreatePolicyRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var policyCode = Required(request.PolicyCode, 128);
+        var title = Required(request.Title, 512);
+        if (title is null)
+        {
+            return Validation<PolicyResponse>("Policy title is required.", ApiErrorCodes.PolicyTitleRequired);
+        }
+
+        if (request.EffectiveDate == default)
+        {
+            return Validation<PolicyResponse>("Policy effective date is required.", ApiErrorCodes.PolicyEffectiveDateRequired);
+        }
+
+        if (policyCode is null)
+        {
+            return Validation<PolicyResponse>("Policy code is required.");
+        }
+
+        if (await dbContext.Policies.AnyAsync(x => x.PolicyCode == policyCode, cancellationToken))
+        {
+            return new GovernanceCommandResult<PolicyResponse>(GovernanceCommandStatus.Conflict, default, "Policy code already exists.", ApiErrorCodes.PolicyCodeDuplicate);
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var entity = new PolicyEntity
+        {
+            Id = Guid.NewGuid(),
+            PolicyCode = policyCode,
+            Title = title,
+            Summary = Optional(request.Summary, 4000),
+            EffectiveDate = request.EffectiveDate,
+            RequiresAttestation = request.RequiresAttestation,
+            Status = "draft",
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.Policies.Add(entity);
+        await PersistWithAuditAsync("create", "policy", entity.Id.ToString(), StatusCodes.Status201Created, entity, cancellationToken);
+        return await SuccessPolicyAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<GovernanceCommandResult<PolicyResponse>> UpdatePolicyAsync(Guid id, UpdatePolicyRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.Policies.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return new GovernanceCommandResult<PolicyResponse>(GovernanceCommandStatus.NotFound, default, "Policy not found.", ApiErrorCodes.PolicyNotFound);
+        }
+
+        if (entity.Status == "retired")
+        {
+            return Validation<PolicyResponse>("Retired policies cannot be edited.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        var policyCode = Required(request.PolicyCode, 128);
+        var title = Required(request.Title, 512);
+        if (title is null)
+        {
+            return Validation<PolicyResponse>("Policy title is required.", ApiErrorCodes.PolicyTitleRequired);
+        }
+
+        if (request.EffectiveDate == default)
+        {
+            return Validation<PolicyResponse>("Policy effective date is required.", ApiErrorCodes.PolicyEffectiveDateRequired);
+        }
+
+        if (policyCode is null)
+        {
+            return Validation<PolicyResponse>("Policy code is required.");
+        }
+
+        if (!string.Equals(entity.PolicyCode, policyCode, StringComparison.OrdinalIgnoreCase)
+            && await dbContext.Policies.AnyAsync(x => x.PolicyCode == policyCode, cancellationToken))
+        {
+            return new GovernanceCommandResult<PolicyResponse>(GovernanceCommandStatus.Conflict, default, "Policy code already exists.", ApiErrorCodes.PolicyCodeDuplicate);
+        }
+
+        entity.PolicyCode = policyCode;
+        entity.Title = title;
+        entity.Summary = Optional(request.Summary, 4000);
+        entity.EffectiveDate = request.EffectiveDate;
+        entity.RequiresAttestation = request.RequiresAttestation;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await PersistWithAuditAsync("update", "policy", entity.Id.ToString(), StatusCodes.Status200OK, entity, cancellationToken);
+        return await SuccessPolicyAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<GovernanceCommandResult<PolicyResponse>> TransitionPolicyAsync(Guid id, TransitionPolicyRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.Policies.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return new GovernanceCommandResult<PolicyResponse>(GovernanceCommandStatus.NotFound, default, "Policy not found.", ApiErrorCodes.PolicyNotFound);
+        }
+
+        var targetStatus = NormalizePolicyStatus(request.TargetStatus);
+        if (!IsAllowedPolicyTransition(entity.Status, targetStatus))
+        {
+            return Validation<PolicyResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        if (targetStatus is "approved" or "published" && entity.EffectiveDate == default)
+        {
+            return Validation<PolicyResponse>("Policy effective date is required.", ApiErrorCodes.PolicyEffectiveDateRequired);
+        }
+
+        entity.Status = targetStatus;
+        entity.ApprovedAt = targetStatus == "approved" ? DateTimeOffset.UtcNow : entity.ApprovedAt;
+        entity.ApprovedBy = targetStatus == "approved" ? actor : entity.ApprovedBy;
+        entity.PublishedAt = targetStatus == "published" ? DateTimeOffset.UtcNow : entity.PublishedAt;
+        entity.RetiredAt = targetStatus == "retired" ? DateTimeOffset.UtcNow : entity.RetiredAt;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        WriteApprovalEvidenceIfNeeded("policy", entity.Id, targetStatus, actor, request.Reason);
+        await PersistWithAuditAsync("transition", "policy", entity.Id.ToString(), StatusCodes.Status200OK, entity, cancellationToken);
+        return await SuccessPolicyAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<GovernanceCommandResult<PolicyCampaignResponse>> CreatePolicyCampaignAsync(CreatePolicyCampaignRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var validation = await ValidatePolicyCampaignRequestAsync(request.PolicyId, request.CampaignCode, request.Title, request.TargetScopeType, request.TargetScopeRef, request.DueAt, cancellationToken);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        var campaignCode = Required(request.CampaignCode, 128)!;
+        if (await dbContext.PolicyCampaigns.AnyAsync(x => x.CampaignCode == campaignCode, cancellationToken))
+        {
+            return new GovernanceCommandResult<PolicyCampaignResponse>(GovernanceCommandStatus.Conflict, default, "Policy campaign code already exists.", ApiErrorCodes.PolicyCampaignCodeDuplicate);
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var entity = new PolicyCampaignEntity
+        {
+            Id = Guid.NewGuid(),
+            PolicyId = request.PolicyId,
+            CampaignCode = campaignCode,
+            Title = Required(request.Title, 512)!,
+            TargetScopeType = NormalizePolicyScopeType(request.TargetScopeType),
+            TargetScopeRef = Required(request.TargetScopeRef, 128)!,
+            DueAt = request.DueAt,
+            Status = "draft",
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.PolicyCampaigns.Add(entity);
+        await PersistWithAuditAsync("create", "policy_campaign", entity.Id.ToString(), StatusCodes.Status201Created, entity, cancellationToken);
+        return await SuccessPolicyCampaignAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<GovernanceCommandResult<PolicyCampaignResponse>> UpdatePolicyCampaignAsync(Guid id, UpdatePolicyCampaignRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.PolicyCampaigns.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return new GovernanceCommandResult<PolicyCampaignResponse>(GovernanceCommandStatus.NotFound, default, "Policy campaign not found.", ApiErrorCodes.PolicyCampaignNotFound);
+        }
+
+        if (entity.Status == "closed")
+        {
+            return Validation<PolicyCampaignResponse>("Closed campaigns cannot be edited.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        var validation = await ValidatePolicyCampaignRequestAsync(entity.PolicyId, request.CampaignCode, request.Title, request.TargetScopeType, request.TargetScopeRef, request.DueAt, cancellationToken);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        var campaignCode = Required(request.CampaignCode, 128)!;
+        if (!string.Equals(entity.CampaignCode, campaignCode, StringComparison.OrdinalIgnoreCase)
+            && await dbContext.PolicyCampaigns.AnyAsync(x => x.CampaignCode == campaignCode, cancellationToken))
+        {
+            return new GovernanceCommandResult<PolicyCampaignResponse>(GovernanceCommandStatus.Conflict, default, "Policy campaign code already exists.", ApiErrorCodes.PolicyCampaignCodeDuplicate);
+        }
+
+        entity.CampaignCode = campaignCode;
+        entity.Title = Required(request.Title, 512)!;
+        entity.TargetScopeType = NormalizePolicyScopeType(request.TargetScopeType);
+        entity.TargetScopeRef = Required(request.TargetScopeRef, 128)!;
+        entity.DueAt = request.DueAt;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await PersistWithAuditAsync("update", "policy_campaign", entity.Id.ToString(), StatusCodes.Status200OK, entity, cancellationToken);
+        return await SuccessPolicyCampaignAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<GovernanceCommandResult<PolicyCampaignResponse>> TransitionPolicyCampaignAsync(Guid id, TransitionPolicyCampaignRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.PolicyCampaigns.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return new GovernanceCommandResult<PolicyCampaignResponse>(GovernanceCommandStatus.NotFound, default, "Policy campaign not found.", ApiErrorCodes.PolicyCampaignNotFound);
+        }
+
+        var targetStatus = NormalizePolicyCampaignStatus(request.TargetStatus);
+        if (!IsAllowedPolicyCampaignTransition(entity.Status, targetStatus))
+        {
+            return Validation<PolicyCampaignResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        if (targetStatus == "launched")
+        {
+            var policy = await dbContext.Policies.AsNoTracking().SingleOrDefaultAsync(x => x.Id == entity.PolicyId, cancellationToken);
+            if (policy is null)
+            {
+                return new GovernanceCommandResult<PolicyCampaignResponse>(GovernanceCommandStatus.NotFound, default, "Policy not found.", ApiErrorCodes.PolicyNotFound);
+            }
+
+            if (!string.Equals(policy.Status, "published", StringComparison.OrdinalIgnoreCase))
+            {
+                return Validation<PolicyCampaignResponse>("Only published policies can launch acknowledgement campaigns.", ApiErrorCodes.InvalidWorkflowTransition);
+            }
+
+            var targetUsers = await ResolveCampaignTargetUsersAsync(entity.TargetScopeType, entity.TargetScopeRef, cancellationToken);
+            if (targetUsers.Count == 0)
+            {
+                return Validation<PolicyCampaignResponse>("Policy campaign scope is required.", ApiErrorCodes.PolicyCampaignScopeRequired);
+            }
+
+            var existingUsers = await dbContext.PolicyAcknowledgements.AsNoTracking()
+                .Where(x => x.PolicyCampaignId == entity.Id)
+                .Select(x => x.UserId)
+                .ToListAsync(cancellationToken);
+
+            var now = DateTimeOffset.UtcNow;
+            foreach (var userId in targetUsers.Except(existingUsers, StringComparer.Ordinal))
+            {
+                dbContext.PolicyAcknowledgements.Add(new PolicyAcknowledgementEntity
+                {
+                    Id = Guid.NewGuid(),
+                    PolicyId = entity.PolicyId,
+                    PolicyCampaignId = entity.Id,
+                    UserId = userId,
+                    Status = "pending",
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+
+            entity.LaunchedAt = now;
+            entity.LaunchedBy = actor;
+        }
+
+        if (targetStatus == "closed")
+        {
+            entity.ClosedAt = DateTimeOffset.UtcNow;
+            entity.ClosedBy = actor;
+        }
+
+        entity.Status = targetStatus;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        WriteApprovalEvidenceIfNeeded("policy_campaign", entity.Id, targetStatus == "launched" ? "approved" : targetStatus, actor, request.Reason);
+        await PersistWithAuditAsync("transition", "policy_campaign", entity.Id.ToString(), StatusCodes.Status200OK, entity, cancellationToken);
+        return await SuccessPolicyCampaignAsync(entity.Id, cancellationToken);
+    }
+
+    public async Task<GovernanceCommandResult<PolicyAcknowledgementResponse>> CreatePolicyAcknowledgementAsync(CreatePolicyAcknowledgementRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(actor))
+        {
+            return new GovernanceCommandResult<PolicyAcknowledgementResponse>(GovernanceCommandStatus.NotFound, default, "Policy acknowledgement not found.", ApiErrorCodes.PolicyAcknowledgementNotFound);
+        }
+
+        var acknowledgement = await dbContext.PolicyAcknowledgements.SingleOrDefaultAsync(
+            x => x.PolicyCampaignId == request.PolicyCampaignId && x.UserId == actor,
+            cancellationToken);
+        if (acknowledgement is null)
+        {
+            return new GovernanceCommandResult<PolicyAcknowledgementResponse>(GovernanceCommandStatus.NotFound, default, "Policy acknowledgement not found.", ApiErrorCodes.PolicyAcknowledgementNotFound);
+        }
+
+        var campaign = await dbContext.PolicyCampaigns.AsNoTracking().SingleOrDefaultAsync(x => x.Id == acknowledgement.PolicyCampaignId, cancellationToken);
+        var policy = await dbContext.Policies.AsNoTracking().SingleOrDefaultAsync(x => x.Id == acknowledgement.PolicyId, cancellationToken);
+        if (campaign is null)
+        {
+            return new GovernanceCommandResult<PolicyAcknowledgementResponse>(GovernanceCommandStatus.NotFound, default, "Policy campaign not found.", ApiErrorCodes.PolicyCampaignNotFound);
+        }
+
+        if (policy is null)
+        {
+            return new GovernanceCommandResult<PolicyAcknowledgementResponse>(GovernanceCommandStatus.NotFound, default, "Policy not found.", ApiErrorCodes.PolicyNotFound);
+        }
+
+        if (!string.Equals(campaign.Status, "launched", StringComparison.OrdinalIgnoreCase) || !string.Equals(policy.Status, "published", StringComparison.OrdinalIgnoreCase))
+        {
+            return Validation<PolicyAcknowledgementResponse>("Only launched campaigns for published policies can be acknowledged.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        acknowledgement.Status = "acknowledged";
+        acknowledgement.AcknowledgedAt = DateTimeOffset.UtcNow;
+        acknowledgement.AttestationText = Optional(request.AttestationText, 4000);
+        acknowledgement.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await PersistWithAuditAsync("acknowledge", "policy_acknowledgement", acknowledgement.Id.ToString(), StatusCodes.Status200OK, acknowledgement, cancellationToken);
+        return await SuccessPolicyAcknowledgementAsync(acknowledgement.Id, actor, cancellationToken);
     }
 
     public async Task<GovernanceCommandResult<RaciMapResponse>> CreateRaciMapAsync(CreateRaciMapRequest request, string? actor, CancellationToken cancellationToken)
@@ -771,6 +1074,61 @@ public sealed class GovernanceOperationsCommands(OperisDbContext dbContext, IAud
         return null;
     }
 
+    private async Task<GovernanceCommandResult<PolicyCampaignResponse>?> ValidatePolicyCampaignRequestAsync(
+        Guid policyId,
+        string? campaignCode,
+        string? title,
+        string? targetScopeType,
+        string? targetScopeRef,
+        DateTimeOffset dueAt,
+        CancellationToken cancellationToken)
+    {
+        if (Required(campaignCode, 128) is null || Required(title, 512) is null)
+        {
+            return Validation<PolicyCampaignResponse>("Campaign code and title are required.");
+        }
+
+        if (dueAt == default)
+        {
+            return Validation<PolicyCampaignResponse>("Policy campaign due date is required.", ApiErrorCodes.PolicyCampaignScopeRequired);
+        }
+
+        if (NormalizePolicyScopeType(targetScopeType) == "unknown" || Required(targetScopeRef, 128) is null)
+        {
+            return Validation<PolicyCampaignResponse>("Policy campaign scope is required.", ApiErrorCodes.PolicyCampaignScopeRequired);
+        }
+
+        var policyExists = await dbContext.Policies.AsNoTracking().AnyAsync(x => x.Id == policyId, cancellationToken);
+        if (!policyExists)
+        {
+            return new GovernanceCommandResult<PolicyCampaignResponse>(GovernanceCommandStatus.NotFound, default, "Policy not found.", ApiErrorCodes.PolicyNotFound);
+        }
+
+        return null;
+    }
+
+    private async Task<IReadOnlyList<string>> ResolveCampaignTargetUsersAsync(string scopeType, string scopeRef, CancellationToken cancellationToken)
+    {
+        scopeType = NormalizePolicyScopeType(scopeType);
+        return scopeType switch
+        {
+            "all_users" => await dbContext.Users.AsNoTracking()
+                .Where(x => x.DeletedAt == null && x.Status == UserStatus.Active)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken),
+            "project" when Guid.TryParse(scopeRef, out var projectId) => await dbContext.UserProjectAssignments.AsNoTracking()
+                .Where(x => x.ProjectId == projectId && x.Status == "Active")
+                .Select(x => x.UserId)
+                .Distinct()
+                .ToListAsync(cancellationToken),
+            "department" when Guid.TryParse(scopeRef, out var departmentId) => await dbContext.Users.AsNoTracking()
+                .Where(x => x.DeletedAt == null && x.Status == UserStatus.Active && x.DepartmentId == departmentId)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken),
+            _ => []
+        };
+    }
+
     private void ReplaceManagementReviewItems(Guid reviewId, IReadOnlyList<ManagementReviewItemInput>? items, DateTimeOffset now)
     {
         var existing = dbContext.ManagementReviewItems.Where(x => x.ReviewId == reviewId);
@@ -838,6 +1196,105 @@ public sealed class GovernanceOperationsCommands(OperisDbContext dbContext, IAud
         return detail is null
             ? new GovernanceCommandResult<ManagementReviewDetailResponse>(GovernanceCommandStatus.NotFound, default, "Management review not found.", ApiErrorCodes.ManagementReviewNotFound)
             : Success(detail);
+    }
+
+    private async Task<GovernanceCommandResult<PolicyResponse>> SuccessPolicyAsync(Guid policyId, CancellationToken cancellationToken)
+    {
+        var detail = await BuildPolicyResponseAsync(policyId, cancellationToken);
+        return detail is null
+            ? new GovernanceCommandResult<PolicyResponse>(GovernanceCommandStatus.NotFound, default, "Policy not found.", ApiErrorCodes.PolicyNotFound)
+            : Success(detail);
+    }
+
+    private async Task<GovernanceCommandResult<PolicyCampaignResponse>> SuccessPolicyCampaignAsync(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var detail = await BuildPolicyCampaignResponseAsync(campaignId, cancellationToken);
+        return detail is null
+            ? new GovernanceCommandResult<PolicyCampaignResponse>(GovernanceCommandStatus.NotFound, default, "Policy campaign not found.", ApiErrorCodes.PolicyCampaignNotFound)
+            : Success(detail);
+    }
+
+    private async Task<GovernanceCommandResult<PolicyAcknowledgementResponse>> SuccessPolicyAcknowledgementAsync(Guid acknowledgementId, string actor, CancellationToken cancellationToken)
+    {
+        var detail = await BuildPolicyAcknowledgementResponseAsync(acknowledgementId, actor, cancellationToken);
+        return detail is null
+            ? new GovernanceCommandResult<PolicyAcknowledgementResponse>(GovernanceCommandStatus.NotFound, default, "Policy acknowledgement not found.", ApiErrorCodes.PolicyAcknowledgementNotFound)
+            : Success(detail);
+    }
+
+    private async Task<PolicyResponse?> BuildPolicyResponseAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await dbContext.Policies.AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new PolicyResponse(
+                x.Id,
+                x.PolicyCode,
+                x.Title,
+                x.Summary,
+                x.EffectiveDate,
+                x.RequiresAttestation,
+                x.Status,
+                x.ApprovedAt,
+                x.ApprovedBy,
+                x.PublishedAt,
+                x.RetiredAt,
+                dbContext.PolicyCampaigns.Count(campaign => campaign.PolicyId == x.Id),
+                dbContext.PolicyCampaigns.Count(campaign => campaign.PolicyId == x.Id && campaign.Status == "launched"),
+                x.CreatedAt,
+                x.UpdatedAt))
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<PolicyCampaignResponse?> BuildPolicyCampaignResponseAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await (
+            from campaign in dbContext.PolicyCampaigns.AsNoTracking()
+            where campaign.Id == id
+            join policy in dbContext.Policies.AsNoTracking() on campaign.PolicyId equals policy.Id
+            select new PolicyCampaignResponse(
+                campaign.Id,
+                campaign.PolicyId,
+                policy.Title,
+                campaign.CampaignCode,
+                campaign.Title,
+                campaign.TargetScopeType,
+                campaign.TargetScopeRef,
+                campaign.DueAt,
+                campaign.Status,
+                dbContext.PolicyAcknowledgements.Count(x => x.PolicyCampaignId == campaign.Id),
+                dbContext.PolicyAcknowledgements.Count(x => x.PolicyCampaignId == campaign.Id && x.Status == "acknowledged"),
+                dbContext.PolicyAcknowledgements.Count(x => x.PolicyCampaignId == campaign.Id && x.Status != "acknowledged" && campaign.DueAt < DateTimeOffset.UtcNow),
+                campaign.LaunchedAt,
+                campaign.LaunchedBy,
+                campaign.ClosedAt,
+                campaign.ClosedBy,
+                campaign.CreatedAt,
+                campaign.UpdatedAt))
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<PolicyAcknowledgementResponse?> BuildPolicyAcknowledgementResponseAsync(Guid id, string actor, CancellationToken cancellationToken)
+    {
+        return await (
+            from acknowledgement in dbContext.PolicyAcknowledgements.AsNoTracking()
+            where acknowledgement.Id == id && acknowledgement.UserId == actor
+            join campaign in dbContext.PolicyCampaigns.AsNoTracking() on acknowledgement.PolicyCampaignId equals campaign.Id
+            join policy in dbContext.Policies.AsNoTracking() on acknowledgement.PolicyId equals policy.Id
+            select new PolicyAcknowledgementResponse(
+                acknowledgement.Id,
+                acknowledgement.PolicyId,
+                policy.Title,
+                acknowledgement.PolicyCampaignId,
+                campaign.Title,
+                acknowledgement.UserId,
+                acknowledgement.Status,
+                acknowledgement.Status != "acknowledged" && campaign.DueAt < DateTimeOffset.UtcNow,
+                policy.RequiresAttestation,
+                campaign.DueAt,
+                acknowledgement.AcknowledgedAt,
+                acknowledgement.AttestationText,
+                acknowledgement.UpdatedAt))
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     private async Task<ManagementReviewDetailResponse?> BuildManagementReviewDetailAsync(Guid id, CancellationToken cancellationToken)
@@ -991,6 +1448,37 @@ public sealed class GovernanceOperationsCommands(OperisDbContext dbContext, IAud
         };
     }
 
+    private static bool IsAllowedPolicyTransition(string currentStatus, string nextStatus)
+    {
+        if (string.Equals(currentStatus, nextStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return currentStatus switch
+        {
+            "draft" => nextStatus == "approved",
+            "approved" => nextStatus == "published",
+            "published" => nextStatus == "retired",
+            _ => false
+        };
+    }
+
+    private static bool IsAllowedPolicyCampaignTransition(string currentStatus, string nextStatus)
+    {
+        if (string.Equals(currentStatus, nextStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return currentStatus switch
+        {
+            "draft" => nextStatus == "launched",
+            "launched" => nextStatus == "closed",
+            _ => false
+        };
+    }
+
     private static bool IsSupportedComplianceProcessArea(string value) => value.Trim().ToLowerInvariant() is
         "process-assets-planning" or
         "requirements-traceability" or
@@ -1009,6 +1497,9 @@ public sealed class GovernanceOperationsCommands(OperisDbContext dbContext, IAud
     private static string NormalizeDesignReviewStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "in_review" => "in_review", "approved" => "approved", "rejected" => "rejected", "baseline" => "baseline", _ => "draft" };
     private static string NormalizeIntegrationReviewStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "in_review" => "in_review", "approved" => "approved", "rejected" => "rejected", "applied" => "applied", _ => "draft" };
     private static string NormalizeManagementReviewStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "scheduled" => "scheduled", "in_review" => "in_review", "closed" => "closed", "archived" => "archived", _ => "draft" };
+    private static string NormalizePolicyStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "approved" => "approved", "published" => "published", "retired" => "retired", _ => "draft" };
+    private static string NormalizePolicyCampaignStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "launched" => "launched", "closed" => "closed", _ => "draft" };
+    private static string NormalizePolicyScopeType(string? value) => value?.Trim().ToLowerInvariant() switch { "all_users" => "all_users", "project" => "project", "department" => "department", _ => "unknown" };
     private static string NormalizeManagementReviewItemType(string? value) => value?.Trim().ToLowerInvariant() switch { "decision" => "decision", "risk" => "risk", "issue" => "issue", _ => "agenda" };
     private static string NormalizeManagementReviewItemStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "closed" => "closed", "noted" => "noted", _ => "open" };
     private static string NormalizeManagementReviewActionStatus(string? value) => value?.Trim().ToLowerInvariant() switch { "in_progress" => "in_progress", "closed" => "closed", _ => "open" };

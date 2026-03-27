@@ -70,6 +70,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.ManagementReviewRead,
                 Permissions.Governance.ManagementReviewManage,
                 Permissions.Governance.ManagementReviewApprove,
+                Permissions.Governance.PolicyRead,
+                Permissions.Governance.PolicyManage,
+                Permissions.Governance.PolicyApprove,
                 Permissions.Requirements.Read,
                 Permissions.Requirements.Manage,
                 Permissions.Requirements.Approve,
@@ -168,6 +171,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.ManagementReviewRead,
                 Permissions.Governance.ManagementReviewManage,
                 Permissions.Governance.ManagementReviewApprove,
+                Permissions.Governance.PolicyRead,
+                Permissions.Governance.PolicyManage,
+                Permissions.Governance.PolicyApprove,
                 Permissions.Requirements.Read,
                 Permissions.ChangeControl.Read,
                 Permissions.ChangeControl.ReadConfiguration,
@@ -217,6 +223,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.IntegrationReviewRead,
                 Permissions.Governance.ComplianceRead,
                 Permissions.Governance.ManagementReviewRead,
+                Permissions.Governance.PolicyRead,
                 Permissions.Requirements.Read,
                 Permissions.ChangeControl.Read,
                 Permissions.ChangeControl.ReadConfiguration,
@@ -288,6 +295,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.ManagementReviewRead,
                 Permissions.Governance.ManagementReviewManage,
                 Permissions.Governance.ManagementReviewApprove,
+                Permissions.Governance.PolicyRead,
+                Permissions.Governance.PolicyManage,
+                Permissions.Governance.PolicyApprove,
                 Permissions.Requirements.Read,
                 Permissions.Requirements.Approve,
                 Permissions.Requirements.Baseline,
@@ -354,6 +364,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.IntegrationReviewRead,
                 Permissions.Governance.ComplianceRead,
                 Permissions.Governance.ManagementReviewRead,
+                Permissions.Governance.PolicyRead,
                 Permissions.Requirements.Read,
                 Permissions.Requirements.Manage,
                 Permissions.Requirements.Baseline,
@@ -410,6 +421,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.ArchitectureRead,
                 Permissions.Governance.ComplianceRead,
                 Permissions.Governance.ManagementReviewRead,
+                Permissions.Governance.PolicyRead,
                 Permissions.Requirements.Read,
                 Permissions.ChangeControl.Read,
                 Permissions.ChangeControl.ReadConfiguration,
@@ -440,6 +452,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.ComplianceRead,
                 Permissions.Governance.ManagementReviewRead,
                 Permissions.Governance.ManagementReviewApprove,
+                Permissions.Governance.PolicyRead,
+                Permissions.Governance.PolicyApprove,
                 Permissions.Requirements.Read,
                 Permissions.Requirements.Approve,
                 Permissions.Requirements.Baseline,
@@ -595,6 +609,20 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
             ["operis:training_viewer"] =
             [
                 Permissions.Learning.Read
+            ],
+            ["operis:policy_manager"] =
+            [
+                Permissions.Governance.PolicyRead,
+                Permissions.Governance.PolicyManage
+            ],
+            ["operis:policy_approver"] =
+            [
+                Permissions.Governance.PolicyRead,
+                Permissions.Governance.PolicyApprove
+            ],
+            ["operis:policy_viewer"] =
+            [
+                Permissions.Governance.PolicyRead
             ]
         };
 

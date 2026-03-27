@@ -39,6 +39,10 @@ export interface GovernanceListInput extends PaginationInput {
   facilitatorUserId?: string;
   scheduledFrom?: string;
   scheduledTo?: string;
+  policyId?: string;
+  campaignId?: string;
+  dueBefore?: string;
+  onlyOverdue?: boolean;
 }
 
 export interface ComplianceDashboardInput {
@@ -244,6 +248,93 @@ export interface ManagementReviewFormInput {
 export interface ManagementReviewTransitionInput {
   targetStatus: string;
   reason?: string | null;
+}
+
+export interface PolicyListItem {
+  id: string;
+  policyCode: string;
+  title: string;
+  summary?: string | null;
+  effectiveDate: string;
+  requiresAttestation: boolean;
+  status: string;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  publishedAt?: string | null;
+  retiredAt?: string | null;
+  campaignCount: number;
+  openCampaignCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PolicyCampaignItem {
+  id: string;
+  policyId: string;
+  policyTitle: string;
+  campaignCode: string;
+  title: string;
+  targetScopeType: string;
+  targetScopeRef: string;
+  dueAt: string;
+  status: string;
+  targetUserCount: number;
+  acknowledgedCount: number;
+  overdueCount: number;
+  launchedAt?: string | null;
+  launchedBy?: string | null;
+  closedAt?: string | null;
+  closedBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PolicyAcknowledgementItem {
+  id: string;
+  policyId: string;
+  policyTitle: string;
+  policyCampaignId: string;
+  campaignTitle: string;
+  userId: string;
+  status: string;
+  isOverdue: boolean;
+  requiresAttestation: boolean;
+  dueAt: string;
+  acknowledgedAt?: string | null;
+  attestationText?: string | null;
+  updatedAt: string;
+}
+
+export interface PolicyFormInput {
+  policyCode: string;
+  title: string;
+  summary?: string | null;
+  effectiveDate: string;
+  requiresAttestation: boolean;
+}
+
+export interface PolicyTransitionInput {
+  targetStatus: string;
+  reason?: string | null;
+}
+
+export interface PolicyCampaignFormInput {
+  policyId: string;
+  campaignCode: string;
+  title: string;
+  targetScopeType: string;
+  targetScopeRef: string;
+  dueAt: string;
+}
+
+export interface PolicyCampaignTransitionInput {
+  targetStatus: string;
+  reason?: string | null;
+}
+
+export interface PolicyAcknowledgementInput {
+  policyCampaignId: string;
+  attestationText?: string | null;
 }
 
 export interface ProcessAssetVersionSummary {

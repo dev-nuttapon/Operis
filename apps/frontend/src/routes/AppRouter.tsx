@@ -103,6 +103,12 @@ const ManagementReviewPage = lazy(() =>
 const ManagementReviewDetailPage = lazy(() =>
   import("../modules/governance/pages/ManagementReviewDetailPage").then((module) => ({ default: module.ManagementReviewDetailPage }))
 );
+const PoliciesPage = lazy(() =>
+  import("../modules/governance/pages/PoliciesPage").then((module) => ({ default: module.PoliciesPage }))
+);
+const PolicyAcknowledgementsPage = lazy(() =>
+  import("../modules/governance/pages/PolicyAcknowledgementsPage").then((module) => ({ default: module.PolicyAcknowledgementsPage }))
+);
 const TrainingCatalogPage = lazy(() =>
   import("../modules/learning/pages/TrainingCatalogPage").then((module) => ({ default: module.TrainingCatalogPage }))
 );
@@ -459,6 +465,8 @@ export function AppRouter() {
               <Route path="governance/compliance-dashboard" element={<AuthorizedRoute anyOf={[permissions.governance.complianceRead, permissions.governance.complianceManage]}><ComplianceDashboardPage /></AuthorizedRoute>} />
               <Route path="governance/management-reviews" element={<AuthorizedRoute anyOf={[permissions.governance.managementReviewRead, permissions.governance.managementReviewManage, permissions.governance.managementReviewApprove]}><ManagementReviewPage /></AuthorizedRoute>} />
               <Route path="governance/management-reviews/:reviewId" element={<AuthorizedRoute anyOf={[permissions.governance.managementReviewRead, permissions.governance.managementReviewManage, permissions.governance.managementReviewApprove]}><ManagementReviewDetailPage /></AuthorizedRoute>} />
+              <Route path="governance/policies" element={<AuthorizedRoute anyOf={[permissions.governance.policyRead, permissions.governance.policyManage, permissions.governance.policyApprove]}><PoliciesPage /></AuthorizedRoute>} />
+              <Route path="governance/policy-acknowledgements" element={<AuthorizedRoute anyOf={[permissions.governance.policyRead, permissions.governance.policyManage, permissions.governance.policyApprove]}><PolicyAcknowledgementsPage /></AuthorizedRoute>} />
               <Route path="learning/training-catalog" element={<AuthorizedRoute anyOf={[permissions.learning.read, permissions.learning.manage, permissions.learning.approve]}><TrainingCatalogPage /></AuthorizedRoute>} />
               <Route path="learning/role-training-matrix" element={<AuthorizedRoute anyOf={[permissions.learning.read, permissions.learning.manage, permissions.learning.approve]}><RoleTrainingMatrixPage /></AuthorizedRoute>} />
               <Route path="learning/completions" element={<AuthorizedRoute anyOf={[permissions.learning.read, permissions.learning.manage, permissions.learning.approve]}><TrainingCompletionsPage /></AuthorizedRoute>} />

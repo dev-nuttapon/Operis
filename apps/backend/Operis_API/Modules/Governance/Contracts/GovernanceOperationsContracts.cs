@@ -86,6 +86,28 @@ public sealed record ManagementReviewListQuery(
     int Page = 1,
     int PageSize = 25);
 
+public sealed record PolicyListQuery(
+    string? Search,
+    string? Status,
+    int Page = 1,
+    int PageSize = 25);
+
+public sealed record PolicyCampaignListQuery(
+    Guid? PolicyId,
+    string? Status,
+    DateOnly? DueBefore,
+    int Page = 1,
+    int PageSize = 25);
+
+public sealed record PolicyAcknowledgementListQuery(
+    Guid? PolicyId,
+    Guid? CampaignId,
+    string? UserId,
+    string? Status,
+    bool OnlyOverdue = false,
+    int Page = 1,
+    int PageSize = 25);
+
 public sealed record UpdateComplianceDashboardPreferencesRequest(
     Guid? DefaultProjectId,
     string? DefaultProcessArea,
@@ -193,6 +215,58 @@ public sealed record ManagementReviewActionResponse(
     DateTimeOffset? ClosedAt,
     DateTimeOffset UpdatedAt);
 
+public sealed record PolicyResponse(
+    Guid Id,
+    string PolicyCode,
+    string Title,
+    string? Summary,
+    DateTimeOffset EffectiveDate,
+    bool RequiresAttestation,
+    string Status,
+    DateTimeOffset? ApprovedAt,
+    string? ApprovedBy,
+    DateTimeOffset? PublishedAt,
+    DateTimeOffset? RetiredAt,
+    int CampaignCount,
+    int OpenCampaignCount,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record PolicyCampaignResponse(
+    Guid Id,
+    Guid PolicyId,
+    string PolicyTitle,
+    string CampaignCode,
+    string Title,
+    string TargetScopeType,
+    string TargetScopeRef,
+    DateTimeOffset DueAt,
+    string Status,
+    int TargetUserCount,
+    int AcknowledgedCount,
+    int OverdueCount,
+    DateTimeOffset? LaunchedAt,
+    string? LaunchedBy,
+    DateTimeOffset? ClosedAt,
+    string? ClosedBy,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record PolicyAcknowledgementResponse(
+    Guid Id,
+    Guid PolicyId,
+    string PolicyTitle,
+    Guid PolicyCampaignId,
+    string CampaignTitle,
+    string UserId,
+    string Status,
+    bool IsOverdue,
+    bool RequiresAttestation,
+    DateTimeOffset DueAt,
+    DateTimeOffset? AcknowledgedAt,
+    string? AttestationText,
+    DateTimeOffset UpdatedAt);
+
 public sealed record ManagementReviewListItemResponse(
     Guid Id,
     Guid? ProjectId,
@@ -281,6 +355,47 @@ public sealed record UpdateManagementReviewRequest(
 public sealed record TransitionManagementReviewRequest(
     string TargetStatus,
     string? Reason);
+
+public sealed record CreatePolicyRequest(
+    string PolicyCode,
+    string Title,
+    string? Summary,
+    DateTimeOffset EffectiveDate,
+    bool RequiresAttestation);
+
+public sealed record UpdatePolicyRequest(
+    string PolicyCode,
+    string Title,
+    string? Summary,
+    DateTimeOffset EffectiveDate,
+    bool RequiresAttestation);
+
+public sealed record TransitionPolicyRequest(
+    string TargetStatus,
+    string? Reason);
+
+public sealed record CreatePolicyCampaignRequest(
+    Guid PolicyId,
+    string CampaignCode,
+    string Title,
+    string TargetScopeType,
+    string TargetScopeRef,
+    DateTimeOffset DueAt);
+
+public sealed record UpdatePolicyCampaignRequest(
+    string CampaignCode,
+    string Title,
+    string TargetScopeType,
+    string TargetScopeRef,
+    DateTimeOffset DueAt);
+
+public sealed record TransitionPolicyCampaignRequest(
+    string TargetStatus,
+    string? Reason);
+
+public sealed record CreatePolicyAcknowledgementRequest(
+    Guid PolicyCampaignId,
+    string? AttestationText);
 
 public sealed record RaciMapResponse(
     Guid Id,

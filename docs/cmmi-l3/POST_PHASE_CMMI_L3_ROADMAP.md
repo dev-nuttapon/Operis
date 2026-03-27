@@ -306,6 +306,10 @@ Companion spec:
 
 ## Phase 29: Policy Acknowledgement
 
+Companion spec:
+
+* [PHASE29_POLICY_ACKNOWLEDGEMENT_SPEC.md](/Users/nuttapon/Github-dev/Operis/docs/cmmi-l3/PHASE29_POLICY_ACKNOWLEDGEMENT_SPEC.md)
+
 - Goal
   - Govern policy publication, acknowledgement, and overdue attestation.
 - In Scope

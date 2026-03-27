@@ -195,3 +195,51 @@ public sealed class ManagementReviewActionEntity
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+public sealed class PolicyEntity
+{
+    public Guid Id { get; init; }
+    public string PolicyCode { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? Summary { get; set; }
+    public DateTimeOffset EffectiveDate { get; set; }
+    public bool RequiresAttestation { get; set; }
+    public string Status { get; set; } = "draft";
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public string? ApprovedBy { get; set; }
+    public DateTimeOffset? PublishedAt { get; set; }
+    public DateTimeOffset? RetiredAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class PolicyCampaignEntity
+{
+    public Guid Id { get; init; }
+    public Guid PolicyId { get; set; }
+    public string CampaignCode { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string TargetScopeType { get; set; } = "all_users";
+    public string TargetScopeRef { get; set; } = string.Empty;
+    public DateTimeOffset DueAt { get; set; }
+    public string Status { get; set; } = "draft";
+    public DateTimeOffset? LaunchedAt { get; set; }
+    public string? LaunchedBy { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
+    public string? ClosedBy { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public sealed class PolicyAcknowledgementEntity
+{
+    public Guid Id { get; init; }
+    public Guid PolicyId { get; set; }
+    public Guid PolicyCampaignId { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public string Status { get; set; } = "pending";
+    public DateTimeOffset? AcknowledgedAt { get; set; }
+    public string? AttestationText { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}

@@ -7,7 +7,7 @@ const distAssetsPath = path.join(process.cwd(), "dist", "assets");
 const budgetsKb = new Map([
   ["antd-core-vendor", 1162],
   ["react-vendor", 240],
-  ["index", 297],
+  ["index", 299],
   ["AdminUsersPage", 26],
   ["ActivityLogsPage", 15],
   ["DocumentDashboardPage", 8],

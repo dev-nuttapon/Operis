@@ -8,6 +8,7 @@ Purpose:
 * owns Phase 20 architecture records, design reviews, and integration reviews
 * owns Phase 25 compliance dashboard snapshots and user dashboard preferences
 * owns Phase 27 management reviews, review agenda items, and follow-up actions
+* owns Phase 29 policy registers, acknowledgement campaigns, and user attestation records
 
 Public surface:
 
@@ -39,6 +40,9 @@ Owned data:
 * management_reviews
 * management_review_items
 * management_review_actions
+* policies
+* policy_campaigns
+* policy_acknowledgements
 
 Notes:
 
@@ -46,3 +50,4 @@ Notes:
 * project ownership remains in the users module; governance reads project existence only
 * compliance dashboard scoring is read-heavy and aggregates owned and read-only upstream process data into snapshot records
 * management review close is blocked until mandatory follow-up actions are closed and minutes are recorded
+* policy campaign launch resolves target users from `Users`-owned records but stores all campaign and acknowledgement state inside `Governance`

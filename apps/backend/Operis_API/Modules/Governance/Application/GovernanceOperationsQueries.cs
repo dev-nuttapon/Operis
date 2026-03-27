@@ -245,6 +245,156 @@ public sealed class GovernanceOperationsQueries(OperisDbContext dbContext, IAudi
             review.Review.UpdatedAt);
     }
 
+    public async Task<PagedResult<PolicyResponse>> ListPoliciesAsync(PolicyListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.Policies.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            var status = query.Status.Trim().ToLowerInvariant();
+            source = source.Where(x => x.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var pattern = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.PolicyCode, pattern) ||
+                EF.Functions.ILike(x.Title, pattern) ||
+                (x.Summary != null && EF.Functions.ILike(x.Summary, pattern)));
+        }
+
+        source = source.OrderByDescending(x => x.EffectiveDate).ThenBy(x => x.Title);
+        return await PageAsync(
+            source.Select(x => new PolicyResponse(
+                x.Id,
+                x.PolicyCode,
+                x.Title,
+                x.Summary,
+                x.EffectiveDate,
+                x.RequiresAttestation,
+                x.Status,
+                x.ApprovedAt,
+                x.ApprovedBy,
+                x.PublishedAt,
+                x.RetiredAt,
+                dbContext.PolicyCampaigns.Count(campaign => campaign.PolicyId == x.Id),
+                dbContext.PolicyCampaigns.Count(campaign => campaign.PolicyId == x.Id && campaign.Status == "launched"),
+                x.CreatedAt,
+                x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<PolicyCampaignResponse>> ListPolicyCampaignsAsync(PolicyCampaignListQuery query, CancellationToken cancellationToken)
+    {
+        var source =
+            from campaign in dbContext.PolicyCampaigns.AsNoTracking()
+            join policy in dbContext.Policies.AsNoTracking() on campaign.PolicyId equals policy.Id
+            select new { Campaign = campaign, PolicyTitle = policy.Title };
+
+        if (query.PolicyId.HasValue)
+        {
+            source = source.Where(x => x.Campaign.PolicyId == query.PolicyId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            var status = query.Status.Trim().ToLowerInvariant();
+            source = source.Where(x => x.Campaign.Status == status);
+        }
+
+        if (query.DueBefore.HasValue)
+        {
+            var dueBeforeExclusive = query.DueBefore.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            source = source.Where(x => x.Campaign.DueAt < dueBeforeExclusive);
+        }
+
+        source = source.OrderByDescending(x => x.Campaign.DueAt).ThenBy(x => x.Campaign.Title);
+        return await PageAsync(
+            source.Select(x => new PolicyCampaignResponse(
+                x.Campaign.Id,
+                x.Campaign.PolicyId,
+                x.PolicyTitle,
+                x.Campaign.CampaignCode,
+                x.Campaign.Title,
+                x.Campaign.TargetScopeType,
+                x.Campaign.TargetScopeRef,
+                x.Campaign.DueAt,
+                x.Campaign.Status,
+                dbContext.PolicyAcknowledgements.Count(item => item.PolicyCampaignId == x.Campaign.Id),
+                dbContext.PolicyAcknowledgements.Count(item => item.PolicyCampaignId == x.Campaign.Id && item.Status == "acknowledged"),
+                dbContext.PolicyAcknowledgements.Count(item => item.PolicyCampaignId == x.Campaign.Id && item.Status != "acknowledged" && x.Campaign.DueAt < DateTimeOffset.UtcNow),
+                x.Campaign.LaunchedAt,
+                x.Campaign.LaunchedBy,
+                x.Campaign.ClosedAt,
+                x.Campaign.ClosedBy,
+                x.Campaign.CreatedAt,
+                x.Campaign.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<PagedResult<PolicyAcknowledgementResponse>> ListPolicyAcknowledgementsAsync(PolicyAcknowledgementListQuery query, string? actor, CancellationToken cancellationToken)
+    {
+        var source =
+            from acknowledgement in dbContext.PolicyAcknowledgements.AsNoTracking()
+            join campaign in dbContext.PolicyCampaigns.AsNoTracking() on acknowledgement.PolicyCampaignId equals campaign.Id
+            join policy in dbContext.Policies.AsNoTracking() on acknowledgement.PolicyId equals policy.Id
+            select new { Acknowledgement = acknowledgement, Campaign = campaign, Policy = policy };
+
+        if (query.PolicyId.HasValue)
+        {
+            source = source.Where(x => x.Acknowledgement.PolicyId == query.PolicyId.Value);
+        }
+
+        if (query.CampaignId.HasValue)
+        {
+            source = source.Where(x => x.Acknowledgement.PolicyCampaignId == query.CampaignId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.UserId))
+        {
+            source = source.Where(x => x.Acknowledgement.UserId == query.UserId!.Trim());
+        }
+        else if (!string.IsNullOrWhiteSpace(actor))
+        {
+            source = source.Where(x => x.Acknowledgement.UserId == actor);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            var status = query.Status.Trim().ToLowerInvariant();
+            source = source.Where(x => x.Acknowledgement.Status == status);
+        }
+
+        if (query.OnlyOverdue)
+        {
+            source = source.Where(x => x.Acknowledgement.Status != "acknowledged" && x.Campaign.DueAt < DateTimeOffset.UtcNow);
+        }
+
+        source = source.OrderByDescending(x => x.Campaign.DueAt).ThenBy(x => x.Policy.Title);
+        return await PageAsync(
+            source.Select(x => new PolicyAcknowledgementResponse(
+                x.Acknowledgement.Id,
+                x.Acknowledgement.PolicyId,
+                x.Policy.Title,
+                x.Acknowledgement.PolicyCampaignId,
+                x.Campaign.Title,
+                x.Acknowledgement.UserId,
+                x.Acknowledgement.Status,
+                x.Acknowledgement.Status != "acknowledged" && x.Campaign.DueAt < DateTimeOffset.UtcNow,
+                x.Policy.RequiresAttestation,
+                x.Campaign.DueAt,
+                x.Acknowledgement.AcknowledgedAt,
+                x.Acknowledgement.AttestationText,
+                x.Acknowledgement.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
     public async Task<PagedResult<RaciMapResponse>> ListRaciMapsAsync(RaciMapListQuery query, CancellationToken cancellationToken)
     {
         var source = dbContext.RaciMaps.AsNoTracking().AsQueryable();

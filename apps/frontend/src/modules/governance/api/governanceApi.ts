@@ -19,6 +19,14 @@ import type {
   ManagementReviewFormInput,
   ManagementReviewListItem,
   ManagementReviewTransitionInput,
+  PolicyAcknowledgementInput,
+  PolicyAcknowledgementItem,
+  PolicyCampaignFormInput,
+  PolicyCampaignItem,
+  PolicyCampaignTransitionInput,
+  PolicyFormInput,
+  PolicyListItem,
+  PolicyTransitionInput,
   ProcessAsset,
   ProcessAssetFormInput,
   ProcessAssetListItem,
@@ -71,6 +79,10 @@ function toQuery(input?: GovernanceListInput) {
   if (input?.facilitatorUserId) params.set("facilitatorUserId", input.facilitatorUserId);
   if (input?.scheduledFrom) params.set("scheduledFrom", input.scheduledFrom);
   if (input?.scheduledTo) params.set("scheduledTo", input.scheduledTo);
+  if (input?.policyId) params.set("policyId", input.policyId);
+  if (input?.campaignId) params.set("campaignId", input.campaignId);
+  if (input?.dueBefore) params.set("dueBefore", input.dueBefore);
+  if (typeof input?.onlyOverdue === "boolean") params.set("onlyOverdue", String(input.onlyOverdue));
   const query = params.toString();
   return query ? `?${query}` : "";
 }
@@ -240,3 +252,26 @@ export const updateManagementReview = (id: string, input: ManagementReviewFormIn
   apiRequest<ManagementReviewDetail>(`/api/v1/governance/management-reviews/${id}`, { method: "PUT", body: input });
 export const transitionManagementReview = (id: string, input: ManagementReviewTransitionInput) =>
   apiRequest<ManagementReviewDetail>(`/api/v1/governance/management-reviews/${id}/transition`, { method: "POST", body: input });
+
+export const listPolicies = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<PolicyListItem>>(`/api/v1/governance/policies${toQuery(input)}`, { signal });
+export const createPolicy = (input: PolicyFormInput) =>
+  apiRequest<PolicyListItem>("/api/v1/governance/policies", { method: "POST", body: input });
+export const updatePolicy = (id: string, input: PolicyFormInput) =>
+  apiRequest<PolicyListItem>(`/api/v1/governance/policies/${id}`, { method: "PUT", body: input });
+export const transitionPolicy = (id: string, input: PolicyTransitionInput) =>
+  apiRequest<PolicyListItem>(`/api/v1/governance/policies/${id}/transition`, { method: "POST", body: input });
+
+export const listPolicyCampaigns = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<PolicyCampaignItem>>(`/api/v1/governance/policy-campaigns${toQuery(input)}`, { signal });
+export const createPolicyCampaign = (input: PolicyCampaignFormInput) =>
+  apiRequest<PolicyCampaignItem>("/api/v1/governance/policy-campaigns", { method: "POST", body: input });
+export const updatePolicyCampaign = (id: string, input: PolicyCampaignFormInput) =>
+  apiRequest<PolicyCampaignItem>(`/api/v1/governance/policy-campaigns/${id}`, { method: "PUT", body: input });
+export const transitionPolicyCampaign = (id: string, input: PolicyCampaignTransitionInput) =>
+  apiRequest<PolicyCampaignItem>(`/api/v1/governance/policy-campaigns/${id}/transition`, { method: "POST", body: input });
+
+export const listPolicyAcknowledgements = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<PolicyAcknowledgementItem>>(`/api/v1/governance/policy-acknowledgements${toQuery(input)}`, { signal });
+export const createPolicyAcknowledgement = (input: PolicyAcknowledgementInput) =>
+  apiRequest<PolicyAcknowledgementItem>("/api/v1/governance/policy-acknowledgements", { method: "POST", body: input });

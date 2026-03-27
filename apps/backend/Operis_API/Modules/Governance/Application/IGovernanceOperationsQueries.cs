@@ -9,6 +9,9 @@ public interface IGovernanceOperationsQueries
     Task<ComplianceDrilldownResponse> GetComplianceDrilldownAsync(ComplianceDashboardDrilldownQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ManagementReviewListItemResponse>> ListManagementReviewsAsync(ManagementReviewListQuery query, CancellationToken cancellationToken);
     Task<ManagementReviewDetailResponse?> GetManagementReviewAsync(Guid id, CancellationToken cancellationToken);
+    Task<PagedResult<PolicyResponse>> ListPoliciesAsync(PolicyListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<PolicyCampaignResponse>> ListPolicyCampaignsAsync(PolicyCampaignListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<PolicyAcknowledgementResponse>> ListPolicyAcknowledgementsAsync(PolicyAcknowledgementListQuery query, string? actor, CancellationToken cancellationToken);
     Task<PagedResult<RaciMapResponse>> ListRaciMapsAsync(RaciMapListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<ApprovalEvidenceLogResponse>> ListApprovalEvidenceAsync(ApprovalEvidenceListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<WorkflowOverrideLogResponse>> ListWorkflowOverridesAsync(WorkflowOverrideListQuery query, CancellationToken cancellationToken);

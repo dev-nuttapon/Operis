@@ -8,6 +8,13 @@ public interface IGovernanceOperationsCommands
     Task<GovernanceCommandResult<ManagementReviewDetailResponse>> CreateManagementReviewAsync(CreateManagementReviewRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<ManagementReviewDetailResponse>> UpdateManagementReviewAsync(Guid id, UpdateManagementReviewRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<ManagementReviewDetailResponse>> TransitionManagementReviewAsync(Guid id, TransitionManagementReviewRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<PolicyResponse>> CreatePolicyAsync(CreatePolicyRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<PolicyResponse>> UpdatePolicyAsync(Guid id, UpdatePolicyRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<PolicyResponse>> TransitionPolicyAsync(Guid id, TransitionPolicyRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<PolicyCampaignResponse>> CreatePolicyCampaignAsync(CreatePolicyCampaignRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<PolicyCampaignResponse>> UpdatePolicyCampaignAsync(Guid id, UpdatePolicyCampaignRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<PolicyCampaignResponse>> TransitionPolicyCampaignAsync(Guid id, TransitionPolicyCampaignRequest request, string? actor, CancellationToken cancellationToken);
+    Task<GovernanceCommandResult<PolicyAcknowledgementResponse>> CreatePolicyAcknowledgementAsync(CreatePolicyAcknowledgementRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<RaciMapResponse>> CreateRaciMapAsync(CreateRaciMapRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<RaciMapResponse>> UpdateRaciMapAsync(Guid id, UpdateRaciMapRequest request, string? actor, CancellationToken cancellationToken);
     Task<GovernanceCommandResult<SlaRuleResponse>> CreateSlaRuleAsync(CreateSlaRuleRequest request, string? actor, CancellationToken cancellationToken);

@@ -109,6 +109,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<ManagementReviewEntity> ManagementReviews => Set<ManagementReviewEntity>();
     public DbSet<ManagementReviewItemEntity> ManagementReviewItems => Set<ManagementReviewItemEntity>();
     public DbSet<ManagementReviewActionEntity> ManagementReviewActions => Set<ManagementReviewActionEntity>();
+    public DbSet<PolicyEntity> Policies => Set<PolicyEntity>();
+    public DbSet<PolicyCampaignEntity> PolicyCampaigns => Set<PolicyCampaignEntity>();
+    public DbSet<PolicyAcknowledgementEntity> PolicyAcknowledgements => Set<PolicyAcknowledgementEntity>();
     public DbSet<RequirementEntity> Requirements => Set<RequirementEntity>();
     public DbSet<RequirementVersionEntity> RequirementVersions => Set<RequirementVersionEntity>();
     public DbSet<RequirementBaselineEntity> RequirementBaselines => Set<RequirementBaselineEntity>();
@@ -2175,6 +2178,69 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasOne<ManagementReviewEntity>().WithMany().HasForeignKey(x => x.ReviewId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.ReviewId, x.Status, x.IsMandatory });
             entity.HasIndex(x => x.OwnerUserId);
+        });
+
+        modelBuilder.Entity<PolicyEntity>(entity =>
+        {
+            entity.ToTable("policies");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.PolicyCode).HasColumnName("policy_code").HasMaxLength(128);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.Summary).HasColumnName("summary").HasMaxLength(4000);
+            entity.Property(x => x.EffectiveDate).HasColumnName("effective_date");
+            entity.Property(x => x.RequiresAttestation).HasColumnName("requires_attestation");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.ApprovedBy).HasColumnName("approved_by").HasMaxLength(128);
+            entity.Property(x => x.PublishedAt).HasColumnName("published_at");
+            entity.Property(x => x.RetiredAt).HasColumnName("retired_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.PolicyCode).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.EffectiveDate });
+        });
+
+        modelBuilder.Entity<PolicyCampaignEntity>(entity =>
+        {
+            entity.ToTable("policy_campaigns");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.PolicyId).HasColumnName("policy_id");
+            entity.Property(x => x.CampaignCode).HasColumnName("campaign_code").HasMaxLength(128);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.TargetScopeType).HasColumnName("target_scope_type").HasMaxLength(64);
+            entity.Property(x => x.TargetScopeRef).HasColumnName("target_scope_ref").HasMaxLength(128);
+            entity.Property(x => x.DueAt).HasColumnName("due_at");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.LaunchedAt).HasColumnName("launched_at");
+            entity.Property(x => x.LaunchedBy).HasColumnName("launched_by").HasMaxLength(128);
+            entity.Property(x => x.ClosedAt).HasColumnName("closed_at");
+            entity.Property(x => x.ClosedBy).HasColumnName("closed_by").HasMaxLength(128);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<PolicyEntity>().WithMany().HasForeignKey(x => x.PolicyId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => x.CampaignCode).IsUnique();
+            entity.HasIndex(x => new { x.PolicyId, x.Status, x.DueAt });
+        });
+
+        modelBuilder.Entity<PolicyAcknowledgementEntity>(entity =>
+        {
+            entity.ToTable("policy_acknowledgements");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.PolicyId).HasColumnName("policy_id");
+            entity.Property(x => x.PolicyCampaignId).HasColumnName("policy_campaign_id");
+            entity.Property(x => x.UserId).HasColumnName("user_id").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.AcknowledgedAt).HasColumnName("acknowledged_at");
+            entity.Property(x => x.AttestationText).HasColumnName("attestation_text").HasMaxLength(4000);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<PolicyEntity>().WithMany().HasForeignKey(x => x.PolicyId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<PolicyCampaignEntity>().WithMany().HasForeignKey(x => x.PolicyCampaignId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.PolicyCampaignId, x.UserId }).IsUnique();
+            entity.HasIndex(x => new { x.UserId, x.Status });
         });
 
         modelBuilder.Entity<RequirementEntity>(entity =>

@@ -75,6 +75,16 @@ public sealed class GovernanceModule : IModule
         group.MapPost("/management-reviews", CreateManagementReviewAsync);
         group.MapPut("/management-reviews/{id:guid}", UpdateManagementReviewAsync);
         group.MapPost("/management-reviews/{id:guid}/transition", TransitionManagementReviewAsync);
+        group.MapGet("/policies", ListPoliciesAsync);
+        group.MapPost("/policies", CreatePolicyAsync);
+        group.MapPut("/policies/{id:guid}", UpdatePolicyAsync);
+        group.MapPost("/policies/{id:guid}/transition", TransitionPolicyAsync);
+        group.MapGet("/policy-campaigns", ListPolicyCampaignsAsync);
+        group.MapPost("/policy-campaigns", CreatePolicyCampaignAsync);
+        group.MapPut("/policy-campaigns/{id:guid}", UpdatePolicyCampaignAsync);
+        group.MapPost("/policy-campaigns/{id:guid}/transition", TransitionPolicyCampaignAsync);
+        group.MapGet("/policy-acknowledgements", ListPolicyAcknowledgementsAsync);
+        group.MapPost("/policy-acknowledgements", CreatePolicyAcknowledgementAsync);
         group.MapGet("/raci-maps", ListRaciMapsAsync);
         group.MapPost("/raci-maps", CreateRaciMapAsync);
         group.MapPut("/raci-maps/{id:guid}", UpdateRaciMapAsync);
@@ -332,6 +342,64 @@ public sealed class GovernanceModule : IModule
         }
 
         return await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.ManagementReviewManage, "You do not have permission to manage management reviews.", () => commands.TransitionManagementReviewAsync(id, request, ResolveActor(principal), cancellationToken));
+    }
+
+    private static async Task<IResult> ListPoliciesAsync(ClaimsPrincipal principal, [AsParameters] PolicyListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksAnyPermission(principal, permissionMatrix, Permissions.Governance.PolicyRead, Permissions.Governance.PolicyManage, Permissions.Governance.PolicyApprove))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read policies.");
+        }
+
+        return Results.Ok(await queries.ListPoliciesAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreatePolicyAsync(ClaimsPrincipal principal, CreatePolicyRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.PolicyManage, "You do not have permission to manage policies.", () => commands.CreatePolicyAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdatePolicyAsync(ClaimsPrincipal principal, Guid id, UpdatePolicyRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.PolicyManage, "You do not have permission to manage policies.", () => commands.UpdatePolicyAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> TransitionPolicyAsync(ClaimsPrincipal principal, Guid id, TransitionPolicyRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.PolicyApprove, "You do not have permission to approve policies.", () => commands.TransitionPolicyAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListPolicyCampaignsAsync(ClaimsPrincipal principal, [AsParameters] PolicyCampaignListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksAnyPermission(principal, permissionMatrix, Permissions.Governance.PolicyRead, Permissions.Governance.PolicyManage, Permissions.Governance.PolicyApprove))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read policy campaigns.");
+        }
+
+        return Results.Ok(await queries.ListPolicyCampaignsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreatePolicyCampaignAsync(ClaimsPrincipal principal, CreatePolicyCampaignRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.PolicyManage, "You do not have permission to manage policy campaigns.", () => commands.CreatePolicyCampaignAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdatePolicyCampaignAsync(ClaimsPrincipal principal, Guid id, UpdatePolicyCampaignRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.PolicyManage, "You do not have permission to manage policy campaigns.", () => commands.UpdatePolicyCampaignAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> TransitionPolicyCampaignAsync(ClaimsPrincipal principal, Guid id, TransitionPolicyCampaignRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.PolicyApprove, "You do not have permission to approve policy campaigns.", () => commands.TransitionPolicyCampaignAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListPolicyAcknowledgementsAsync(ClaimsPrincipal principal, [AsParameters] PolicyAcknowledgementListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksAnyPermission(principal, permissionMatrix, Permissions.Governance.PolicyRead, Permissions.Governance.PolicyManage, Permissions.Governance.PolicyApprove))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read policy acknowledgements.");
+        }
+
+        return Results.Ok(await queries.ListPolicyAcknowledgementsAsync(query, ResolveActor(principal), cancellationToken));
+    }
+
+    private static async Task<IResult> CreatePolicyAcknowledgementAsync(ClaimsPrincipal principal, CreatePolicyAcknowledgementRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksAnyPermission(principal, permissionMatrix, Permissions.Governance.PolicyRead, Permissions.Governance.PolicyManage, Permissions.Governance.PolicyApprove))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to acknowledge policies.");
+        }
+
+        return await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.PolicyRead, "You do not have permission to acknowledge policies.", () => commands.CreatePolicyAcknowledgementAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
     }
 
     private static async Task<IResult> ListRaciMapsAsync(ClaimsPrincipal principal, [AsParameters] RaciMapListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)

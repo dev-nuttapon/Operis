@@ -108,6 +108,9 @@ public static class Permissions
         public const string ManagementReviewRead = "governance.management_reviews.read";
         public const string ManagementReviewManage = "governance.management_reviews.manage";
         public const string ManagementReviewApprove = "governance.management_reviews.approve";
+        public const string PolicyRead = "governance.policies.read";
+        public const string PolicyManage = "governance.policies.manage";
+        public const string PolicyApprove = "governance.policies.approve";
     }
 
     public static class Requirements
@@ -272,6 +275,9 @@ public static class Permissions
         Governance.ManagementReviewRead,
         Governance.ManagementReviewManage,
         Governance.ManagementReviewApprove,
+        Governance.PolicyRead,
+        Governance.PolicyManage,
+        Governance.PolicyApprove,
         Requirements.Read,
         Requirements.Manage,
         Requirements.Approve,
@@ -388,6 +394,9 @@ public static class Permissions
             Governance.ManagementReviewRead => "Read Management Reviews",
             Governance.ManagementReviewManage => "Manage Management Reviews",
             Governance.ManagementReviewApprove => "Approve Management Reviews",
+            Governance.PolicyRead => "Read Policies and Acknowledgements",
+            Governance.PolicyManage => "Manage Policies and Campaigns",
+            Governance.PolicyApprove => "Approve and Publish Policies",
             Requirements.Read => "Read Requirements",
             Requirements.Manage => "Manage Requirements",
             Requirements.Approve => "Approve Requirements",

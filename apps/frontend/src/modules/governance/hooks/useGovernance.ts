@@ -11,6 +11,9 @@ import {
   archiveTailoringRecord,
   baselineProjectPlan,
   createManagementReview,
+  createPolicy,
+  createPolicyAcknowledgement,
+  createPolicyCampaign,
   createArchitectureRecord,
   getComplianceDashboard,
   getComplianceDrilldown,
@@ -35,6 +38,9 @@ import {
   listApprovalEvidence,
   listArchitectureRecords,
   listManagementReviews,
+  listPolicies,
+  listPolicyAcknowledgements,
+  listPolicyCampaigns,
   listDesignReviews,
   listIntegrationReviews,
   listProcessAssets,
@@ -51,8 +57,12 @@ import {
   submitTailoringRecord,
   supersedeProjectPlan,
   transitionManagementReview,
+  transitionPolicy,
+  transitionPolicyCampaign,
   updateComplianceDashboardPreferences,
   updateManagementReview,
+  updatePolicy,
+  updatePolicyCampaign,
   updateArchitectureRecord,
   updateDesignReview,
   updateIntegrationReview,
@@ -75,6 +85,11 @@ import type {
   IntegrationReviewFormInput,
   ManagementReviewFormInput,
   ManagementReviewTransitionInput,
+  PolicyAcknowledgementInput,
+  PolicyCampaignFormInput,
+  PolicyCampaignTransitionInput,
+  PolicyFormInput,
+  PolicyTransitionInput,
   ProcessAssetFormInput,
   ProcessAssetVersionFormInput,
   ProjectPlanFormInput,
@@ -190,6 +205,30 @@ export function useManagementReview(id: string | null, enabled = true) {
   });
 }
 
+export function usePolicies(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "policies", input],
+    queryFn: ({ signal }) => listPolicies(input, signal),
+    enabled,
+  });
+}
+
+export function usePolicyCampaigns(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "policy-campaigns", input],
+    queryFn: ({ signal }) => listPolicyCampaigns(input, signal),
+    enabled,
+  });
+}
+
+export function usePolicyAcknowledgements(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "policy-acknowledgements", input],
+    queryFn: ({ signal }) => listPolicyAcknowledgements(input, signal),
+    enabled,
+  });
+}
+
 export function useApprovalEvidence(input?: GovernanceListInput, enabled = true) {
   return useQuery({
     queryKey: ["governance", "approval-evidence", input],
@@ -289,6 +328,62 @@ export function useCreateManagementReview() {
   const invalidate = useInvalidateGovernance();
   return useMutation({
     mutationFn: (input: ManagementReviewFormInput) => createManagementReview(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreatePolicy() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: PolicyFormInput) => createPolicy(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdatePolicy() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: PolicyFormInput }) => updatePolicy(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useTransitionPolicy() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: PolicyTransitionInput }) => transitionPolicy(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreatePolicyCampaign() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: PolicyCampaignFormInput) => createPolicyCampaign(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdatePolicyCampaign() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: PolicyCampaignFormInput }) => updatePolicyCampaign(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useTransitionPolicyCampaign() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: PolicyCampaignTransitionInput }) => transitionPolicyCampaign(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreatePolicyAcknowledgement() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: PolicyAcknowledgementInput) => createPolicyAcknowledgement(input),
     onSuccess: invalidate,
   });
 }
