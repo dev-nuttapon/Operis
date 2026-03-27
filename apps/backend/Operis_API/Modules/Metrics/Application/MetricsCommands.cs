@@ -23,6 +23,8 @@ public sealed class MetricsCommands(
     private static readonly string[] CapacityReviewStatuses = ["planned", "reviewed", "actioned", "closed"];
     private static readonly string[] SlowOperationStatuses = ["open", "investigating", "optimized", "verified", "closed"];
     private static readonly string[] PerformanceGateStatuses = ["pending", "passed", "failed", "overridden"];
+    private static readonly string[] AdoptionRuleStatuses = ["draft", "active", "archived"];
+    private static readonly string[] AdoptionScoreStates = ["meets_threshold", "below_threshold"];
 
     public async Task<MetricsCommandResult<MetricDefinitionCommandResponse>> CreateMetricDefinitionAsync(CreateMetricDefinitionRequest request, string? actorUserId, CancellationToken cancellationToken)
     {
@@ -634,6 +636,171 @@ public sealed class MetricsCommands(
         return Success(new PerformanceGateOverrideResponse(entity.Id, "overridden", request.Reason.Trim()));
     }
 
+    public async Task<MetricsCommandResult<AdoptionRuleItem>> CreateAdoptionRuleAsync(CreateAdoptionRuleRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var validation = ValidateAdoptionRule(request.ProcessArea, request.ScopeType, request.ThresholdPercentage);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        var ruleCode = request.RuleCode.Trim().ToUpperInvariant();
+        if (await dbContext.AdoptionRules.AnyAsync(x => x.RuleCode == ruleCode, cancellationToken))
+        {
+            return Conflict<AdoptionRuleItem>(ApiErrorCodes.AdoptionRuleCodeDuplicate, "Adoption rule code already exists.");
+        }
+
+        var entity = new AdoptionRuleEntity
+        {
+            Id = Guid.NewGuid(),
+            RuleCode = ruleCode,
+            ProcessArea = request.ProcessArea.Trim().ToLowerInvariant(),
+            ScopeType = request.ScopeType.Trim().ToLowerInvariant(),
+            ThresholdPercentage = request.ThresholdPercentage!.Value,
+            Status = NormalizeAdoptionRuleStatus(request.Status),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.AdoptionRules.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("create", "adoption_rule", entity.Id, 201, new { entity.RuleCode, entity.ProcessArea, entity.ScopeType, entity.Status });
+        await AppendBusinessAsync("adoption_rule_created", "adoption_rule", entity.Id, $"Created adoption rule {entity.RuleCode}", actorUserId, null, new { entity.ProcessArea, entity.ScopeType, entity.Status }, cancellationToken);
+        return Success(ToAdoptionRuleItem(entity));
+    }
+
+    public async Task<MetricsCommandResult<AdoptionRuleItem>> UpdateAdoptionRuleAsync(Guid adoptionRuleId, UpdateAdoptionRuleRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.AdoptionRules.SingleOrDefaultAsync(x => x.Id == adoptionRuleId, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<AdoptionRuleItem>(ApiErrorCodes.AdoptionRuleNotFound, "Adoption rule not found.");
+        }
+
+        var validation = ValidateAdoptionRule(request.ProcessArea, request.ScopeType, request.ThresholdPercentage);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        var nextStatus = NormalizeAdoptionRuleStatus(request.Status);
+        if (!AdoptionRuleStatuses.Contains(nextStatus) || !IsValidTransition(entity.Status, nextStatus, AdoptionRuleStatuses))
+        {
+            return Validation<AdoptionRuleItem>(ApiErrorCodes.InvalidWorkflowTransition, "Adoption rule transition is invalid.");
+        }
+
+        dbContext.Entry(entity).CurrentValues.SetValues(entity with
+        {
+            ProcessArea = request.ProcessArea.Trim().ToLowerInvariant(),
+            ScopeType = request.ScopeType.Trim().ToLowerInvariant(),
+            ThresholdPercentage = request.ThresholdPercentage!.Value,
+            Status = nextStatus,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("update", "adoption_rule", entity.Id, 200, new { entity.RuleCode, ProcessArea = request.ProcessArea.Trim().ToLowerInvariant(), ScopeType = request.ScopeType.Trim().ToLowerInvariant(), Status = nextStatus });
+        await AppendBusinessAsync("adoption_rule_updated", "adoption_rule", entity.Id, $"Updated adoption rule {entity.RuleCode}", actorUserId, null, new { Status = nextStatus }, cancellationToken);
+        return Success(ToAdoptionRuleItem(entity with
+        {
+            ProcessArea = request.ProcessArea.Trim().ToLowerInvariant(),
+            ScopeType = request.ScopeType.Trim().ToLowerInvariant(),
+            ThresholdPercentage = request.ThresholdPercentage!.Value,
+            Status = nextStatus,
+            UpdatedAt = DateTimeOffset.UtcNow
+        }));
+    }
+
+    public async Task<MetricsCommandResult<PagedResult<AdoptionScorecardItem>>> EvaluateAdoptionRulesAsync(EvaluateAdoptionRulesRequest request, string? actorUserId, CancellationToken cancellationToken)
+    {
+        var rulesQuery = dbContext.AdoptionRules.Where(x => x.Status == "active").AsQueryable();
+        if (!string.IsNullOrWhiteSpace(request.ProcessArea))
+        {
+            rulesQuery = rulesQuery.Where(x => x.ProcessArea == request.ProcessArea.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ScopeType))
+        {
+            rulesQuery = rulesQuery.Where(x => x.ScopeType == request.ScopeType.Trim().ToLowerInvariant());
+        }
+
+        var rules = await rulesQuery.OrderBy(x => x.RuleCode).ToListAsync(cancellationToken);
+        var projectQuery = dbContext.Projects.AsQueryable();
+        if (request.ProjectId.HasValue)
+        {
+            projectQuery = projectQuery.Where(x => x.Id == request.ProjectId.Value);
+        }
+
+        var projects = await projectQuery.OrderBy(x => x.Name).ToListAsync(cancellationToken);
+        var projectIds = projects.Select(x => x.Id).ToArray();
+        var ruleIds = rules.Select(x => x.Id).ToArray();
+        if (projectIds.Length > 0 && ruleIds.Length > 0)
+        {
+            var existingScores = await dbContext.AdoptionScores.Where(x => projectIds.Contains(x.ProjectId) && ruleIds.Contains(x.AdoptionRuleId)).ToListAsync(cancellationToken);
+            var existingAnomalies = await dbContext.AdoptionAnomalies.Where(x => projectIds.Contains(x.ProjectId) && ruleIds.Contains(x.AdoptionRuleId)).ToListAsync(cancellationToken);
+            dbContext.AdoptionScores.RemoveRange(existingScores);
+            dbContext.AdoptionAnomalies.RemoveRange(existingAnomalies);
+        }
+
+        var calculatedAt = DateTimeOffset.UtcNow;
+        var scores = new List<AdoptionScoreEntity>();
+        var anomalies = new List<AdoptionAnomalyEntity>();
+        foreach (var project in projects)
+        {
+            foreach (var rule in rules)
+            {
+                var (evidenceCount, expectedCount) = await CalculateEvidenceAsync(project.Id, rule.ProcessArea, cancellationToken);
+                var scorePercentage = expectedCount == 0 ? 0m : Math.Round((decimal)evidenceCount / expectedCount * 100m, 2, MidpointRounding.AwayFromZero);
+                var scoreState = scorePercentage >= rule.ThresholdPercentage ? AdoptionScoreStates[0] : AdoptionScoreStates[1];
+                var score = new AdoptionScoreEntity
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = project.Id,
+                    AdoptionRuleId = rule.Id,
+                    ProcessArea = rule.ProcessArea,
+                    ScorePercentage = scorePercentage,
+                    ScoreState = scoreState,
+                    EvidenceCount = evidenceCount,
+                    ExpectedCount = expectedCount,
+                    CalculatedAt = calculatedAt,
+                    CreatedAt = calculatedAt
+                };
+                scores.Add(score);
+
+                if (scoreState == "below_threshold")
+                {
+                    anomalies.Add(new AdoptionAnomalyEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        ProjectId = project.Id,
+                        AdoptionRuleId = rule.Id,
+                        ProcessArea = rule.ProcessArea,
+                        Severity = scorePercentage < rule.ThresholdPercentage / 2m ? "high" : "medium",
+                        Summary = $"Adoption score {scorePercentage:N0}% is below threshold {rule.ThresholdPercentage:N0}% for {rule.ProcessArea}.",
+                        Status = "open",
+                        DetectedAt = calculatedAt,
+                        CreatedAt = calculatedAt
+                    });
+                }
+            }
+        }
+
+        if (scores.Count > 0)
+        {
+            dbContext.AdoptionScores.AddRange(scores);
+        }
+
+        if (anomalies.Count > 0)
+        {
+            dbContext.AdoptionAnomalies.AddRange(anomalies);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        AppendAudit("evaluate", "adoption_score", Guid.Empty, 201, new { ProjectCount = projects.Count, RuleCount = rules.Count, ScoreCount = scores.Count, AnomalyCount = anomalies.Count });
+        await AppendBusinessAsync("adoption_rules_evaluated", "adoption_score", Guid.Empty, "Evaluated adoption rules", actorUserId, null, new { ProjectCount = projects.Count, RuleCount = rules.Count, AnomalyCount = anomalies.Count }, cancellationToken);
+        return Success(await queries.ListAdoptionScorecardsAsync(new AdoptionScorecardListQuery(request.ProjectId, request.ProcessArea, request.ScopeType, null, null, 1, 200), cancellationToken));
+    }
+
     private async Task<MetricsCommandResult<TrendReportItem>?> ValidateTrendReportAsync(Guid projectId, Guid? metricDefinitionId, DateOnly? periodFrom, DateOnly? periodTo, CancellationToken cancellationToken)
     {
         if (!await dbContext.Projects.AnyAsync(x => x.Id == projectId, cancellationToken))
@@ -693,6 +860,52 @@ public sealed class MetricsCommands(
         return currentIndex >= 0 && nextIndex >= 0 && nextIndex >= currentIndex && nextIndex - currentIndex <= 1;
     }
 
+    private async Task<(int EvidenceCount, int ExpectedCount)> CalculateEvidenceAsync(Guid projectId, string processArea, CancellationToken cancellationToken)
+    {
+        var normalizedProcessArea = processArea.Trim().ToLowerInvariant();
+        switch (normalizedProcessArea)
+        {
+            case "project_governance":
+            case "process_assets_planning":
+            {
+                var hasApprovedPlan = await dbContext.ProjectPlans.AnyAsync(x => x.ProjectId == projectId && (x.Status == "approved" || x.Status == "baselined"), cancellationToken);
+                var hasApprovedTailoring = await dbContext.TailoringRecords.AnyAsync(x => x.ProjectId == projectId && (x.Status == "approved" || x.Status == "applied"), cancellationToken);
+                return ((hasApprovedPlan ? 1 : 0) + (hasApprovedTailoring ? 1 : 0), 2);
+            }
+            case "requirements_traceability":
+            case "requirements":
+                return (await dbContext.Requirements.AnyAsync(x => x.ProjectId == projectId && (x.Status == "approved" || x.Status == "baselined"), cancellationToken) ? 1 : 0, 1);
+            case "verification":
+            case "validation":
+                return (await dbContext.TestPlans.AnyAsync(x => x.ProjectId == projectId && (x.Status == "approved" || x.Status == "baseline"), cancellationToken) ? 1 : 0, 1);
+            case "change_control":
+                return (await dbContext.ChangeRequests.AnyAsync(x => x.ProjectId == projectId && (x.Status == "approved" || x.Status == "closed"), cancellationToken) ? 1 : 0, 1);
+            case "operations_review":
+            case "metrics_review":
+                return (await dbContext.MetricReviews.AnyAsync(x => x.ProjectId == projectId && x.Status == "closed", cancellationToken) ? 1 : 0, 1);
+            default:
+                return (0, 1);
+        }
+    }
+
+    private static MetricsCommandResult<AdoptionRuleItem>? ValidateAdoptionRule(string processArea, string scopeType, decimal? thresholdPercentage)
+    {
+        if (string.IsNullOrWhiteSpace(processArea) || string.IsNullOrWhiteSpace(scopeType))
+        {
+            return Validation<AdoptionRuleItem>(ApiErrorCodes.AdoptionRuleScopeRequired, "Adoption rule process area and scope type are required.");
+        }
+
+        if (!thresholdPercentage.HasValue || thresholdPercentage <= 0m || thresholdPercentage > 100m)
+        {
+            return Validation<AdoptionRuleItem>(ApiErrorCodes.AdoptionRuleThresholdInvalid, "Adoption rule threshold must be between 0 and 100.");
+        }
+
+        return null;
+    }
+
+    private static AdoptionRuleItem ToAdoptionRuleItem(AdoptionRuleEntity entity) =>
+        new(entity.Id, entity.RuleCode, entity.ProcessArea, entity.ScopeType, entity.ThresholdPercentage, entity.Status, entity.UpdatedAt);
+
     private static string NormalizeTrendStatus(string status) => status.Trim().ToLowerInvariant() switch
     {
         "approved" => "approved",
@@ -730,6 +943,13 @@ public sealed class MetricsCommands(
         "passed" => "passed",
         "failed" => "failed",
         _ => "pending"
+    };
+
+    private static string NormalizeAdoptionRuleStatus(string status) => status.Trim().ToLowerInvariant() switch
+    {
+        "active" => "active",
+        "archived" => "archived",
+        _ => "draft"
     };
 
     private static string? NormalizeOptional(string? value, int maxLength) =>

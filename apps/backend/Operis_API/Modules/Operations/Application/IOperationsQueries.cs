@@ -20,7 +20,10 @@ public sealed record RestoreVerificationListQuery(Guid? BackupEvidenceId, string
 public sealed record DrDrillListQuery(string? ScopeRef, string? Status, DateTimeOffset? PlannedAfter, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record LegalHoldListQuery(string? ScopeType, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record CapaRecordListQuery(string? SourceType, string? OwnerUserId, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record CapaEffectivenessReviewListQuery(Guid? CapaRecordId, string? EffectivenessResult, string? Status, string? ReviewedBy, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 public sealed record EscalationEventListQuery(string? ScopeType, string? EscalatedTo, string? Status, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record AutomationJobListQuery(string? JobType, string? Status, string? ScopeRef, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
+public sealed record AutomationJobRunListQuery(Guid? JobId, string? JobType, string? Status, string? TriggeredBy, string? Search, string? SortBy, string? SortOrder, int Page = 1, int PageSize = 25);
 
 public interface IOperationsQueries
 {
@@ -45,5 +48,9 @@ public interface IOperationsQueries
     Task<PagedResult<LegalHoldResponse>> ListLegalHoldsAsync(LegalHoldListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<CapaRecordResponse>> ListCapaRecordsAsync(CapaRecordListQuery query, CancellationToken cancellationToken);
     Task<CapaRecordResponse?> GetCapaRecordAsync(Guid id, CancellationToken cancellationToken);
+    Task<PagedResult<CapaEffectivenessReviewResponse>> ListCapaEffectivenessReviewsAsync(CapaEffectivenessReviewListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<EscalationEventResponse>> ListEscalationEventsAsync(EscalationEventListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<AutomationJobResponse>> ListAutomationJobsAsync(AutomationJobListQuery query, CancellationToken cancellationToken);
+    Task<AutomationJobResponse?> GetAutomationJobAsync(Guid id, CancellationToken cancellationToken);
+    Task<PagedResult<AutomationJobRunResponse>> ListAutomationJobRunsAsync(AutomationJobRunListQuery query, CancellationToken cancellationToken);
 }

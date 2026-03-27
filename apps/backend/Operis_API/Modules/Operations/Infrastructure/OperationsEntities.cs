@@ -258,6 +258,23 @@ public sealed class CapaActionEntity
     public DateTimeOffset? UpdatedAt { get; set; }
 }
 
+public sealed class CapaEffectivenessReviewEntity
+{
+    public Guid Id { get; init; }
+    public Guid CapaRecordId { get; set; }
+    public string EffectivenessResult { get; set; } = string.Empty;
+    public string EvidenceRef { get; set; } = string.Empty;
+    public string? ReviewSummary { get; set; }
+    public string Status { get; set; } = "draft";
+    public string ReviewedBy { get; set; } = string.Empty;
+    public DateTimeOffset ReviewedAt { get; set; }
+    public DateTimeOffset? ReopenedAt { get; set; }
+    public string? ReopenedBy { get; set; }
+    public string? ReopenReason { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
 public sealed class EscalationEventEntity
 {
     public Guid Id { get; init; }
@@ -269,4 +286,46 @@ public sealed class EscalationEventEntity
     public string Status { get; set; } = "triggered";
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class AutomationJobEntity
+{
+    public Guid Id { get; init; }
+    public string JobName { get; set; } = string.Empty;
+    public string JobType { get; set; } = string.Empty;
+    public string ScopeRef { get; set; } = string.Empty;
+    public string ScheduleRef { get; set; } = string.Empty;
+    public string Status { get; set; } = "draft";
+    public string? LatestRunStatus { get; set; }
+    public DateTimeOffset? LatestRunAt { get; set; }
+    public string? FailureSummary { get; set; }
+    public string CreatedBy { get; init; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public sealed class AutomationJobRunEntity
+{
+    public Guid Id { get; init; }
+    public Guid JobId { get; set; }
+    public string Status { get; set; } = "queued";
+    public string TriggeredBy { get; set; } = string.Empty;
+    public string? TriggerReason { get; set; }
+    public DateTimeOffset QueuedAt { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
+    public string? ErrorSummary { get; set; }
+    public string? RemediationPath { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
+}
+
+public sealed class AutomationJobEvidenceRefEntity
+{
+    public Guid Id { get; init; }
+    public Guid JobRunId { get; set; }
+    public string EntityType { get; set; } = string.Empty;
+    public string EntityId { get; set; } = string.Empty;
+    public string Route { get; set; } = string.Empty;
+    public string EvidenceRef { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; init; }
 }

@@ -228,6 +228,25 @@ export interface CapaAction {
   updatedAt: string | null;
 }
 
+export interface CapaEffectivenessReview {
+  id: string;
+  capaRecordId: string;
+  capaTitle: string;
+  capaOwnerUserId: string;
+  capaStatus: string;
+  effectivenessResult: string;
+  evidenceRef: string;
+  reviewSummary: string | null;
+  status: string;
+  reviewedBy: string;
+  reviewedAt: string;
+  reopenedAt: string | null;
+  reopenedBy: string | null;
+  reopenReason: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 export interface CapaRecord {
   id: string;
   sourceType: string;
@@ -237,6 +256,7 @@ export interface CapaRecord {
   rootCauseSummary: string | null;
   status: string;
   actions: CapaAction[];
+  effectivenessReviews: CapaEffectivenessReview[];
   createdAt: string;
   updatedAt: string | null;
   verifiedAt: string | null;
@@ -255,6 +275,48 @@ export interface EscalationEvent {
   status: string;
   createdAt: string;
   updatedAt: string | null;
+}
+
+export interface AutomationJob {
+  id: string;
+  jobName: string;
+  jobType: string;
+  scopeRef: string;
+  scheduleRef: string;
+  status: string;
+  latestRunStatus: string | null;
+  latestRunAt: string | null;
+  failureSummary: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface AutomationJobEvidenceRef {
+  id: string;
+  jobRunId: string;
+  entityType: string;
+  entityId: string;
+  route: string;
+  evidenceRef: string;
+  createdAt: string;
+}
+
+export interface AutomationJobRun {
+  id: string;
+  jobId: string;
+  jobName: string;
+  jobType: string;
+  status: string;
+  triggeredBy: string;
+  triggerReason: string | null;
+  queuedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  errorSummary: string | null;
+  remediationPath: string | null;
+  evidenceRefs: AutomationJobEvidenceRef[];
+  createdAt: string;
 }
 
 export interface OperationsListInput {
@@ -281,6 +343,8 @@ export interface OperationsListInput {
   backupEvidenceId?: string;
   touchpoint?: string;
   sourceType?: string;
+  capaRecordId?: string;
+  effectivenessResult?: string;
   escalatedTo?: string;
   scope?: string;
   projectId?: string;
@@ -289,6 +353,8 @@ export interface OperationsListInput {
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  jobType?: string;
+  triggeredBy?: string;
   page?: number;
   pageSize?: number;
 }
@@ -380,6 +446,17 @@ export interface VerifyCapaInput {
 
 export interface CloseCapaInput {
   closureSummary?: string | null;
+}
+
+export interface CreateCapaEffectivenessReviewInput {
+  capaRecordId: string;
+  effectivenessResult: string;
+  evidenceRef: string;
+  reviewSummary?: string | null;
+}
+
+export interface ReopenCapaInput {
+  reopenReason: string;
 }
 
 export interface CreateEscalationEventInput {
@@ -514,3 +591,33 @@ export interface CreateClassificationPolicyInput {
 }
 
 export interface UpdateClassificationPolicyInput extends CreateClassificationPolicyInput {}
+
+export interface CreateAutomationJobInput {
+  jobName: string;
+  jobType: string;
+  scopeRef: string;
+  scheduleRef: string;
+  status: string;
+}
+
+export interface UpdateAutomationJobInput extends CreateAutomationJobInput {}
+
+export interface TransitionAutomationJobInput {
+  targetStatus: string;
+  reason?: string | null;
+}
+
+export interface AutomationJobEvidenceRefInput {
+  entityType: string;
+  entityId: string;
+  route: string;
+  evidenceRef: string;
+}
+
+export interface ExecuteAutomationJobInput {
+  initialStatus: string;
+  triggerReason?: string | null;
+  errorSummary?: string | null;
+  remediationPath?: string | null;
+  evidenceRefs?: AutomationJobEvidenceRefInput[] | null;
+}

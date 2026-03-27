@@ -36,7 +36,14 @@ public sealed record UpdateCapaRecordRequest(string SourceType, string SourceRef
 public sealed record CreateCapaActionRequest(string ActionDescription, string AssignedTo, DateOnly DueDate, string Status);
 public sealed record VerifyCapaRequest(string? RootCauseSummary);
 public sealed record CloseCapaRequest(string? ClosureSummary);
+public sealed record CreateCapaEffectivenessReviewRequest(Guid CapaRecordId, string EffectivenessResult, string EvidenceRef, string? ReviewSummary);
+public sealed record ReopenCapaRequest(string ReopenReason);
 public sealed record CreateEscalationEventRequest(string ScopeType, string ScopeRef, DateTimeOffset TriggeredAt, string TriggerReason, string EscalatedTo, string Status);
+public sealed record CreateAutomationJobRequest(string JobName, string JobType, string ScopeRef, string ScheduleRef, string Status);
+public sealed record UpdateAutomationJobRequest(string JobName, string JobType, string ScopeRef, string ScheduleRef, string Status);
+public sealed record TransitionAutomationJobRequest(string TargetStatus, string? Reason);
+public sealed record AutomationJobEvidenceRefRequest(string EntityType, string EntityId, string Route, string EvidenceRef);
+public sealed record ExecuteAutomationJobRequest(string InitialStatus, string? TriggerReason, string? ErrorSummary, string? RemediationPath, IReadOnlyList<AutomationJobEvidenceRefRequest>? EvidenceRefs);
 
 public sealed record AccessReviewResponse(Guid Id, string ScopeType, string ScopeRef, string ReviewCycle, string? ReviewedBy, string Status, string? Decision, string? DecisionRationale, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 public sealed record SecurityReviewResponse(Guid Id, string ScopeType, string ScopeRef, string ControlsReviewed, string? FindingsSummary, string Status, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
@@ -56,5 +63,9 @@ public sealed record RestoreVerificationResponse(Guid Id, Guid BackupEvidenceId,
 public sealed record DrDrillResponse(Guid Id, string ScopeRef, DateTimeOffset PlannedAt, DateTimeOffset? ExecutedAt, string Status, int FindingCount, string? Summary, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 public sealed record LegalHoldResponse(Guid Id, string ScopeType, string ScopeRef, DateTimeOffset PlacedAt, string PlacedBy, string Status, string Reason, DateTimeOffset? ReleasedAt, string? ReleasedBy, string? ReleaseReason, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
 public sealed record CapaActionResponse(Guid Id, Guid CapaRecordId, string ActionDescription, string AssignedTo, DateOnly DueDate, string Status, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
-public sealed record CapaRecordResponse(Guid Id, string SourceType, string SourceRef, string Title, string OwnerUserId, string? RootCauseSummary, string Status, IReadOnlyList<CapaActionResponse> Actions, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt, DateTimeOffset? VerifiedAt, string? VerifiedBy, DateTimeOffset? ClosedAt, string? ClosedBy);
+public sealed record CapaEffectivenessReviewResponse(Guid Id, Guid CapaRecordId, string CapaTitle, string CapaOwnerUserId, string CapaStatus, string EffectivenessResult, string EvidenceRef, string? ReviewSummary, string Status, string ReviewedBy, DateTimeOffset ReviewedAt, DateTimeOffset? ReopenedAt, string? ReopenedBy, string? ReopenReason, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+public sealed record CapaRecordResponse(Guid Id, string SourceType, string SourceRef, string Title, string OwnerUserId, string? RootCauseSummary, string Status, IReadOnlyList<CapaActionResponse> Actions, IReadOnlyList<CapaEffectivenessReviewResponse> EffectivenessReviews, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt, DateTimeOffset? VerifiedAt, string? VerifiedBy, DateTimeOffset? ClosedAt, string? ClosedBy);
 public sealed record EscalationEventResponse(Guid Id, string ScopeType, string ScopeRef, DateTimeOffset TriggeredAt, string TriggerReason, string EscalatedTo, string Status, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+public sealed record AutomationJobResponse(Guid Id, string JobName, string JobType, string ScopeRef, string ScheduleRef, string Status, string? LatestRunStatus, DateTimeOffset? LatestRunAt, string? FailureSummary, string CreatedBy, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt);
+public sealed record AutomationJobEvidenceRefResponse(Guid Id, Guid JobRunId, string EntityType, string EntityId, string Route, string EvidenceRef, DateTimeOffset CreatedAt);
+public sealed record AutomationJobRunResponse(Guid Id, Guid JobId, string JobName, string JobType, string Status, string TriggeredBy, string? TriggerReason, DateTimeOffset QueuedAt, DateTimeOffset? StartedAt, DateTimeOffset? CompletedAt, string? ErrorSummary, string? RemediationPath, IReadOnlyList<AutomationJobEvidenceRefResponse> EvidenceRefs, DateTimeOffset CreatedAt);

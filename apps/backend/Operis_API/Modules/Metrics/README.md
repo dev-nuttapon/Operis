@@ -5,6 +5,7 @@ Purpose:
 * owns Phase 9 metrics, collection schedules, metric results, and quality gate enforcement
 * owns Phase 17 metric reviews and trend reports
 * owns Phase 22 performance baselines, capacity reviews, slow operation reviews, and performance regression gates
+* owns Phase 31 adoption rules, adoption scorecards, and adoption anomalies
 
 Public surface:
 
@@ -25,6 +26,9 @@ Owned data:
 * `capacity_reviews`
 * `slow_operation_reviews`
 * `performance_gate_results`
+* `adoption_rules`
+* `adoption_scores`
+* `adoption_anomalies`
 
 Notes:
 
@@ -33,3 +37,4 @@ Notes:
 * review-close and trend-approval validation stay in `Application/`
 * performance gate overrides require explicit reasons and stay server-driven
 * slow operation closure requires verification evidence in `Application/`
+* adoption score evaluation stays server-driven and reads cross-module evidence without writing into non-owned tables

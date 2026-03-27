@@ -136,3 +136,42 @@ public sealed record PerformanceGateResultEntity
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 }
+
+public sealed record AdoptionRuleEntity
+{
+    public Guid Id { get; init; }
+    public string RuleCode { get; init; } = string.Empty;
+    public string ProcessArea { get; init; } = string.Empty;
+    public string ScopeType { get; init; } = string.Empty;
+    public decimal ThresholdPercentage { get; init; }
+    public string Status { get; init; } = "draft";
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+}
+
+public sealed record AdoptionScoreEntity
+{
+    public Guid Id { get; init; }
+    public Guid ProjectId { get; init; }
+    public Guid AdoptionRuleId { get; init; }
+    public string ProcessArea { get; init; } = string.Empty;
+    public decimal ScorePercentage { get; init; }
+    public string ScoreState { get; init; } = "calculated";
+    public int EvidenceCount { get; init; }
+    public int ExpectedCount { get; init; }
+    public DateTimeOffset CalculatedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+}
+
+public sealed record AdoptionAnomalyEntity
+{
+    public Guid Id { get; init; }
+    public Guid ProjectId { get; init; }
+    public Guid AdoptionRuleId { get; init; }
+    public string ProcessArea { get; init; } = string.Empty;
+    public string Severity { get; init; } = "medium";
+    public string Summary { get; init; } = string.Empty;
+    public string Status { get; init; } = "open";
+    public DateTimeOffset DetectedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+}

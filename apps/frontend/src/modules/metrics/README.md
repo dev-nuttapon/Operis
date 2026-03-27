@@ -5,6 +5,7 @@ Purpose:
 * owns Phase 9 metric definitions, dashboard, schedules, and quality gate UI
 * owns Phase 17 metrics review log and trend analysis report UI
 * owns Phase 22 performance baseline, capacity review, slow operation review, and performance regression gate UI
+* owns Phase 31 adoption rules and adoption scorecards UI
 
 Public surface:
 
@@ -21,3 +22,4 @@ Notes:
 * dashboard widgets share the aggregated `GET /metric-results` response to avoid client fan-out
 * trend approval and review closure validation stay server-driven
 * performance gate override and slow-operation verification errors are surfaced from backend error codes
+* adoption scorecards refresh from backend evaluation instead of recomputing client-side

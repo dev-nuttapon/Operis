@@ -4,9 +4,11 @@ import {
   addCapaAction,
   completeAccessRecertification,
   closeCapa,
+  createCapaEffectivenessReview,
   createAccessRecertification,
   approveAccessReview,
   createBackupEvidence,
+  createAutomationJob,
   createCapaRecord,
   createClassificationPolicy,
   createAccessReview,
@@ -24,12 +26,16 @@ import {
   createSupplierAgreement,
   createVulnerability,
   getAccessRecertification,
+  getAutomationJob,
   getCapaRecord,
   getSecurityIncident,
   getSupplier,
   listAccessRecertifications,
   listAccessReviews,
+  listAutomationJobRuns,
+  listAutomationJobs,
   listBackupEvidence,
+  listCapaEffectivenessReviews,
   listCapaRecords,
   listClassificationPolicies,
   listConfigurationAudits,
@@ -46,10 +52,13 @@ import {
   listSuppliers,
   listVulnerabilities,
   releaseLegalHold,
+  reopenCapa,
+  transitionAutomationJob,
   verifyCapa,
   updateClassificationPolicy,
   updateAccessRecertification,
   updateAccessReview,
+  updateAutomationJob,
   updateCapaRecord,
   updateDrDrill,
   updateExternalDependency,
@@ -60,13 +69,16 @@ import {
   updateSupplierAgreement,
   updateSecurityReview,
   updateVulnerability,
+  executeAutomationJob,
 } from "../api/operationsApi";
 import type {
   AddAccessRecertificationDecisionInput,
   ApproveAccessReviewInput,
   CloseCapaInput,
+  CreateAutomationJobInput,
   CreateBackupEvidenceInput,
   CreateCapaActionInput,
+  CreateCapaEffectivenessReviewInput,
   CreateCapaRecordInput,
   CreateAccessRecertificationInput,
   CreateAccessReviewInput,
@@ -86,10 +98,13 @@ import type {
   CreateVulnerabilityInput,
   OperationsListInput,
   ReleaseLegalHoldInput,
+  ReopenCapaInput,
+  TransitionAutomationJobInput,
   UpdateDrDrillInput,
   UpdateClassificationPolicyInput,
   UpdateAccessRecertificationInput,
   UpdateAccessReviewInput,
+  UpdateAutomationJobInput,
   UpdateCapaRecordInput,
   UpdateExternalDependencyInput,
   UpdatePrivilegedAccessEventInput,
@@ -100,12 +115,40 @@ import type {
   UpdateSecurityReviewInput,
   UpdateVulnerabilityInput,
   VerifyCapaInput,
+  ExecuteAutomationJobInput,
 } from "../types/operations";
 
 export function useAccessReviews(input: OperationsListInput, enabled = true) {
   return useQuery({
     queryKey: ["operations", "access-reviews", input],
     queryFn: ({ signal }) => listAccessReviews(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useAutomationJobs(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "automation-jobs", input],
+    queryFn: ({ signal }) => listAutomationJobs(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
+export function useAutomationJob(id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "automation-jobs", id],
+    queryFn: ({ signal }) => getAutomationJob(id!, signal),
+    staleTime: 15_000,
+    enabled: enabled && Boolean(id),
+  });
+}
+
+export function useAutomationJobRuns(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "automation-job-runs", input],
+    queryFn: ({ signal }) => listAutomationJobRuns(input, signal),
     staleTime: 15_000,
     enabled,
   });
@@ -264,6 +307,15 @@ export function useCapaRecord(id: string | undefined, enabled = true) {
   });
 }
 
+export function useCapaEffectivenessReviews(input: OperationsListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["operations", "capa-effectiveness", input],
+    queryFn: ({ signal }) => listCapaEffectivenessReviews(input, signal),
+    staleTime: 15_000,
+    enabled,
+  });
+}
+
 export function useEscalationEvents(input: OperationsListInput, enabled = true) {
   return useQuery({
     queryKey: ["operations", "escalations", input],
@@ -328,6 +380,48 @@ export function useApproveAccessReview() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ApproveAccessReviewInput }) => approveAccessReview(id, input),
     onSuccess: invalidate,
+  });
+}
+
+export function useCreateAutomationJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateAutomationJobInput) => createAutomationJob(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["operations", "automation-jobs"] });
+    },
+  });
+}
+
+export function useUpdateAutomationJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateAutomationJobInput }) => updateAutomationJob(id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["operations", "automation-jobs"] });
+    },
+  });
+}
+
+export function useTransitionAutomationJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: TransitionAutomationJobInput }) => transitionAutomationJob(id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["operations", "automation-jobs"] });
+      await queryClient.invalidateQueries({ queryKey: ["operations", "automation-job-runs"] });
+    },
+  });
+}
+
+export function useExecuteAutomationJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: ExecuteAutomationJobInput }) => executeAutomationJob(id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["operations", "automation-jobs"] });
+      await queryClient.invalidateQueries({ queryKey: ["operations", "automation-job-runs"] });
+    },
   });
 }
 
@@ -567,6 +661,22 @@ export function useCloseCapa() {
   const invalidate = useInvalidateOperations();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: CloseCapaInput }) => closeCapa(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateCapaEffectivenessReview() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: (input: CreateCapaEffectivenessReviewInput) => createCapaEffectivenessReview(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useReopenCapa() {
+  const invalidate = useInvalidateOperations();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: ReopenCapaInput }) => reopenCapa(id, input),
     onSuccess: invalidate,
   });
 }

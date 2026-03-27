@@ -1,4 +1,5 @@
 using Operis_API.Modules.Metrics.Contracts;
+using Operis_API.Shared.Contracts;
 
 namespace Operis_API.Modules.Metrics.Application;
 
@@ -21,4 +22,7 @@ public interface IMetricsCommands
     Task<MetricsCommandResult<SlowOperationReviewItem>> UpdateSlowOperationReviewAsync(Guid slowOperationReviewId, UpdateSlowOperationReviewRequest request, string? actorUserId, CancellationToken cancellationToken);
     Task<MetricsCommandResult<PerformanceGateItem>> EvaluatePerformanceGateAsync(EvaluatePerformanceGateRequest request, string? actorUserId, CancellationToken cancellationToken);
     Task<MetricsCommandResult<PerformanceGateOverrideResponse>> OverridePerformanceGateAsync(Guid performanceGateId, OverridePerformanceGateRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<AdoptionRuleItem>> CreateAdoptionRuleAsync(CreateAdoptionRuleRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<AdoptionRuleItem>> UpdateAdoptionRuleAsync(Guid adoptionRuleId, UpdateAdoptionRuleRequest request, string? actorUserId, CancellationToken cancellationToken);
+    Task<MetricsCommandResult<PagedResult<AdoptionScorecardItem>>> EvaluateAdoptionRulesAsync(EvaluateAdoptionRulesRequest request, string? actorUserId, CancellationToken cancellationToken);
 }

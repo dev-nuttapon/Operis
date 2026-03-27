@@ -114,6 +114,30 @@ public sealed class MetricsCommandsTests
     }
 
     [Fact]
+    public async Task CreateAdoptionRuleAsync_WithoutScope_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var sut = new MetricsCommands(dbContext, new FakeAuditLogWriter(), new FakeBusinessAuditEventWriter(), new MetricsQueries(dbContext));
+
+        var result = await sut.CreateAdoptionRuleAsync(new CreateAdoptionRuleRequest("ADOPTION-001", "requirements_traceability", "", 85m), "qa@example.com", CancellationToken.None);
+
+        Assert.Equal(MetricsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.AdoptionRuleScopeRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CreateAdoptionRuleAsync_WithInvalidThreshold_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var sut = new MetricsCommands(dbContext, new FakeAuditLogWriter(), new FakeBusinessAuditEventWriter(), new MetricsQueries(dbContext));
+
+        var result = await sut.CreateAdoptionRuleAsync(new CreateAdoptionRuleRequest("ADOPTION-001", "requirements_traceability", "project", 120m), "qa@example.com", CancellationToken.None);
+
+        Assert.Equal(MetricsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.AdoptionRuleThresholdInvalid, result.ErrorCode);
+    }
+
+    [Fact]
     public async Task UpdateSlowOperationReviewAsync_CloseWithoutVerification_ReturnsStableErrorCode()
     {
         await using var dbContext = TestDbContextFactory.Create();

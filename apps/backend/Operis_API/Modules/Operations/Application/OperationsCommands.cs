@@ -18,7 +18,10 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
     private static readonly string[] LegalHoldStatuses = ["active", "released", "archived"];
     private static readonly string[] CapaStatuses = ["open", "root_cause_analysis", "action_planned", "action_in_progress", "verified", "closed"];
     private static readonly string[] CapaActionStatuses = ["open", "in_progress", "done"];
+    private static readonly string[] CapaEffectivenessStatuses = ["draft", "submitted", "accepted", "ineffective"];
     private static readonly string[] EscalationStatuses = ["triggered", "acknowledged", "closed"];
+    private static readonly string[] AutomationJobStatuses = ["draft", "active", "paused", "retired"];
+    private static readonly string[] AutomationRunStatuses = ["queued", "running", "succeeded", "failed"];
 
     public async Task<OperationsCommandResult<AccessReviewResponse>> CreateAccessReviewAsync(CreateAccessReviewRequest request, string? actor, CancellationToken cancellationToken)
     {
@@ -1125,7 +1128,7 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         dbContext.CapaRecords.Add(entity);
         AppendAudit("create", "capa_record", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Success(ToResponse(entity, []), created: true);
+        return Success(ToResponse(entity, [], []), created: true);
     }
 
     public async Task<OperationsCommandResult<CapaRecordResponse>> UpdateCapaRecordAsync(Guid id, UpdateCapaRecordRequest request, string? actor, CancellationToken cancellationToken)
@@ -1257,6 +1260,91 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         return await GetCapaResultAsync(entity.Id, cancellationToken);
     }
 
+    public async Task<OperationsCommandResult<CapaEffectivenessReviewResponse>> CreateCapaEffectivenessReviewAsync(CreateCapaEffectivenessReviewRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var reviewResult = NormalizeCapaEffectivenessResult(request.EffectivenessResult);
+        var evidenceRef = Required(request.EvidenceRef, 512);
+        if (reviewResult is null)
+        {
+            return Validation<CapaEffectivenessReviewResponse>("CAPA effectiveness result is required.", ApiErrorCodes.CapaEffectivenessResultRequired);
+        }
+
+        if (evidenceRef is null)
+        {
+            return Validation<CapaEffectivenessReviewResponse>("CAPA effectiveness evidence is required.", ApiErrorCodes.CapaEffectivenessEvidenceRequired);
+        }
+
+        var capaRecord = await dbContext.CapaRecords.FirstOrDefaultAsync(x => x.Id == request.CapaRecordId, cancellationToken);
+        if (capaRecord is null)
+        {
+            return NotFound<CapaEffectivenessReviewResponse>();
+        }
+
+        if (!string.Equals(capaRecord.Status, "closed", StringComparison.OrdinalIgnoreCase))
+        {
+            return Validation<CapaEffectivenessReviewResponse>("CAPA effectiveness reviews are only allowed after closure.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        var status = reviewResult == "effective" ? "accepted" : "ineffective";
+        var review = new CapaEffectivenessReviewEntity
+        {
+            Id = Guid.NewGuid(),
+            CapaRecordId = request.CapaRecordId,
+            EffectivenessResult = reviewResult,
+            EvidenceRef = evidenceRef,
+            ReviewSummary = Optional(request.ReviewSummary, 4000),
+            Status = status,
+            ReviewedBy = Optional(actor, 128) ?? "system",
+            ReviewedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.CapaEffectivenessReviews.Add(review);
+        AppendAudit("review_effectiveness", "capa_record", capaRecord.Id.ToString(), StatusCodes.Status201Created, review.ReviewSummary, after: review);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(review, capaRecord), created: true);
+    }
+
+    public async Task<OperationsCommandResult<CapaRecordResponse>> ReopenCapaAsync(Guid id, ReopenCapaRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.CapaRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null)
+        {
+            return NotFound<CapaRecordResponse>();
+        }
+
+        var reopenReason = Required(request.ReopenReason, 2000);
+        if (reopenReason is null)
+        {
+            return Validation<CapaRecordResponse>("CAPA reopen reason is required.", ApiErrorCodes.CapaReopenReasonRequired);
+        }
+
+        var latestReview = await dbContext.CapaEffectivenessReviews
+            .Where(x => x.CapaRecordId == id)
+            .OrderByDescending(x => x.ReviewedAt)
+            .ThenByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestReview is null || latestReview.Status != "ineffective")
+        {
+            return Validation<CapaRecordResponse>("Only ineffective CAPA reviews can reopen the record.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.Status = "action_planned";
+        entity.ClosedAt = null;
+        entity.ClosedBy = null;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        latestReview.ReopenedAt = DateTimeOffset.UtcNow;
+        latestReview.ReopenedBy = Optional(actor, 128);
+        latestReview.ReopenReason = reopenReason;
+        latestReview.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("reopen", "capa_record", entity.Id.ToString(), StatusCodes.Status200OK, reopenReason, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await GetCapaResultAsync(entity.Id, cancellationToken);
+    }
+
     public async Task<OperationsCommandResult<EscalationEventResponse>> CreateEscalationEventAsync(CreateEscalationEventRequest request, string? actor, CancellationToken cancellationToken)
     {
         var scopeType = Required(request.ScopeType, 64);
@@ -1284,6 +1372,149 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         AppendAudit("create", "escalation_event", entity.Id.ToString(), StatusCodes.Status201Created, triggerReason, after: entity);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<AutomationJobResponse>> CreateAutomationJobAsync(CreateAutomationJobRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var jobName = Required(request.JobName, 256);
+        var jobType = Required(request.JobType, 64);
+        var scopeRef = Required(request.ScopeRef, 256);
+        var scheduleRef = Required(request.ScheduleRef, 256);
+        if (jobName is null) return Validation<AutomationJobResponse>("Automation job name is required.", ApiErrorCodes.AutomationJobNameRequired);
+        if (jobType is null) return Validation<AutomationJobResponse>("Automation job type is required.", ApiErrorCodes.AutomationJobTypeRequired);
+        if (scopeRef is null || scheduleRef is null) return Validation<AutomationJobResponse>("Automation job scope and schedule are required.");
+        if (await dbContext.AutomationJobs.AnyAsync(x => x.JobName == jobName, cancellationToken))
+        {
+            return Conflict<AutomationJobResponse>("Automation job name already exists.");
+        }
+
+        var entity = new AutomationJobEntity
+        {
+            Id = Guid.NewGuid(),
+            JobName = jobName,
+            JobType = jobType.ToLowerInvariant(),
+            ScopeRef = scopeRef,
+            ScheduleRef = scheduleRef,
+            Status = NormalizeAutomationJobStatus(request.Status),
+            CreatedBy = actor ?? "system",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.AutomationJobs.Add(entity);
+        AppendAudit("create", "automation_job", entity.Id.ToString(), StatusCodes.Status201Created, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity), created: true);
+    }
+
+    public async Task<OperationsCommandResult<AutomationJobResponse>> UpdateAutomationJobAsync(Guid id, UpdateAutomationJobRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.AutomationJobs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<AutomationJobResponse>();
+
+        var jobName = Required(request.JobName, 256);
+        var jobType = Required(request.JobType, 64);
+        var scopeRef = Required(request.ScopeRef, 256);
+        var scheduleRef = Required(request.ScheduleRef, 256);
+        if (jobName is null) return Validation<AutomationJobResponse>("Automation job name is required.", ApiErrorCodes.AutomationJobNameRequired);
+        if (jobType is null) return Validation<AutomationJobResponse>("Automation job type is required.", ApiErrorCodes.AutomationJobTypeRequired);
+        if (scopeRef is null || scheduleRef is null) return Validation<AutomationJobResponse>("Automation job scope and schedule are required.");
+        if (await dbContext.AutomationJobs.AnyAsync(x => x.Id != id && x.JobName == jobName, cancellationToken))
+        {
+            return Conflict<AutomationJobResponse>("Automation job name already exists.");
+        }
+
+        entity.JobName = jobName;
+        entity.JobType = jobType.ToLowerInvariant();
+        entity.ScopeRef = scopeRef;
+        entity.ScheduleRef = scheduleRef;
+        entity.Status = NormalizeAutomationJobStatus(request.Status);
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("update", "automation_job", entity.Id.ToString(), StatusCodes.Status200OK, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity));
+    }
+
+    public async Task<OperationsCommandResult<AutomationJobResponse>> TransitionAutomationJobAsync(Guid id, TransitionAutomationJobRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.AutomationJobs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) return NotFound<AutomationJobResponse>();
+
+        var target = NormalizeAutomationJobStatus(request.TargetStatus);
+        if (!IsValidLinearTransition(entity.Status, target, AutomationJobStatuses))
+        {
+            return Validation<AutomationJobResponse>("Invalid workflow transition.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        entity.Status = target;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        AppendAudit("transition", "automation_job", entity.Id.ToString(), StatusCodes.Status200OK, request.Reason, after: entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(entity));
+    }
+
+    public async Task<OperationsCommandResult<AutomationJobRunResponse>> ExecuteAutomationJobAsync(Guid id, ExecuteAutomationJobRequest request, string? actor, CancellationToken cancellationToken)
+    {
+        var job = await dbContext.AutomationJobs.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (job is null) return NotFound<AutomationJobRunResponse>();
+        if (job.Status is "draft" or "retired")
+        {
+            return Validation<AutomationJobRunResponse>("Automation job is not executable in its current state.", ApiErrorCodes.InvalidWorkflowTransition);
+        }
+
+        var initialStatus = NormalizeAutomationRunStatus(request.InitialStatus);
+        var evidenceRefs = (request.EvidenceRefs ?? []).Where(x =>
+            !string.IsNullOrWhiteSpace(x.EntityType) &&
+            !string.IsNullOrWhiteSpace(x.EntityId) &&
+            !string.IsNullOrWhiteSpace(x.Route) &&
+            !string.IsNullOrWhiteSpace(x.EvidenceRef)).ToList();
+        if (initialStatus is "succeeded" or "failed" && evidenceRefs.Count == 0)
+        {
+            return Validation<AutomationJobRunResponse>("Automation job run requires evidence.", ApiErrorCodes.AutomationJobEvidenceRequired);
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var run = new AutomationJobRunEntity
+        {
+            Id = Guid.NewGuid(),
+            JobId = id,
+            Status = initialStatus,
+            TriggeredBy = actor ?? "system",
+            TriggerReason = Optional(request.TriggerReason, 2000),
+            QueuedAt = now,
+            StartedAt = initialStatus is "running" or "succeeded" or "failed" ? now : null,
+            CompletedAt = initialStatus is "succeeded" or "failed" ? now : null,
+            ErrorSummary = initialStatus == "failed" ? Optional(request.ErrorSummary, 2000) : null,
+            RemediationPath = initialStatus == "failed" ? Optional(request.RemediationPath, 512) : null,
+            CreatedAt = now
+        };
+
+        var evidenceEntities = evidenceRefs.Select(item => new AutomationJobEvidenceRefEntity
+        {
+            Id = Guid.NewGuid(),
+            JobRunId = run.Id,
+            EntityType = item.EntityType.Trim().ToLowerInvariant(),
+            EntityId = item.EntityId.Trim(),
+            Route = item.Route.Trim(),
+            EvidenceRef = item.EvidenceRef.Trim(),
+            CreatedAt = now
+        }).ToList();
+
+        dbContext.AutomationJobRuns.Add(run);
+        if (evidenceEntities.Count > 0)
+        {
+            dbContext.AutomationJobEvidenceRefs.AddRange(evidenceEntities);
+        }
+
+        job.LatestRunStatus = run.Status;
+        job.LatestRunAt = now;
+        job.FailureSummary = run.ErrorSummary;
+        job.UpdatedAt = now;
+
+        AppendAudit("execute", "automation_job", job.Id.ToString(), StatusCodes.Status201Created, request.TriggerReason, after: new { run.Status, EvidenceCount = evidenceEntities.Count, run.ErrorSummary });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Success(ToResponse(run, job, evidenceEntities), created: true);
     }
 
     private static string? NormalizeIncidentSeverity(string? value) => value?.Trim().ToLowerInvariant() switch
@@ -1373,6 +1604,7 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
 
     private static OperationsCommandResult<T> Success<T>(T value, bool created = false) => new(OperationsCommandStatus.Success, value);
     private static OperationsCommandResult<T> NotFound<T>() => new(OperationsCommandStatus.NotFound, default, "Resource not found.", ApiErrorCodes.ResourceNotFound);
+    private static OperationsCommandResult<T> Conflict<T>(string message) => new(OperationsCommandStatus.Conflict, default, message, ApiErrorCodes.RequestValidationFailed);
     private static OperationsCommandResult<T> Validation<T>(string message, string? code = null) => new(OperationsCommandStatus.ValidationError, default, message, code ?? ApiErrorCodes.RequestValidationFailed);
     private static string? Required(string? value, int max) => string.IsNullOrWhiteSpace(value) ? null : (value.Trim().Length > max ? value.Trim()[..max] : value.Trim());
     private static string? Optional(string? value, int max) => string.IsNullOrWhiteSpace(value) ? null : (value.Trim().Length > max ? value.Trim()[..max] : value.Trim());
@@ -1396,8 +1628,14 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
     private static DrDrillResponse ToResponse(DrDrillEntity x) => new(x.Id, x.ScopeRef, x.PlannedAt, x.ExecutedAt, x.Status, x.FindingCount, x.Summary, x.CreatedAt, x.UpdatedAt);
     private static LegalHoldResponse ToResponse(LegalHoldEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.PlacedAt, x.PlacedBy, x.Status, x.Reason, x.ReleasedAt, x.ReleasedBy, x.ReleaseReason, x.CreatedAt, x.UpdatedAt);
     private static CapaActionResponse ToResponse(CapaActionEntity x) => new(x.Id, x.CapaRecordId, x.ActionDescription, x.AssignedTo, x.DueDate, x.Status, x.CreatedAt, x.UpdatedAt);
-    private static CapaRecordResponse ToResponse(CapaRecordEntity x, IReadOnlyList<CapaActionResponse> actions) => new(x.Id, x.SourceType, x.SourceRef, x.Title, x.OwnerUserId, x.RootCauseSummary, x.Status, actions, x.CreatedAt, x.UpdatedAt, x.VerifiedAt, x.VerifiedBy, x.ClosedAt, x.ClosedBy);
+    private static CapaEffectivenessReviewResponse ToResponse(CapaEffectivenessReviewEntity x, CapaRecordEntity capaRecord) =>
+        new(x.Id, x.CapaRecordId, capaRecord.Title, capaRecord.OwnerUserId, capaRecord.Status, x.EffectivenessResult, x.EvidenceRef, x.ReviewSummary, x.Status, x.ReviewedBy, x.ReviewedAt, x.ReopenedAt, x.ReopenedBy, x.ReopenReason, x.CreatedAt, x.UpdatedAt);
+    private static CapaRecordResponse ToResponse(CapaRecordEntity x, IReadOnlyList<CapaActionResponse> actions, IReadOnlyList<CapaEffectivenessReviewResponse> effectivenessReviews) => new(x.Id, x.SourceType, x.SourceRef, x.Title, x.OwnerUserId, x.RootCauseSummary, x.Status, actions, effectivenessReviews, x.CreatedAt, x.UpdatedAt, x.VerifiedAt, x.VerifiedBy, x.ClosedAt, x.ClosedBy);
     private static EscalationEventResponse ToResponse(EscalationEventEntity x) => new(x.Id, x.ScopeType, x.ScopeRef, x.TriggeredAt, x.TriggerReason, x.EscalatedTo, x.Status, x.CreatedAt, x.UpdatedAt);
+    private static AutomationJobResponse ToResponse(AutomationJobEntity x) => new(x.Id, x.JobName, x.JobType, x.ScopeRef, x.ScheduleRef, x.Status, x.LatestRunStatus, x.LatestRunAt, x.FailureSummary, x.CreatedBy, x.CreatedAt, x.UpdatedAt);
+    private static AutomationJobEvidenceRefResponse ToResponse(AutomationJobEvidenceRefEntity x) => new(x.Id, x.JobRunId, x.EntityType, x.EntityId, x.Route, x.EvidenceRef, x.CreatedAt);
+    private static AutomationJobRunResponse ToResponse(AutomationJobRunEntity run, AutomationJobEntity job, IReadOnlyList<AutomationJobEvidenceRefEntity> evidenceRefs) =>
+        new(run.Id, run.JobId, job.JobName, job.JobType, run.Status, run.TriggeredBy, run.TriggerReason, run.QueuedAt, run.StartedAt, run.CompletedAt, run.ErrorSummary, run.RemediationPath, evidenceRefs.Select(ToResponse).ToList(), run.CreatedAt);
     private async Task<ExternalDependencyResponse> ToResponseAsync(ExternalDependencyEntity x, CancellationToken cancellationToken)
     {
         string? supplierName = null;
@@ -1582,7 +1820,14 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
             .Select(x => ToResponse(x))
             .ToListAsync(cancellationToken);
 
-        return Success(ToResponse(record, actions));
+        var effectivenessReviews = await dbContext.CapaEffectivenessReviews.AsNoTracking()
+            .Where(x => x.CapaRecordId == id)
+            .OrderByDescending(x => x.ReviewedAt)
+            .ThenByDescending(x => x.CreatedAt)
+            .Select(x => ToResponse(x, record))
+            .ToListAsync(cancellationToken);
+
+        return Success(ToResponse(record, actions, effectivenessReviews));
     }
 
     private static bool IsValidLinearTransition(string current, string next, IReadOnlyList<string> statuses)
@@ -1640,10 +1885,33 @@ public sealed class OperationsCommands(OperisDbContext dbContext, IAuditLogWrite
         _ => "open"
     };
 
+    private static string? NormalizeCapaEffectivenessResult(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "effective" => "effective",
+        "ineffective" => "ineffective",
+        _ => null
+    };
+
     private static string NormalizeEscalationStatus(string? value) => value?.Trim().ToLowerInvariant() switch
     {
         "acknowledged" => "acknowledged",
         "closed" => "closed",
         _ => "triggered"
+    };
+
+    private static string NormalizeAutomationJobStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "active" => "active",
+        "paused" => "paused",
+        "retired" => "retired",
+        _ => "draft"
+    };
+
+    private static string NormalizeAutomationRunStatus(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "running" => "running",
+        "succeeded" => "succeeded",
+        "failed" => "failed",
+        _ => "queued"
     };
 }

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createAdoptionRule,
   createMetricCollectionSchedule,
   createMetricDefinition,
   createMetricReview,
@@ -7,9 +8,12 @@ import {
   createCapacityReview,
   createSlowOperationReview,
   createTrendReport,
+  evaluateAdoptionRules,
   evaluateQualityGate,
   evaluatePerformanceGate,
   getTrendReport,
+  listAdoptionRules,
+  listAdoptionScorecards,
   listCapacityReviews,
   listMetricCollectionSchedules,
   listMetricDefinitions,
@@ -22,6 +26,7 @@ import {
   listTrendReports,
   overridePerformanceGate,
   overrideQualityGate,
+  updateAdoptionRule,
   updatePerformanceBaseline,
   updateCapacityReview,
   updateSlowOperationReview,
@@ -30,6 +35,9 @@ import {
   updateTrendReport,
 } from "../api/metricsApi";
 import type {
+  AdoptionRuleListInput,
+  AdoptionScorecardListInput,
+  CreateAdoptionRuleInput,
   CapacityReviewListInput,
   CreateMetricCollectionScheduleInput,
   CreateMetricDefinitionInput,
@@ -40,6 +48,7 @@ import type {
   CreateTrendReportInput,
   EvaluateQualityGateInput,
   EvaluatePerformanceGateInput,
+  EvaluateAdoptionRulesInput,
   PerformanceBaselineListInput,
   PerformanceGateListInput,
   MetricCollectionScheduleListInput,
@@ -50,6 +59,7 @@ import type {
   OverridePerformanceGateInput,
   SlowOperationReviewListInput,
   UpdatePerformanceBaselineInput,
+  UpdateAdoptionRuleInput,
   UpdateCapacityReviewInput,
   UpdateSlowOperationReviewInput,
   QualityGateListInput,
@@ -143,6 +153,22 @@ export function usePerformanceGates(input: PerformanceGateListInput, enabled = t
   return useQuery({
     queryKey: ["metrics", "performance-gates", input],
     queryFn: ({ signal }) => listPerformanceGates(input, signal),
+    enabled,
+  });
+}
+
+export function useAdoptionRules(input: AdoptionRuleListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["metrics", "adoption-rules", input],
+    queryFn: ({ signal }) => listAdoptionRules(input, signal),
+    enabled,
+  });
+}
+
+export function useAdoptionScorecards(input: AdoptionScorecardListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["metrics", "adoption-scorecards", input],
+    queryFn: ({ signal }) => listAdoptionScorecards(input, signal),
     enabled,
   });
 }
@@ -286,6 +312,30 @@ export function useOverridePerformanceGate() {
   const invalidate = useInvalidateMetrics();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: OverridePerformanceGateInput }) => overridePerformanceGate(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateAdoptionRule() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: (input: CreateAdoptionRuleInput) => createAdoptionRule(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateAdoptionRule() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateAdoptionRuleInput }) => updateAdoptionRule(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useEvaluateAdoptionRules() {
+  const invalidate = useInvalidateMetrics();
+  return useMutation({
+    mutationFn: (input: EvaluateAdoptionRulesInput) => evaluateAdoptionRules(input),
     onSuccess: invalidate,
   });
 }

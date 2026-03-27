@@ -5,9 +5,9 @@ import process from "node:process";
 const distAssetsPath = path.join(process.cwd(), "dist", "assets");
 
 const budgetsKb = new Map([
-  ["antd-core-vendor", 1162],
+  ["antd-core-vendor", 1174],
   ["react-vendor", 240],
-  ["index", 299],
+  ["index", 311],
   ["AdminUsersPage", 26],
   ["ActivityLogsPage", 15],
   ["DocumentDashboardPage", 8],

@@ -150,6 +150,43 @@ public sealed record PerformanceGateItem(
     string? EvaluatedByUserId,
     string? OverriddenByUserId);
 
+public sealed record AdoptionRuleItem(
+    Guid Id,
+    string RuleCode,
+    string ProcessArea,
+    string ScopeType,
+    decimal ThresholdPercentage,
+    string Status,
+    DateTimeOffset UpdatedAt);
+
+public sealed record AdoptionAnomalyItem(
+    Guid Id,
+    Guid ProjectId,
+    string ProjectName,
+    Guid AdoptionRuleId,
+    string RuleCode,
+    string ProcessArea,
+    string Severity,
+    string Summary,
+    string Status,
+    DateTimeOffset DetectedAt);
+
+public sealed record AdoptionScorecardItem(
+    Guid Id,
+    Guid ProjectId,
+    string ProjectName,
+    Guid AdoptionRuleId,
+    string RuleCode,
+    string ProcessArea,
+    string ScopeType,
+    decimal ThresholdPercentage,
+    decimal ScorePercentage,
+    string ScoreState,
+    int EvidenceCount,
+    int ExpectedCount,
+    DateTimeOffset CalculatedAt,
+    IReadOnlyList<AdoptionAnomalyItem> Anomalies);
+
 public sealed record CreateMetricDefinitionRequest(
     string Code,
     string Name,
@@ -197,6 +234,9 @@ public sealed record CreateSlowOperationReviewRequest(string OperationType, stri
 public sealed record UpdateSlowOperationReviewRequest(string OperationType, string OperationKey, int ObservedLatencyMs, int? FrequencyPerHour, string OwnerUserId, string? OptimizationSummary, string Status);
 public sealed record EvaluatePerformanceGateRequest(string ScopeRef, string Result, string? Reason, string? EvidenceRef);
 public sealed record OverridePerformanceGateRequest(string Reason);
+public sealed record CreateAdoptionRuleRequest(string RuleCode, string ProcessArea, string ScopeType, decimal? ThresholdPercentage, string Status = "draft");
+public sealed record UpdateAdoptionRuleRequest(string ProcessArea, string ScopeType, decimal? ThresholdPercentage, string Status);
+public sealed record EvaluateAdoptionRulesRequest(Guid? ProjectId, string? ScopeType, string? ProcessArea);
 
 public sealed record MetricDefinitionListQuery(
     [FromQuery] string? Search,
@@ -275,6 +315,23 @@ public sealed record SlowOperationReviewListQuery(
 public sealed record PerformanceGateListQuery(
     [FromQuery] string? ScopeRef,
     [FromQuery] string? Result,
+    [FromQuery] string? Search,
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 25);
+
+public sealed record AdoptionRuleListQuery(
+    [FromQuery] string? ProcessArea,
+    [FromQuery] string? ScopeType,
+    [FromQuery] string? Status,
+    [FromQuery] string? Search,
+    [FromQuery] int Page = 1,
+    [FromQuery] int PageSize = 25);
+
+public sealed record AdoptionScorecardListQuery(
+    [FromQuery] Guid? ProjectId,
+    [FromQuery] string? ProcessArea,
+    [FromQuery] string? ScopeType,
+    [FromQuery] string? ScoreState,
     [FromQuery] string? Search,
     [FromQuery] int Page = 1,
     [FromQuery] int PageSize = 25);

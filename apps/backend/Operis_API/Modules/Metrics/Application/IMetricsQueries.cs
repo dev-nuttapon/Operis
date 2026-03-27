@@ -16,4 +16,6 @@ public interface IMetricsQueries
     Task<PagedResult<CapacityReviewItem>> ListCapacityReviewsAsync(CapacityReviewListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<SlowOperationReviewItem>> ListSlowOperationReviewsAsync(SlowOperationReviewListQuery query, CancellationToken cancellationToken);
     Task<PagedResult<PerformanceGateItem>> ListPerformanceGatesAsync(PerformanceGateListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<AdoptionRuleItem>> ListAdoptionRulesAsync(AdoptionRuleListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<AdoptionScorecardItem>> ListAdoptionScorecardsAsync(AdoptionScorecardListQuery query, CancellationToken cancellationToken);
 }

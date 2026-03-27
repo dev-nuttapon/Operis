@@ -67,6 +67,13 @@ public sealed class MetricsModule : IModule
         performanceGates.MapPost("/evaluate", EvaluatePerformanceGateAsync);
         performanceGates.MapPut("/{performanceGateId:guid}/override", OverridePerformanceGateAsync);
 
+        var adoption = endpoints.MapGroup("/api/v1/metrics").WithTags("Metrics").RequireAuthorization();
+        adoption.MapGet("/adoption-rules", ListAdoptionRulesAsync);
+        adoption.MapPost("/adoption-rules", CreateAdoptionRuleAsync);
+        adoption.MapPut("/adoption-rules/{adoptionRuleId:guid}", UpdateAdoptionRuleAsync);
+        adoption.MapPost("/adoption-rules/evaluate", EvaluateAdoptionRulesAsync);
+        adoption.MapGet("/adoption-scorecards", ListAdoptionScorecardsAsync);
+
         return endpoints;
     }
 
@@ -233,6 +240,35 @@ public sealed class MetricsModule : IModule
 
     private static async Task<IResult> OverridePerformanceGateAsync(ClaimsPrincipal principal, Guid performanceGateId, OverridePerformanceGateRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.OverrideQualityGates, "You do not have permission to override performance gates.", () => commands.OverridePerformanceGateAsync(performanceGateId, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListAdoptionRulesAsync(ClaimsPrincipal principal, [AsParameters] AdoptionRuleListQuery query, IMetricsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Metrics.AdoptionRead))
+        {
+            return Forbidden("You do not have permission to read adoption rules.");
+        }
+
+        return Results.Ok(await queries.ListAdoptionRulesAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateAdoptionRuleAsync(ClaimsPrincipal principal, CreateAdoptionRuleRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.AdoptionManage, "You do not have permission to manage adoption rules.", () => commands.CreateAdoptionRuleAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateAdoptionRuleAsync(ClaimsPrincipal principal, Guid adoptionRuleId, UpdateAdoptionRuleRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.AdoptionManage, "You do not have permission to manage adoption rules.", () => commands.UpdateAdoptionRuleAsync(adoptionRuleId, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> EvaluateAdoptionRulesAsync(ClaimsPrincipal principal, EvaluateAdoptionRulesRequest request, IMetricsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Metrics.AdoptionManage, "You do not have permission to evaluate adoption rules.", () => commands.EvaluateAdoptionRulesAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> ListAdoptionScorecardsAsync(ClaimsPrincipal principal, [AsParameters] AdoptionScorecardListQuery query, IMetricsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Metrics.AdoptionRead))
+        {
+            return Forbidden("You do not have permission to read adoption scorecards.");
+        }
+
+        return Results.Ok(await queries.ListAdoptionScorecardsAsync(query, cancellationToken));
+    }
 
     private static async Task<IResult> ExecuteAsync<T>(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission, string forbiddenDetail, Func<Task<MetricsCommandResult<T>>> action, int successStatusCode = StatusCodes.Status200OK)
     {

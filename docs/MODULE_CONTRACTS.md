@@ -117,6 +117,10 @@ Public entry:
 * [apps/frontend/src/modules/metrics/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/metrics/index.ts)
 * [apps/frontend/src/modules/metrics/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/metrics/README.md)
 
+Notes:
+
+* metrics owns adoption scoring UI in addition to metric and quality gate pages
+
 ## releases
 
 Public entry:
@@ -138,6 +142,10 @@ Public entry:
 * [apps/frontend/src/modules/operations/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/operations/index.ts)
 * [apps/frontend/src/modules/operations/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/operations/README.md)
 
+Notes:
+
+* operations owns automation job and automation run UI in addition to security, resilience, and CAPA surfaces
+
 ## knowledge
 
 Public entry:
@@ -151,6 +159,18 @@ Public entry:
 
 * [apps/frontend/src/modules/learning/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/learning/index.ts)
 * [apps/frontend/src/modules/learning/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/learning/README.md)
+
+## exceptions
+
+Public entry:
+
+* [apps/frontend/src/modules/exceptions/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/exceptions/index.ts)
+* [apps/frontend/src/modules/exceptions/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/exceptions/README.md)
+
+Notes:
+
+* exceptions owns waiver register and waiver detail UI for temporary process deviations
+* pages stay thin and follow `Page -> Hook -> API -> HTTP client`
 
 ---
 
@@ -203,6 +223,23 @@ Module entry:
 Application surfaces:
 
 * activity log queries
+
+## exceptions
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Exceptions/ExceptionsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Exceptions/ExceptionsModule.cs)
+* [apps/backend/Operis_API/Modules/Exceptions/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Exceptions/README.md)
+
+Application surfaces:
+
+* waiver queries
+* waiver commands
+
+Notes:
+
+* the module owns `waivers`, `compensating_controls`, and `waiver_reviews`
+* cross-module reads are limited to project metadata lookups from `Users`
 
 ## documents
 
@@ -263,6 +300,23 @@ Notes:
 * training catalog, role-training requirements, completions, and competency reviews are owned by `Learning`
 * project, role, and assignment reads still come from `Users`-owned data through persistence reads inside `Learning` queries
 
+## metrics
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Metrics/MetricsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Metrics/MetricsModule.cs)
+* [apps/backend/Operis_API/Modules/Metrics/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Metrics/README.md)
+
+Application surfaces:
+
+* metric queries
+* metric commands
+
+Notes:
+
+* the module owns metric definitions, quality gates, performance gates, and adoption scoring persistence
+* adoption scoring may read evidence from governance, requirements, verification, and change control, but only writes `adoption_*` tables
+
 Application surfaces:
 
 * governance queries
@@ -296,18 +350,6 @@ Module entry:
 
 * [apps/backend/Operis_API/Modules/ChangeControl/ChangeControlModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/ChangeControl/ChangeControlModule.cs)
 * [apps/backend/Operis_API/Modules/ChangeControl/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/ChangeControl/README.md)
-
-## metrics
-
-Module entry:
-
-* [apps/backend/Operis_API/Modules/Metrics/MetricsModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Metrics/MetricsModule.cs)
-* [apps/backend/Operis_API/Modules/Metrics/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Metrics/README.md)
-
-Application surfaces:
-
-* metric queries
-* metric commands
 
 ## releases
 
@@ -344,6 +386,12 @@ Application surfaces:
 
 * operations queries
 * operations commands
+
+Notes:
+
+* the module owns review, supplier, recertification, security operations, DR/legal hold, CAPA, escalation, CAPA effectiveness, and operational automation data
+* CAPA effectiveness review and reopen orchestration stay inside `Operations`
+* automation validation and evidence linkage stay inside `Operations` rather than endpoint composition
 
 ## knowledge
 
@@ -402,6 +450,25 @@ Application surfaces:
 
 * verification queries
 * verification commands
+
+## assessment
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Assessment/AssessmentModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Assessment/AssessmentModule.cs)
+* [apps/backend/Operis_API/Modules/Assessment/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Assessment/README.md)
+* [apps/frontend/src/modules/assessment/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/assessment/README.md)
+
+Application surfaces:
+
+* assessment queries
+* assessment commands
+
+Notes:
+
+* the module owns assessor packages, findings, notes, control catalog items, control mappings, and control coverage snapshots
+* cross-module evidence is captured as read-only package snapshots rather than direct writes into source modules
+* control mappings reference external artifacts by module, entity type, entity id, and route while keeping persistence ownership inside `Assessment`
 
 ---
 

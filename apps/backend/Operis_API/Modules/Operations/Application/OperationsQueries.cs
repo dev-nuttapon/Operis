@@ -656,8 +656,33 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
             .Select(x => new CapaActionResponse(x.Id, x.CapaRecordId, x.ActionDescription, x.AssignedTo, x.DueDate, x.Status, x.CreatedAt, x.UpdatedAt))
             .ToListAsync(cancellationToken);
 
+        var reviews = await (
+            from review in dbContext.CapaEffectivenessReviews.AsNoTracking()
+            join record in dbContext.CapaRecords.AsNoTracking() on review.CapaRecordId equals record.Id
+            where ids.Contains(review.CapaRecordId)
+            orderby review.ReviewedAt descending, review.CreatedAt descending
+            select new CapaEffectivenessReviewResponse(
+                review.Id,
+                review.CapaRecordId,
+                record.Title,
+                record.OwnerUserId,
+                record.Status,
+                review.EffectivenessResult,
+                review.EvidenceRef,
+                review.ReviewSummary,
+                review.Status,
+                review.ReviewedBy,
+                review.ReviewedAt,
+                review.ReopenedAt,
+                review.ReopenedBy,
+                review.ReopenReason,
+                review.CreatedAt,
+                review.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
         var actionLookup = actions.GroupBy(x => x.CapaRecordId).ToDictionary(x => x.Key, x => (IReadOnlyList<CapaActionResponse>)x.ToList());
-        var items = records.Select(x => new CapaRecordResponse(x.Id, x.SourceType, x.SourceRef, x.Title, x.OwnerUserId, x.RootCauseSummary, x.Status, actionLookup.GetValueOrDefault(x.Id, []), x.CreatedAt, x.UpdatedAt, x.VerifiedAt, x.VerifiedBy, x.ClosedAt, x.ClosedBy)).ToList();
+        var reviewLookup = reviews.GroupBy(x => x.CapaRecordId).ToDictionary(x => x.Key, x => (IReadOnlyList<CapaEffectivenessReviewResponse>)x.ToList());
+        var items = records.Select(x => new CapaRecordResponse(x.Id, x.SourceType, x.SourceRef, x.Title, x.OwnerUserId, x.RootCauseSummary, x.Status, actionLookup.GetValueOrDefault(x.Id, []), reviewLookup.GetValueOrDefault(x.Id, []), x.CreatedAt, x.UpdatedAt, x.VerifiedAt, x.VerifiedBy, x.ClosedAt, x.ClosedBy)).ToList();
         return new PagedResult<CapaRecordResponse>(items, total, page, pageSize);
     }
 
@@ -676,7 +701,67 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
             .Select(x => new CapaActionResponse(x.Id, x.CapaRecordId, x.ActionDescription, x.AssignedTo, x.DueDate, x.Status, x.CreatedAt, x.UpdatedAt))
             .ToListAsync(cancellationToken);
 
-        return new CapaRecordResponse(record.Id, record.SourceType, record.SourceRef, record.Title, record.OwnerUserId, record.RootCauseSummary, record.Status, actions, record.CreatedAt, record.UpdatedAt, record.VerifiedAt, record.VerifiedBy, record.ClosedAt, record.ClosedBy);
+        var reviews = await dbContext.CapaEffectivenessReviews.AsNoTracking()
+            .Where(x => x.CapaRecordId == id)
+            .OrderByDescending(x => x.ReviewedAt)
+            .ThenByDescending(x => x.CreatedAt)
+            .Select(x => new CapaEffectivenessReviewResponse(x.Id, x.CapaRecordId, record.Title, record.OwnerUserId, record.Status, x.EffectivenessResult, x.EvidenceRef, x.ReviewSummary, x.Status, x.ReviewedBy, x.ReviewedAt, x.ReopenedAt, x.ReopenedBy, x.ReopenReason, x.CreatedAt, x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new CapaRecordResponse(record.Id, record.SourceType, record.SourceRef, record.Title, record.OwnerUserId, record.RootCauseSummary, record.Status, actions, reviews, record.CreatedAt, record.UpdatedAt, record.VerifiedAt, record.VerifiedBy, record.ClosedAt, record.ClosedBy);
+    }
+
+    public async Task<PagedResult<CapaEffectivenessReviewResponse>> ListCapaEffectivenessReviewsAsync(CapaEffectivenessReviewListQuery query, CancellationToken cancellationToken)
+    {
+        var source =
+            from review in dbContext.CapaEffectivenessReviews.AsNoTracking()
+            join record in dbContext.CapaRecords.AsNoTracking() on review.CapaRecordId equals record.Id
+            select new { review, record };
+
+        if (query.CapaRecordId.HasValue) source = source.Where(x => x.review.CapaRecordId == query.CapaRecordId.Value);
+        if (!string.IsNullOrWhiteSpace(query.EffectivenessResult)) source = source.Where(x => x.review.EffectivenessResult == query.EffectivenessResult.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.review.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.ReviewedBy)) source = source.Where(x => x.review.ReviewedBy == query.ReviewedBy.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.record.Title, search) ||
+                EF.Functions.ILike(x.record.SourceRef, search) ||
+                EF.Functions.ILike(x.review.ReviewedBy, search) ||
+                EF.Functions.ILike(x.review.EvidenceRef, search) ||
+                (x.review.ReviewSummary != null && EF.Functions.ILike(x.review.ReviewSummary, search)));
+        }
+
+        var descending = string.Equals(query.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "reviewedat" => descending ? source.OrderByDescending(x => x.review.ReviewedAt) : source.OrderBy(x => x.review.ReviewedAt),
+            "status" => descending ? source.OrderByDescending(x => x.review.Status) : source.OrderBy(x => x.review.Status),
+            _ => descending ? source.OrderByDescending(x => x.review.CreatedAt) : source.OrderBy(x => x.review.CreatedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new CapaEffectivenessReviewResponse(
+                x.review.Id,
+                x.review.CapaRecordId,
+                x.record.Title,
+                x.record.OwnerUserId,
+                x.record.Status,
+                x.review.EffectivenessResult,
+                x.review.EvidenceRef,
+                x.review.ReviewSummary,
+                x.review.Status,
+                x.review.ReviewedBy,
+                x.review.ReviewedAt,
+                x.review.ReopenedAt,
+                x.review.ReopenedBy,
+                x.review.ReopenReason,
+                x.review.CreatedAt,
+                x.review.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
     }
 
     public async Task<PagedResult<EscalationEventResponse>> ListEscalationEventsAsync(EscalationEventListQuery query, CancellationToken cancellationToken)
@@ -700,6 +785,105 @@ public sealed class OperationsQueries(OperisDbContext dbContext) : IOperationsQu
             query.Page,
             query.PageSize,
             cancellationToken);
+    }
+
+    public async Task<PagedResult<AutomationJobResponse>> ListAutomationJobsAsync(AutomationJobListQuery query, CancellationToken cancellationToken)
+    {
+        var source = dbContext.AutomationJobs.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.JobType)) source = source.Where(x => x.JobType == query.JobType.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.ScopeRef)) source = source.Where(x => x.ScopeRef == query.ScopeRef.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.JobName, search) ||
+                EF.Functions.ILike(x.JobType, search) ||
+                EF.Functions.ILike(x.ScopeRef, search) ||
+                EF.Functions.ILike(x.ScheduleRef, search));
+        }
+
+        var descending = string.Equals(query.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "jobname" => descending ? source.OrderByDescending(x => x.JobName) : source.OrderBy(x => x.JobName),
+            "latestrunat" => descending ? source.OrderByDescending(x => x.LatestRunAt) : source.OrderBy(x => x.LatestRunAt),
+            _ => descending ? source.OrderByDescending(x => x.CreatedAt) : source.OrderBy(x => x.CreatedAt)
+        };
+
+        return await PageAsync(
+            source.Select(x => new AutomationJobResponse(x.Id, x.JobName, x.JobType, x.ScopeRef, x.ScheduleRef, x.Status, x.LatestRunStatus, x.LatestRunAt, x.FailureSummary, x.CreatedBy, x.CreatedAt, x.UpdatedAt)),
+            query.Page,
+            query.PageSize,
+            cancellationToken);
+    }
+
+    public async Task<AutomationJobResponse?> GetAutomationJobAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await dbContext.AutomationJobs.AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new AutomationJobResponse(x.Id, x.JobName, x.JobType, x.ScopeRef, x.ScheduleRef, x.Status, x.LatestRunStatus, x.LatestRunAt, x.FailureSummary, x.CreatedBy, x.CreatedAt, x.UpdatedAt))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<PagedResult<AutomationJobRunResponse>> ListAutomationJobRunsAsync(AutomationJobRunListQuery query, CancellationToken cancellationToken)
+    {
+        var source =
+            from run in dbContext.AutomationJobRuns.AsNoTracking()
+            join job in dbContext.AutomationJobs.AsNoTracking() on run.JobId equals job.Id
+            select new { run, job };
+
+        if (query.JobId.HasValue) source = source.Where(x => x.run.JobId == query.JobId.Value);
+        if (!string.IsNullOrWhiteSpace(query.JobType)) source = source.Where(x => x.job.JobType == query.JobType.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.Status)) source = source.Where(x => x.run.Status == query.Status.Trim().ToLowerInvariant());
+        if (!string.IsNullOrWhiteSpace(query.TriggeredBy)) source = source.Where(x => x.run.TriggeredBy == query.TriggeredBy.Trim());
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = $"%{query.Search.Trim()}%";
+            source = source.Where(x =>
+                EF.Functions.ILike(x.job.JobName, search) ||
+                EF.Functions.ILike(x.job.ScopeRef, search) ||
+                EF.Functions.ILike(x.run.TriggeredBy, search) ||
+                (x.run.ErrorSummary != null && EF.Functions.ILike(x.run.ErrorSummary, search)));
+        }
+
+        var descending = !string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        source = (query.SortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "jobname" => descending ? source.OrderByDescending(x => x.job.JobName) : source.OrderBy(x => x.job.JobName),
+            "status" => descending ? source.OrderByDescending(x => x.run.Status) : source.OrderBy(x => x.run.Status),
+            _ => descending ? source.OrderByDescending(x => x.run.QueuedAt) : source.OrderBy(x => x.run.QueuedAt)
+        };
+
+        var page = NormalizePage(query.Page);
+        var pageSize = NormalizePageSize(query.PageSize);
+        var total = await source.CountAsync(cancellationToken);
+        var runs = await source.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        var runIds = runs.Select(x => x.run.Id).ToArray();
+        var evidenceRefs = await dbContext.AutomationJobEvidenceRefs.AsNoTracking()
+            .Where(x => runIds.Contains(x.JobRunId))
+            .OrderBy(x => x.CreatedAt)
+            .Select(x => new AutomationJobEvidenceRefResponse(x.Id, x.JobRunId, x.EntityType, x.EntityId, x.Route, x.EvidenceRef, x.CreatedAt))
+            .ToListAsync(cancellationToken);
+        var evidenceLookup = evidenceRefs.GroupBy(x => x.JobRunId).ToDictionary(x => x.Key, x => (IReadOnlyList<AutomationJobEvidenceRefResponse>)x.ToList());
+
+        var items = runs.Select(item => new AutomationJobRunResponse(
+            item.run.Id,
+            item.run.JobId,
+            item.job.JobName,
+            item.job.JobType,
+            item.run.Status,
+            item.run.TriggeredBy,
+            item.run.TriggerReason,
+            item.run.QueuedAt,
+            item.run.StartedAt,
+            item.run.CompletedAt,
+            item.run.ErrorSummary,
+            item.run.RemediationPath,
+            evidenceLookup.GetValueOrDefault(item.run.Id, []),
+            item.run.CreatedAt)).ToList();
+
+        return new PagedResult<AutomationJobRunResponse>(items, total, page, pageSize);
     }
 
     private static IQueryable<T> ApplyOrdering<T, TDate, TString>(IQueryable<T> source, string? sortBy, string? sortOrder, Expression<Func<T, TDate>> dateSelector, Expression<Func<T, TString>> stringSelector)

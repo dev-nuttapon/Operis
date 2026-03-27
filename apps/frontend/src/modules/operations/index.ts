@@ -17,5 +17,8 @@ export * from "./pages/RestoreVerificationPage";
 export * from "./pages/DrDrillLogPage";
 export * from "./pages/LegalHoldRegisterPage";
 export * from "./pages/CapaRegisterPage";
+export * from "./pages/CapaEffectivenessPage";
 export * from "./pages/EscalationHistoryPage";
+export * from "./pages/OperationsAutomationPage";
+export * from "./pages/AutomationJobRunsPage";
 export type * from "./types/operations";

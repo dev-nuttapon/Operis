@@ -56,6 +56,39 @@ public sealed class OperationsModuleHandlerTests
         Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
     }
 
+    [Fact]
+    public async Task ReopenCapaAsync_WithoutApprovePermission_ReturnsForbidden()
+    {
+        var result = await InvokeReopenCapaAsync(CreateComplianceReaderPrincipal(), new FakeOperationsCommands());
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAutomationJobAsync_WithoutManagePermission_ReturnsForbidden()
+    {
+        var result = await InvokeCreateAutomationJobAsync(CreateComplianceReaderPrincipal(), new FakeOperationsCommands());
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExecuteAutomationJobAsync_WithoutExecutePermission_ReturnsForbidden()
+    {
+        var result = await InvokeExecuteAutomationJobAsync(CreateComplianceReaderPrincipal(), new FakeOperationsCommands());
+
+        var httpContext = TestHttpContextFactory.Create();
+        await result.ExecuteAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+    }
+
     private static async Task<IResult> InvokeApproveAccessReviewAsync(ClaimsPrincipal principal, IOperationsCommands commands)
     {
         var method = typeof(OperationsModule).GetMethod("ApproveAccessReviewAsync", BindingFlags.NonPublic | BindingFlags.Static)
@@ -89,6 +122,33 @@ public sealed class OperationsModuleHandlerTests
             ?? throw new InvalidOperationException("OperationsModule.ReleaseLegalHoldAsync was not found.");
 
         var task = (Task<IResult>)method.Invoke(null, [principal, Guid.NewGuid(), new ReleaseLegalHoldRequest("case closed"), commands, new PermissionMatrix(), CancellationToken.None])!;
+        return await task;
+    }
+
+    private static async Task<IResult> InvokeReopenCapaAsync(ClaimsPrincipal principal, IOperationsCommands commands)
+    {
+        var method = typeof(OperationsModule).GetMethod("ReopenCapaAsync", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("OperationsModule.ReopenCapaAsync was not found.");
+
+        var task = (Task<IResult>)method.Invoke(null, [principal, Guid.NewGuid(), new ReopenCapaRequest("Residual issue detected"), commands, new PermissionMatrix(), CancellationToken.None])!;
+        return await task;
+    }
+
+    private static async Task<IResult> InvokeCreateAutomationJobAsync(ClaimsPrincipal principal, IOperationsCommands commands)
+    {
+        var method = typeof(OperationsModule).GetMethod("CreateAutomationJobAsync", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("OperationsModule.CreateAutomationJobAsync was not found.");
+
+        var task = (Task<IResult>)method.Invoke(null, [principal, new CreateAutomationJobRequest("Nightly Backup", "backup", "org/global", "0 2 * * *", "draft"), commands, new PermissionMatrix(), CancellationToken.None])!;
+        return await task;
+    }
+
+    private static async Task<IResult> InvokeExecuteAutomationJobAsync(ClaimsPrincipal principal, IOperationsCommands commands)
+    {
+        var method = typeof(OperationsModule).GetMethod("ExecuteAutomationJobAsync", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("OperationsModule.ExecuteAutomationJobAsync was not found.");
+
+        var task = (Task<IResult>)method.Invoke(null, [principal, Guid.NewGuid(), new ExecuteAutomationJobRequest("queued", "scheduled run", null, null, null), commands, new PermissionMatrix(), CancellationToken.None])!;
         return await task;
     }
 
@@ -148,7 +208,15 @@ public sealed class OperationsModuleHandlerTests
         public Task<OperationsCommandResult<CapaActionResponse>> AddCapaActionAsync(Guid id, CreateCapaActionRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<OperationsCommandResult<CapaRecordResponse>> VerifyCapaAsync(Guid id, VerifyCapaRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<OperationsCommandResult<CapaRecordResponse>> CloseCapaAsync(Guid id, CloseCapaRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<CapaEffectivenessReviewResponse>> CreateCapaEffectivenessReviewAsync(CreateCapaEffectivenessReviewRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<CapaRecordResponse>> ReopenCapaAsync(Guid id, ReopenCapaRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<OperationsCommandResult<EscalationEventResponse>> CreateEscalationEventAsync(CreateEscalationEventRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<AutomationJobResponse>> CreateAutomationJobAsync(CreateAutomationJobRequest request, string? actor, CancellationToken cancellationToken) =>
+            Task.FromResult(new OperationsCommandResult<AutomationJobResponse>(OperationsCommandStatus.Success, new AutomationJobResponse(Guid.NewGuid(), request.JobName, request.JobType, request.ScopeRef, request.ScheduleRef, request.Status, null, null, null, actor ?? "ops@example.com", DateTimeOffset.UtcNow, null)));
+        public Task<OperationsCommandResult<AutomationJobResponse>> UpdateAutomationJobAsync(Guid id, UpdateAutomationJobRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<AutomationJobResponse>> TransitionAutomationJobAsync(Guid id, TransitionAutomationJobRequest request, string? actor, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<OperationsCommandResult<AutomationJobRunResponse>> ExecuteAutomationJobAsync(Guid id, ExecuteAutomationJobRequest request, string? actor, CancellationToken cancellationToken) =>
+            Task.FromResult(new OperationsCommandResult<AutomationJobRunResponse>(OperationsCommandStatus.Success, new AutomationJobRunResponse(Guid.NewGuid(), id, "Nightly Backup", "backup", request.InitialStatus, actor ?? "ops@example.com", request.TriggerReason, DateTimeOffset.UtcNow, null, null, request.ErrorSummary, request.RemediationPath, [], DateTimeOffset.UtcNow)));
     }
 
     private sealed class FakeOperationsQueries : IOperationsQueries
@@ -175,6 +243,10 @@ public sealed class OperationsModuleHandlerTests
         public Task<PagedResult<LegalHoldResponse>> ListLegalHoldsAsync(LegalHoldListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<PagedResult<CapaRecordResponse>> ListCapaRecordsAsync(CapaRecordListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<CapaRecordResponse?> GetCapaRecordAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<PagedResult<CapaEffectivenessReviewResponse>> ListCapaEffectivenessReviewsAsync(CapaEffectivenessReviewListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<PagedResult<EscalationEventResponse>> ListEscalationEventsAsync(EscalationEventListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<PagedResult<AutomationJobResponse>> ListAutomationJobsAsync(AutomationJobListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<AutomationJobResponse?> GetAutomationJobAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<PagedResult<AutomationJobRunResponse>> ListAutomationJobRunsAsync(AutomationJobRunListQuery query, CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }

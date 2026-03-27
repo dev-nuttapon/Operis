@@ -85,10 +85,26 @@ public sealed class OperationsModule : IModule
         capa.MapPost("/{id:guid}/actions", AddCapaActionAsync);
         capa.MapPut("/{id:guid}/verify", VerifyCapaAsync);
         capa.MapPut("/{id:guid}/close", CloseCapaAsync);
+        capa.MapPost("/{id:guid}/reopen", ReopenCapaAsync);
+
+        var capaEffectiveness = endpoints.MapGroup("/api/v1/operations/capa-effectiveness").WithTags("Operations").RequireAuthorization();
+        capaEffectiveness.MapGet("/", ListCapaEffectivenessReviewsAsync);
+        capaEffectiveness.MapPost("/", CreateCapaEffectivenessReviewAsync);
 
         var escalations = endpoints.MapGroup("/api/v1/escalations").WithTags("Operations").RequireAuthorization();
         escalations.MapGet("/", ListEscalationEventsAsync);
         escalations.MapPost("/", CreateEscalationEventAsync);
+
+        var automationJobs = endpoints.MapGroup("/api/v1/operations/automation-jobs").WithTags("Operations").RequireAuthorization();
+        automationJobs.MapGet("/", ListAutomationJobsAsync);
+        automationJobs.MapGet("/{id:guid}", GetAutomationJobAsync);
+        automationJobs.MapPost("/", CreateAutomationJobAsync);
+        automationJobs.MapPut("/{id:guid}", UpdateAutomationJobAsync);
+        automationJobs.MapPost("/{id:guid}/transition", TransitionAutomationJobAsync);
+        automationJobs.MapPost("/{id:guid}/execute", ExecuteAutomationJobAsync);
+
+        var automationRuns = endpoints.MapGroup("/api/v1/operations/automation-job-runs").WithTags("Operations").RequireAuthorization();
+        automationRuns.MapGet("/", ListAutomationJobRunsAsync);
 
         var securityReviews = endpoints.MapGroup("/api/v1/security-reviews").WithTags("Operations").RequireAuthorization();
         securityReviews.MapGet("/", ListSecurityReviewsAsync);
@@ -361,6 +377,22 @@ public sealed class OperationsModule : IModule
     private static async Task<IResult> CloseCapaAsync(ClaimsPrincipal principal, Guid id, CloseCapaRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Approve, "You do not have permission to close CAPA records.", () => commands.CloseCapaAsync(id, request, ResolveActor(principal), cancellationToken));
 
+    private static async Task<IResult> ListCapaEffectivenessReviewsAsync(ClaimsPrincipal principal, [AsParameters] CapaEffectivenessReviewListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
+        {
+            return Forbidden("You do not have permission to read CAPA effectiveness reviews.");
+        }
+
+        return Results.Ok(await queries.ListCapaEffectivenessReviewsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateCapaEffectivenessReviewAsync(ClaimsPrincipal principal, CreateCapaEffectivenessReviewRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage CAPA effectiveness reviews.", () => commands.CreateCapaEffectivenessReviewAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> ReopenCapaAsync(ClaimsPrincipal principal, Guid id, ReopenCapaRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Approve, "You do not have permission to reopen CAPA records.", () => commands.ReopenCapaAsync(id, request, ResolveActor(principal), cancellationToken));
+
     private static async Task<IResult> ListEscalationEventsAsync(ClaimsPrincipal principal, [AsParameters] EscalationEventListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
     {
         if (!permissionMatrix.HasPermission(principal, Permissions.Operations.Read))
@@ -373,6 +405,51 @@ public sealed class OperationsModule : IModule
 
     private static async Task<IResult> CreateEscalationEventAsync(ClaimsPrincipal principal, CreateEscalationEventRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.Manage, "You do not have permission to manage escalation history.", () => commands.CreateEscalationEventAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> ListAutomationJobsAsync(ClaimsPrincipal principal, [AsParameters] AutomationJobListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Operations.AutomationRead, Permissions.Operations.AutomationManage, Permissions.Operations.AutomationExecute))
+        {
+            return Forbidden("You do not have permission to read automation jobs.");
+        }
+
+        return Results.Ok(await queries.ListAutomationJobsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> GetAutomationJobAsync(ClaimsPrincipal principal, Guid id, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Operations.AutomationRead, Permissions.Operations.AutomationManage, Permissions.Operations.AutomationExecute))
+        {
+            return Forbidden("You do not have permission to read automation jobs.");
+        }
+
+        var detail = await queries.GetAutomationJobAsync(id, cancellationToken);
+        return detail is null
+            ? Results.NotFound(ApiProblemDetailsFactory.Create(StatusCodes.Status404NotFound, ApiErrorCodes.ResourceNotFound, "Automation job not found.", "Automation job not found."))
+            : Results.Ok(detail);
+    }
+
+    private static async Task<IResult> CreateAutomationJobAsync(ClaimsPrincipal principal, CreateAutomationJobRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.AutomationManage, "You do not have permission to manage automation jobs.", () => commands.CreateAutomationJobAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateAutomationJobAsync(ClaimsPrincipal principal, Guid id, UpdateAutomationJobRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.AutomationManage, "You do not have permission to manage automation jobs.", () => commands.UpdateAutomationJobAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> TransitionAutomationJobAsync(ClaimsPrincipal principal, Guid id, TransitionAutomationJobRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.AutomationManage, "You do not have permission to manage automation jobs.", () => commands.TransitionAutomationJobAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ExecuteAutomationJobAsync(ClaimsPrincipal principal, Guid id, ExecuteAutomationJobRequest request, IOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Operations.AutomationExecute, "You do not have permission to execute automation jobs.", () => commands.ExecuteAutomationJobAsync(id, request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> ListAutomationJobRunsAsync(ClaimsPrincipal principal, [AsParameters] AutomationJobRunListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (!permissionMatrix.HasAnyPermission(principal, Permissions.Operations.AutomationRead, Permissions.Operations.AutomationManage, Permissions.Operations.AutomationExecute))
+        {
+            return Forbidden("You do not have permission to read automation job runs.");
+        }
+
+        return Results.Ok(await queries.ListAutomationJobRunsAsync(query, cancellationToken));
+    }
 
     private static async Task<IResult> ListSecurityReviewsAsync(ClaimsPrincipal principal, [AsParameters] SecurityReviewListQuery query, IOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
     {

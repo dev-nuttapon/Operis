@@ -41,5 +41,11 @@ public interface IOperationsCommands
     Task<OperationsCommandResult<CapaActionResponse>> AddCapaActionAsync(Guid id, CreateCapaActionRequest request, string? actor, CancellationToken cancellationToken);
     Task<OperationsCommandResult<CapaRecordResponse>> VerifyCapaAsync(Guid id, VerifyCapaRequest request, string? actor, CancellationToken cancellationToken);
     Task<OperationsCommandResult<CapaRecordResponse>> CloseCapaAsync(Guid id, CloseCapaRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<CapaEffectivenessReviewResponse>> CreateCapaEffectivenessReviewAsync(CreateCapaEffectivenessReviewRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<CapaRecordResponse>> ReopenCapaAsync(Guid id, ReopenCapaRequest request, string? actor, CancellationToken cancellationToken);
     Task<OperationsCommandResult<EscalationEventResponse>> CreateEscalationEventAsync(CreateEscalationEventRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<AutomationJobResponse>> CreateAutomationJobAsync(CreateAutomationJobRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<AutomationJobResponse>> UpdateAutomationJobAsync(Guid id, UpdateAutomationJobRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<AutomationJobResponse>> TransitionAutomationJobAsync(Guid id, TransitionAutomationJobRequest request, string? actor, CancellationToken cancellationToken);
+    Task<OperationsCommandResult<AutomationJobRunResponse>> ExecuteAutomationJobAsync(Guid id, ExecuteAutomationJobRequest request, string? actor, CancellationToken cancellationToken);
 }

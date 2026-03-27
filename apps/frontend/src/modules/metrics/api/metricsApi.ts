@@ -1,6 +1,11 @@
 import { apiRequest } from "../../../shared/lib/apiClient";
 import type { PaginatedResult } from "../../../shared/types/pagination";
 import type {
+  AdoptionRuleItem,
+  AdoptionRuleListInput,
+  AdoptionScorecardItem,
+  AdoptionScorecardListInput,
+  CreateAdoptionRuleInput,
   CreateMetricCollectionScheduleInput,
   CreateMetricDefinitionInput,
   CreateMetricReviewInput,
@@ -20,6 +25,7 @@ import type {
   MetricReviewListInput,
   MetricResultsResponse,
   MetricResultListInput,
+  EvaluateAdoptionRulesInput,
   OverrideQualityGateInput,
   OverridePerformanceGateInput,
   PerformanceBaselineItem,
@@ -33,6 +39,7 @@ import type {
   TrendReportItem,
   TrendReportListInput,
   UpdatePerformanceBaselineInput,
+  UpdateAdoptionRuleInput,
   UpdateCapacityReviewInput,
   UpdateSlowOperationReviewInput,
   UpdateMetricReviewInput,
@@ -162,4 +169,24 @@ export function evaluatePerformanceGate(input: EvaluatePerformanceGateInput) {
 
 export function overridePerformanceGate(performanceGateId: string, input: OverridePerformanceGateInput) {
   return apiRequest<PerformanceGateItem>(`/api/v1/performance-gates/${performanceGateId}/override`, { method: "PUT", body: input });
+}
+
+export function listAdoptionRules(input: AdoptionRuleListInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<AdoptionRuleItem>>(`/api/v1/metrics/adoption-rules${buildQuery({ ...input })}`, { signal });
+}
+
+export function createAdoptionRule(input: CreateAdoptionRuleInput) {
+  return apiRequest<AdoptionRuleItem>("/api/v1/metrics/adoption-rules", { method: "POST", body: input });
+}
+
+export function updateAdoptionRule(adoptionRuleId: string, input: UpdateAdoptionRuleInput) {
+  return apiRequest<AdoptionRuleItem>(`/api/v1/metrics/adoption-rules/${adoptionRuleId}`, { method: "PUT", body: input });
+}
+
+export function evaluateAdoptionRules(input: EvaluateAdoptionRulesInput) {
+  return apiRequest<PaginatedResult<AdoptionScorecardItem>>("/api/v1/metrics/adoption-rules/evaluate", { method: "POST", body: input });
+}
+
+export function listAdoptionScorecards(input: AdoptionScorecardListInput, signal?: AbortSignal) {
+  return apiRequest<PaginatedResult<AdoptionScorecardItem>>(`/api/v1/metrics/adoption-scorecards${buildQuery({ ...input })}`, { signal });
 }

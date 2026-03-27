@@ -13,6 +13,7 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
   AuditOutlined,
+  SafetyOutlined,
   LeftOutlined,
   RightOutlined,
   GlobalOutlined,
@@ -152,6 +153,8 @@ export function MainLayout() {
     permissions.metrics.read,
     permissions.metrics.manage,
     permissions.metrics.overrideQualityGates,
+    permissions.metrics.adoptionRead,
+    permissions.metrics.adoptionManage,
   );
   const hasReleasesAccess = permissionState.hasAnyPermission(
     permissions.releases.read,
@@ -166,6 +169,9 @@ export function MainLayout() {
     permissions.operations.read,
     permissions.operations.manage,
     permissions.operations.approve,
+    permissions.operations.automationRead,
+    permissions.operations.automationManage,
+    permissions.operations.automationExecute,
   );
   const hasNotificationsAccess = permissionState.hasAnyPermission(
     permissions.notifications.read,
@@ -179,6 +185,18 @@ export function MainLayout() {
     permissions.learning.read,
     permissions.learning.manage,
     permissions.learning.approve,
+  );
+  const hasExceptionsAccess = permissionState.hasAnyPermission(
+    permissions.exceptions.read,
+    permissions.exceptions.manage,
+    permissions.exceptions.approve,
+  );
+  const hasAssessmentAccess = permissionState.hasAnyPermission(
+    permissions.assessment.workspaceRead,
+    permissions.assessment.workspaceManage,
+    permissions.assessment.workspaceReview,
+    permissions.assessment.controlsRead,
+    permissions.assessment.controlsManage,
   );
   const hasPolicyAccess = permissionState.hasAnyPermission(
     permissions.governance.policyRead,
@@ -376,6 +394,29 @@ export function MainLayout() {
           ],
         }]
       : []),
+    ...(hasExceptionsAccess
+      ? [{
+          key: '/app/exceptions-group',
+          icon: <SafetyOutlined />,
+          label: 'Exceptions & Waivers',
+          children: [
+            { key: '/app/exceptions/waivers', label: 'Waiver Register' },
+          ],
+        }]
+      : []),
+    ...(hasAssessmentAccess
+      ? [{
+          key: '/app/assessment-group',
+          icon: <AuditOutlined />,
+          label: 'Assessment',
+          children: [
+            { key: '/app/assessment/workspace', label: 'Assessor Workspace' },
+            { key: '/app/assessment/findings', label: 'Assessment Findings' },
+            { key: '/app/assessment/control-mapping', label: 'Control Mapping' },
+            { key: '/app/assessment/control-coverage', label: 'Control Coverage' },
+          ],
+        }]
+      : []),
     ...(hasChangeControlAccess
       ? [{
           key: '/app/change-control-group',
@@ -452,6 +493,7 @@ export function MainLayout() {
             { key: '/app/metrics/capacity-reviews', label: 'Capacity Review' },
             { key: '/app/metrics/slow-operations', label: 'Slow Query / API Review' },
             { key: '/app/metrics/performance-gates', label: 'Performance Regression Gate' },
+            { key: '/app/metrics/adoption-scorecards', label: 'Adoption Scorecards' },
           ],
         }]
       : []),
@@ -498,7 +540,10 @@ export function MainLayout() {
             { key: '/app/operations/dr-drills', label: 'DR Drill Log' },
             { key: '/app/operations/legal-holds', label: 'Legal Hold Register' },
             { key: '/app/operations/capa', label: 'CAPA Register' },
+            { key: '/app/operations/capa-effectiveness', label: 'CAPA Effectiveness' },
             { key: '/app/operations/escalations', label: 'Escalation History' },
+            { key: '/app/operations/automation', label: 'Operations Automation' },
+            { key: '/app/operations/automation-runs', label: 'Automation Runs' },
             { key: '/app/operations/suppliers', label: 'Supplier Register' },
             { key: '/app/operations/supplier-agreements', label: 'SLA/Contract Evidence' },
             { key: '/app/operations/configuration-audits', label: 'Configuration Audit Log' },
@@ -703,6 +748,7 @@ export function MainLayout() {
     if (path.includes('/app/learning/training-catalog')) return 'Training Catalog';
     if (path.includes('/app/learning/role-training-matrix')) return 'Role Training Matrix';
     if (path.includes('/app/learning/completions')) return 'Training Completions';
+    if (path.includes('/app/exceptions/waivers')) return 'Waiver Register';
     if (path.includes('/app/metrics/dashboard')) return 'Metrics Dashboard';
     if (path.includes('/app/metrics/schedules')) return 'Data Collection Schedule';
     if (path.includes('/app/metrics/definitions')) return 'Metric Definitions';
@@ -713,6 +759,7 @@ export function MainLayout() {
     if (path.includes('/app/metrics/capacity-reviews')) return 'Capacity Review';
     if (path.includes('/app/metrics/slow-operations')) return 'Slow Query / API Review';
     if (path.includes('/app/metrics/performance-gates')) return 'Performance Regression Gate';
+    if (path.includes('/app/metrics/adoption-scorecards')) return 'Adoption Scorecards';
     if (path.includes('/app/releases/checklists')) return 'Deployment Checklist';
     if (path.includes('/app/releases/notes')) return 'Release Notes';
     if (path.includes('/app/releases')) return 'Release Register';
@@ -731,6 +778,7 @@ export function MainLayout() {
     if (path.includes('/app/operations/restore-verifications')) return 'Restore Verification';
     if (path.includes('/app/operations/dr-drills')) return 'DR Drill Log';
     if (path.includes('/app/operations/legal-holds')) return 'Legal Hold Register';
+    if (path.includes('/app/operations/capa-effectiveness')) return 'CAPA Effectiveness';
     if (path.includes('/app/operations/capa')) return 'CAPA Register';
     if (path.includes('/app/operations/escalations')) return 'Escalation History';
     if (path.includes('/app/operations/suppliers')) return 'Supplier Register';
@@ -1122,6 +1170,10 @@ function getOpenKeys(path: string) {
     return ['/app/learning-group'];
   }
 
+  if (path.startsWith('/app/exceptions/')) {
+    return ['/app/exceptions-group'];
+  }
+
   if (path.startsWith('/app/requirements')) {
     return ['/app/requirements-group'];
   }
@@ -1253,6 +1305,10 @@ function getSelectedMenuKey(path: string) {
     return '/app/learning/training-catalog';
   }
 
+  if (path.startsWith('/app/exceptions/waivers')) {
+    return '/app/exceptions/waivers';
+  }
+
   if (path.startsWith('/app/requirements/traceability')) {
     return '/app/requirements/traceability';
   }
@@ -1337,8 +1393,16 @@ function getSelectedMenuKey(path: string) {
     return '/app/metrics/dashboard';
   }
 
+  if (path.startsWith('/app/metrics/adoption-scorecards')) {
+    return '/app/metrics/adoption-scorecards';
+  }
+
   if (path.startsWith('/app/operations/access-recertifications')) {
     return '/app/operations/access-recertifications';
+  }
+
+  if (path.startsWith('/app/operations/capa-effectiveness')) {
+    return '/app/operations/capa-effectiveness';
   }
 
   if (path.startsWith('/app/operations/capa')) {

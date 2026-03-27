@@ -363,4 +363,127 @@ public sealed class OperationsCommandsTests
         Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
         Assert.Equal(ApiErrorCodes.CapaOpenActionsExist, result.ErrorCode);
     }
+
+    [Fact]
+    public async Task CreateCapaEffectivenessReviewAsync_WithoutEvidence_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var capaId = Guid.NewGuid();
+        dbContext.CapaRecords.Add(new CapaRecordEntity
+        {
+            Id = capaId,
+            SourceType = "audit_finding",
+            SourceRef = "AF-100",
+            Title = "Fix approval routing",
+            OwnerUserId = "owner@example.com",
+            Status = "closed",
+            CreatedAt = DateTimeOffset.UtcNow,
+            ClosedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.CreateCapaEffectivenessReviewAsync(
+            new CreateCapaEffectivenessReviewRequest(capaId, "effective", "", "Verified after release"),
+            "qa@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.CapaEffectivenessEvidenceRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task ReopenCapaAsync_WithoutIneffectiveReview_ReturnsValidationError()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var capaId = Guid.NewGuid();
+        dbContext.CapaRecords.Add(new CapaRecordEntity
+        {
+            Id = capaId,
+            SourceType = "audit_finding",
+            SourceRef = "AF-101",
+            Title = "Close action gap",
+            OwnerUserId = "owner@example.com",
+            Status = "closed",
+            CreatedAt = DateTimeOffset.UtcNow,
+            ClosedAt = DateTimeOffset.UtcNow
+        });
+        dbContext.CapaEffectivenessReviews.Add(new CapaEffectivenessReviewEntity
+        {
+            Id = Guid.NewGuid(),
+            CapaRecordId = capaId,
+            EffectivenessResult = "effective",
+            EvidenceRef = "minio://evidence/capa/effective-review.pdf",
+            Status = "accepted",
+            ReviewedBy = "qa@example.com",
+            ReviewedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.ReopenCapaAsync(capaId, new ReopenCapaRequest("Residual issue detected"), "approver@example.com", CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.InvalidWorkflowTransition, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CreateAutomationJobAsync_WithoutName_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+
+        var result = await sut.CreateAutomationJobAsync(
+            new CreateAutomationJobRequest("", "backup", "org/global", "0 2 * * *", "draft"),
+            "ops@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.AutomationJobNameRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CreateAutomationJobAsync_WithoutType_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+
+        var result = await sut.CreateAutomationJobAsync(
+            new CreateAutomationJobRequest("Nightly Backup", "", "org/global", "0 2 * * *", "draft"),
+            "ops@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.AutomationJobTypeRequired, result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task ExecuteAutomationJobAsync_SucceededWithoutEvidence_ReturnsStableErrorCode()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var jobId = Guid.NewGuid();
+        dbContext.AutomationJobs.Add(new AutomationJobEntity
+        {
+            Id = jobId,
+            JobName = "Nightly Backup",
+            JobType = "backup",
+            ScopeRef = "org/global",
+            ScheduleRef = "0 2 * * *",
+            Status = "active",
+            CreatedBy = "ops@example.com",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+
+        var sut = new OperationsCommands(dbContext, new FakeAuditLogWriter());
+        var result = await sut.ExecuteAutomationJobAsync(
+            jobId,
+            new ExecuteAutomationJobRequest("succeeded", "Scheduled run", null, null, []),
+            "ops@example.com",
+            CancellationToken.None);
+
+        Assert.Equal(OperationsCommandStatus.ValidationError, result.Status);
+        Assert.Equal(ApiErrorCodes.AutomationJobEvidenceRequired, result.ErrorCode);
+    }
 }

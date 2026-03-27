@@ -124,6 +124,30 @@ const RoleTrainingMatrixPage = lazy(() =>
 const TrainingCompletionsPage = lazy(() =>
   import("../modules/learning/pages/TrainingCompletionsPage").then((module) => ({ default: module.TrainingCompletionsPage }))
 );
+const OperationsAutomationPage = lazy(() =>
+  import("../modules/operations/pages/OperationsAutomationPage").then((module) => ({ default: module.OperationsAutomationPage }))
+);
+const AutomationJobRunsPage = lazy(() =>
+  import("../modules/operations/pages/AutomationJobRunsPage").then((module) => ({ default: module.AutomationJobRunsPage }))
+);
+const WaiverRegisterPage = lazy(() =>
+  import("../modules/exceptions/pages/WaiverRegisterPage").then((module) => ({ default: module.WaiverRegisterPage }))
+);
+const WaiverDetailPage = lazy(() =>
+  import("../modules/exceptions/pages/WaiverDetailPage").then((module) => ({ default: module.WaiverDetailPage }))
+);
+const AssessmentWorkspacePage = lazy(() =>
+  import("../modules/assessment/pages/AssessmentWorkspacePage").then((module) => ({ default: module.AssessmentWorkspacePage }))
+);
+const AssessmentFindingsPage = lazy(() =>
+  import("../modules/assessment/pages/AssessmentFindingsPage").then((module) => ({ default: module.AssessmentFindingsPage }))
+);
+const ControlMappingPage = lazy(() =>
+  import("../modules/assessment/pages/ControlMappingPage").then((module) => ({ default: module.ControlMappingPage }))
+);
+const ControlCoveragePage = lazy(() =>
+  import("../modules/assessment/pages/ControlCoveragePage").then((module) => ({ default: module.ControlCoveragePage }))
+);
 const RequirementRegisterPage = lazy(() =>
   import("../modules/requirements/pages/RequirementRegisterPage").then((module) => ({ default: module.RequirementRegisterPage }))
 );
@@ -222,6 +246,9 @@ const SlowOperationReviewPage = lazy(() =>
 );
 const PerformanceRegressionGatePage = lazy(() =>
   import("../modules/metrics/pages/PerformanceRegressionGatePage").then((module) => ({ default: module.PerformanceRegressionGatePage }))
+);
+const AdoptionScorecardsPage = lazy(() =>
+  import("../modules/metrics/pages/AdoptionScorecardsPage").then((module) => ({ default: module.AdoptionScorecardsPage }))
 );
 const ReleaseRegisterPage = lazy(() =>
   import("../modules/releases/pages/ReleaseRegisterPage").then((module) => ({ default: module.ReleaseRegisterPage }))
@@ -391,6 +418,9 @@ const ChangeLogPage = lazy(() =>
 const CapaRegisterPage = lazy(() =>
   import("../modules/operations/pages/CapaRegisterPage").then((module) => ({ default: module.CapaRegisterPage }))
 );
+const CapaEffectivenessPage = lazy(() =>
+  import("../modules/operations/pages/CapaEffectivenessPage").then((module) => ({ default: module.CapaEffectivenessPage }))
+);
 const EscalationHistoryPage = lazy(() =>
   import("../modules/operations/pages/EscalationHistoryPage").then((module) => ({ default: module.EscalationHistoryPage }))
 );
@@ -478,6 +508,12 @@ export function AppRouter() {
               <Route path="learning/training-catalog" element={<AuthorizedRoute anyOf={[permissions.learning.read, permissions.learning.manage, permissions.learning.approve]}><TrainingCatalogPage /></AuthorizedRoute>} />
               <Route path="learning/role-training-matrix" element={<AuthorizedRoute anyOf={[permissions.learning.read, permissions.learning.manage, permissions.learning.approve]}><RoleTrainingMatrixPage /></AuthorizedRoute>} />
               <Route path="learning/completions" element={<AuthorizedRoute anyOf={[permissions.learning.read, permissions.learning.manage, permissions.learning.approve]}><TrainingCompletionsPage /></AuthorizedRoute>} />
+              <Route path="exceptions/waivers" element={<AuthorizedRoute anyOf={[permissions.exceptions.read, permissions.exceptions.manage, permissions.exceptions.approve]}><WaiverRegisterPage /></AuthorizedRoute>} />
+              <Route path="exceptions/waivers/:waiverId" element={<AuthorizedRoute anyOf={[permissions.exceptions.read, permissions.exceptions.manage, permissions.exceptions.approve]}><WaiverDetailPage /></AuthorizedRoute>} />
+              <Route path="assessment/workspace" element={<AuthorizedRoute anyOf={[permissions.assessment.workspaceRead, permissions.assessment.workspaceManage, permissions.assessment.workspaceReview]}><AssessmentWorkspacePage /></AuthorizedRoute>} />
+              <Route path="assessment/findings" element={<AuthorizedRoute anyOf={[permissions.assessment.workspaceRead, permissions.assessment.workspaceReview]}><AssessmentFindingsPage /></AuthorizedRoute>} />
+              <Route path="assessment/control-mapping" element={<AuthorizedRoute anyOf={[permissions.assessment.controlsRead, permissions.assessment.controlsManage]}><ControlMappingPage /></AuthorizedRoute>} />
+              <Route path="assessment/control-coverage" element={<AuthorizedRoute anyOf={[permissions.assessment.controlsRead, permissions.assessment.controlsManage]}><ControlCoveragePage /></AuthorizedRoute>} />
               <Route path="requirements" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementRegisterPage /></AuthorizedRoute>} />
               <Route path="requirements/:requirementId" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementDetailPage /></AuthorizedRoute>} />
               <Route path="requirements/baselines" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.baseline]}><RequirementBaselinesPage /></AuthorizedRoute>} />
@@ -513,6 +549,7 @@ export function AppRouter() {
               <Route path="metrics/capacity-reviews" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><CapacityReviewPage /></AuthorizedRoute>} />
               <Route path="metrics/slow-operations" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><SlowOperationReviewPage /></AuthorizedRoute>} />
               <Route path="metrics/performance-gates" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage, permissions.metrics.overrideQualityGates]}><PerformanceRegressionGatePage /></AuthorizedRoute>} />
+              <Route path="metrics/adoption-scorecards" element={<AuthorizedRoute anyOf={[permissions.metrics.adoptionRead, permissions.metrics.adoptionManage]}><AdoptionScorecardsPage /></AuthorizedRoute>} />
               <Route path="releases" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseRegisterPage /></AuthorizedRoute>} />
               <Route path="releases/checklists" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage]}><DeploymentChecklistPage /></AuthorizedRoute>} />
               <Route path="releases/notes" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseNotesPage /></AuthorizedRoute>} />
@@ -534,7 +571,10 @@ export function AppRouter() {
               <Route path="operations/dr-drills" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><DrDrillLogPage /></AuthorizedRoute>} />
               <Route path="operations/legal-holds" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><LegalHoldRegisterPage /></AuthorizedRoute>} />
               <Route path="operations/capa" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><CapaRegisterPage /></AuthorizedRoute>} />
+              <Route path="operations/capa-effectiveness" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><CapaEffectivenessPage /></AuthorizedRoute>} />
               <Route path="operations/escalations" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><EscalationHistoryPage /></AuthorizedRoute>} />
+              <Route path="operations/automation" element={<AuthorizedRoute anyOf={[permissions.operations.automationRead, permissions.operations.automationManage, permissions.operations.automationExecute]}><OperationsAutomationPage /></AuthorizedRoute>} />
+              <Route path="operations/automation-runs" element={<AuthorizedRoute anyOf={[permissions.operations.automationRead, permissions.operations.automationManage, permissions.operations.automationExecute]}><AutomationJobRunsPage /></AuthorizedRoute>} />
               <Route path="operations/suppliers" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierRegisterPage /></AuthorizedRoute>} />
               <Route path="operations/supplier-agreements" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SupplierAgreementsPage /></AuthorizedRoute>} />
               <Route path="operations/configuration-audits" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ConfigurationAuditsPage /></AuthorizedRoute>} />

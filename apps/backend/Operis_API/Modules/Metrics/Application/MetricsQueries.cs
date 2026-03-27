@@ -466,6 +466,148 @@ public sealed class MetricsQueries(OperisDbContext dbContext) : IMetricsQueries
         return new PagedResult<PerformanceGateItem>(items, total, page, pageSize);
     }
 
+    public async Task<PagedResult<AdoptionRuleItem>> ListAdoptionRulesAsync(AdoptionRuleListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var baseQuery = dbContext.AdoptionRules.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(query.ProcessArea))
+        {
+            baseQuery = baseQuery.Where(x => x.ProcessArea == query.ProcessArea.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ScopeType))
+        {
+            baseQuery = baseQuery.Where(x => x.ScopeType == query.ScopeType.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            baseQuery = baseQuery.Where(x => x.Status == query.Status.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim();
+            baseQuery = baseQuery.Where(x =>
+                EF.Functions.ILike(x.RuleCode, $"%{search}%") ||
+                EF.Functions.ILike(x.ProcessArea, $"%{search}%") ||
+                EF.Functions.ILike(x.ScopeType, $"%{search}%"));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var items = await baseQuery
+            .OrderBy(x => x.RuleCode)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(x => new AdoptionRuleItem(x.Id, x.RuleCode, x.ProcessArea, x.ScopeType, x.ThresholdPercentage, x.Status, x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<AdoptionRuleItem>(items, total, page, pageSize);
+    }
+
+    public async Task<PagedResult<AdoptionScorecardItem>> ListAdoptionScorecardsAsync(AdoptionScorecardListQuery query, CancellationToken cancellationToken)
+    {
+        var (page, pageSize, skip) = NormalizePaging(query.Page, query.PageSize);
+        var latestScoreQuery =
+            from score in dbContext.AdoptionScores.AsNoTracking()
+            group score by new { score.ProjectId, score.AdoptionRuleId } into grouped
+            select grouped.OrderByDescending(x => x.CalculatedAt).First();
+
+        var baseQuery =
+            from score in latestScoreQuery
+            join project in dbContext.Projects.AsNoTracking() on score.ProjectId equals project.Id
+            join rule in dbContext.AdoptionRules.AsNoTracking() on score.AdoptionRuleId equals rule.Id
+            select new { Score = score, Project = project, Rule = rule };
+
+        if (query.ProjectId.HasValue)
+        {
+            baseQuery = baseQuery.Where(x => x.Score.ProjectId == query.ProjectId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ProcessArea))
+        {
+            baseQuery = baseQuery.Where(x => x.Score.ProcessArea == query.ProcessArea.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ScopeType))
+        {
+            baseQuery = baseQuery.Where(x => x.Rule.ScopeType == query.ScopeType.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ScoreState))
+        {
+            baseQuery = baseQuery.Where(x => x.Score.ScoreState == query.ScoreState.Trim().ToLowerInvariant());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim();
+            baseQuery = baseQuery.Where(x =>
+                EF.Functions.ILike(x.Project.Name, $"%{search}%") ||
+                EF.Functions.ILike(x.Rule.RuleCode, $"%{search}%") ||
+                EF.Functions.ILike(x.Rule.ProcessArea, $"%{search}%"));
+        }
+
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var rows = await baseQuery
+            .OrderBy(x => x.Project.Name)
+            .ThenBy(x => x.Rule.RuleCode)
+            .Skip(skip)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var keyPairs = rows.Select(x => new { x.Score.ProjectId, x.Score.AdoptionRuleId }).ToList();
+        var projectIds = keyPairs.Select(x => x.ProjectId).Distinct().ToArray();
+        var ruleIds = keyPairs.Select(x => x.AdoptionRuleId).Distinct().ToArray();
+        var anomalies = await (
+            from anomaly in dbContext.AdoptionAnomalies.AsNoTracking()
+            join project in dbContext.Projects.AsNoTracking() on anomaly.ProjectId equals project.Id
+            join rule in dbContext.AdoptionRules.AsNoTracking() on anomaly.AdoptionRuleId equals rule.Id
+            where projectIds.Contains(anomaly.ProjectId) && ruleIds.Contains(anomaly.AdoptionRuleId)
+            select new { Anomaly = anomaly, ProjectName = project.Name, RuleCode = rule.RuleCode })
+            .ToListAsync(cancellationToken);
+
+        var anomalyLookup = anomalies
+            .GroupBy(x => (x.Anomaly.ProjectId, x.Anomaly.AdoptionRuleId))
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<AdoptionAnomalyItem>)group
+                    .OrderByDescending(x => x.Anomaly.DetectedAt)
+                    .Select(x => new AdoptionAnomalyItem(
+                        x.Anomaly.Id,
+                        x.Anomaly.ProjectId,
+                        x.ProjectName,
+                        x.Anomaly.AdoptionRuleId,
+                        x.RuleCode,
+                        x.Anomaly.ProcessArea,
+                        x.Anomaly.Severity,
+                        x.Anomaly.Summary,
+                        x.Anomaly.Status,
+                        x.Anomaly.DetectedAt))
+                    .ToList());
+
+        var items = rows
+            .Select(x => new AdoptionScorecardItem(
+                x.Score.Id,
+                x.Score.ProjectId,
+                x.Project.Name,
+                x.Score.AdoptionRuleId,
+                x.Rule.RuleCode,
+                x.Score.ProcessArea,
+                x.Rule.ScopeType,
+                x.Rule.ThresholdPercentage,
+                x.Score.ScorePercentage,
+                x.Score.ScoreState,
+                x.Score.EvidenceCount,
+                x.Score.ExpectedCount,
+                x.Score.CalculatedAt,
+                anomalyLookup.GetValueOrDefault((x.Score.ProjectId, x.Score.AdoptionRuleId), [])))
+            .ToList();
+
+        return new PagedResult<AdoptionScorecardItem>(items, total, page, pageSize);
+    }
+
     private static (int Page, int PageSize, int Skip) NormalizePaging(int? page, int? pageSize)
     {
         var normalizedPage = Math.Max(page.GetValueOrDefault(1), 1);

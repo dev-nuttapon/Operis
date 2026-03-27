@@ -164,6 +164,8 @@ public static class Permissions
         public const string Read = "metrics.read";
         public const string Manage = "metrics.manage";
         public const string OverrideQualityGates = "metrics.quality_gates.override";
+        public const string AdoptionRead = "metrics.adoption.read";
+        public const string AdoptionManage = "metrics.adoption.manage";
     }
 
     public static class Releases
@@ -190,6 +192,9 @@ public static class Permissions
         public const string Read = "operations.read";
         public const string Manage = "operations.manage";
         public const string Approve = "operations.approve";
+        public const string AutomationRead = "operations.automation.read";
+        public const string AutomationManage = "operations.automation.manage";
+        public const string AutomationExecute = "operations.automation.execute";
     }
 
     public static class Knowledge
@@ -203,6 +208,22 @@ public static class Permissions
         public const string Read = "learning.training.read";
         public const string Manage = "learning.training.manage";
         public const string Approve = "learning.training.approve";
+    }
+
+    public static class Exceptions
+    {
+        public const string Read = "exceptions.waivers.read";
+        public const string Manage = "exceptions.waivers.manage";
+        public const string Approve = "exceptions.waivers.approve";
+    }
+
+    public static class Assessment
+    {
+        public const string WorkspaceRead = "assessment.workspace.read";
+        public const string WorkspaceManage = "assessment.workspace.manage";
+        public const string WorkspaceReview = "assessment.workspace.review";
+        public const string ControlsRead = "assessment.controls.read";
+        public const string ControlsManage = "assessment.controls.manage";
     }
 
     public static readonly IReadOnlyList<string> All =
@@ -307,6 +328,8 @@ public static class Permissions
         Metrics.Read,
         Metrics.Manage,
         Metrics.OverrideQualityGates,
+        Metrics.AdoptionRead,
+        Metrics.AdoptionManage,
         Releases.Read,
         Releases.Manage,
         Releases.Approve,
@@ -315,11 +338,22 @@ public static class Permissions
         Operations.Read,
         Operations.Manage,
         Operations.Approve,
+        Operations.AutomationRead,
+        Operations.AutomationManage,
+        Operations.AutomationExecute,
         Knowledge.Read,
         Knowledge.Manage,
         Learning.Read,
         Learning.Manage,
         Learning.Approve,
+        Exceptions.Read,
+        Exceptions.Manage,
+        Exceptions.Approve,
+        Assessment.WorkspaceRead,
+        Assessment.WorkspaceManage,
+        Assessment.WorkspaceReview,
+        Assessment.ControlsRead,
+        Assessment.ControlsManage,
         Notifications.Read,
         Notifications.Manage
     ];
@@ -426,6 +460,8 @@ public static class Permissions
             Metrics.Read => "Read Metrics and Quality Gates",
             Metrics.Manage => "Manage Metric Definitions and Schedules",
             Metrics.OverrideQualityGates => "Override Quality Gates",
+            Metrics.AdoptionRead => "Read Adoption Scorecards",
+            Metrics.AdoptionManage => "Manage Adoption Rules and Evaluations",
             Releases.Read => "Read Releases",
             Releases.Manage => "Manage Releases and Checklists",
             Releases.Approve => "Approve, Release, and Publish Release Notes",
@@ -434,11 +470,22 @@ public static class Permissions
             Operations.Read => "Read Security and Dependency Reviews",
             Operations.Manage => "Manage Security and Dependency Reviews",
             Operations.Approve => "Approve Access Reviews",
+            Operations.AutomationRead => "Read Operational Automation",
+            Operations.AutomationManage => "Manage Operational Automation",
+            Operations.AutomationExecute => "Execute Operational Automation",
             Knowledge.Read => "Read Lessons Learned",
             Knowledge.Manage => "Manage Lessons Learned",
             Learning.Read => "Read Training and Competency",
             Learning.Manage => "Manage Training and Competency",
             Learning.Approve => "Approve Training Catalog",
+            Exceptions.Read => "Read Process Waivers",
+            Exceptions.Manage => "Manage Process Waivers",
+            Exceptions.Approve => "Approve Process Waivers",
+            Assessment.WorkspaceRead => "Read Assessor Workspace",
+            Assessment.WorkspaceManage => "Manage Assessor Workspace",
+            Assessment.WorkspaceReview => "Review Assessor Findings",
+            Assessment.ControlsRead => "Read Control Mapping",
+            Assessment.ControlsManage => "Manage Control Mapping",
             Notifications.Read => "Read Notifications",
             Notifications.Manage => "Manage Notification Queue",
             _ => permission

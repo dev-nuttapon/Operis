@@ -8,6 +8,8 @@ Purpose:
 * owns Phase 21 security incidents, vulnerabilities, secret rotations, privileged access events, and classification policies
 * owns Phase 23 backup evidence, restore verification, DR drill records, and legal holds
 * owns Phase 24 CAPA records, CAPA actions, and escalation execution
+* owns Phase 33 CAPA effectiveness reviews and CAPA reopen orchestration
+* owns Phase 36 operational automation jobs, job runs, and job-run evidence references
 
 Public surface:
 
@@ -37,7 +39,11 @@ Owned data:
 * `legal_holds`
 * `capa_records`
 * `capa_actions`
+* `capa_effectiveness_reviews`
 * `escalation_events`
+* `automation_jobs`
+* `automation_job_runs`
+* `automation_job_evidence_refs`
 
 Notes:
 
@@ -47,4 +53,6 @@ Notes:
 * incident closure, privileged access use, and secret rotation verification are enforced through stable backend validation codes
 * secret rotations carry explicit touchpoints for `keycloak`, `redis`, `minio`, or `custom`, plus evidence linkage for verified rotations
 * backup, restore, DR, and legal hold release validation stay in `Application/`
-* CAPA closure is blocked until all actions are complete and escalation events stay append-only from endpoint composition
+* CAPA closure is blocked until all actions are complete, effectiveness reviews are post-closure only, and ineffective reviews may reopen CAPA with traceable rationale
+* escalation events stay append-only from endpoint composition
+* operational automation stays as controlled metadata and execution evidence inside the module; endpoint composition does not orchestrate provider jobs directly

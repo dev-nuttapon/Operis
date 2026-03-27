@@ -4,14 +4,18 @@ import type {
   AccessRecertification,
   AccessReview,
   AddAccessRecertificationDecisionInput,
+  AutomationJob,
+  AutomationJobRun,
   ApproveAccessReviewInput,
   BackupEvidence,
   CapaAction,
+  CapaEffectivenessReview,
   CapaRecord,
   ClassificationPolicy,
   ConfigurationAudit,
   CreateBackupEvidenceInput,
   CreateCapaActionInput,
+  CreateCapaEffectivenessReviewInput,
   CreateCapaRecordInput,
   CreateAccessRecertificationInput,
   CreateAccessReviewInput,
@@ -37,6 +41,8 @@ import type {
   PrivilegedAccessEvent,
   ReleaseLegalHoldInput,
   CloseCapaInput,
+  CreateAutomationJobInput,
+  ReopenCapaInput,
   RestoreVerification,
   SecretRotation,
   SecurityIncident,
@@ -48,6 +54,7 @@ import type {
   UpdateClassificationPolicyInput,
   UpdateAccessRecertificationInput,
   UpdateAccessReviewInput,
+  UpdateAutomationJobInput,
   UpdateExternalDependencyInput,
   UpdatePrivilegedAccessEventInput,
   UpdateSecretRotationInput,
@@ -58,6 +65,8 @@ import type {
   UpdateVulnerabilityInput,
   VerifyCapaInput,
   VulnerabilityRecord,
+  ExecuteAutomationJobInput,
+  TransitionAutomationJobInput,
 } from "../types/operations";
 
 function toQuery(input?: OperationsListInput) {
@@ -85,6 +94,8 @@ function toQuery(input?: OperationsListInput) {
   if (input?.backupEvidenceId) params.set("backupEvidenceId", input.backupEvidenceId);
   if (input?.touchpoint) params.set("touchpoint", input.touchpoint);
   if (input?.sourceType) params.set("sourceType", input.sourceType);
+  if (input?.capaRecordId) params.set("capaRecordId", input.capaRecordId);
+  if (input?.effectivenessResult) params.set("effectivenessResult", input.effectivenessResult);
   if (input?.ownerUserId) params.set("ownerUserId", input.ownerUserId);
   if (input?.escalatedTo) params.set("escalatedTo", input.escalatedTo);
   if (input?.scope) params.set("scope", input.scope);
@@ -154,8 +165,20 @@ export const listCapaRecords = (input?: OperationsListInput, signal?: AbortSigna
 export const getCapaRecord = (id: string, signal?: AbortSignal) =>
   apiRequest<CapaRecord>(`/api/v1/capa/${id}`, { signal });
 
+export const listCapaEffectivenessReviews = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<CapaEffectivenessReview>>(`/api/v1/operations/capa-effectiveness${toQuery(input)}`, { signal });
+
 export const listEscalationEvents = (input?: OperationsListInput, signal?: AbortSignal) =>
   apiRequest<PaginatedResult<EscalationEvent>>(`/api/v1/escalations${toQuery(input)}`, { signal });
+
+export const listAutomationJobs = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<AutomationJob>>(`/api/v1/operations/automation-jobs${toQuery(input)}`, { signal });
+
+export const getAutomationJob = (id: string, signal?: AbortSignal) =>
+  apiRequest<AutomationJob>(`/api/v1/operations/automation-jobs/${id}`, { signal });
+
+export const listAutomationJobRuns = (input?: OperationsListInput, signal?: AbortSignal) =>
+  apiRequest<PaginatedResult<AutomationJobRun>>(`/api/v1/operations/automation-job-runs${toQuery(input)}`, { signal });
 
 export const listSuppliers = (input?: OperationsListInput, signal?: AbortSignal) =>
   apiRequest<PaginatedResult<Supplier>>(`/api/v1/suppliers${toQuery(input)}`, { signal });
@@ -214,6 +237,18 @@ export const updatePrivilegedAccessEvent = (id: string, input: UpdatePrivilegedA
 export const createClassificationPolicy = (input: CreateClassificationPolicyInput) =>
   apiRequest<ClassificationPolicy>("/api/v1/classification-policies", { method: "POST", body: input });
 
+export const createAutomationJob = (input: CreateAutomationJobInput) =>
+  apiRequest<AutomationJob>("/api/v1/operations/automation-jobs", { method: "POST", body: input });
+
+export const updateAutomationJob = (id: string, input: UpdateAutomationJobInput) =>
+  apiRequest<AutomationJob>(`/api/v1/operations/automation-jobs/${id}`, { method: "PUT", body: input });
+
+export const transitionAutomationJob = (id: string, input: TransitionAutomationJobInput) =>
+  apiRequest<AutomationJob>(`/api/v1/operations/automation-jobs/${id}/transition`, { method: "POST", body: input });
+
+export const executeAutomationJob = (id: string, input: ExecuteAutomationJobInput) =>
+  apiRequest<AutomationJobRun>(`/api/v1/operations/automation-jobs/${id}/execute`, { method: "POST", body: input });
+
 export const updateClassificationPolicy = (id: string, input: UpdateClassificationPolicyInput) =>
   apiRequest<ClassificationPolicy>(`/api/v1/classification-policies/${id}`, { method: "PUT", body: input });
 
@@ -264,6 +299,12 @@ export const verifyCapa = (id: string, input: VerifyCapaInput) =>
 
 export const closeCapa = (id: string, input: CloseCapaInput) =>
   apiRequest<CapaRecord>(`/api/v1/capa/${id}/close`, { method: "PUT", body: input });
+
+export const createCapaEffectivenessReview = (input: CreateCapaEffectivenessReviewInput) =>
+  apiRequest<CapaEffectivenessReview>("/api/v1/operations/capa-effectiveness", { method: "POST", body: input });
+
+export const reopenCapa = (id: string, input: ReopenCapaInput) =>
+  apiRequest<CapaRecord>(`/api/v1/capa/${id}/reopen`, { method: "POST", body: input });
 
 export const createEscalationEvent = (input: CreateEscalationEventInput) =>
   apiRequest<EscalationEvent>("/api/v1/escalations", { method: "POST", body: input });

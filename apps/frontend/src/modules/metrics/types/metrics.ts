@@ -232,6 +232,61 @@ export interface PerformanceGateItem {
   overriddenByUserId?: string | null;
 }
 
+export interface AdoptionRuleListInput extends PaginationInput {
+  processArea?: string;
+  scopeType?: string;
+  status?: string;
+  search?: string;
+}
+
+export interface AdoptionRuleItem {
+  id: string;
+  ruleCode: string;
+  processArea: string;
+  scopeType: string;
+  thresholdPercentage: number;
+  status: string;
+  updatedAt: string;
+}
+
+export interface AdoptionAnomalyItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  adoptionRuleId: string;
+  ruleCode: string;
+  processArea: string;
+  severity: string;
+  summary: string;
+  status: string;
+  detectedAt: string;
+}
+
+export interface AdoptionScorecardListInput extends PaginationInput {
+  projectId?: string;
+  processArea?: string;
+  scopeType?: string;
+  scoreState?: string;
+  search?: string;
+}
+
+export interface AdoptionScorecardItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  adoptionRuleId: string;
+  ruleCode: string;
+  processArea: string;
+  scopeType: string;
+  thresholdPercentage: number;
+  scorePercentage: number;
+  scoreState: string;
+  evidenceCount: number;
+  expectedCount: number;
+  calculatedAt: string;
+  anomalies: AdoptionAnomalyItem[];
+}
+
 export interface CreateMetricDefinitionInput {
   code: string;
   name: string;
@@ -348,4 +403,25 @@ export interface EvaluatePerformanceGateInput {
 
 export interface OverridePerformanceGateInput {
   reason: string;
+}
+
+export interface CreateAdoptionRuleInput {
+  ruleCode: string;
+  processArea: string;
+  scopeType: string;
+  thresholdPercentage?: number | null;
+  status?: string;
+}
+
+export interface UpdateAdoptionRuleInput {
+  processArea: string;
+  scopeType: string;
+  thresholdPercentage?: number | null;
+  status: string;
+}
+
+export interface EvaluateAdoptionRulesInput {
+  projectId?: string | null;
+  scopeType?: string | null;
+  processArea?: string | null;
 }
