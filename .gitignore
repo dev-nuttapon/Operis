@@ -20,6 +20,8 @@ node_modules/
 /build/
 /.next/
 /out/
+bin/
+obj/
 
 # Vite
 .vite/
