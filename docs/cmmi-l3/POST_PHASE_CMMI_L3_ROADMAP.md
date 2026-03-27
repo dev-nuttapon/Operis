@@ -8,6 +8,7 @@ Use this document together with:
 - `docs/cmmi-l3/PHASE_TRANSITION_MATRIX.md`
 - `docs/cmmi-l3/PHASE_TEST_SPEC.md`
 - `docs/cmmi-l3/PHASE_OPERATIONS_RUNBOOK.md`
+- `docs/cmmi-l3/PHASE25_COMPLIANCE_DASHBOARD_SPEC.md`
 - `docs/MODULE_CONTRACTS.md`
 - `docs/DATA_OWNERSHIP.md`
 
@@ -101,6 +102,10 @@ Backend:
 ## 4. Post-Phase Roadmap
 
 ## Phase 25: Compliance Dashboard Core
+
+Detailed implementation spec:
+
+- `docs/cmmi-l3/PHASE25_COMPLIANCE_DASHBOARD_SPEC.md`
 
 - Goal
   - Provide a single readiness view for projects, process areas, and overdue compliance work.
