@@ -7,6 +7,7 @@ using Operis_API.Modules.Meetings.Infrastructure;
 using Operis_API.Modules.Metrics.Infrastructure;
 using Operis_API.Modules.Operations.Infrastructure;
 using Operis_API.Modules.Notifications.Infrastructure;
+using Operis_API.Modules.Releases.Infrastructure;
 using Operis_API.Modules.Requirements.Infrastructure;
 using Operis_API.Modules.Risks.Infrastructure;
 using Operis_API.Modules.Users.Infrastructure;
@@ -72,6 +73,11 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<ProjectPlanEntity> ProjectPlans => Set<ProjectPlanEntity>();
     public DbSet<StakeholderEntity> Stakeholders => Set<StakeholderEntity>();
     public DbSet<TailoringRecordEntity> TailoringRecords => Set<TailoringRecordEntity>();
+    public DbSet<RaciMapEntity> RaciMaps => Set<RaciMapEntity>();
+    public DbSet<ApprovalEvidenceLogEntity> ApprovalEvidenceLogs => Set<ApprovalEvidenceLogEntity>();
+    public DbSet<WorkflowOverrideLogEntity> WorkflowOverrideLogs => Set<WorkflowOverrideLogEntity>();
+    public DbSet<SlaRuleEntity> SlaRules => Set<SlaRuleEntity>();
+    public DbSet<RetentionPolicyEntity> RetentionPolicies => Set<RetentionPolicyEntity>();
     public DbSet<RequirementEntity> Requirements => Set<RequirementEntity>();
     public DbSet<RequirementVersionEntity> RequirementVersions => Set<RequirementVersionEntity>();
     public DbSet<RequirementBaselineEntity> RequirementBaselines => Set<RequirementBaselineEntity>();
@@ -96,6 +102,9 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
     public DbSet<MetricCollectionScheduleEntity> MetricCollectionSchedules => Set<MetricCollectionScheduleEntity>();
     public DbSet<MetricResultEntity> MetricResults => Set<MetricResultEntity>();
     public DbSet<QualityGateResultEntity> QualityGateResults => Set<QualityGateResultEntity>();
+    public DbSet<ReleaseEntity> Releases => Set<ReleaseEntity>();
+    public DbSet<DeploymentChecklistEntity> DeploymentChecklists => Set<DeploymentChecklistEntity>();
+    public DbSet<ReleaseNoteEntity> ReleaseNotes => Set<ReleaseNoteEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1011,6 +1020,63 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasIndex(x => new { x.Result, x.EvaluatedAt });
         });
 
+        modelBuilder.Entity<ReleaseEntity>(entity =>
+        {
+            entity.ToTable("releases");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProjectId).HasColumnName("project_id");
+            entity.Property(x => x.ReleaseCode).HasColumnName("release_code").HasMaxLength(128);
+            entity.Property(x => x.Title).HasColumnName("title").HasMaxLength(512);
+            entity.Property(x => x.PlannedAt).HasColumnName("planned_at");
+            entity.Property(x => x.ReleasedAt).HasColumnName("released_at");
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.QualityGateResultId).HasColumnName("quality_gate_result_id");
+            entity.Property(x => x.QualityGateOverrideReason).HasColumnName("quality_gate_override_reason").HasMaxLength(2000);
+            entity.Property(x => x.ApprovedByUserId).HasColumnName("approved_by_user_id").HasMaxLength(64);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ProjectEntity>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<QualityGateResultEntity>().WithMany().HasForeignKey(x => x.QualityGateResultId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(x => new { x.ProjectId, x.ReleaseCode }).IsUnique();
+            entity.HasIndex(x => new { x.ProjectId, x.Status, x.PlannedAt });
+        });
+
+        modelBuilder.Entity<DeploymentChecklistEntity>(entity =>
+        {
+            entity.ToTable("deployment_checklists");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ReleaseId).HasColumnName("release_id");
+            entity.Property(x => x.ChecklistItem).HasColumnName("checklist_item").HasMaxLength(512);
+            entity.Property(x => x.OwnerUserId).HasColumnName("owner_user_id").HasMaxLength(64);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CompletedAt).HasColumnName("completed_at");
+            entity.Property(x => x.EvidenceRef).HasColumnName("evidence_ref").HasMaxLength(1024);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ReleaseEntity>().WithMany().HasForeignKey(x => x.ReleaseId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ReleaseId, x.Status });
+        });
+
+        modelBuilder.Entity<ReleaseNoteEntity>(entity =>
+        {
+            entity.ToTable("release_notes");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ReleaseId).HasColumnName("release_id");
+            entity.Property(x => x.Summary).HasColumnName("summary").HasMaxLength(2000);
+            entity.Property(x => x.IncludedChanges).HasColumnName("included_changes").HasMaxLength(4000);
+            entity.Property(x => x.KnownIssues).HasColumnName("known_issues").HasMaxLength(4000);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.PublishedAt).HasColumnName("published_at");
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne<ReleaseEntity>().WithMany().HasForeignKey(x => x.ReleaseId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.ReleaseId, x.Status });
+        });
+
         modelBuilder.Entity<NotificationEntity>(entity =>
         {
             entity.ToTable("notifications");
@@ -1199,6 +1265,82 @@ public sealed class OperisDbContext(DbContextOptions<OperisDbContext> options) :
             entity.HasOne<ProcessAssetEntity>().WithMany().HasForeignKey(x => x.ImpactedProcessAssetId).OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => new { x.ProjectId, x.Status });
             entity.HasIndex(x => new { x.RequesterUserId, x.Status });
+        });
+
+        modelBuilder.Entity<RaciMapEntity>(entity =>
+        {
+            entity.ToTable("raci_maps");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ProcessCode).HasColumnName("process_code").HasMaxLength(128);
+            entity.Property(x => x.RoleName).HasColumnName("role_name").HasMaxLength(256);
+            entity.Property(x => x.ResponsibilityType).HasColumnName("responsibility_type").HasMaxLength(8);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.ProcessCode, x.RoleName, x.ResponsibilityType }).IsUnique();
+            entity.HasIndex(x => new { x.ProcessCode, x.Status });
+        });
+
+        modelBuilder.Entity<ApprovalEvidenceLogEntity>(entity =>
+        {
+            entity.ToTable("approval_evidence_logs");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.EntityType).HasColumnName("entity_type").HasMaxLength(64);
+            entity.Property(x => x.EntityId).HasColumnName("entity_id").HasMaxLength(64);
+            entity.Property(x => x.ApproverUserId).HasColumnName("approver_user_id").HasMaxLength(128);
+            entity.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
+            entity.Property(x => x.Outcome).HasColumnName("outcome").HasMaxLength(32);
+            entity.HasIndex(x => new { x.EntityType, x.Outcome, x.ApprovedAt });
+            entity.HasIndex(x => new { x.ApproverUserId, x.ApprovedAt });
+        });
+
+        modelBuilder.Entity<WorkflowOverrideLogEntity>(entity =>
+        {
+            entity.ToTable("workflow_override_logs");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.EntityType).HasColumnName("entity_type").HasMaxLength(64);
+            entity.Property(x => x.EntityId).HasColumnName("entity_id").HasMaxLength(64);
+            entity.Property(x => x.RequestedBy).HasColumnName("requested_by").HasMaxLength(128);
+            entity.Property(x => x.ApprovedBy).HasColumnName("approved_by").HasMaxLength(128);
+            entity.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(2000);
+            entity.Property(x => x.OccurredAt).HasColumnName("occurred_at");
+            entity.HasIndex(x => new { x.EntityType, x.OccurredAt });
+            entity.HasIndex(x => new { x.RequestedBy, x.OccurredAt });
+        });
+
+        modelBuilder.Entity<SlaRuleEntity>(entity =>
+        {
+            entity.ToTable("sla_rules");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.ScopeType).HasColumnName("scope_type").HasMaxLength(64);
+            entity.Property(x => x.ScopeRef).HasColumnName("scope_ref").HasMaxLength(256);
+            entity.Property(x => x.TargetDurationHours).HasColumnName("target_duration_hours");
+            entity.Property(x => x.EscalationPolicyId).HasColumnName("escalation_policy_id").HasMaxLength(128);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => new { x.ScopeType, x.Status });
+        });
+
+        modelBuilder.Entity<RetentionPolicyEntity>(entity =>
+        {
+            entity.ToTable("retention_policies");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.PolicyCode).HasColumnName("policy_code").HasMaxLength(128);
+            entity.Property(x => x.AppliesTo).HasColumnName("applies_to").HasMaxLength(128);
+            entity.Property(x => x.RetentionPeriodDays).HasColumnName("retention_period_days");
+            entity.Property(x => x.ArchiveRule).HasColumnName("archive_rule").HasMaxLength(512);
+            entity.Property(x => x.Status).HasColumnName("status").HasMaxLength(32);
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(x => x.PolicyCode).IsUnique();
+            entity.HasIndex(x => new { x.AppliesTo, x.Status });
         });
 
         modelBuilder.Entity<RequirementEntity>(entity =>

@@ -1,5 +1,6 @@
 import { apiRequest } from "../../../shared/lib/apiClient";
 import type {
+  ApprovalEvidenceLog,
   GovernanceListInput,
   GovernanceListResult,
   GovernanceMutationResponse,
@@ -13,11 +14,18 @@ import type {
   QaChecklist,
   QaChecklistFormInput,
   QaChecklistListItem,
+  RaciMap,
+  RaciMapFormInput,
+  RetentionPolicy,
+  RetentionPolicyFormInput,
+  SlaRule,
+  SlaRuleFormInput,
   Stakeholder,
   StakeholderFormInput,
   TailoringRecord,
   TailoringRecordFormInput,
   TailoringRecordListItem,
+  WorkflowOverrideLog,
 } from "../types/governance";
 
 function toQuery(input?: GovernanceListInput) {
@@ -28,6 +36,18 @@ function toQuery(input?: GovernanceListInput) {
   if (input?.status) params.set("status", input.status);
   if (input?.ownerUserId) params.set("ownerUserId", input.ownerUserId);
   if (input?.projectId) params.set("projectId", input.projectId);
+  if (input?.processCode) params.set("processCode", input.processCode);
+  if (input?.entityType) params.set("entityType", input.entityType);
+  if (input?.actorUserId) params.set("actorUserId", input.actorUserId);
+  if (input?.outcome) params.set("outcome", input.outcome);
+  if (input?.approvedFrom) params.set("approvedFrom", input.approvedFrom);
+  if (input?.approvedTo) params.set("approvedTo", input.approvedTo);
+  if (input?.requestedBy) params.set("requestedBy", input.requestedBy);
+  if (input?.approvedBy) params.set("approvedBy", input.approvedBy);
+  if (input?.occurredFrom) params.set("occurredFrom", input.occurredFrom);
+  if (input?.occurredTo) params.set("occurredTo", input.occurredTo);
+  if (input?.scopeType) params.set("scopeType", input.scopeType);
+  if (input?.appliesTo) params.set("appliesTo", input.appliesTo);
   const query = params.toString();
   return query ? `?${query}` : "";
 }
@@ -112,3 +132,30 @@ export const applyTailoringRecord = (id: string) =>
   apiRequest<GovernanceMutationResponse>(`/api/v1/governance/tailoring-records/${id}/apply`, { method: "PUT" });
 export const archiveTailoringRecord = (id: string) =>
   apiRequest<GovernanceMutationResponse>(`/api/v1/governance/tailoring-records/${id}/archive`, { method: "PUT" });
+
+export const listRaciMaps = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<RaciMap>>(`/api/v1/governance/raci-maps${toQuery(input)}`, { signal });
+export const createRaciMap = (input: RaciMapFormInput) =>
+  apiRequest<RaciMap>("/api/v1/governance/raci-maps", { method: "POST", body: input });
+export const updateRaciMap = (id: string, input: RaciMapFormInput) =>
+  apiRequest<RaciMap>(`/api/v1/governance/raci-maps/${id}`, { method: "PUT", body: input });
+
+export const listApprovalEvidence = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<ApprovalEvidenceLog>>(`/api/v1/governance/approval-evidence${toQuery(input)}`, { signal });
+
+export const listWorkflowOverrides = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<WorkflowOverrideLog>>(`/api/v1/governance/workflow-overrides${toQuery(input)}`, { signal });
+
+export const listSlaRules = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<SlaRule>>(`/api/v1/governance/sla-rules${toQuery(input)}`, { signal });
+export const createSlaRule = (input: SlaRuleFormInput) =>
+  apiRequest<SlaRule>("/api/v1/governance/sla-rules", { method: "POST", body: input });
+export const updateSlaRule = (id: string, input: SlaRuleFormInput) =>
+  apiRequest<SlaRule>(`/api/v1/governance/sla-rules/${id}`, { method: "PUT", body: input });
+
+export const listRetentionPolicies = (input?: GovernanceListInput, signal?: AbortSignal) =>
+  apiRequest<GovernanceListResult<RetentionPolicy>>(`/api/v1/governance/retention-policies${toQuery(input)}`, { signal });
+export const createRetentionPolicy = (input: RetentionPolicyFormInput) =>
+  apiRequest<RetentionPolicy>("/api/v1/governance/retention-policies", { method: "POST", body: input });
+export const updateRetentionPolicy = (id: string, input: RetentionPolicyFormInput) =>
+  apiRequest<RetentionPolicy>(`/api/v1/governance/retention-policies/${id}`, { method: "PUT", body: input });

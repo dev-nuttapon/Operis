@@ -83,6 +83,16 @@ export function MainLayout() {
     permissions.governance.tailoringManage,
     permissions.governance.tailoringApprove,
   );
+  const hasGovernanceOperationsAccess = permissionState.hasAnyPermission(
+    permissions.governance.raciRead,
+    permissions.governance.raciManage,
+    permissions.governance.approvalEvidenceRead,
+    permissions.governance.overrideLogRead,
+    permissions.governance.slaRead,
+    permissions.governance.slaManage,
+    permissions.governance.retentionRead,
+    permissions.governance.retentionManage,
+  );
   const hasRequirementsAccess = permissionState.hasAnyPermission(
     permissions.requirements.read,
     permissions.requirements.manage,
@@ -127,6 +137,11 @@ export function MainLayout() {
     permissions.metrics.read,
     permissions.metrics.manage,
     permissions.metrics.overrideQualityGates,
+  );
+  const hasReleasesAccess = permissionState.hasAnyPermission(
+    permissions.releases.read,
+    permissions.releases.manage,
+    permissions.releases.approve,
   );
   const hasOperationsAccess = permissionState.hasAnyPermission(
     permissions.operations.read,
@@ -269,6 +284,20 @@ export function MainLayout() {
           ],
         }]
       : []),
+    ...(hasGovernanceOperationsAccess
+      ? [{
+          key: '/app/governance-operations',
+          icon: <BulbOutlined />,
+          label: 'Governance & Operations',
+          children: [
+            { key: '/app/governance/raci-maps', label: 'RACI Map' },
+            { key: '/app/governance/approval-evidence', label: 'Approval Evidence Log' },
+            { key: '/app/governance/workflow-overrides', label: 'Workflow Override Log' },
+            { key: '/app/governance/sla-rules', label: 'SLA & Escalation Rules' },
+            { key: '/app/governance/retention-policies', label: 'Data Retention Policy' },
+          ],
+        }]
+      : []),
     ...(hasChangeControlAccess
       ? [{
           key: '/app/change-control-group',
@@ -336,6 +365,18 @@ export function MainLayout() {
             { key: '/app/metrics/dashboard', label: 'Metrics Dashboard' },
             { key: '/app/metrics/definitions', label: 'Metric Definitions' },
             { key: '/app/metrics/quality-gates', label: 'Quality Gate Status' },
+          ],
+        }]
+      : []),
+    ...(hasReleasesAccess
+      ? [{
+          key: '/app/releases-group',
+          icon: <CheckCircleOutlined />,
+          label: 'Release Management',
+          children: [
+            { key: '/app/releases', label: 'Release Register' },
+            { key: '/app/releases/checklists', label: 'Deployment Checklist' },
+            { key: '/app/releases/notes', label: 'Release Notes' },
           ],
         }]
       : []),
@@ -519,9 +560,17 @@ export function MainLayout() {
     if (path.includes('/app/audit-plans')) return 'Process Audit Plan & Findings';
     if (path.includes('/app/evidence-exports')) return 'Evidence Export';
     if (path.includes('/app/audit-logs')) return 'Audit Log';
+    if (path.includes('/app/governance/raci-maps')) return 'RACI Map';
+    if (path.includes('/app/governance/approval-evidence')) return 'Approval Evidence Log';
+    if (path.includes('/app/governance/workflow-overrides')) return 'Workflow Override Log';
+    if (path.includes('/app/governance/sla-rules')) return 'SLA & Escalation Rules';
+    if (path.includes('/app/governance/retention-policies')) return 'Data Retention Policy';
     if (path.includes('/app/metrics/dashboard')) return 'Metrics Dashboard';
     if (path.includes('/app/metrics/definitions')) return 'Metric Definitions';
     if (path.includes('/app/metrics/quality-gates')) return 'Quality Gate Status';
+    if (path.includes('/app/releases/checklists')) return 'Deployment Checklist';
+    if (path.includes('/app/releases/notes')) return 'Release Notes';
+    if (path.includes('/app/releases')) return 'Release Register';
     if (path.includes('/app/operations/access-reviews')) return 'Access Review';
     if (path.includes('/app/operations/security-reviews')) return 'Security Review';
     if (path.includes('/app/operations/external-dependencies')) return 'External Dependency Register';

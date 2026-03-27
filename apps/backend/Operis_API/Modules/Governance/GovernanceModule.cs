@@ -14,6 +14,8 @@ public sealed class GovernanceModule : IModule
     {
         services.AddScoped<IGovernanceQueries, GovernanceQueries>();
         services.AddScoped<IGovernanceCommands, GovernanceCommands>();
+        services.AddScoped<IGovernanceOperationsQueries, GovernanceOperationsQueries>();
+        services.AddScoped<IGovernanceOperationsCommands, GovernanceOperationsCommands>();
         return services;
     }
 
@@ -65,6 +67,19 @@ public sealed class GovernanceModule : IModule
         group.MapPut("/tailoring-records/{tailoringRecordId:guid}/approve", ApproveTailoringRecordAsync);
         group.MapPut("/tailoring-records/{tailoringRecordId:guid}/apply", ApplyTailoringRecordAsync);
         group.MapPut("/tailoring-records/{tailoringRecordId:guid}/archive", ArchiveTailoringRecordAsync);
+        group.MapGet("/raci-maps", ListRaciMapsAsync);
+        group.MapPost("/raci-maps", CreateRaciMapAsync);
+        group.MapPut("/raci-maps/{id:guid}", UpdateRaciMapAsync);
+        group.MapGet("/approval-evidence", ListApprovalEvidenceAsync);
+        group.MapGet("/workflow-overrides", ListWorkflowOverridesAsync);
+        group.MapPost("/workflow-overrides", RejectWorkflowOverrideMutationAsync);
+        group.MapPut("/workflow-overrides/{id:guid}", RejectWorkflowOverrideMutationAsync);
+        group.MapGet("/sla-rules", ListSlaRulesAsync);
+        group.MapPost("/sla-rules", CreateSlaRuleAsync);
+        group.MapPut("/sla-rules/{id:guid}", UpdateSlaRuleAsync);
+        group.MapGet("/retention-policies", ListRetentionPoliciesAsync);
+        group.MapPost("/retention-policies", CreateRetentionPolicyAsync);
+        group.MapPut("/retention-policies/{id:guid}", UpdateRetentionPolicyAsync);
 
         return endpoints;
     }
@@ -222,6 +237,77 @@ public sealed class GovernanceModule : IModule
 
     private static async Task<IResult> ArchiveTailoringRecordAsync(ClaimsPrincipal principal, Guid tailoringRecordId, IGovernanceCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
         await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.TailoringManage, "You do not have permission to manage tailoring records.", () => commands.ArchiveTailoringRecordAsync(tailoringRecordId, cancellationToken));
+
+    private static async Task<IResult> ListRaciMapsAsync(ClaimsPrincipal principal, [AsParameters] RaciMapListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.RaciRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read RACI maps.");
+        }
+
+        return Results.Ok(await queries.ListRaciMapsAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateRaciMapAsync(ClaimsPrincipal principal, CreateRaciMapRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.RaciManage, "You do not have permission to manage RACI maps.", () => commands.CreateRaciMapAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateRaciMapAsync(ClaimsPrincipal principal, Guid id, UpdateRaciMapRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.RaciManage, "You do not have permission to manage RACI maps.", () => commands.UpdateRaciMapAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListApprovalEvidenceAsync(ClaimsPrincipal principal, [AsParameters] ApprovalEvidenceListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.ApprovalEvidenceRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read approval evidence.");
+        }
+
+        return Results.Ok(await queries.ListApprovalEvidenceAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> ListWorkflowOverridesAsync(ClaimsPrincipal principal, [AsParameters] WorkflowOverrideListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.OverrideLogRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read workflow override logs.");
+        }
+
+        return Results.Ok(await queries.ListWorkflowOverridesAsync(query, cancellationToken));
+    }
+
+    private static Task<IResult> RejectWorkflowOverrideMutationAsync() =>
+        Task.FromResult<IResult>(ConflictWithCode("Workflow override logs are read-only.", ApiErrorCodes.OverrideLogMutationForbidden));
+
+    private static async Task<IResult> ListSlaRulesAsync(ClaimsPrincipal principal, [AsParameters] SlaRuleListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.SlaRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read SLA rules.");
+        }
+
+        return Results.Ok(await queries.ListSlaRulesAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateSlaRuleAsync(ClaimsPrincipal principal, CreateSlaRuleRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.SlaManage, "You do not have permission to manage SLA rules.", () => commands.CreateSlaRuleAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateSlaRuleAsync(ClaimsPrincipal principal, Guid id, UpdateSlaRuleRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.SlaManage, "You do not have permission to manage SLA rules.", () => commands.UpdateSlaRuleAsync(id, request, ResolveActor(principal), cancellationToken));
+
+    private static async Task<IResult> ListRetentionPoliciesAsync(ClaimsPrincipal principal, [AsParameters] RetentionPolicyListQuery query, IGovernanceOperationsQueries queries, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken)
+    {
+        if (LacksPermission(principal, permissionMatrix, Permissions.Governance.RetentionRead))
+        {
+            return ForbiddenWithCode("Forbidden.", "You do not have permission to read retention policies.");
+        }
+
+        return Results.Ok(await queries.ListRetentionPoliciesAsync(query, cancellationToken));
+    }
+
+    private static async Task<IResult> CreateRetentionPolicyAsync(ClaimsPrincipal principal, CreateRetentionPolicyRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.RetentionManage, "You do not have permission to manage retention policies.", () => commands.CreateRetentionPolicyAsync(request, ResolveActor(principal), cancellationToken), StatusCodes.Status201Created);
+
+    private static async Task<IResult> UpdateRetentionPolicyAsync(ClaimsPrincipal principal, Guid id, UpdateRetentionPolicyRequest request, IGovernanceOperationsCommands commands, IPermissionMatrix permissionMatrix, CancellationToken cancellationToken) =>
+        await ExecuteAsync(principal, permissionMatrix, Permissions.Governance.RetentionManage, "You do not have permission to manage retention policies.", () => commands.UpdateRetentionPolicyAsync(id, request, ResolveActor(principal), cancellationToken));
 
     private static async Task<IResult> ReadSingleAsync<T>(ClaimsPrincipal principal, IPermissionMatrix permissionMatrix, string permission, string forbiddenDetail, Func<Task<T?>> loader)
         where T : class

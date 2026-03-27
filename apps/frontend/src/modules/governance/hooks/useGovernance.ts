@@ -10,10 +10,13 @@ import {
   archiveStakeholder,
   archiveTailoringRecord,
   baselineProjectPlan,
+  createRaciMap,
   createProcessAsset,
   createProcessAssetVersion,
   createProjectPlan,
   createQaChecklist,
+  createRetentionPolicy,
+  createSlaRule,
   createStakeholder,
   createTailoringRecord,
   deprecateProcessAsset,
@@ -21,19 +24,27 @@ import {
   getProcessAsset,
   getProjectPlan,
   getQaChecklist,
+  listApprovalEvidence,
   listProcessAssets,
   listProjectPlans,
   listQaChecklists,
+  listRaciMaps,
+  listRetentionPolicies,
+  listSlaRules,
   listStakeholders,
   listTailoringRecords,
+  listWorkflowOverrides,
   submitProcessAssetVersionReview,
   submitProjectPlanReview,
   submitTailoringRecord,
   supersedeProjectPlan,
+  updateRaciMap,
   updateProcessAsset,
   updateProcessAssetVersion,
   updateProjectPlan,
   updateQaChecklist,
+  updateRetentionPolicy,
+  updateSlaRule,
   updateStakeholder,
   updateTailoringRecord,
 } from "../api/governanceApi";
@@ -43,6 +54,9 @@ import type {
   ProcessAssetVersionFormInput,
   ProjectPlanFormInput,
   QaChecklistFormInput,
+  RaciMapFormInput,
+  RetentionPolicyFormInput,
+  SlaRuleFormInput,
   StakeholderFormInput,
   TailoringRecordFormInput,
 } from "../types/governance";
@@ -107,6 +121,46 @@ export function useTailoringRecords(input?: GovernanceListInput, enabled = true)
   return useQuery({
     queryKey: ["governance", "tailoring-records", input],
     queryFn: ({ signal }) => listTailoringRecords(input, signal),
+    enabled,
+  });
+}
+
+export function useRaciMaps(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "raci-maps", input],
+    queryFn: ({ signal }) => listRaciMaps(input, signal),
+    enabled,
+  });
+}
+
+export function useApprovalEvidence(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "approval-evidence", input],
+    queryFn: ({ signal }) => listApprovalEvidence(input, signal),
+    enabled,
+  });
+}
+
+export function useWorkflowOverrides(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "workflow-overrides", input],
+    queryFn: ({ signal }) => listWorkflowOverrides(input, signal),
+    enabled,
+  });
+}
+
+export function useSlaRules(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "sla-rules", input],
+    queryFn: ({ signal }) => listSlaRules(input, signal),
+    enabled,
+  });
+}
+
+export function useRetentionPolicies(input?: GovernanceListInput, enabled = true) {
+  return useQuery({
+    queryKey: ["governance", "retention-policies", input],
+    queryFn: ({ signal }) => listRetentionPolicies(input, signal),
     enabled,
   });
 }
@@ -245,6 +299,54 @@ export function useArchiveStakeholder() {
   const invalidate = useInvalidateGovernance();
   return useMutation({
     mutationFn: (id: string) => archiveStakeholder(id),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateRaciMap() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: RaciMapFormInput) => createRaciMap(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateRaciMap() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: RaciMapFormInput }) => updateRaciMap(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateSlaRule() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: SlaRuleFormInput) => createSlaRule(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateSlaRule() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: SlaRuleFormInput }) => updateSlaRule(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateRetentionPolicy() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: (input: RetentionPolicyFormInput) => createRetentionPolicy(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateRetentionPolicy() {
+  const invalidate = useInvalidateGovernance();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: RetentionPolicyFormInput }) => updateRetentionPolicy(id, input),
     onSuccess: invalidate,
   });
 }

@@ -91,6 +91,16 @@ namespace Operis_API.Shared.Contracts;
     public const string AccessReviewRationaleRequired = "access_review_rationale_required";
     public const string DependencyOwnerRequired = "dependency_owner_required";
     public const string DependencyCriticalityRequired = "dependency_criticality_required";
+    public const string SlaTargetRequired = "sla_target_required";
+    public const string SlaEscalationPolicyRequired = "sla_escalation_policy_required";
+    public const string OverrideLogMutationForbidden = "override_log_mutation_forbidden";
+    public const string ReleaseNotFound = "release_not_found";
+    public const string ReleaseCodeDuplicate = "release_code_duplicate";
+    public const string DeploymentChecklistNotFound = "deployment_checklist_not_found";
+    public const string ReleaseNoteNotFound = "release_note_not_found";
+    public const string ReleaseChecklistIncomplete = "release_checklist_incomplete";
+    public const string ReleaseQualityGateFailed = "release_quality_gate_failed";
+    public const string ReleaseNotesReleaseRequired = "release_notes_release_required";
 
     public const string UserExists = "user_exists";
     public const string PendingInvitationExists = "pending_invitation_exists";

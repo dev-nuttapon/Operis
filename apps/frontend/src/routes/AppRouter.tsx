@@ -70,6 +70,21 @@ const StakeholderRegisterPage = lazy(() =>
 const TailoringRecordPage = lazy(() =>
   import("../modules/governance/pages/TailoringRecordPage").then((module) => ({ default: module.TailoringRecordPage }))
 );
+const RaciMapPage = lazy(() =>
+  import("../modules/governance/pages/RaciMapPage").then((module) => ({ default: module.RaciMapPage }))
+);
+const ApprovalEvidenceLogPage = lazy(() =>
+  import("../modules/governance/pages/ApprovalEvidenceLogPage").then((module) => ({ default: module.ApprovalEvidenceLogPage }))
+);
+const WorkflowOverrideLogPage = lazy(() =>
+  import("../modules/governance/pages/WorkflowOverrideLogPage").then((module) => ({ default: module.WorkflowOverrideLogPage }))
+);
+const SlaEscalationRulesPage = lazy(() =>
+  import("../modules/governance/pages/SlaEscalationRulesPage").then((module) => ({ default: module.SlaEscalationRulesPage }))
+);
+const RetentionPolicyPage = lazy(() =>
+  import("../modules/governance/pages/RetentionPolicyPage").then((module) => ({ default: module.RetentionPolicyPage }))
+);
 const RequirementRegisterPage = lazy(() =>
   import("../modules/requirements/pages/RequirementRegisterPage").then((module) => ({ default: module.RequirementRegisterPage }))
 );
@@ -144,6 +159,15 @@ const MetricsDashboardPage = lazy(() =>
 );
 const QualityGatesPage = lazy(() =>
   import("../modules/metrics/pages/QualityGatesPage").then((module) => ({ default: module.QualityGatesPage }))
+);
+const ReleaseRegisterPage = lazy(() =>
+  import("../modules/releases/pages/ReleaseRegisterPage").then((module) => ({ default: module.ReleaseRegisterPage }))
+);
+const DeploymentChecklistPage = lazy(() =>
+  import("../modules/releases/pages/DeploymentChecklistPage").then((module) => ({ default: module.DeploymentChecklistPage }))
+);
+const ReleaseNotesPage = lazy(() =>
+  import("../modules/releases/pages/ReleaseNotesPage").then((module) => ({ default: module.ReleaseNotesPage }))
 );
 const AccessReviewsPage = lazy(() =>
   import("../modules/operations/pages/AccessReviewsPage").then((module) => ({ default: module.AccessReviewsPage }))
@@ -304,6 +328,11 @@ export function AppRouter() {
               <Route path="project-plans" element={<AuthorizedRoute anyOf={[permissions.governance.projectPlanRead, permissions.governance.projectPlanManage, permissions.governance.projectPlanApprove]}><ProjectPlanPage /></AuthorizedRoute>} />
               <Route path="stakeholders" element={<AuthorizedRoute anyOf={[permissions.governance.stakeholderRead, permissions.governance.stakeholderManage]}><StakeholderRegisterPage /></AuthorizedRoute>} />
               <Route path="tailoring-records" element={<AuthorizedRoute anyOf={[permissions.governance.tailoringRead, permissions.governance.tailoringManage, permissions.governance.tailoringApprove]}><TailoringRecordPage /></AuthorizedRoute>} />
+              <Route path="governance/raci-maps" element={<AuthorizedRoute anyOf={[permissions.governance.raciRead, permissions.governance.raciManage]}><RaciMapPage /></AuthorizedRoute>} />
+              <Route path="governance/approval-evidence" element={<AuthorizedRoute permission={permissions.governance.approvalEvidenceRead}><ApprovalEvidenceLogPage /></AuthorizedRoute>} />
+              <Route path="governance/workflow-overrides" element={<AuthorizedRoute permission={permissions.governance.overrideLogRead}><WorkflowOverrideLogPage /></AuthorizedRoute>} />
+              <Route path="governance/sla-rules" element={<AuthorizedRoute anyOf={[permissions.governance.slaRead, permissions.governance.slaManage]}><SlaEscalationRulesPage /></AuthorizedRoute>} />
+              <Route path="governance/retention-policies" element={<AuthorizedRoute anyOf={[permissions.governance.retentionRead, permissions.governance.retentionManage]}><RetentionPolicyPage /></AuthorizedRoute>} />
               <Route path="requirements" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementRegisterPage /></AuthorizedRoute>} />
               <Route path="requirements/:requirementId" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.manage, permissions.requirements.approve, permissions.requirements.baseline]}><RequirementDetailPage /></AuthorizedRoute>} />
               <Route path="requirements/baselines" element={<AuthorizedRoute anyOf={[permissions.requirements.read, permissions.requirements.baseline]}><RequirementBaselinesPage /></AuthorizedRoute>} />
@@ -329,6 +358,9 @@ export function AppRouter() {
               <Route path="metrics/definitions" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage]}><MetricDefinitionsPage /></AuthorizedRoute>} />
               <Route path="metrics/dashboard" element={<AuthorizedRoute permission={permissions.metrics.read}><MetricsDashboardPage /></AuthorizedRoute>} />
               <Route path="metrics/quality-gates" element={<AuthorizedRoute anyOf={[permissions.metrics.read, permissions.metrics.manage, permissions.metrics.overrideQualityGates]}><QualityGatesPage /></AuthorizedRoute>} />
+              <Route path="releases" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseRegisterPage /></AuthorizedRoute>} />
+              <Route path="releases/checklists" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage]}><DeploymentChecklistPage /></AuthorizedRoute>} />
+              <Route path="releases/notes" element={<AuthorizedRoute anyOf={[permissions.releases.read, permissions.releases.manage, permissions.releases.approve]}><ReleaseNotesPage /></AuthorizedRoute>} />
               <Route path="operations/access-reviews" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage, permissions.operations.approve]}><AccessReviewsPage /></AuthorizedRoute>} />
               <Route path="operations/security-reviews" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><SecurityReviewsPage /></AuthorizedRoute>} />
               <Route path="operations/external-dependencies" element={<AuthorizedRoute anyOf={[permissions.operations.read, permissions.operations.manage]}><ExternalDependenciesPage /></AuthorizedRoute>} />

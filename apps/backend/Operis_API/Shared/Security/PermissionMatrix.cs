@@ -51,6 +51,12 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Documents.Deactivate,
                 Permissions.Workflows.Read,
                 Permissions.Workflows.ManageDefinitions,
+                Permissions.Governance.RaciRead,
+                Permissions.Governance.SlaRead,
+                Permissions.Governance.RetentionRead,
+                Permissions.Governance.RetentionManage,
+                Permissions.Governance.ApprovalEvidenceRead,
+                Permissions.Governance.OverrideLogRead,
                 Permissions.Requirements.Read,
                 Permissions.Requirements.Manage,
                 Permissions.Requirements.Approve,
@@ -80,6 +86,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Metrics.Read,
                 Permissions.Metrics.Manage,
                 Permissions.Metrics.OverrideQualityGates,
+                Permissions.Releases.Read,
+                Permissions.Releases.Manage,
+                Permissions.Releases.Approve,
                 Permissions.Operations.Read,
                 Permissions.Operations.Manage,
                 Permissions.Operations.Approve,
@@ -117,6 +126,14 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Documents.Read,
                 Permissions.Workflows.Read,
                 Permissions.Workflows.ManageDefinitions,
+                Permissions.Governance.RaciRead,
+                Permissions.Governance.RaciManage,
+                Permissions.Governance.ApprovalEvidenceRead,
+                Permissions.Governance.OverrideLogRead,
+                Permissions.Governance.SlaRead,
+                Permissions.Governance.SlaManage,
+                Permissions.Governance.RetentionRead,
+                Permissions.Governance.RetentionManage,
                 Permissions.Requirements.Read,
                 Permissions.ChangeControl.Read,
                 Permissions.ChangeControl.ReadConfiguration,
@@ -129,6 +146,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Metrics.Read,
                 Permissions.Metrics.Manage,
                 Permissions.Metrics.OverrideQualityGates,
+                Permissions.Releases.Read,
+                Permissions.Releases.Manage,
+                Permissions.Releases.Approve,
                 Permissions.Operations.Read,
                 Permissions.Operations.Manage,
                 Permissions.Operations.Approve,
@@ -145,6 +165,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Projects.ReadCompliance,
                 Permissions.Documents.Read,
                 Permissions.Workflows.Read,
+                Permissions.Governance.ApprovalEvidenceRead,
+                Permissions.Governance.OverrideLogRead,
+                Permissions.Governance.RetentionRead,
                 Permissions.Requirements.Read,
                 Permissions.ChangeControl.Read,
                 Permissions.ChangeControl.ReadConfiguration,
@@ -155,6 +178,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Verification.Read,
                 Permissions.Verification.Export,
                 Permissions.Metrics.Read,
+                Permissions.Releases.Read,
                 Permissions.Operations.Read,
                 Permissions.Notifications.Read
             ],
@@ -191,6 +215,14 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.StakeholderRead,
                 Permissions.Governance.TailoringRead,
                 Permissions.Governance.TailoringApprove,
+                Permissions.Governance.RaciRead,
+                Permissions.Governance.RaciManage,
+                Permissions.Governance.ApprovalEvidenceRead,
+                Permissions.Governance.OverrideLogRead,
+                Permissions.Governance.SlaRead,
+                Permissions.Governance.SlaManage,
+                Permissions.Governance.RetentionRead,
+                Permissions.Governance.RetentionManage,
                 Permissions.Requirements.Read,
                 Permissions.Requirements.Approve,
                 Permissions.Requirements.Baseline,
@@ -216,6 +248,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Metrics.Read,
                 Permissions.Metrics.Manage,
                 Permissions.Metrics.OverrideQualityGates,
+                Permissions.Releases.Read,
+                Permissions.Releases.Manage,
+                Permissions.Releases.Approve,
                 Permissions.Operations.Read,
                 Permissions.Operations.Manage,
                 Permissions.Operations.Approve
@@ -235,6 +270,10 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.StakeholderManage,
                 Permissions.Governance.TailoringRead,
                 Permissions.Governance.TailoringManage,
+                Permissions.Governance.RaciRead,
+                Permissions.Governance.ApprovalEvidenceRead,
+                Permissions.Governance.OverrideLogRead,
+                Permissions.Governance.SlaRead,
                 Permissions.Requirements.Read,
                 Permissions.Requirements.Manage,
                 Permissions.Requirements.Baseline,
@@ -252,6 +291,9 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Verification.Read,
                 Permissions.Verification.SubmitUat,
                 Permissions.Metrics.Read,
+                Permissions.Releases.Read,
+                Permissions.Releases.Manage,
+                Permissions.Releases.Approve,
                 Permissions.Operations.Read
             ],
             ["operis:ba"] =
@@ -259,6 +301,7 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.ProcessLibraryRead,
                 Permissions.Governance.QaChecklistRead,
                 Permissions.Governance.StakeholderRead,
+                Permissions.Governance.RaciRead,
                 Permissions.Requirements.Read,
                 Permissions.Requirements.Manage,
                 Permissions.Requirements.ManageTraceability,
@@ -296,6 +339,8 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Governance.ProjectPlanApprove,
                 Permissions.Governance.TailoringRead,
                 Permissions.Governance.TailoringApprove,
+                Permissions.Governance.ApprovalEvidenceRead,
+                Permissions.Governance.OverrideLogRead,
                 Permissions.Requirements.Read,
                 Permissions.Requirements.Approve,
                 Permissions.Requirements.Baseline,
@@ -309,7 +354,23 @@ public sealed class PermissionMatrix(OperisDbContext? dbContext = null) : IPermi
                 Permissions.Meetings.Approve,
                 Permissions.Meetings.ReadRestricted,
                 Permissions.Verification.Read,
-                Permissions.Verification.Approve
+                Permissions.Verification.Approve,
+                Permissions.Releases.Read,
+                Permissions.Releases.Approve
+            ],
+            ["operis:release_manager"] =
+            [
+                Permissions.Releases.Read,
+                Permissions.Releases.Manage
+            ],
+            ["operis:release_approver"] =
+            [
+                Permissions.Releases.Read,
+                Permissions.Releases.Approve
+            ],
+            ["operis:release_viewer"] =
+            [
+                Permissions.Releases.Read
             ],
             ["operis:requirements_manager"] =
             [

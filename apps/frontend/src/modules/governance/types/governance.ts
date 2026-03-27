@@ -19,6 +19,18 @@ export interface GovernanceListInput extends PaginationInput {
   status?: string;
   ownerUserId?: string;
   projectId?: string;
+  processCode?: string;
+  entityType?: string;
+  actorUserId?: string;
+  outcome?: string;
+  approvedFrom?: string;
+  approvedTo?: string;
+  requestedBy?: string;
+  approvedBy?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
+  scopeType?: string;
+  appliesTo?: string;
 }
 
 export interface ProcessAssetVersionSummary {
@@ -223,3 +235,81 @@ export interface GovernanceMutationResponse {
 }
 
 export type GovernanceListResult<T> = PaginatedResult<T>;
+
+export interface RaciMap {
+  id: string;
+  processCode: string;
+  roleName: string;
+  responsibilityType: "R" | "A" | "C" | "I";
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RaciMapFormInput {
+  processCode: string;
+  roleName: string;
+  responsibilityType: "R" | "A" | "C" | "I";
+  status: string;
+  reason?: string | null;
+}
+
+export interface ApprovalEvidenceLog {
+  id: string;
+  entityType: string;
+  entityId: string;
+  approverUserId: string;
+  approvedAt: string;
+  reason: string;
+  outcome: string;
+}
+
+export interface WorkflowOverrideLog {
+  id: string;
+  entityType: string;
+  entityId: string;
+  requestedBy: string;
+  approvedBy: string;
+  reason: string;
+  occurredAt: string;
+}
+
+export interface SlaRule {
+  id: string;
+  scopeType: string;
+  scopeRef: string;
+  targetDurationHours: number;
+  escalationPolicyId: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SlaRuleFormInput {
+  scopeType: string;
+  scopeRef: string;
+  targetDurationHours: number;
+  escalationPolicyId: string;
+  status: string;
+  reason?: string | null;
+}
+
+export interface RetentionPolicy {
+  id: string;
+  policyCode: string;
+  appliesTo: string;
+  retentionPeriodDays: number;
+  archiveRule?: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RetentionPolicyFormInput {
+  policyCode: string;
+  appliesTo: string;
+  retentionPeriodDays: number;
+  archiveRule?: string | null;
+  status: string;
+  reason?: string | null;
+}

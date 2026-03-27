@@ -117,6 +117,13 @@ Public entry:
 * [apps/frontend/src/modules/metrics/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/metrics/index.ts)
 * [apps/frontend/src/modules/metrics/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/metrics/README.md)
 
+## releases
+
+Public entry:
+
+* [apps/frontend/src/modules/releases/index.ts](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/releases/index.ts)
+* [apps/frontend/src/modules/releases/README.md](/Users/nuttapon/Github-dev/Operis/apps/frontend/src/modules/releases/README.md)
+
 ## operations
 
 Public entry:
@@ -220,6 +227,8 @@ Application surfaces:
 
 * governance queries
 * governance commands
+* governance operations queries
+* governance operations commands
 
 ## requirements
 
@@ -248,6 +257,21 @@ Module entry:
 * [apps/backend/Operis_API/Modules/Metrics/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Metrics/README.md)
 
 Application surfaces:
+
+* metric queries
+* metric commands
+
+## releases
+
+Module entry:
+
+* [apps/backend/Operis_API/Modules/Releases/ReleasesModule.cs](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Releases/ReleasesModule.cs)
+* [apps/backend/Operis_API/Modules/Releases/README.md](/Users/nuttapon/Github-dev/Operis/apps/backend/Operis_API/Modules/Releases/README.md)
+
+Application surfaces:
+
+* release queries
+* release commands
 
 * metric queries
 * metric commands

@@ -83,6 +83,14 @@ public static class Permissions
         public const string TailoringRead = "governance.tailoring.read";
         public const string TailoringManage = "governance.tailoring.manage";
         public const string TailoringApprove = "governance.tailoring.approve";
+        public const string RaciRead = "governance.raci.read";
+        public const string RaciManage = "governance.raci.manage";
+        public const string ApprovalEvidenceRead = "governance.approval_evidence.read";
+        public const string OverrideLogRead = "governance.override_log.read";
+        public const string SlaRead = "governance.sla.read";
+        public const string SlaManage = "governance.sla.manage";
+        public const string RetentionRead = "governance.retention.read";
+        public const string RetentionManage = "governance.retention.manage";
     }
 
     public static class Requirements
@@ -136,6 +144,13 @@ public static class Permissions
         public const string Read = "metrics.read";
         public const string Manage = "metrics.manage";
         public const string OverrideQualityGates = "metrics.quality_gates.override";
+    }
+
+    public static class Releases
+    {
+        public const string Read = "releases.read";
+        public const string Manage = "releases.manage";
+        public const string Approve = "releases.approve";
     }
 
     public static class Notifications
@@ -199,6 +214,14 @@ public static class Permissions
         Governance.TailoringRead,
         Governance.TailoringManage,
         Governance.TailoringApprove,
+        Governance.RaciRead,
+        Governance.RaciManage,
+        Governance.ApprovalEvidenceRead,
+        Governance.OverrideLogRead,
+        Governance.SlaRead,
+        Governance.SlaManage,
+        Governance.RetentionRead,
+        Governance.RetentionManage,
         Requirements.Read,
         Requirements.Manage,
         Requirements.Approve,
@@ -228,6 +251,9 @@ public static class Permissions
         Metrics.Read,
         Metrics.Manage,
         Metrics.OverrideQualityGates,
+        Releases.Read,
+        Releases.Manage,
+        Releases.Approve,
         Operations.Read,
         Operations.Manage,
         Operations.Approve,
@@ -283,6 +309,14 @@ public static class Permissions
             Governance.TailoringRead => "Read Tailoring Records",
             Governance.TailoringManage => "Manage Tailoring Records",
             Governance.TailoringApprove => "Approve Tailoring Records",
+            Governance.RaciRead => "Read RACI Maps",
+            Governance.RaciManage => "Manage RACI Maps",
+            Governance.ApprovalEvidenceRead => "Read Approval Evidence",
+            Governance.OverrideLogRead => "Read Workflow Override Logs",
+            Governance.SlaRead => "Read SLA Rules",
+            Governance.SlaManage => "Manage SLA Rules",
+            Governance.RetentionRead => "Read Retention Policies",
+            Governance.RetentionManage => "Manage Retention Policies",
             Requirements.Read => "Read Requirements",
             Requirements.Manage => "Manage Requirements",
             Requirements.Approve => "Approve Requirements",
@@ -312,6 +346,9 @@ public static class Permissions
             Metrics.Read => "Read Metrics and Quality Gates",
             Metrics.Manage => "Manage Metric Definitions and Schedules",
             Metrics.OverrideQualityGates => "Override Quality Gates",
+            Releases.Read => "Read Releases",
+            Releases.Manage => "Manage Releases and Checklists",
+            Releases.Approve => "Approve, Release, and Publish Release Notes",
             Operations.Read => "Read Security and Dependency Reviews",
             Operations.Manage => "Manage Security and Dependency Reviews",
             Operations.Approve => "Approve Access Reviews",
